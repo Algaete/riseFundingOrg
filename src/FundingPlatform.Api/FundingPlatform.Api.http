@@ -1,0 +1,19 @@
+@FundingPlatform.Api_HostAddress = http://localhost:5070
+
+GET {{FundingPlatform.Api_HostAddress}}/
+Accept: application/json
+X-Correlation-ID: local-smoke-test
+
+###
+
+GET {{FundingPlatform.Api_HostAddress}}/health
+
+###
+
+GET {{FundingPlatform.Api_HostAddress}}/health/ready
+
+###
+
+GET {{FundingPlatform.Api_HostAddress}}/swagger/v1/swagger.json
+
+###

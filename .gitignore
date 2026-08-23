@@ -1,0 +1,78 @@
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Editors and IDEs
+.idea/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Local .NET SDK and build outputs
+.dotnet/
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+**/coverage/
+**/coverage.*
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Frontend dependencies and generated output
+**/node_modules/
+**/dist/
+**/.vite/
+**/.turbo/
+**/.eslintcache
+**/playwright-report/
+**/test-results/
+
+# Local configuration and secrets
+# Ignore every local dotenv variant at the root or in a nested project. Only the
+# sanitized examples are versionable.
+.env*
+**/.env*
+*.env
+*.env.*
+!.env.example
+!**/.env.example
+.direnv/
+**/local.settings.json
+!**/local.settings.example.json
+secrets.json
+*.pfx
+*.p12
+*.key
+*.pem
+
+# Azure and local emulators
+.azure/
+.azurite/
+__azurite_db*__
+__blobstorage__/
+__queuestorage__/
+
+# Logs, temporary files and process state
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.pid
+
+# Local database artifacts and backups
+*.bak
+*.bacpac
+*.dacpac
+*.mdf
+*.ldf

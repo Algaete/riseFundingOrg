@@ -1,0 +1,31 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "DocumentExtractionQueueStorage": "UseDevelopmentStorage=true",
+    "DocumentExtractionQueueStorage__clientId": "",
+    "DocumentExtractionQueueStorage__senderClientId": "",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
+    "AZURE_SQL_CONNECTION_STRING": "<CONFIGURE_LOCALMENTE_EN_.env>",
+    "IMPORT_WORKER_LEASE_SECONDS": "1800",
+    "IMPORT_SCHEDULER_BATCH_SIZE": "10",
+    "IMPORT_OUTBOX_BATCH_SIZE": "25",
+    "GRANTS_GOV_TIMEOUT_SECONDS": "20",
+    "IMPORT_ALLOWED_PROVIDERS": "grants-gov",
+    "CONTENT_RETENTION_BATCH_SIZE": "100",
+    "CONTENT_RETENTION_SOURCE_DOCUMENT_BATCH_SIZE": "25",
+    "CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS": "900",
+    "AZURE_STORAGE_BLOB_SERVICE_URI": "https://fpongdev1234.blob.core.windows.net",
+    "SOURCE_DOCUMENT_INCOMING_CONTAINER": "fp-source-incoming",
+    "SOURCE_DOCUMENT_QUARANTINE_CONTAINER": "fp-source-quarantine",
+    "SOURCE_DOCUMENT_TRUSTED_CONTAINER": "fp-source-trusted",
+    "SOURCE_DOCUMENT_MAX_BYTES": "26214400",
+    "SOURCE_DOCUMENT_SCAN_MODE": "DevelopmentFake",
+    "SOURCE_DOCUMENT_DEVELOPMENT_FAKE_RESULT": "Clean",
+    "DEFENDER_EVENT_GRID_ENABLED": "false",
+    "DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES": "240",
+    "DEFENDER_WATCHDOG_BATCH_SIZE": "25",
+    "OFFICIAL_RSS_ENABLED": "false"
+  }
+}
