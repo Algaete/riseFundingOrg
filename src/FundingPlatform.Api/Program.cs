@@ -14,6 +14,7 @@ using FundingPlatform.Application.Authentication;
 using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
+using FundingPlatform.Application.Matching;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Projects;
@@ -29,6 +30,7 @@ using FundingPlatform.Infrastructure.Identity.Persistence;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
+using FundingPlatform.Infrastructure.Persistence.Matching;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
 using FundingPlatform.Infrastructure.Persistence.Marketplace;
 using FundingPlatform.Infrastructure.Persistence.Projects;
@@ -127,6 +129,8 @@ builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
 builder.Services.AddScoped<FundingApplicationService>();
+builder.Services.AddScoped<IProjectMatchingRepository, SqlProjectMatchingRepository>();
+builder.Services.AddScoped<ProjectMatchingService>();
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISourceDocumentExtractionRepository,
     SqlSourceDocumentExtractionRepository>();
@@ -349,6 +353,16 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("matching-run-create", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
     options.AddPolicy("organization-funding-read", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -457,7 +471,6 @@ app.UseSerilogRequestLogging(options =>
 });
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-app.UseRateLimiter();
 app.UseCors(policy => policy
     .WithOrigins(webOptions.AllowedCorsOrigins)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
@@ -472,6 +485,7 @@ if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
@@ -510,10 +524,19 @@ app.MapAdminProjectEndpoints();
 app.MapPublicProjectEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapFundingApplicationEndpoints();
+app.MapProjectMatchingEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {
-    return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    var subject = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? context.User.FindFirstValue("sub");
+    if (context.User.Identity?.IsAuthenticated == true &&
+        Guid.TryParse(subject, out var userPublicId))
+    {
+        return $"user:{userPublicId:D}";
+    }
+
+    return $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
 }
 
 app.Run();

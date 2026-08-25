@@ -36,8 +36,9 @@ gobierno de fuentes, retención y recepción Defender/Event Grid fail-closed. La
 recursos Defender/Event Grid continúa como operación de infraestructura. FASE 8A agregó catálogo
 organizacional, filtros, detalle completo, favoritos privados y Full-Text con fallback literal;
 FASE 8B preparó localmente marketplace de proyectos, postulaciones y calendario derivado, pero su
-migración `019` no se desplegó ni se validó contra ninguna base. Matching, billing y alertas conservan
-sus fases del roadmap.
+migración `019` no se desplegó ni se validó contra ninguna base. FASE 9A completó localmente el motor
+determinístico y preparó la migración `020`, también sin conexión ni despliegue. IA, embeddings,
+billing y alertas conservan fases posteriores del roadmap.
 
 No se registra la cadena de conexión, la identidad de despliegue ni ningún secreto.
 
@@ -299,3 +300,34 @@ commit de Azure SQL.
   posterior, explícito y autorizado, con preflight, backup/PITR y registro de resultados observados.
 - No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
   cadenas de conexión, PII ni datos reales de postulaciones.
+
+## Preparación local 020 — FASE 9A, sin despliegue (2026-08-24)
+
+- Se preparó `020_deterministic_project_matching.sql` con SHA-256
+  `984450d06cb17447be8b3af595caa6415ce9e59f2b5e4d53bc3466ce2b25921e`
+  (1718 líneas, 15 separadores `GO`/16 lotes).
+- Se preparó `020_deterministic_project_matching_smoke.sql` con SHA-256
+  `a827cc9234831c757583b2e6776c13d2550985dcce566653dc171616f3e036f6`
+  (924 líneas, sin separadores `GO`/un lote).
+- Los artefactos cubren perfiles/reglas/pesos inmutables, ejecuciones históricas por proyecto,
+  matches y desglose explicable, idempotencia durable, catálogo reproducible y TOP 200 determinístico.
+- El perfil `v1` evalúa nueve reglas con hard gates `Pass`/`Fail`/`Unknown`. Los datos desconocidos
+  aportan cero y reducen cobertura sin renormalizar; un hard `Fail` clasifica `Incompatible` con
+  score no aplicable. Los otros estados de presentación son `Compatible` y `Datos insuficientes`.
+- La superficie API/UI permite calcular sincrónicamente, listar historial y consultar un detalle con
+  versiones, vigencia, score, cobertura, razones, advertencias y evidencia allowlisted.
+- Por instrucción del propietario no se abrió una conexión a Azure SQL ni a otro entorno DB y no se
+  ejecutaron `--validate`, `--apply`, `--test` o `--status` para `019` o `020`.
+- Por lo anterior, el último estado observado de `res` continúa siendo el cierre 8A de 18/18
+  migraciones. Este registro no inventa 19/19 o 20/20, lotes aplicados, object count, idempotencia de
+  despliegue ni smokes SQL exitosos. La activación futura debe aplicar `019` antes de `020`, con
+  preflight, backup/PITR y registro de resultados observados.
+- El parsing estático T-SQL 170 y la inspección AST de ambos artefactos terminaron limpios. Estas
+  comprobaciones no sustituyen una ejecución transaccional contra SQL Server/Azure SQL.
+- El gate local de aplicación pasó build .NET (0 warnings/0 errores), 281/281 pruebas unitarias,
+  123/123 de integración, lint frontend, 21 archivos/104 pruebas Vitest y build de producción. El foco
+  archived/matching pasó 2 archivos/6 pruebas. Ningún gate abrió una conexión SQL.
+- FASE 9A no usa OpenAI, IA, embeddings ni similitud semántica y sus resultados son orientativos:
+  no constituyen una recomendación ni confirman elegibilidad.
+- No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
+  cadenas de conexión, PII ni datos reales de matching.

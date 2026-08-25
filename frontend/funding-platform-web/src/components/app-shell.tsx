@@ -37,7 +37,7 @@ interface NavigationItem {
 const memberNavigation: NavigationItem[] = [
   { label: 'Resumen', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Concursos disponibles', to: '/opportunities', icon: Radar },
-  { label: 'Recomendados', to: '/recommended', icon: Gauge },
+  { label: 'Compatibilidad', to: '/matching', icon: Gauge },
   { label: 'Favoritos', to: '/favorites', icon: Heart },
   { label: 'Postulaciones', to: '/applications', icon: ClipboardList },
   { label: 'Calendario', to: '/calendar', icon: CalendarDays },

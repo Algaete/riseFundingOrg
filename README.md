@@ -6,12 +6,12 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **FASE 8B en código local**. Además del catálogo organizacional de 8A,
-ahora ofrece un marketplace público de proyectos y organizaciones, seguimiento privado de
-postulaciones por proyecto/fondo y un calendario básico derivado. La migración `019` y su smoke están
-preparados, pero por instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni
-contra otro entorno de base de datos**. Matching, recomendaciones, IA y embeddings continúan fuera
-de este corte.
+El repositorio completó la **FASE 9A en código local**. Sobre el catálogo y la actividad de 8A/8B,
+permite calcular y consultar compatibilidad determinística por proyecto, con historial versionado y
+desglose explicable de nueve reglas. Las migraciones `019` y `020`, junto con sus smokes, permanecen
+como artefactos locales: por instrucción del propietario **no se aplicaron ni validaron contra Azure
+SQL ni contra otro entorno de base de datos**. 9A no usa IA ni embeddings y no presenta sus
+resultados como recomendación o confirmación de elegibilidad.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -26,7 +26,8 @@ de este corte.
 | 7B | Completada | Extracción PDF aislada, recepción Defender/Event Grid fail-closed, RSS gobernado, retención y deduplicación humana |
 | 8A | Completada | Catálogo organizacional protegido, búsqueda, filtros, órdenes, paginación, detalle completo y favoritos privados |
 | 8B | Código completado; activación DB pendiente | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
-| 9–11 | Pendiente | Matching por proyecto e IA, alertas, networking y billing |
+| 9A | Código completado; activación DB pendiente | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
+| 9B–11 | Pendiente | IA/embeddings evaluados, alertas, networking y billing |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -34,9 +35,9 @@ la ampliación project-first está en
 [docs/REVISION-VISION-FUNDRAISING-GLOBAL.md](docs/REVISION-VISION-FUNDRAISING-GLOBAL.md).
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
-0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. La `019`
-de 8B no forma parte de ese resultado: permanece solo como artefacto local pendiente de un despliegue
-posterior autorizado. El código
+0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
+de 8B y `020` de 9A no forman parte de ese resultado: permanecen como artefactos locales pendientes
+de un despliegue posterior autorizado. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -325,7 +326,7 @@ tamaño, páginas, caracteres, bytes UTF-8 y profundidad. El parser solicita can
 segundos y el host tiene un límite exterior de 5 minutos. Esto separa proceso y permisos, pero no es
 una sandbox de sistema operativo ni garantiza preempción dura dentro del parser. El resultado
 expone métricas/evidencia sanitizada, nunca el contenido bruto, hash o ruta privada. Esta fase no
-llama a IA ni interpreta campos; ese enriquecimiento permanece en FASE 9.
+llama a IA ni interpreta campos; ese enriquecimiento permanece en FASE 9B.
 
 La retención redacta en SQL el raw, items, resultados y evidencia al vencer la política. Para blobs,
 el worker solicita borrado sobre el nombre y ETag exactos e itera snapshots y versiones. La
@@ -503,8 +504,8 @@ recurso ajeno existe, y estas rutas usan sesión completa, `Cache-Control: no-st
 El calendario no duplica datos en una tabla propia: deriva, para intervalos de hasta 366 días, los
 cierres de fondos vinculados, fechas planificadas de envío y resultado, inicio/término del proyecto y
 cierres de favoritos todavía no representados por una postulación activa. Las postulaciones
-descartadas se excluyen. 8B no agrega matching, score, recomendaciones, IA, alertas, networking ni
-billing.
+descartadas se excluyen. 8B no agregó matching, score, recomendaciones, IA, alertas, networking ni
+billing; la compatibilidad determinística posterior corresponde a 9A.
 
 `019_project_marketplace_applications_calendar.sql` y
 `019_project_marketplace_applications_calendar_smoke.sql` están preparados como artefactos
@@ -519,6 +520,53 @@ un inventario de objetos ni un smoke SQL real de 8B. Sus huellas locales congela
 
 El parsing local ScriptDom terminó correctamente y pasaron 4/4 pruebas de arquitectura 8B. Estos
 gates son estáticos y no equivalen a ejecutar SQL contra una base real.
+
+## Compatibilidad determinística por proyecto — FASE 9A
+
+La vista autenticada `/matching` permite elegir un proyecto, iniciar un cálculo, revisar su resumen
+y abrir ejecuciones históricas. `/recommended` se conserva como alias hacia la misma experiencia.
+La API privada, siempre bajo sesión completa, aislamiento tenant mediante `404`, `no-store` y rate
+limit, expone:
+
+- `POST /api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs`;
+- `GET /api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs`;
+- `GET /api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs/{matchingRunId}`.
+
+El `POST` es síncrono, exige `Idempotency-Key` de 16–128 caracteres y materializa como máximo 200
+oportunidades abiertas en un orden determinístico. La respuesta distingue una ejecución nueva de un
+replay seguro. El
+historial conserva las versiones de proyecto, perfil institucional, contenido de cada fondo, motor,
+perfil de matching y conjunto de reglas; `isCurrent` permite advertir cuando el resultado ya no
+representa el estado vigente. También informa el total del catálogo evaluable, el instante de su
+snapshot y si el TOP 200 truncó candidatos.
+
+El perfil `v1` suma 100% mediante nueve reglas: geografía (20%), tipo de organización (15%), figura
+jurídica (15%), años de operación (10%), experiencia previa (10%), áreas temáticas (10%),
+beneficiarios (5%), tipo de proyecto (5%) y monto (10%). Las cinco primeras son condiciones
+excluyentes y cada una queda en `Pass`, `Fail` o `Unknown`. Un `Fail` clasifica el fondo como
+`Incompatible` y deja el score en “No aplica”; sin fallos, un hard gate `Unknown` produce `Datos
+insuficientes`, y solo todos los hard gates en `Pass` permiten mostrar `Compatible`.
+
+Cada regla conserva resultado, estado del dato, peso, puntos, razón, parámetros y evidencia
+allowlisted. `Unknown` aporta cero puntos y reduce la cobertura; los pesos conocidos nunca se
+renormalizan. La interfaz muestra score y cobertura por separado, advertencias y versiones, junto
+con el aviso permanente de que el resultado es orientativo. Esta fase no llama a OpenAI, no genera
+embeddings, no hace ranking semántico y no afirma recomendación ni elegibilidad.
+
+`020_deterministic_project_matching.sql` y su smoke están preparados localmente. En este corte no se
+ejecutaron `--validate`, `--apply`, `--test` ni `--status` contra SQL Server/Azure SQL; tampoco se
+declara una versión `020` aplicada, un nuevo inventario de objetos ni un smoke SQL real. La
+activación exige primero aplicar `019` y luego `020` mediante un despliegue explícito y autorizado.
+
+Sus huellas locales congeladas son:
+
+- migración `020` (1718 líneas/16 lotes):
+  `984450d06cb17447be8b3af595caa6415ce9e59f2b5e4d53bc3466ce2b25921e`;
+- smoke `020` (924 líneas/un lote):
+  `a827cc9234831c757583b2e6776c13d2550985dcce566653dc171616f3e036f6`.
+
+El parsing estático T-SQL 170 y la inspección AST terminaron limpios. Estas comprobaciones locales no
+equivalen a ejecutar la migración o el smoke contra un motor SQL.
 
 ## Pruebas y validación
 
@@ -689,6 +737,12 @@ El gate local de código de 8B terminó con build de la solución .NET en 0 warn
 Vitest y el build de producción. Estos resultados validan código y contratos locales; no sustituyen
 la validación transaccional ni el smoke de `019` en SQL Server/Azure SQL, que siguen pendientes.
 
+El gate local de código de 9A terminó con build de la solución .NET en 0 warnings/0 errores,
+281/281 pruebas unitarias y 123/123 de integración. En frontend pasaron lint, 21 archivos/104 pruebas
+Vitest y el build de producción; el foco archived/matching pasó además 2 archivos/6 pruebas. Estos
+resultados y los gates estáticos de `020` no sustituyen la ejecución pendiente de `019`/`020` y sus
+smokes en SQL Server/Azure SQL.
+
 Endpoints principales del backend hasta este cierre:
 
 - tenant: `POST /api/v1/organizations/{organizationId}/projects/{projectId}/publish` y
@@ -703,6 +757,8 @@ Endpoints principales del backend hasta este cierre:
 - actividad privada: listado/alta/detalle/actualización bajo
   `/api/v1/organizations/{organizationId}/applications` y calendario derivado bajo
   `/api/v1/organizations/{organizationId}/calendar`;
+- compatibilidad privada: alta idempotente, historial paginado y detalle explicable bajo
+  `/api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs`;
 - importación Admin/SuperAdmin con MFA: `POST /api/v1/admin/funding-sources/{sourceId}/import-runs`,
   `GET /api/v1/admin/import-runs` y
   `GET /api/v1/admin/import-runs/{runId}`;
@@ -778,9 +834,9 @@ Como `res` es compartida, una recuperación PITR se restaura primero en una base
 El baseline de FASE 2 es deliberadamente acotado: incluye catálogos, identidad base,
 organizaciones/perfiles, oportunidades/fuentes canónicas, plan Free y outbox. FASE 6 agregó
 evidence editorial; FASE 7A, contenido bruto/runs para Grants.gov; y FASE 7B, extracción PDF
-gobernada y un RSS oficial fijo sujeto a compliance. Proyectos/funders
-llegaron en FASE 5/6 y el matching
-project-first permanece en FASE 9.
+gobernada y un RSS oficial fijo sujeto a compliance. Proyectos/funders llegaron en FASE 5/6 y 9A
+agregó la primera compatibilidad project-first, determinística y acotada; IA, embeddings y semántica
+permanecen para una fase posterior.
 Billing y alertas conservan sus fases; la autenticación completa corresponde a las
 migraciones 002/003/004 de FASE 3.
 
@@ -887,7 +943,9 @@ El orden de ejecución es:
 - FASE 8A — catálogo organizacional, búsqueda, detalle completo y favoritos privados;
 - FASE 8B — marketplace, postulaciones y calendario básico completados en código; activación de
   `019` pendiente de un despliegue autorizado;
-- FASE 9 — matching por proyecto, IA y embeddings;
+- FASE 9A — compatibilidad determinística, versionada y explicable por proyecto, completada en
+  código local; activación de `020` pendiente de un despliegue autorizado;
+- FASE 9B — IA y embeddings condicionados a evaluación, sin delegar el score a un modelo;
 - FASE 10 — alertas, pipeline, calendario y networking básico;
 - FASE 11 — suscripciones y administración completa;
 - FASE 12 — hardening, pruebas y despliegue.

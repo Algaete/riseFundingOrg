@@ -5,7 +5,7 @@ export const es = {
     navigation: {
       home: 'Inicio',
       opportunities: 'Oportunidades',
-      recommended: 'Recomendados',
+      recommended: 'Compatibilidad',
       applications: 'Postulaciones',
       calendar: 'Calendario',
       alerts: 'Alertas',

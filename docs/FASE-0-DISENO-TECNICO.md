@@ -2,9 +2,10 @@
 
 **Estado:** baseline técnico aprobado; FASE 8A completada con gate SQL aplicado hasta `018` y
 Full-Text provisionado; FASE 8B completada en código local, con `019` preparada pero no aplicada ni
-validada contra un entorno de base de datos
+validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
+sin aplicación ni prueba contra una base de datos
 
-**Fecha de referencia:** 11 de agosto de 2026
+**Fecha de referencia:** 24 de agosto de 2026
 
 **Ampliación vigente:** la revisión de visión del 17 de agosto de 2026 incorpora proyectos,
 funders, networking e ingesta gobernada. En alcance funcional, matching y roadmap prevalece
@@ -53,11 +54,12 @@ Estos números no son límites rígidos; sirven para diseñar índices y pruebas
 - hasta 100 fuentes configuradas y 20.000 ítems brutos diarios;
 - hasta varios millones de matches históricos, evitando calcular el producto cartesiano completo;
 - documentos administrativos de hasta 25 MB en MVP;
-- carga predominante de lectura, con importaciones y matching asíncronos.
+- carga predominante de lectura; 9A calcula bajo demanda y sincrónicamente un TOP 200 acotado,
+  mientras importaciones y futuros recálculos masivos permanecen asíncronos.
 
-Se precomputarán únicamente matches de oportunidades activas para proyectos elegibles de
-organizaciones cuyo perfil esté completo, reteniendo un conjunto útil (por ejemplo, top 100–250) y
-el historial relevante. No se materializará `proyectos × todos los fondos`.
+9A materializa bajo demanda un máximo de 200 oportunidades abiertas por ejecución y conserva el
+historial relevante. Los recálculos masivos futuros precomputarán solo oportunidades activas para
+proyectos aptos; no se materializará `proyectos × todos los fondos`.
 
 ### 2.2 Objetivos operativos iniciales
 
@@ -130,8 +132,10 @@ No se promete un crawler universal. Un proveedor web concreto solo se habilitar�
 FASE 8A materializa el catálogo organizacional protegido, su detalle completo y favoritos privados.
 FASE 8B agrega un marketplace público de proyectos/organizaciones, seguimiento privado de
 postulaciones y un calendario básico derivado. Un filtro describe datos declarados; no evalúa
-elegibilidad, no genera score y no constituye recomendación. El matching project-aware, IA y
-embeddings permanecen en FASE 9.
+elegibilidad, no genera score y no constituye recomendación. FASE 9A agrega compatibilidad
+project-aware determinística, versionada y explicable; no usa IA o embeddings y tampoco confirma
+elegibilidad ni se presenta como recomendación. La ampliación semántica permanece para 9B, sujeta a
+evaluación.
 
 #### IA y matching
 
@@ -141,6 +145,10 @@ embeddings permanecen en FASE 9.
 - explicación determinística como fallback y explicación IA solo a partir del desglose calculado;
 - trazabilidad de modelo, prompt/esquema, contenido de entrada y evidencia;
 - caché por hash para no pagar dos veces por el mismo contenido.
+
+El primer corte 9A implementa solo el motor determinístico: nueve reglas, hard gates
+`Pass`/`Fail`/`Unknown`, score conservador y cobertura sin renormalización. `OpenAiService`,
+embeddings, similitud semántica y explicaciones generadas no forman parte de este corte.
 
 #### Monetización y administración
 
@@ -226,7 +234,7 @@ Controller
           |
           +----------> [Proveedor email]
           |
-          +----------> [ImportRuns/MatchRuns + Azure Queue Storage]
+          +----------> [ImportRuns + futuros recálculos masivos en Azure Queue Storage]
                              |
                              v
                 [Azure Functions .NET 10 isolated]
@@ -440,7 +448,24 @@ Documentación oficial: [tipo `VECTOR` de SQL Server/Azure SQL](https://learn.mi
 
 ### ADR-004 — Matching híbrido, versionado y explicable
 
-**Decisión:** la IA generativa no calcula el porcentaje. Un perfil de pesos activo define reglas determinísticas. FASE 9 publica `v1` con 100% determinístico y, tras el backfill/evaluación, el perfil híbrido final del MVP `v2`, donde la similitud semántica aporta como máximo 5%.
+**Decisión:** la IA generativa no calcula el porcentaje. Un perfil de pesos activo define reglas
+determinísticas. FASE 9A implementa `deterministic-project-v1`, 100% determinístico; solo después de
+backfill y evaluación podrá existir un perfil híbrido `v2`, donde la similitud semántica aportaría
+como máximo 5%.
+
+Pesos implementados en `v1`:
+
+| Regla | Peso | Condición excluyente |
+|---|---:|:---:|
+| Geografía | 20% | Sí |
+| Tipo de organización | 15% | Sí |
+| Figura jurídica | 15% | Sí |
+| Años de operación | 10% | Sí |
+| Experiencia previa | 10% | Sí |
+| Áreas temáticas | 10% | No |
+| Beneficiarios | 5% | No |
+| Tipo de proyecto | 5% | No |
+| Monto | 10% | No |
 
 Pesos del perfil híbrido `v2`:
 
@@ -454,18 +479,27 @@ Pesos del perfil híbrido `v2`:
 | Elegibilidad | 10% |
 | Semántica | 5% |
 
-Las condiciones institucionales explícitamente excluyentes —país no elegible, tipo excluido o personalidad jurídica obligatoria incumplida— generan `Ineligible` y no pueden ser compensadas por semántica. Una convocatoria cerrada es `Unavailable`, no “organización inelegible”; se filtra por fecha al consultar y no obliga a recalcular el score histórico.
+En `v1`, las cinco condiciones institucionales excluyentes agregan estado `Pass`, `Fail` o
+`Unknown`. Un `Fail` genera `Incompatible`, deja `CompatibilityScore` en `NULL`/“No aplica” y no
+puede ser compensado por reglas blandas. Sin fallos, un hard gate desconocido genera `Datos
+insuficientes`; con todos aprobados, el resultado es `Compatible`. Una convocatoria cerrada no es
+“organización inelegible”: 9A la excluye del conjunto de candidatos abiertos.
 
-Cada regla devuelve `Match`, `Partial`, `NoMatch` o `Unknown`, score 0–100, reason code, parámetros y evidencia. En `v1` y `v2`, `Unknown` no suma y reduce `EvidenceCoverage`; no se renormaliza el resto porque eso podría inflar artificialmente una ficha incompleta. Por eso se muestran dos valores:
+Cada regla devuelve `Match`, `Partial`, `NoMatch` o `Unknown`, score 0–100, reason code, parámetros y evidencia. En `v1` y un eventual `v2`, `Unknown` no suma y reduce `EvidenceCoverage`; no se renormaliza el resto porque eso podría inflar artificialmente una ficha incompleta. Por eso se muestran dos valores:
 
 - **CompatibilityScore:** suma ponderada conservadora sobre el 100% de criterios.
 - **EvidenceCoverage:** porcentaje de peso respaldado por datos conocidos.
 
-La consulta puede exigir una cobertura mínima configurable para aparecer entre recomendaciones, pero la UI no esconderá la incertidumbre. Se guarda versión de reglas, versión de perfil, versión del fondo y desglose completo para reproducir el resultado.
+La UI no esconde la incertidumbre. Cada ejecución 9A fija `ProjectVersion`,
+`OrganizationProfileVersion`, versiones de contenido de los fondos, versión de motor, perfil/ruleset,
+año de cálculo y huella del catálogo. Conserva el desglose completo y marca `isCurrent=false` si
+cambia cualquiera de esas entradas relevantes. El procesamiento es sincrónico y materializa TOP 200
+en orden determinístico; una huella considera todo el catálogo abierto elegible para detectar
+cambios aun cuando quede truncado.
 
 ### ADR-005 — Mercado Pago como gateway inicial
 
-**Decisión:** implementar primero `MercadoPagoPaymentGateway`, condicionado a que la entidad que facture esté constituida en Chile y a revalidar disponibilidad/condiciones en FASE 9.
+**Decisión:** implementar primero `MercadoPagoPaymentGateway`, condicionado a que la entidad que facture esté constituida en Chile y a revalidar disponibilidad/condiciones en FASE 11.
 
 Mercado Pago Chile documenta API de suscripciones recurrentes mensuales/anuales. La lista oficial actual de países para abrir una cuenta Stripe no incluye Chile. `IPaymentGateway` mantiene aislado el proveedor para incorporar Stripe si la entidad comercial o expansión internacional lo justifica.
 
@@ -547,8 +581,8 @@ billing y alertas se agregarán en migraciones de su fase para no congelar
 prematuramente detalles, aunque su diseño queda definido aquí. FASE 6 incorporó evidence
 editorial y el límite seguro de documentos. FASE 7A incorporó runs, raw inmutable y adquisición
 durable desde Grants.gov; FASE 7B agregó extracción PDF, recepción Defender/Event Grid fail-closed,
-RSS gobernado, retención y revisión humana de duplicados. Proyectos/funders se agregaron en FASE 5/6
-y el matching project-first permanece en FASE 9.
+RSS gobernado, retención y revisión humana de duplicados. Proyectos/funders se agregaron en FASE 5/6;
+9A agrega compatibilidad project-first determinística y 9B reserva la ampliación con IA/embeddings.
 
 ### 7.2 Catálogos normalizados
 
@@ -1139,7 +1173,7 @@ FundingOpportunityId BIGINT NULL
 FundingContentVersion INT NULL
 OrganizationId BIGINT NULL
 OrganizationProfileVersion INT NULL
-OrganizationFundingMatchId BIGINT NULL
+ProjectFundingMatchId BIGINT NULL
 ProviderResponseId NVARCHAR(200) NULL
 StructuredOutputJson NVARCHAR(MAX) NULL
 OutputBlobContainer NVARCHAR(100) NULL
@@ -1159,7 +1193,7 @@ CreatedAtUtc DATETIME2(3) NOT NULL
 
 UQ `CacheKey` y un claim atómico evitan ejecuciones concurrentes conocidas; un retry reutiliza la misma fila/clave. Un check exige `Global ⇒ OrganizationId IS NULL` y `Organization ⇒ OrganizationId IS NOT NULL`, además de la combinación de IDs/versiones requerida por cada `SubjectType`. La key se calcula únicamente en servidor e incluye scope, `SubjectType + SubjectId + subject version`, operación, input hash, proveedor, modelo y versiones de prompt/schema/template; el SP rechaza una key que no coincida con esos componentes. Por diseño MVP no se comparte una fila de auditoría entre dos fondos o matches aunque su texto sea idéntico; una caché de artefactos cross-subject separada solo se justificaría después de medir ahorro. Contenido público de fondos usa `Global`; perfil, match y explicación usan `Organization`, impidiendo por restricción/clave que una fila privada sea compartida entre tenants. IX `(Status, CreatedAtUtc)`; check `ISJSON(StructuredOutputJson)=1` cuando exista. `Extract` exige prompt+schema; `Summarize/Explain`, prompt; `Embed`, template. Estados terminales exigen `FinishedAtUtc`.
 
-Los SP de persistencia validan el sujeto, no solo el ID de run: si existen `ImportRunItemId + RawFundingOpportunityId`, el item debe referenciar ese mismo raw/fuente; un embedding de fondo exige `Operation=Embed`, scope global y los mismos `FundingOpportunityId + FundingContentVersion + InputContentHash + Provider/Model/Template`; uno institucional exige scope y `OrganizationId + OrganizationProfileVersion` equivalentes. Evidence solo acepta runs `Extract/Summarize` ligados al raw/fondo correcto. Una explicación exige `Operation=Explain`, mismo `OrganizationFundingMatchId`, organización, fondo y fingerprint de desglose. UQ auxiliares/FKs compuestas por run+sujeto se usan donde no introducen ciclos; las referencias circulares nullable se completan mediante SP tras crear la ejecución. Así un `AiProcessingRunId` de otro tenant, versión o modelo no pasa por “tener una FK válida”.
+Los SP de persistencia validan el sujeto, no solo el ID de run: si existen `ImportRunItemId + RawFundingOpportunityId`, el item debe referenciar ese mismo raw/fuente; un embedding de fondo exige `Operation=Embed`, scope global y los mismos `FundingOpportunityId + FundingContentVersion + InputContentHash + Provider/Model/Template`; uno institucional exige scope y `OrganizationId + OrganizationProfileVersion` equivalentes. Evidence solo acepta runs `Extract/Summarize` ligados al raw/fondo correcto. Una futura explicación 9B exigirá `Operation=Explain`, mismo `ProjectFundingMatchId`, organización, proyecto, fondo y fingerprint de desglose. UQ auxiliares/FKs compuestas por run+sujeto se usan donde no introducen ciclos; las referencias circulares nullable se completan mediante SP tras crear la ejecución. Así un `AiProcessingRunId` de otro tenant, versión o modelo no pasa por “tener una FK válida”.
 
 La salida estructurada razonable se conserva en SQL; una respuesta grande vive en Blob. No se almacena el prompt con secretos ni el documento completo. Un crash después de que el proveedor cobre pero antes de persistir puede exigir retry: “no pagar dos veces” es best effort observable, no garantía imposible sin idempotencia del proveedor.
 
@@ -1196,77 +1230,90 @@ OrganizationProfileEmbeddings
   PK (OrganizationId, ProfileVersion, PurposeCode, EmbeddingVersion)
 ```
 
-La propuesta v1 fija 1536 dimensiones y exige que el modelo seleccionado en FASE 9 las produzca explícitamente; `Dimensions` lleva check 1536. La [documentación oficial de embeddings de OpenAI](https://developers.openai.com/api/docs/guides/embeddings) confirma tanto modelos con salida 1536 como el parámetro `dimensions`; aun así, modelo y costo se eligen mediante evals, no por asumir un alias eterno. `EmbeddingVersion` es un contador/configuración dentro de cada versión de contenido/perfil+purpose, por eso ambas PK incluyen simétricamente `ContentVersion/ProfileVersion`. UQ filtrado `(FundingOpportunityId, PurposeCode) WHERE IsCurrent=1` y equivalente por organización seleccionan el vector vigente. Checks exigen `IsCurrent=1 ⇔ RetiredAtUtc IS NULL`. Otra dimensión exige tabla/migración versionada; no se fuerza un vector distinto dentro de la misma columna. El vector solo es utilizable cuando coincide `ContentVersion/ProfileVersion`, modelo, template y hash. `AiProcessingRunId` referencia obligatoriamente la ejecución `Embed` que produjo el vector; un reemplazo marca el anterior no vigente y completa `RetiredAtUtc` en la misma transacción.
+La propuesta v1 fija 1536 dimensiones y exige que el modelo seleccionado en FASE 9B las produzca explícitamente; `Dimensions` lleva check 1536. La [documentación oficial de embeddings de OpenAI](https://developers.openai.com/api/docs/guides/embeddings) confirma tanto modelos con salida 1536 como el parámetro `dimensions`; aun así, modelo y costo se eligen mediante evals, no por asumir un alias eterno. `EmbeddingVersion` es un contador/configuración dentro de cada versión de contenido/perfil+purpose, por eso ambas PK incluyen simétricamente `ContentVersion/ProfileVersion`. UQ filtrado `(FundingOpportunityId, PurposeCode) WHERE IsCurrent=1` y equivalente por organización seleccionan el vector vigente. Checks exigen `IsCurrent=1 ⇔ RetiredAtUtc IS NULL`. Otra dimensión exige tabla/migración versionada; no se fuerza un vector distinto dentro de la misma columna. El vector solo es utilizable cuando coincide `ContentVersion/ProfileVersion`, modelo, template y hash. `AiProcessingRunId` referencia obligatoriamente la ejecución `Embed` que produjo el vector; un reemplazo marca el anterior no vigente y completa `RetiredAtUtc` en la misma transacción.
 
 ### 7.7 Matching
 
-> **Revisión 2026-08-17:** ADR-009 reemplaza el sujeto de las estructuras lógicas descritas a
-> continuación. `OrganizationFundingMatches`/`MatchRuns` muestran el diseño original, todavía no
-> materializado en SQL. Su implementación será `ProjectFundingMatches`/runs por proyecto e incluirá
-> `ProjectId + ProjectVersion` además de la versión institucional. Los principios de perfiles,
-> reglas, score, coverage, evidencia, versionado e inmutabilidad se conservan.
+> **Revisión 2026-08-24:** FASE 9A materializa en la migración local `020` el sujeto project-first.
+> El esquema siguiente reemplaza el diseño original basado en matches de organización. La migración
+> aún no fue aplicada ni probada contra SQL Server/Azure SQL.
 
 #### Configuración
 
-- `MatchingProfiles(Id INT, Name NVARCHAR(100), Version INT, EngineVersion NVARCHAR(50), SemanticCalibrationVersion NVARCHAR(50) NULL, UnknownPolicy TINYINT, Status TINYINT, IsActive BIT, EffectiveFromUtc, PublishedAtUtc, CreatedAtUtc)`; UQ `(Name, Version)` y un solo perfil activo mediante índice filtrado.
-- `MatchingRules(Id INT, Code NVARCHAR(100), Name NVARCHAR(150), HandlerKey NVARCHAR(100), HandlerVersion NVARCHAR(50), IsHardGate BIT, IsActive BIT, CreatedAtUtc)`; UQ `(Code, HandlerVersion)`.
-- `MatchingRuleWeights(MatchingProfileId INT, MatchingRuleId INT, Weight DECIMAL(5,2), ParametersJson NVARCHAR(MAX) NULL, PK compuesta)`; checks 0–100 e `ISJSON`.
+- `MatchingProfiles`: código, versión, versión de motor, política de desconocidos, estado y
+  publicación; UQ `(Code, Version)` y un único perfil activo.
+- `MatchingRules`: código/nombre, `HandlerVersion`, `IsHardGate` y estado; UQ
+  `(Code, HandlerVersion)`.
+- `MatchingRuleWeights`: PK `(MatchingProfileId, MatchingRuleId)`, peso 0–100 y parámetros JSON.
 
-La suma 100 no puede garantizarse con un `CHECK` entre filas: `usp_MatchingProfile_Activate` valida suma, reglas requeridas, handlers/versiones desplegables, exactamente una `HandlerVersion` por `MatchingRule.Code` dentro del perfil y una única versión activa antes de activar. También exige `semantic_similarity` ausente/peso 0 ⇔ `SemanticCalibrationVersion IS NULL`, mientras peso positivo exige una calibración no null y desplegada; en v2 el peso es exactamente 5. Un perfil `Published/Active`, sus reglas versionadas, pesos, parámetros, versión de motor y calibración semántica son inmutables; cualquier ajuste clona filas/versiones nuevas. Los artefactos de despliegue de cada `EngineVersion/HandlerVersion` se conservan durante la retención del historial.
+9A siembra un único perfil publicado `deterministic-project-v1`, motor `deterministic-sql-v1`, con
+nueve reglas que suman exactamente 100%. La política fija `Unknown = 0 puntos + menor cobertura`,
+sin renormalización. El procedimiento de cálculo valida en cada ejecución códigos, pesos y hard gates
+exactos; la configuración publicada es inmutable y cualquier cambio exige una nueva versión.
+Solo `MatchingProfiles.IsActive` puede alternarse para seleccionar/desactivar la versión operativa;
+código, versión, motor, reglas, pesos y parámetros publicados no se pueden editar.
 
-#### `MatchRuns`
+Los bordes son conservadores. Como el perfil solo conserva `EstablishedYear`, los años garantizados
+son `año actual - año de constitución - 1` y el máximo posible es uno más; si el mínimo exigido cae
+justo entre ambos, la regla queda `Unknown`. En figura jurídica, exclusiones y allowlists explícitas
+prevalecen sobre un indicador general de “no requerida”. El conjunto abierto también es fail-closed:
+acepta rolling, timestamp de cierre futuro o fecha de cierre igual/posterior a la fecha UTC actual;
+una vigencia desconocida no entra al cálculo.
 
-`Id BIGINT`, `OrganizationId`, `MatchingProfileId`, `TriggerType`, `ProfileVersion`, `InputFingerprint BINARY(32)`, `Status`, contadores, `AttemptCount`, `LeaseOwner`, `LeaseUntilUtc`, `StartedAtUtc`, `FinishedAtUtc`, `ErrorMessage`, `CorrelationId` y `CreatedAtUtc`. Engine/calibración se derivan exclusivamente del `MatchingProfileId` inmutable, sin columnas duplicadas que puedan divergir. `InputFingerprint` se calcula server-side sobre organización+versión, ID y engine/calibración resueltos del perfil, tipo/alcance del trigger y conjunto ordenado de fondos/versiones afectados; UQ `(OrganizationId, InputFingerprint)` hace que un delivery repetido reutilice el run, mientras un fondo nuevo o código/calibración nuevos produzcan trabajo distinto. `usp_MatchRun_Claim` realiza el claim/lease y la transición atómica; no se confía en el ID del mensaje como única barrera.
+#### `ProjectMatchingRuns`
 
-IX `(OrganizationId, CreatedAtUtc DESC)` e IX `(Status, CreatedAtUtc)`. UQ auxiliar `(Id, OrganizationId, MatchingProfileId, ProfileVersion)` permite que cada match demuestre que pertenece al run, organización, perfil de reglas y versión institucional declarados. Reproducibilidad usa FKs a `OrganizationProfileVersions`, `FundingOpportunityVersions` y perfiles publicados inmutables; no duplica snapshots grandes en cada run. Un estado terminal exige `FinishedAtUtc`; `Running` exige inicio y no finalización.
+Cada ejecución pertenece a `OrganizationId + ProjectId` y referencia las versiones inmutables del
+proyecto y perfil institucional. Además guarda snapshots de slug/título del proyecto,
+código/versión del perfil y motor, `RuleSetFingerprint`, `InputFingerprint`,
+`CandidateSetFingerprint`, año de cálculo, instante del catálogo, conteos y `IsTruncated`. Un índice
+no único por `(ProjectId, InputFingerprint, Id DESC)` permite comparar la entrada con el run más
+reciente: solo ese run se reutiliza si sigue siendo equivalente. Una secuencia A→B→A crea un run
+nuevo y no revive matches ya reemplazados. 9A es sincrónica: solo persiste el estado terminal
+`Completed` y limita `ProcessedCandidateCount` a 200.
 
-#### `OrganizationFundingMatches`
+Triggers bloquean `UPDATE/DELETE` de runs, resultados de reglas y requests. Los matches solo admiten
+la transición controlada de vigente a reemplazado (`IsCurrent 1→0` con `SupersededAtUtc`); ningún
+resultado histórico puede volver a activarse o cambiar score, clasificación, versiones o evidencia.
 
-```text
-Id BIGINT IDENTITY PK
-OrganizationId BIGINT NOT NULL
-FundingOpportunityId BIGINT NOT NULL
-MatchRunId BIGINT NOT NULL
-MatchingProfileId INT NOT NULL
-OrganizationProfileVersion INT NOT NULL
-FundingContentVersion INT NOT NULL
-EligibilityStatus TINYINT NOT NULL       -- Eligible/Ineligible/Unknown
-Score DECIMAL(5,2) NOT NULL
-RuleScore DECIMAL(5,2) NOT NULL
-SemanticScore DECIMAL(5,2) NULL
-SemanticPoints DECIMAL(5,2) NOT NULL DEFAULT 0
-EvidenceCoverage DECIMAL(5,2) NOT NULL
-ConfidenceLevel TINYINT NOT NULL
-Explanation NVARCHAR(3000) NULL
-Warnings NVARCHAR(3000) NULL
-ExplanationAiProcessingRunId BIGINT NULL
-InputFingerprint BINARY(32) NOT NULL
-IsCurrent BIT NOT NULL DEFAULT 1
-CalculatedAtUtc DATETIME2(3) NOT NULL
-SupersededAtUtc DATETIME2(3) NULL
-```
+Para una clave nueva, la entrada se resuelve exclusivamente en servidor a partir de proyecto/perfil
+vigentes, perfil de matching/ruleset, año calendario y el conjunto ordenado completo de oportunidades
+abiertas y `PublicReady`. La huella del catálogo incluye también candidatos posteriores al TOP 200;
+si cambian durante la transacción, la ejecución falla para que el cliente reintente de forma limpia.
+Un replay de la misma clave sigue exigiendo usuario/membresía/tenant actuales, pero devuelve el
+historial antes de reevaluar readiness; por eso sigue funcionando si el proyecto luego se archiva o
+queda stale. La lectura calcula `isCurrent` sin reescribir ese historial.
 
-`RuleScore` es la suma de puntos ponderados determinísticos: 0–100 en el perfil v1 y 0–95 en v2. `SemanticScore` es similitud cruda calibrada 0–100. `SemanticWeight` no es una columna duplicada: es `MatchingRuleWeights.Weight` de la regla estable `semantic_similarity` (ausente/0 en v1 y exactamente 5 en v2). `SemanticPoints = SemanticWeight × SemanticScore / 100` (0–5 en v2) y `Score = RuleScore + SemanticPoints`, por lo que semántica se pondera una sola vez. Una FK compuesta a la UQ del run enlaza `MatchRunId + OrganizationId + MatchingProfileId + OrganizationProfileVersion`; otra enlaza `(FundingOpportunityId, FundingContentVersion)` con la versión inmutable del fondo. `MatchRunId` es obligatorio. Checks según el perfil, más `IsCurrent=1 ⇔ SupersededAtUtc IS NULL`. UQ filtrado `(OrganizationId, FundingOpportunityId) WHERE IsCurrent=1`; IX `(OrganizationId, IsCurrent, EligibilityStatus, Score DESC, FundingOpportunityId)`; IX `(FundingOpportunityId, IsCurrent)`. `usp_Match_Save` valida que cada `MatchingRuleId` del TVP pertenezca al perfil publicado del run. Un recálculo supersede e inserta en una transacción.
+#### `ProjectFundingMatches`
 
-#### `OrganizationFundingMatchRuleResults`
+Una fila enlaza obligatoriamente run, tenant, proyecto, perfil, versiones de proyecto/perfil y
+`FundingOpportunityId + FundingContentVersion`. Conserva una proyección histórica segura del fondo
+(slug, título, sponsor, monto/moneda y cierre), `Classification`, `HardGateStatus`, score, rule score,
+cobertura, huella, vigencia y fecha de reemplazo.
 
-```text
-MatchId BIGINT
-MatchingRuleId INT
-Outcome TINYINT NOT NULL
-RawScore DECIMAL(5,2) NULL
-DataState TINYINT NOT NULL               -- Known/Unknown/NotApplicable
-EffectiveScore DECIMAL(5,2) NOT NULL
-AppliedWeight DECIMAL(5,2) NOT NULL
-WeightedPoints DECIMAL(7,4) NOT NULL
-ReasonCode NVARCHAR(100) NOT NULL
-ReasonParametersJson NVARCHAR(MAX) NULL
-EvidenceJson NVARCHAR(MAX) NULL
-IsWarning BIT NOT NULL DEFAULT 0
-PK (MatchId, MatchingRuleId)
-```
+Los valores son `Compatible/Pass`, `Incompatible/Fail` y `InsufficientData/Unknown`. Un hard `Fail`
+exige `CompatibilityScore = NULL`; `Compatible` o `InsufficientData` conservan un score 0–100. La UQ
+filtrada `(ProjectId, FundingOpportunityId) WHERE IsCurrent=1` garantiza un solo match vigente y una
+nueva ejecución reemplaza de forma atómica los anteriores.
 
-La UI traduce `ReasonCode + parameters`; no depende de texto IA para explicar el cálculo. `Explanation` es una presentación cacheada en español, no la fuente del score.
+#### `ProjectFundingMatchRuleResults`
+
+PK `(MatchId, MatchingRuleId)`. Cada una de las nueve filas almacena `Outcome`
+(`Match/Partial/NoMatch/Unknown`), `DataState`, raw/effective score, peso, puntos, `ReasonCode`,
+parámetros, evidencia JSON allowlisted e `IsWarning`. Un resultado `Unknown` exige raw score nulo,
+effective score cero y dato desconocido. La UI traduce el código y parámetros; no depende de texto
+generado para explicar el cálculo y nunca muestra los value codes internos como texto libre.
+
+#### `ProjectMatchingRunRequests`
+
+La PK `(UserId, OrganizationId, ProjectId, IdempotencyKeyHash)` hace durable la idempotencia por
+usuario/tenant/proyecto. `RequestHash` impide reutilizar la misma clave para otra solicitud y la FK
+compuesta garantiza que el run pertenece al mismo tenant/proyecto. La clave se recibe por header,
+pero sus hashes y el fingerprint de entrada se calculan en servidor.
+
+Las funciones `ifn_ProjectMatchingOpenCandidates`, `ifn_ProjectMatchingCatalogState`,
+`ifn_MatchingProfileRuleSetFingerprint` e `ifn_ProjectMatchingRunSummaries` concentran conjuntos y
+vigencia. Los procedimientos `usp_ProjectMatchingRun_Create`, `List` y `Get` son la única superficie
+Dapper de 9A. Todos los nombres físicos llevan el prefijo obligatorio `FundingPlatform_`.
 
 ### 7.8 Favoritos y postulaciones
 
@@ -1331,7 +1378,7 @@ CreatedAtUtc, UpdatedAtUtc DATETIME2(3)
 RowVersion ROWVERSION
 ```
 
-UQ filtrado `(Provider, ProviderSubscriptionId)`; un índice filtrado garantiza una suscripción pagada vigente por organización según los estados definidos. **Ausencia de una suscripción pagada efectiva significa Free**; no se crea una fila Free que compita con el upgrade. `SubscriptionPlans/Features` se siembran antes de búsqueda, mientras precios, subscriptions y pagos llegan en FASE 9.
+UQ filtrado `(Provider, ProviderSubscriptionId)`; un índice filtrado garantiza una suscripción pagada vigente por organización según los estados definidos. **Ausencia de una suscripción pagada efectiva significa Free**; no se crea una fila Free que compita con el upgrade. `SubscriptionPlans/Features` se siembran antes de búsqueda, mientras precios, subscriptions y pagos llegan en FASE 11.
 
 #### `SubscriptionCheckoutSessions`
 
@@ -1534,7 +1581,9 @@ FundingSources ──< ImportRuns ──< ImportRunItems ──> RawFundingOppor
 
 MatchingProfiles ──< MatchingRuleWeights >── MatchingRules
        |
-       +──< ProjectFundingMatches ──< MatchRuleResults
+       +──< ProjectMatchingRuns ──< ProjectFundingMatches
+                                             |
+                                             +──< ProjectFundingMatchRuleResults
 ```
 
 ### 7.13 Índices guiados por consultas
@@ -1546,7 +1595,9 @@ Además de PK/UQ/FK:
 3. **Texto:** catálogo Full-Text dedicado sobre `Title`, `Summary`, `Description`, `SponsorName`,
    `EligibilityDescription` y `Requirements`, con ranking primario cuando está listo y respaldo
    literal determinístico cuando falta o falla.
-4. **Recomendaciones:** `(OrganizationId, ProjectId, IsCurrent, EligibilityStatus, Score DESC)` incluyendo cobertura, explicación, fecha y `FundingOpportunityId`.
+4. **Compatibilidad 9A:** historial `(OrganizationId, ProjectId, CreatedAtUtc DESC, Id DESC)`, UQ
+   vigente `(ProjectId, FundingOpportunityId) WHERE IsCurrent=1` y detalle por
+   `(MatchRunId, Classification, CompatibilityScore DESC, FundingOpportunityId)`.
 5. **Deadline worker:** índice filtrado `(CloseDate, Id)` para publicados activos con fecha.
 6. **Importación:** `(FundingSourceId, Status, CreatedAtUtc DESC)` y runs/items por estado.
 7. **Alertas/runs/outbox:** índice por `NextRunAtUtc` para alertas activas, `(Status, CreatedAtUtc)`/fuente para runs pendientes y `AvailableAtUtc` solo en outbox no despachado; las colas administran visibilidad/reintentos de ejecución.
@@ -1576,9 +1627,9 @@ afirma haber demostrado todavía el p95 con 100.000 oportunidades.
 | `usp_Organization_UpdateProfile` | valida, reemplaza relaciones, versiona y escribe `OrganizationProfileChanged` en outbox; el pipeline genera el embedding exacto y recalcula proyectos activos afectados |
 | `usp_Project_GetById` | proyecto, relaciones y versión vigente autorizados por tenant; `QueryMultipleAsync` |
 | `usp_Project_Upsert` | crea/actualiza agregado, incrementa versión y escribe `ProjectChanged` en outbox |
-| `usp_Match_Save` | supersede match actual, inserta versión y desglose atómicamente |
-| `usp_Match_GetForProject` | top matches vigentes del proyecto, paginados y ordenados |
-| `usp_MatchRun_Claim` | crea/reutiliza por fingerprint y reclama con lease un run pendiente de forma atómica |
+| `FundingPlatform_usp_ProjectMatchingRun_Create` | resuelve versiones/configuración/catálogo, calcula TOP 200 sincrónico y persiste run, matches, reglas e idempotencia atómicamente |
+| `FundingPlatform_usp_ProjectMatchingRun_List` | historial tenant-safe paginado con contadores, versiones y vigencia calculada |
+| `FundingPlatform_usp_ProjectMatchingRun_Get` | cabecera, resultados y nueve reglas explicables de una ejecución tenant-safe |
 | `usp_Subscription_GetCurrent` | suscripción efectiva + plan, precio, features y uso |
 | `usp_ImportRun_Insert` | crea run `Queued` con idempotency key y correlation ID |
 | `usp_ImportRun_Complete` | valida transición y consolida contadores desde items |
@@ -1750,11 +1801,10 @@ Un solo `PUT profile` evita una docena de endpoints chatty durante onboarding. E
 | `GET` | `/api/v1/marketplace/organizations/{organizationId}` | perfil público seguro y sus proyectos visibles |
 | `GET` | `/api/v1/projects/{slug}` | alias compatible del detalle público de proyecto |
 | `GET` | `/api/v1/organizations/{organizationId}/funding-opportunities` | catálogo autenticado 8A, filtros/orden/paginación sin contexto de proyecto |
-| `GET` | `/api/v1/organizations/{organizationId}/projects/{projectId}/funding-opportunities` | búsqueda autenticada, entitlement y compatibilidad project-aware |
 | `GET` | `/api/v1/organizations/{organizationId}/funding-opportunities/{idOrSlug}` | detalle completo 8A para un miembro activo |
-| `GET` | `/api/v1/organizations/{organizationId}/projects/{projectId}/matches` | matches vigentes y estado de recálculo |
-| `GET` | `/api/v1/organizations/{organizationId}/projects/{projectId}/matches/{fundingOpportunityId}` | desglose completo |
-| `POST` | `/api/v1/organizations/{organizationId}/projects/{projectId}/match-recalculations` | `202`, rate limited e idempotente |
+| `POST` | `/api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs` | cálculo 9A sincrónico, acotado, rate limited e idempotente |
+| `GET` | `/api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs` | historial 9A paginado con versiones y vigencia |
+| `GET` | `/api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs/{matchingRunId}` | resultado 9A y desglose explicable por fondo/regla |
 | `GET` | `/api/v1/organizations/{organizationId}/favorites` | favoritos del usuario dentro del tenant |
 | `PUT` | `/api/v1/organizations/{organizationId}/favorites/{fundingOpportunityId}` | guardar idempotentemente |
 | `DELETE` | `/api/v1/organizations/{organizationId}/favorites/{fundingOpportunityId}` | quitar idempotentemente |
@@ -1766,13 +1816,17 @@ La ruta organizacional implementada en 8A acepta `q`, `countryIds`, `regionIds`,
 `tagIds`, `beneficiaryTypeIds`, `projectTypeIds`, `funderIds`, `sponsor`, `minAmount`, `maxAmount`,
 `currency`, `closingFrom`, `closingTo`, `fundingTypeIds`, `organizationTypeIds`, `onlyOpen`, `sort`,
 `page` y `pageSize`. Admite `relevance`, `closing-soon`, `newest`, `amount-asc` y `amount-desc`; la
-relevancia exige texto y monto exige una moneda. `eligibility`, score y `sort=compatibility` solo
-corresponden a la ruta project-aware pendiente y no forman parte del contrato 8A.
+relevancia exige texto y monto exige una moneda. `eligibility`, score y `sort=compatibility` no
+forman parte del contrato 8A; 9A expone el score en ejecuciones separadas de `/matching-runs` y no
+agrega ese orden al catálogo general.
 
 De las rutas project-aware y de actividad mostradas en la tabla, 8A materializa el catálogo
 organizacional, su detalle y los tres endpoints de favoritos. 8B materializa las cuatro rutas
-`/marketplace`, el alias público de proyecto, los endpoints de postulaciones y el calendario. Las
-rutas de búsqueda/matches bajo `{projectId}` continúan pendientes para FASE 9.
+`/marketplace`, el alias público de proyecto, los endpoints de postulaciones y el calendario. 9A
+materializa las tres rutas `/matching-runs`: todas exigen sesión completa, membresía activa,
+aislamiento tenant mediante `404`, `no-store` y rate limit. El alta exige `Idempotency-Key` de
+16–128 caracteres; responde `201` para una ejecución nueva y `200` para su replay seguro. No acepta
+pesos, versiones ni reglas desde el cliente.
 
 La búsqueda textual 8A combina Full-Text rank con un complemento literal y cae completamente a este
 último si el índice no está listo. `sort` se mapea por allowlist a expresiones SQL; nunca se concatena
@@ -1975,7 +2029,7 @@ es siempre `Draft`/`StagedForReview`: ninguna ruta de adquisición puede publica
 
 FASE 7B materializa únicamente la extracción determinística y acotada de texto PDF más evidencia
 segura. No llama a OpenAI, no interpreta campos ni modifica contenido editorial. Los pasos de IA
-estructurada siguientes permanecen en FASE 9.
+estructurada siguientes permanecen en FASE 9B.
 
 1. Se extrae texto de una fuente no confiable en un proceso aislado y con límites.
 2. El prompt establece que el documento es datos, no instrucciones; el modelo no tiene herramientas ni credenciales.
@@ -1985,7 +2039,10 @@ estructurada siguientes permanecen en FASE 9.
 6. Los campos críticos sin evidencia crean un issue y bloquean publicación automática.
 7. Un administrador compara valor y evidencia, corrige y aprueba.
 8. El valor canónico y su provenance se actualizan en la misma transacción.
-9. Si cambió contenido canónico, se incrementa `ContentVersion`, se crea el snapshot y se invalidan vector/matches anteriores. Mientras siga en revisión no se recomienda a nadie; al publicarse, un outbox encola primero el embedding de esa misma versión y, cuando queda vigente, el matching. Publicar por sí solo no vuelve a incrementar la versión.
+9. Si cambió contenido canónico, se incrementa `ContentVersion`, se crea el snapshot y los resultados
+   9A dejan de ser vigentes por fingerprint/versionado. Mientras siga en revisión no entra al conjunto
+   `PublicReady`. En 9B, un outbox podrá encolar primero el embedding de esa misma versión y luego un
+   recálculo masivo; publicar por sí solo no vuelve a incrementar la versión.
 10. Costos, tokens, latencia, modelo, prompt y hashes quedan registrados sin guardar secretos.
 
 La calidad de datos se calcula con reglas determinísticas: completitud de campos críticos, evidencia, validez, conflictos, reputación de fuente y antigüedad de verificación. No se pide al LLM que se autocalifique.
@@ -2055,7 +2112,7 @@ Si el proveedor semántico está temporalmente caído y la política permite fal
 9. `ISubscriptionService` resuelve features/limits; Controllers no comparan `Professional` como string.
 10. Un job cada 5–15 minutos reconcilia checkouts/suscripciones `Pending`; otro diario revisa `Active/PastDue`.
 
-Cancelación al fin de período conserva acceso hasta `CurrentPeriodEndUtc`. `resume` solo retira una cancelación todavía programada; una suscripción ya cancelada exige nuevo checkout salvo capacidad confirmada del adapter. `PastDue` admite gracia configurable y luego cae a Free sin borrar datos. Los webhooks duplicados, falsos y fuera de orden, dos checkouts concurrentes y el crash “proveedor aceptó / SQL aún no confirmó” forman parte de las pruebas de FASE 9.
+Cancelación al fin de período conserva acceso hasta `CurrentPeriodEndUtc`. `resume` solo retira una cancelación todavía programada; una suscripción ya cancelada exige nuevo checkout salvo capacidad confirmada del adapter. `PastDue` admite gracia configurable y luego cae a Free sin borrar datos. Los webhooks duplicados, falsos y fuera de orden, dos checkouts concurrentes y el crash “proveedor aceptó / SQL aún no confirmó” forman parte de las pruebas de FASE 11.
 
 ### 9.7 Alertas
 
@@ -2493,7 +2550,7 @@ Antes de aceptar IA/matching se prepara un conjunto revisado por una persona exp
 - organizaciones elegibles, inelegibles y con perfil incompleto;
 - ground truth de campos extraídos, evidencias y ranking esperado.
 
-El objetivo inicial de FASE 9 es al menos 90% de exactitud acordada en campos críticos del corpus, y 100% de esos campos con evidencia válida o `null`; un único porcentaje global no reemplaza métricas por campo.
+El objetivo inicial de FASE 9B es al menos 90% de exactitud acordada en campos críticos del corpus, y 100% de esos campos con evidencia válida o `null`; un único porcentaje global no reemplaza métricas por campo.
 
 ## 15. Riesgos y mitigaciones
 
@@ -2764,14 +2821,44 @@ El gate local de código terminó con build .NET en 0 warnings/0 errores, 261/26
 producción. La fase no implementa matching, compatibilidad, score, recomendaciones, IA, embeddings,
 alertas, networking o billing.
 
-### FASE 9 — Matching por proyecto e IA
+### FASE 9A — Compatibilidad determinística por proyecto
 
-- matching determinístico con hard gates institucionales y señales del proyecto;
-- `OpenAiService`, Structured Outputs, evidence, embeddings, costos/cache y explicación acotada;
-- backfill idempotente de versiones vigentes, corpus dorado y recálculo durable.
+- TOP 200 sincrónico y determinístico de oportunidades abiertas, sin producto cartesiano completo;
+- nueve reglas versionadas: cinco hard gates `Pass`/`Fail`/`Unknown` y cuatro reglas blandas;
+- score conservador, cobertura sin renormalizar, razones, advertencias y evidencia allowlisted;
+- ejecuciones inmutables, idempotencia durable, versiones de entradas, huellas e `isCurrent`;
+- API privada de alta/historial/detalle y UI `/matching` con `/recommended` como alias.
 
-**Salida:** score reproducible por `ProjectVersion + OrganizationProfileVersion +
-FundingContentVersion`, 100% de campos críticos con evidencia o null y fallback determinístico.
+**Estado:** completada en código local. `020_deterministic_project_matching.sql` y su smoke están
+preparados localmente; no se ejecutaron `--validate`, `--apply`, `--test` o
+`--status` contra SQL Server/Azure SQL. `019` también permanece sin aplicar; el último estado
+observado de `res` es 18/18 de 8A. No se declaran smokes SQL, objetos o migraciones adicionales
+aplicados.
+
+Las huellas locales congeladas son `984450d06cb17447be8b3af595caa6415ce9e59f2b5e4d53bc3466ce2b25921e`
+para la migración (1718 líneas/16 lotes) y
+`a827cc9234831c757583b2e6776c13d2550985dcce566653dc171616f3e036f6` para el smoke (924 líneas/un
+lote). El parsing T-SQL 170 y la inspección AST locales terminaron limpios; no equivalen a una
+ejecución DB.
+
+El gate local pasó build .NET (0 warnings/0 errores), 281/281 pruebas unitarias, 123/123 de
+integración, lint frontend, 21 archivos/104 pruebas Vitest y build de producción. El foco
+archived/matching pasó 2 archivos/6 pruebas. Estas comprobaciones validan código y contratos locales,
+no la aplicación o ejecución de SQL.
+
+**Salida:** compatibilidad reproducible por versiones de proyecto, perfil institucional, contenido
+del fondo, motor, perfil/ruleset, calendario y catálogo. Los estados visibles son `Compatible`,
+`Incompatible` y `Datos insuficientes`. Es un resultado orientativo: 9A no usa IA/embeddings, no
+constituye una recomendación y no confirma elegibilidad.
+
+### FASE 9B — IA y semántica evaluadas
+
+- `OpenAiService`, Structured Outputs, evidence, embeddings y costos/cache;
+- corpus dorado, backfill idempotente de versiones vigentes y evaluación antes de habilitar señales;
+- explicación acotada a partir del desglose calculado, sin delegar el porcentaje a IA.
+
+**Salida:** 100% de campos críticos con evidencia o null y una decisión medida sobre el perfil
+híbrido; el motor determinístico 9A sigue siendo el fallback reproducible.
 
 ### FASE 10 — Alertas, pipeline, calendario y networking básico
 

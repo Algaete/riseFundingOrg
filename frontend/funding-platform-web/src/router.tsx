@@ -1,6 +1,6 @@
 /* oxlint-disable react/only-export-components -- Lazy route components intentionally live with the route table. */
 import { lazy } from 'react'
-import { createBrowserRouter, type RouteObject } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject, useLocation } from 'react-router-dom'
 
 import { ProtectedRoute } from '@/features/auth/auth-provider'
 
@@ -25,7 +25,7 @@ const PublicProjectPage = lazy(() => import('@/features/projects/project-publica
 const MarketplacePage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplacePage })))
 const MarketplaceProjectDetailPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceProjectDetailPage })))
 const MarketplaceOrganizationPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceOrganizationPage })))
-const RecommendedPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.RecommendedPage })))
+const MatchingPage = lazy(() => import('@/features/matching/matching-pages').then((module) => ({ default: module.MatchingWorkspacePage })))
 const SubscriptionPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.SubscriptionPage })))
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminDashboardPage })))
@@ -57,6 +57,11 @@ const RegisterPage = lazy(() => import('@/pages/public-pages').then((module) => 
 const ResetPasswordPage = lazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ResetPasswordPage })))
 const VerifyEmailPage = lazy(() => import('@/pages/public-pages').then((module) => ({ default: module.VerifyEmailPage })))
 
+function LegacyMatchingRedirect() {
+  const location = useLocation()
+  return <Navigate replace to={{ pathname: '/matching', search: location.search }} />
+}
+
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -86,7 +91,8 @@ export const appRoutes: RouteObject[] = [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/opportunities', element: <OrganizationFundingPage /> },
       { path: '/opportunities/:slug', element: <OrganizationFundingDetailPage /> },
-      { path: '/recommended', element: <RecommendedPage /> },
+      { path: '/matching', element: <MatchingPage /> },
+      { path: '/recommended', element: <LegacyMatchingRedirect /> },
       { path: '/favorites', element: <OrganizationFavoritesPage /> },
       { path: '/applications', element: <ApplicationsPage /> },
       { path: '/calendar', element: <CalendarPage /> },

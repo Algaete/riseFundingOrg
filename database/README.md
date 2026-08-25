@@ -291,6 +291,58 @@ identifican contenido versionado y **no** prueban que haya sido ejecutado en SQL
 El parsing local con ScriptDom terminó correctamente y las cuatro pruebas de arquitectura 8B
 pasaron. Son comprobaciones estáticas; no equivalen a ejecutar los lotes contra un motor SQL.
 
+## Estado de FASE 9A
+
+La migración forward-only `020_deterministic_project_matching.sql` y su smoke están preparados
+localmente. **No se aplicaron ni probaron contra `res`, Azure SQL u otro entorno de base de datos**:
+no se ejecutaron `--validate`, `--apply`, `--test` o `--status`, no se declara una migración `020`
+aplicada y el último estado observado de `res` continúa siendo 18/18. El historial forward-only exige
+aplicar primero `019` y luego `020` mediante el migrador y el preflight autorizado.
+
+Huellas de los artefactos locales congelados:
+
+- migración `020` (1718 líneas/16 lotes):
+  `984450d06cb17447be8b3af595caa6415ce9e59f2b5e4d53bc3466ce2b25921e`;
+- smoke `020` (924 líneas/un lote):
+  `a827cc9234831c757583b2e6776c13d2550985dcce566653dc171616f3e036f6`.
+
+El parsing local T-SQL 170 y la inspección AST terminaron sin errores. Son gates estáticos y no
+sustituyen una corrida transaccional real en SQL Server/Azure SQL.
+
+El gate local de código de 9A pasó build .NET (0 warnings/0 errores), 281/281 pruebas unitarias,
+123/123 de integración, lint frontend, 21 archivos/104 pruebas Vitest y build de producción; el foco
+archived/matching pasó 2 archivos/6 pruebas. Ninguno de estos resultados ejecutó SQL contra una base.
+
+`020` prepara perfiles, reglas y pesos inmutables; ejecuciones por proyecto; resultados por fondo;
+desglose por regla; y solicitudes de idempotencia durable. Las funciones y procedimientos
+allowlisted resuelven candidatos abiertos, huella del catálogo y ruleset, resumen vigente, alta
+síncrona y consultas de historial/detalle. La transacción fija un snapshot reproducible de versiones,
+usa todo el catálogo evaluable para su huella y materializa como máximo los primeros 200 candidatos
+en orden determinístico. Un cambio posterior de proyecto, perfil, fondo, catálogo, calendario o
+ruleset hace que el resultado deje de ser vigente sin reescribir el historial.
+
+La configuración publicada, los runs, desgloses y requests son inmutables; en el perfil solo puede
+alternarse `IsActive` para seleccionar/desactivar la versión operativa. Un match solo puede pasar de
+vigente a reemplazado dentro del recálculo transaccional; no puede reactivarse ni alterar su score,
+clasificación, versiones o evidencia histórica. El run también conserva slug/título del proyecto para
+que una edición posterior no reetiquete el historial.
+
+Una clave nueva exige proyecto/perfil vigentes y listos. El replay de la misma clave valida la
+membresía y el tenant actuales, pero devuelve el run histórico antes de reevaluar readiness; así un
+proyecto archivado o stale no vuelve imposible recuperar la respuesta durable original.
+
+El perfil `deterministic-project-v1` suma nueve reglas y 100% de peso: geografía 20%, tipo de
+organización 15%, figura jurídica 15%, años de operación 10%, experiencia previa 10%, categorías
+10%, beneficiarios 5%, tipo de proyecto 5% y monto 10%. Las cinco primeras son condiciones
+excluyentes con estado agregado `Pass`/`Fail`/`Unknown`. `Unknown` aporta cero y reduce cobertura,
+sin renormalizar los demás pesos; un `Fail` produce `Incompatible` y score `NULL`, mientras un hard
+gate `Unknown` sin fallos produce `InsufficientData`.
+
+La persistencia contiene únicamente identificadores, snapshots/versiones, razones, parámetros y
+evidencia estructurada allowlisted necesarios para explicar el cálculo. 9A no almacena prompts,
+respuestas de modelos ni vectores: no usa IA, embeddings o similitud semántica y no declara una
+recomendación ni confirma elegibilidad.
+
 ## Carpetas
 
 - Tables: definiciones de tablas, claves, constraints e índices propios del objeto.
@@ -327,9 +379,10 @@ FASE 7A incorporó contenido bruto de Grants.gov y runs de importación. FASE 7B
 PDF, recepción Defender/Event Grid fail-closed, RSS gobernado y deduplicación humana. FASE 8A
 incorporó búsqueda/detalle organizacional, favoritos privados y Full-Text con fallback literal.
 FASE 8B prepara en código local marketplace de proyectos, postulaciones privadas y calendario
-derivado; su migración `019` sigue pendiente de aplicación autorizada. Proyectos/funders se agregaron
-en FASE 5/6, matching project-first en FASE 9; billing y alertas conservan sus fases. Las sesiones y
-MFA se incorporaron de forma aditiva en FASE 3 mediante las migraciones 002/003/004.
+derivado; su migración `019` sigue pendiente de aplicación autorizada. FASE 9A incorporó en código
+local la compatibilidad determinística project-first y su migración `020`, con gate local cerrado pero
+aplicación DB pendiente. IA, embeddings, billing y alertas conservan fases posteriores. Las sesiones
+y MFA se incorporaron de forma aditiva en FASE 3 mediante las migraciones 002/003/004.
 
 La revisión funcional del 17 de agosto mantiene el baseline 001 inmutable y reordena las próximas
 migraciones: primero proyectos; después funders/oportunidades; luego runs, raw, evidence y matching

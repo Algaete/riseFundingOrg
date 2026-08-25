@@ -6,8 +6,6 @@ import { useAuth } from '@/features/auth/use-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSearchParams } from 'react-router-dom'
-import { Link } from 'react-router-dom'
-import { Radar } from 'lucide-react'
 
 export function OnboardingPage() {
   return <OrganizationWorkspacePage onboarding />
@@ -17,20 +15,8 @@ export function DashboardPage() {
   return (
     <PagePlaceholder
       title="Resumen"
-      description="Tus oportunidades recomendadas, cierres próximos y actividad reciente."
+      description="Tus cálculos de compatibilidad, cierres próximos y actividad reciente."
     />
-  )
-}
-
-export function RecommendedPage() {
-  return (
-    <PagePlaceholder
-      title="Recomendados para ti"
-      description="El ranking personalizado se activará en la fase de matching. El catálogo general ya está disponible para tu organización."
-      eyebrow="Próxima fase · Matching"
-    >
-      <Card><CardContent className="flex flex-col items-start gap-4 p-6"><Radar className="size-8 text-primary" /><div><h2 className="text-lg font-bold">Revisa los concursos publicados</h2><p className="mt-1 text-sm text-muted-foreground">Mientras preparamos las recomendaciones, puedes explorar y filtrar todas las oportunidades disponibles.</p></div><Button asChild><Link to="/opportunities">Ver concursos disponibles</Link></Button></CardContent></Card>
-    </PagePlaceholder>
   )
 }
 

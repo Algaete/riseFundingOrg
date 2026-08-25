@@ -6,6 +6,7 @@ import {
   CircleAlert,
   Clock3,
   Globe2,
+  Gauge,
   LoaderCircle,
   Plus,
   Save,
@@ -279,5 +280,13 @@ export function ProjectDetailPage() {
   })
   if (organizations.isPending || catalogs.isPending || project.isPending) return <p className="flex items-center gap-2"><LoaderCircle className="size-5 animate-spin" /> Cargando proyecto…</p>
   if (!organization || !catalogs.data || project.isError || !project.data) return <p>No encontramos el proyecto o no tienes acceso.</p>
-  return <div className="space-y-5"><Button asChild variant="ghost"><Link to="/projects"><ArrowLeft className="size-4" /> Volver a proyectos</Link></Button><div><p className="text-sm text-muted-foreground">Versión {project.data.projectVersion}</p><h1 className="text-3xl font-bold">{project.data.title}</h1>{project.data.fundingGap !== null && <p className="mt-2 text-muted-foreground">Brecha actual: {new Intl.NumberFormat('es-CL').format(project.data.fundingGap)} {project.data.currency}</p>}</div><ProjectPublicationPanel hasUnsavedChanges={hasUnsavedChanges} onChanged={async () => { await project.refetch(); await organizations.refetch() }} organizationId={organization.publicId} organizationReady={organization.profileStatus === 2 && organization.profileCompleteness >= 80} project={project.data} /><ProjectForm catalogs={catalogs.data} onDirtyChange={setHasUnsavedChanges} organizationId={organization.publicId} project={project.data} /></div>
+  return <div className="space-y-5">
+    <Button asChild variant="ghost"><Link to="/projects"><ArrowLeft className="size-4" /> Volver a proyectos</Link></Button>
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div><p className="text-sm text-muted-foreground">Versión {project.data.projectVersion}</p><h1 className="text-3xl font-bold">{project.data.title}</h1>{project.data.fundingGap !== null && <p className="mt-2 text-muted-foreground">Brecha actual: {new Intl.NumberFormat('es-CL').format(project.data.fundingGap)} {project.data.currency}</p>}</div>
+      {project.data.publicationStatus !== 4 && <Button asChild variant="outline"><Link to={`/matching?projectId=${encodeURIComponent(project.data.publicId)}`}><Gauge className="size-4" />Calcular compatibilidad</Link></Button>}
+    </div>
+    <ProjectPublicationPanel hasUnsavedChanges={hasUnsavedChanges} onChanged={async () => { await project.refetch(); await organizations.refetch() }} organizationId={organization.publicId} organizationReady={organization.profileStatus === 2 && organization.profileCompleteness >= 80} project={project.data} />
+    <ProjectForm catalogs={catalogs.data} onDirtyChange={setHasUnsavedChanges} organizationId={organization.publicId} project={project.data} />
+  </div>
 }
