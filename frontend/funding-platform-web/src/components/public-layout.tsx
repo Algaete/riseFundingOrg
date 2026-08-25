@@ -25,6 +25,9 @@ export function PublicLayout() {
               <Link to="/funding">Oportunidades</Link>
             </Button>
             <Button variant="ghost" asChild>
+              <Link to="/marketplace">Proyectos</Link>
+            </Button>
+            <Button variant="ghost" asChild>
               <Link to="/pricing">Planes</Link>
             </Button>
             <ThemeToggle />

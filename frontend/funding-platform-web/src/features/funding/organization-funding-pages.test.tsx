@@ -333,6 +333,11 @@ describe('oportunidades de la organización', () => {
     expect(screen.getByText('Fundación · admitido')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Fuentes vinculadas' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Iniciar postulación' })).toHaveAttribute(
+      'href',
+      `/applications?new=1&fundingOpportunityId=${opportunityId}`,
+    )
+    expect(screen.getByText(/debes elegir uno de tus proyectos/i)).toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes(`/organizations/${organizationId}/funding-opportunities/agua-rural`))).toBe(true)
   })
 })

@@ -11,7 +11,9 @@ public static class PublicProjectEndpoints
         endpoints.MapGet("/api/v1/projects/{slug}", GetBySlugAsync)
             .WithTags("Public Projects")
             .AllowAnonymous()
+            .RequireRateLimiting("marketplace-read")
             .Produces<PublicProjectResponse>()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status404NotFound);
         return endpoints;
     }

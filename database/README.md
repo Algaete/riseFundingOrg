@@ -254,6 +254,43 @@ fixture a su `@NowUtc`; `016_governed_document_extraction.sql` permaneció inmut
 final tiene 2140 líneas y SHA-256
 `4ae81e9760792c929a9c1a10fcfce663e3caa98e3f1bc5305f0e07eddbb9540c`.
 
+## Estado de FASE 8B
+
+La migración forward-only `019_project_marketplace_applications_calendar.sql` y su smoke están
+preparados en el repositorio, pero **no están aplicados ni validados contra `res`, Azure SQL u otro
+entorno de base de datos**. Por instrucción del propietario, este cierre no ejecutó `--validate`,
+`--apply`, `--test` ni `--status`; en consecuencia no se declara una versión 19 aplicada, un conteo
+de objetos posterior ni una corrida SQL exitosa de 8B.
+
+`019` prepara dos tablas para postulaciones e idempotencia durable, claves compuestas que garantizan
+la pertenencia organización/proyecto/responsable, constraints de estado, moneda, monto y fechas,
+guardas reutilizables del marketplace y procedimientos para:
+
+- buscar y paginar proyectos públicos, abrir su detalle y proyectar un perfil organizacional seguro;
+- listar, crear, leer y actualizar postulaciones privadas con aislamiento tenant, ownership,
+  `Idempotency-Key` y ETag/rowversion;
+- derivar un calendario acotado desde cierres, postulaciones, proyectos y favoritos, sin una tabla de
+  calendario duplicada;
+- reconocer en el consumidor de auditoría los eventos allowlisted de creación/actualización sin
+  enviar notas, montos ni otra carga privada.
+
+El contrato público exige proyectos activos y `Published` pertenecientes a organizaciones activas
+con perfil completo y catálogos vigentes. No proyecta usuarios, membresías, correos, identificadores
+tributarios ni drafts. El contrato privado requiere sesión completa y membresía activa; todos los
+miembros pueden leer, mientras que solo el owner de la postulación o un Admin de la organización
+puede modificarla. Las postulaciones `Discarded` no generan hitos de calendario.
+
+Los hashes y tamaños finales de ambos artefactos se registran sobre los archivos locales congelados;
+identifican contenido versionado y **no** prueban que haya sido ejecutado en SQL Server:
+
+- migración `019` (1184 líneas/15 lotes):
+  `eeb6962329261b6736b4e3584d1409e622f1a26a2947bbe3b3ae25a660df53ef`;
+- smoke `019` (860 líneas/dos lotes):
+  `7feccc8bb44f63f776df0b16f313ac9e06c8a421d51904764fe24d1da9732ab9`.
+
+El parsing local con ScriptDom terminó correctamente y las cuatro pruebas de arquitectura 8B
+pasaron. Son comprobaciones estáticas; no equivalen a ejecutar los lotes contra un motor SQL.
+
 ## Carpetas
 
 - Tables: definiciones de tablas, claves, constraints e índices propios del objeto.
@@ -289,8 +326,9 @@ outbox. FASE 6 ya incorporó evidence editorial y el límite seguro de documento
 FASE 7A incorporó contenido bruto de Grants.gov y runs de importación. FASE 7B incorporó extracción
 PDF, recepción Defender/Event Grid fail-closed, RSS gobernado y deduplicación humana. FASE 8A
 incorporó búsqueda/detalle organizacional, favoritos privados y Full-Text con fallback literal.
-Proyectos/funders se agregaron en FASE 5/6,
-matching project-first en FASE 9; billing y alertas conservan sus fases. Las sesiones y
+FASE 8B prepara en código local marketplace de proyectos, postulaciones privadas y calendario
+derivado; su migración `019` sigue pendiente de aplicación autorizada. Proyectos/funders se agregaron
+en FASE 5/6, matching project-first en FASE 9; billing y alertas conservan sus fases. Las sesiones y
 MFA se incorporaron de forma aditiva en FASE 3 mediante las migraciones 002/003/004.
 
 La revisión funcional del 17 de agosto mantiene el baseline 001 inmutable y reordena las próximas

@@ -34,24 +34,6 @@ export function RecommendedPage() {
   )
 }
 
-export function ApplicationsPage() {
-  return (
-    <PagePlaceholder
-      title="Postulaciones"
-      description="Seguimiento del avance y estado de cada postulación."
-    />
-  )
-}
-
-export function CalendarPage() {
-  return (
-    <PagePlaceholder
-      title="Calendario"
-      description="Fechas de cierre e hitos de postulaciones en una vista unificada."
-    />
-  )
-}
-
 export function AlertsPage() {
   return (
     <PagePlaceholder

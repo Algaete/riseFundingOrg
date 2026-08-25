@@ -732,7 +732,15 @@ export function OrganizationFundingDetailPage() {
         <Card>
           <CardHeader><CardTitle>Tu selección</CardTitle></CardHeader>
           <CardContent>
-            <FavoriteButton fullWidth organizationId={organization.publicId} opportunity={opportunity.data} />
+            <div className="grid gap-3">
+              <FavoriteButton fullWidth organizationId={organization.publicId} opportunity={opportunity.data} />
+              <Button asChild className="w-full">
+                <Link to={`/applications?new=1&fundingOpportunityId=${encodeURIComponent(opportunity.data.publicId)}`}>
+                  Iniciar postulación
+                </Link>
+              </Button>
+              <p className="text-xs leading-5 text-muted-foreground">En el siguiente paso debes elegir uno de tus proyectos. Esto no envía una postulación al financiador.</p>
+            </div>
           </CardContent>
         </Card>
       )}

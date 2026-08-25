@@ -234,7 +234,7 @@ function ProjectPublicationPanel({
 
       <div className="flex flex-wrap gap-3">
         {canSubmit && <Button disabled={submit.isPending || archive.isPending || hasUnsavedChanges} onClick={() => submit.mutate(createProjectCommandId())} type="button">{submit.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}Enviar a revisión</Button>}
-        {project.publicationStatus === 2 && <Button asChild variant="outline"><Link to={`/projects/public/${project.slug}`}><Globe2 className="size-4" />Ver perfil público</Link></Button>}
+        {project.publicationStatus === 2 && <Button asChild variant="outline"><Link to={`/marketplace/projects/${project.slug}`}><Globe2 className="size-4" />Ver perfil público</Link></Button>}
         {canArchive && !confirmArchive && <Button disabled={submit.isPending || archive.isPending} onClick={() => setConfirmArchive(true)} type="button" variant="ghost"><Archive className="size-4" />Archivar</Button>}
         {canArchive && confirmArchive && <><Button disabled={archive.isPending} onClick={() => archive.mutate(createProjectCommandId())} type="button" variant="outline">{archive.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Archive className="size-4" />}Confirmar archivo</Button><Button onClick={() => setConfirmArchive(false)} type="button" variant="ghost">Cancelar</Button></>}
       </div>

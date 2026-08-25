@@ -137,6 +137,10 @@ export class HttpClient {
     return this.request<T>(path, { ...options, method: 'PUT', body })
   }
 
+  patch<T>(path: string, body?: unknown, options?: ApiRequestOptions) {
+    return this.request<T>(path, { ...options, method: 'PATCH', body })
+  }
+
   delete<T>(path: string, options?: ApiRequestOptions) {
     return this.request<T>(path, { ...options, method: 'DELETE' })
   }

@@ -11,9 +11,11 @@ using FundingPlatform.Api.Endpoints;
 using FundingPlatform.Api.Health;
 using FundingPlatform.Api.Middleware;
 using FundingPlatform.Application.Authentication;
+using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Application.Organizations;
+using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Projects;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts;
@@ -25,8 +27,10 @@ using FundingPlatform.Infrastructure.Identity.Cryptography;
 using FundingPlatform.Infrastructure.Identity.Email;
 using FundingPlatform.Infrastructure.Identity.Persistence;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
+using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
+using FundingPlatform.Infrastructure.Persistence.Marketplace;
 using FundingPlatform.Infrastructure.Persistence.Projects;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
@@ -119,6 +123,10 @@ builder.Services.AddScoped<OrganizationProfileService>();
 builder.Services.AddScoped<IProjectRepository, SqlProjectRepository>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ProjectWorkflowService>();
+builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
+builder.Services.AddScoped<MarketplaceService>();
+builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
+builder.Services.AddScoped<FundingApplicationService>();
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISourceDocumentExtractionRepository,
     SqlSourceDocumentExtractionRepository>();
@@ -351,6 +359,26 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("marketplace-read", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("organization-activity-read", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
     options.AddPolicy("source-document-create", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -480,6 +508,8 @@ app.MapOrganizationEndpoints();
 app.MapProjectEndpoints();
 app.MapAdminProjectEndpoints();
 app.MapPublicProjectEndpoints();
+app.MapMarketplaceEndpoints();
+app.MapFundingApplicationEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

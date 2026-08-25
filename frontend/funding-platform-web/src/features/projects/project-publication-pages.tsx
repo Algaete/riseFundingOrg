@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   ArrowLeft,
   Building2,
@@ -27,6 +27,7 @@ import {
   type ProjectReviewDetails,
   type ProjectReviewDecision,
   type ProjectReviewQueueItem,
+  type PublicProject,
   type PublicProjectCatalogItem,
 } from '@/features/projects/project-api'
 
@@ -176,15 +177,13 @@ function TaxonomyList({ title, values }: { title: string; values: PublicProjectC
   return <div><h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2><div className="mt-2 flex flex-wrap gap-2">{values.map(value => <span className="rounded-full border bg-card px-3 py-1.5 text-sm" key={`${title}-${value.id}`}>{value.name}</span>)}</div></div>
 }
 
-export function PublicProjectPage() {
-  const { slug } = useParams()
-  const project = useQuery({
-    queryKey: ['public-project', slug],
-    queryFn: ({ signal }) => publicProjectApi.get(slug!, signal),
-    enabled: Boolean(slug),
-    retry: false,
-  })
-
+export function PublicProjectView({
+  project,
+  backTo,
+}: {
+  project: UseQueryResult<PublicProject, Error>
+  backTo: string
+}) {
   useEffect(() => {
     if (!project.data) return
     const previousTitle = document.title
@@ -193,7 +192,7 @@ export function PublicProjectPage() {
   }, [project.data])
 
   if (project.isPending) return <div className="grid min-h-[60vh] place-items-center"><p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando proyecto público…</p></div>
-  if (project.isError || !project.data) return <section className="mx-auto max-w-3xl px-4 py-20 text-center"><CircleAlert className="mx-auto size-10 text-muted-foreground" /><h1 className="mt-4 text-3xl font-bold">Proyecto no disponible</h1><p className="mt-3 text-muted-foreground">No existe, todavía está en revisión o dejó de estar publicado.</p><Button className="mt-6" asChild variant="outline"><Link to="/"><ArrowLeft className="size-4" />Volver al inicio</Link></Button></section>
+  if (project.isError || !project.data) return <section className="mx-auto max-w-3xl px-4 py-20 text-center"><CircleAlert className="mx-auto size-10 text-muted-foreground" /><h1 className="mt-4 text-3xl font-bold">Proyecto no disponible</h1><p className="mt-3 text-muted-foreground">No existe, todavía está en revisión o dejó de estar publicado.</p><Button className="mt-6" asChild variant="outline"><Link to={backTo}><ArrowLeft className="size-4" />Volver al marketplace</Link></Button></section>
 
   const data = project.data
   const website = data.organization.websiteUrl && /^https?:\/\//i.test(data.organization.websiteUrl)
@@ -204,11 +203,11 @@ export function PublicProjectPage() {
     <header className="relative overflow-hidden border-b bg-[radial-gradient(circle_at_top_left,var(--accent),transparent_60%)] px-4 py-16 sm:px-6 sm:py-24">
       <div className="absolute -right-20 -top-24 size-80 rounded-full border-[48px] border-primary/10" aria-hidden="true" />
       <div className="relative mx-auto max-w-5xl">
-        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" to="/"><ArrowLeft className="size-4" />FundingPlatform</Link>
+        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" to={backTo}><ArrowLeft className="size-4" />Marketplace</Link>
         <div className="mt-8 flex flex-wrap items-center gap-3 text-sm"><span className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">Proyecto publicado</span><span className="text-muted-foreground">Publicado el {formatDate(data.publishedAtUtc)}</span></div>
         <h1 className="mt-5 max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">{data.title}</h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">{data.summary ?? 'Conoce este proyecto y su impacto esperado.'}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-4"><span className="inline-flex items-center gap-2 font-semibold"><Building2 className="size-5 text-primary" />{data.organization.name}</span>{website && <Button asChild variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">Sitio oficial <ExternalLink className="size-4" /></a></Button>}</div>
+        <div className="mt-8 flex flex-wrap items-center gap-4"><Link className="inline-flex items-center gap-2 font-semibold hover:text-primary hover:underline" to={`/marketplace/organizations/${data.organization.publicId}`}><Building2 className="size-5 text-primary" />{data.organization.name}</Link>{website && <Button asChild variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">Sitio oficial <ExternalLink className="size-4" /></a></Button>}</div>
       </div>
     </header>
 
@@ -223,4 +222,15 @@ export function PublicProjectPage() {
       </aside>
     </div>
   </article>
+}
+
+export function PublicProjectPage() {
+  const { slug = '' } = useParams()
+  const project = useQuery({
+    queryKey: ['public-project', slug],
+    queryFn: ({ signal }) => publicProjectApi.get(slug, signal),
+    enabled: Boolean(slug),
+    retry: false,
+  })
+  return <PublicProjectView backTo="/marketplace" project={project} />
 }

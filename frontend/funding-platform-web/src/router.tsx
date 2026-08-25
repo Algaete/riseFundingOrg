@@ -9,8 +9,8 @@ const PublicLayout = lazy(() => import('@/components/public-layout').then((modul
 
 const AccountPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.AccountPage })))
 const AlertsPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.AlertsPage })))
-const ApplicationsPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.ApplicationsPage })))
-const CalendarPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.CalendarPage })))
+const ApplicationsPage = lazy(() => import('@/features/applications/application-pages').then((module) => ({ default: module.ApplicationsWorkspacePage })))
+const CalendarPage = lazy(() => import('@/features/calendar/calendar-pages').then((module) => ({ default: module.CalendarWorkspacePage })))
 const DashboardPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.DashboardPage })))
 const FundingDetailPage = lazy(() => import('@/features/funding/funding-pages').then((module) => ({ default: module.FundingOpportunityDetailPage })))
 const FundingPage = lazy(() => import('@/features/funding/funding-pages').then((module) => ({ default: module.FundingCatalogPage })))
@@ -22,6 +22,9 @@ const OrganizationProfilePage = lazy(() => import('@/pages/app-pages').then((mod
 const ProjectsPage = lazy(() => import('@/features/projects/project-pages').then((module) => ({ default: module.ProjectsPage })))
 const ProjectDetailPage = lazy(() => import('@/features/projects/project-pages').then((module) => ({ default: module.ProjectDetailPage })))
 const PublicProjectPage = lazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.PublicProjectPage })))
+const MarketplacePage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplacePage })))
+const MarketplaceProjectDetailPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceProjectDetailPage })))
+const MarketplaceOrganizationPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceOrganizationPage })))
 const RecommendedPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.RecommendedPage })))
 const SubscriptionPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.SubscriptionPage })))
 
@@ -62,6 +65,9 @@ export const appRoutes: RouteObject[] = [
       { path: '/pricing', element: <PricingPage /> },
       { path: '/funding', element: <FundingPage /> },
       { path: '/funding/:slug', element: <FundingDetailPage /> },
+      { path: '/marketplace', element: <MarketplacePage /> },
+      { path: '/marketplace/projects/:slug', element: <MarketplaceProjectDetailPage /> },
+      { path: '/marketplace/organizations/:organizationId', element: <MarketplaceOrganizationPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/verify-email', element: <VerifyEmailPage /> },

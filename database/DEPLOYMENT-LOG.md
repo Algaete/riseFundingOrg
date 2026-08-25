@@ -35,7 +35,9 @@ agregó la adquisición durable y el contenido bruto de Grants.gov; FASE 7B agre
 gobierno de fuentes, retención y recepción Defender/Event Grid fail-closed. La activación de los
 recursos Defender/Event Grid continúa como operación de infraestructura. FASE 8A agregó catálogo
 organizacional, filtros, detalle completo, favoritos privados y Full-Text con fallback literal;
-matching, billing y alertas conservan sus fases del roadmap.
+FASE 8B preparó localmente marketplace de proyectos, postulaciones y calendario derivado, pero su
+migración `019` no se desplegó ni se validó contra ninguna base. Matching, billing y alertas conservan
+sus fases del roadmap.
 
 No se registra la cadena de conexión, la identidad de despliegue ni ningún secreto.
 
@@ -275,3 +277,25 @@ commit de Azure SQL.
   objetivo; este cierre no afirma un p95 de producción.
 - Esta ejecución no creó servicios Azure externos ni activó recursos pagados. No se registraron
   términos buscados, favoritos reales, credenciales, cadenas de conexión ni contenido de fondos.
+
+## Preparación local 019 — FASE 8B, sin despliegue (2026-08-24)
+
+- Se preparó `019_project_marketplace_applications_calendar.sql` con SHA-256
+  `eeb6962329261b6736b4e3584d1409e622f1a26a2947bbe3b3ae25a660df53ef`
+  (1184 líneas, 14 separadores `GO`/15 lotes).
+- Se preparó `019_project_marketplace_applications_calendar_smoke.sql` con SHA-256
+  `7feccc8bb44f63f776df0b16f313ac9e06c8a421d51904764fe24d1da9732ab9`
+  (860 líneas, un separador `GO`/dos lotes).
+- Los artefactos cubren guardas públicas fail-closed del marketplace, postulaciones privadas con
+  idempotencia/rowversion y calendario derivado; no agregan matching, IA, alertas ni billing.
+- Por instrucción del propietario no se abrió una conexión a Azure SQL ni a otro entorno DB y no se
+  ejecutaron `--validate`, `--apply`, `--test` o `--status` para `019`.
+- Por lo anterior, el último estado observado de `res` sigue siendo el cierre 8A de 18/18
+  migraciones. Este registro no inventa una aplicación 19/19, lotes ejecutados, object count,
+  idempotencia de despliegue ni smoke SQL exitoso.
+- El parsing local con ScriptDom terminó correctamente y pasaron 4/4 pruebas de arquitectura 8B.
+  Estas verificaciones estáticas no sustituyen una corrida transaccional real en SQL Server/Azure
+  SQL. La aplicación de `019` requerirá un cambio
+  posterior, explícito y autorizado, con preflight, backup/PITR y registro de resultados observados.
+- No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
+  cadenas de conexión, PII ni datos reales de postulaciones.

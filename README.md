@@ -6,11 +6,12 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **FASE 8A**. Además de la adquisición y revisión editorial de FASE 7,
-una organización autenticada ya puede explorar el catálogo publicado, combinar filtros, abrir el
-detalle completo y mantener favoritos privados por usuario. La búsqueda textual usa Full-Text cuando
-su índice está listo y conserva un respaldo literal; no calcula compatibilidad, matching ni
-elegibilidad de la organización. Esas capacidades project-aware permanecen fuera de este corte.
+El repositorio completó la **FASE 8B en código local**. Además del catálogo organizacional de 8A,
+ahora ofrece un marketplace público de proyectos y organizaciones, seguimiento privado de
+postulaciones por proyecto/fondo y un calendario básico derivado. La migración `019` y su smoke están
+preparados, pero por instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni
+contra otro entorno de base de datos**. Matching, recomendaciones, IA y embeddings continúan fuera
+de este corte.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -24,16 +25,18 @@ elegibilidad de la organización. Esas capacidades project-aware permanecen fuer
 | 7A | Completada | Grants.gov durable, runs/raw, outbox/Queue, Functions y consola administrativa sin autopublicación |
 | 7B | Completada | Extracción PDF aislada, recepción Defender/Event Grid fail-closed, RSS gobernado, retención y deduplicación humana |
 | 8A | Completada | Catálogo organizacional protegido, búsqueda, filtros, órdenes, paginación, detalle completo y favoritos privados |
-| 8B | Pendiente | Project marketplace, postulaciones y calendario básico ligados al proyecto |
+| 8B | Código completado; activación DB pendiente | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
 | 9–11 | Pendiente | Matching por proyecto e IA, alertas, networking y billing |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
 [docs/REVISION-VISION-FUNDRAISING-GLOBAL.md](docs/REVISION-VISION-FUNDRAISING-GLOBAL.md).
-Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo confirmó
+Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
-0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. El código
+0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. La `019`
+de 8B no forma parte de ese resultado: permanece solo como artefacto local pendiente de un despliegue
+posterior autorizado. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -463,6 +466,60 @@ sesión y es idempotente. `--status` informa por separado si Full-Text está lis
 provisionado, no disponible o en drift; en los dos estados de ausencia la búsqueda literal sigue
 operativa.
 
+## Marketplace de proyectos y actividad — FASE 8B
+
+El marketplace anónimo usa las rutas frontend canónicas `/marketplace`,
+`/marketplace/projects/:slug` y `/marketplace/organizations/:organizationId`. La ruta histórica
+`/projects/public/:slug` se conserva como alias compatible. La navegación pública se apoya en:
+
+- `GET /api/v1/marketplace/catalogs`;
+- `GET /api/v1/marketplace/projects`;
+- `GET /api/v1/marketplace/projects/{slug}`;
+- `GET /api/v1/marketplace/organizations/{organizationId}`;
+- `GET /api/v1/projects/{slug}`, conservado como alias del detalle público.
+
+La búsqueda admite `q`, listas de país/categoría/tipo de proyecto, estado, moneda, orden y
+paginación server-side. Los órdenes permitidos son `newest`, `title` y `funding-gap-desc`; este
+último exige una moneda única para no comparar CLP, USD y EUR como si fueran equivalentes. Solo
+proyecta proyectos activos y publicados de organizaciones activas con perfil público apto. Los
+detalles y perfiles usan una proyección allowlisted sin miembros, correos, teléfonos, identificadores
+tributarios ni borradores. Las respuestas públicas tienen cache de 60 segundos y rate limit; la
+interfaz aclara que FundingPlatform no realiza una verificación legal de la organización.
+
+El espacio autenticado incorpora `/applications` y `/calendar`, respaldados por estas rutas privadas:
+
+- `GET/POST /api/v1/organizations/{organizationId}/applications`;
+- `GET/PATCH /api/v1/organizations/{organizationId}/applications/{applicationId}`;
+- `GET /api/v1/organizations/{organizationId}/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+
+Cada postulación enlaza obligatoriamente una organización, uno de sus proyectos y un fondo publicado.
+Sus estados son `Interesado`, `Preparando postulación`, `Presentada`, `Adjudicada`, `No adjudicada`
+y `Descartada`. Crear exige `Idempotency-Key` durable; reintentar la misma solicitud no duplica el
+registro y reutilizar la clave con otros datos produce conflicto. Actualizar exige el ETag vigente en
+`If-Match`. Todos los miembros activos pueden consultar; solo el responsable de la postulación o un
+Admin de la organización puede editar. El aislamiento entre tenants responde `404` sin revelar si un
+recurso ajeno existe, y estas rutas usan sesión completa, `Cache-Control: no-store` y rate limits.
+
+El calendario no duplica datos en una tabla propia: deriva, para intervalos de hasta 366 días, los
+cierres de fondos vinculados, fechas planificadas de envío y resultado, inicio/término del proyecto y
+cierres de favoritos todavía no representados por una postulación activa. Las postulaciones
+descartadas se excluyen. 8B no agrega matching, score, recomendaciones, IA, alertas, networking ni
+billing.
+
+`019_project_marketplace_applications_calendar.sql` y
+`019_project_marketplace_applications_calendar_smoke.sql` están preparados como artefactos
+forward-only. En este cierre no se ejecutaron `--validate`, `--apply`, `--test` ni `--status` contra
+Azure SQL o cualquier otro entorno de base de datos; por ello no se declara una versión aplicada,
+un inventario de objetos ni un smoke SQL real de 8B. Sus huellas locales congeladas son:
+
+- migración `019` (1184 líneas/15 lotes):
+  `eeb6962329261b6736b4e3584d1409e622f1a26a2947bbe3b3ae25a660df53ef`;
+- smoke `019` (860 líneas/dos lotes):
+  `7feccc8bb44f63f776df0b16f313ac9e06c8a421d51904764fe24d1da9732ab9`.
+
+El parsing local ScriptDom terminó correctamente y pasaron 4/4 pruebas de arquitectura 8B. Estos
+gates son estáticos y no equivalen a ejecutar SQL contra una base real.
+
 ## Pruebas y validación
 
 Backend:
@@ -627,6 +684,11 @@ El gate de código de 8A terminó con build de la solución .NET en 0 warnings/0
 pruebas unitarias y 101/101 de integración. En frontend pasaron lint, 16 archivos/91 pruebas Vitest
 y el build de producción.
 
+El gate local de código de 8B terminó con build de la solución .NET en 0 warnings/0 errores,
+261/261 pruebas unitarias y 114/114 de integración. En frontend pasaron lint, 19 archivos/98 pruebas
+Vitest y el build de producción. Estos resultados validan código y contratos locales; no sustituyen
+la validación transaccional ni el smoke de `019` en SQL Server/Azure SQL, que siguen pendientes.
+
 Endpoints principales del backend hasta este cierre:
 
 - tenant: `POST /api/v1/organizations/{organizationId}/projects/{projectId}/publish` y
@@ -634,7 +696,13 @@ Endpoints principales del backend hasta este cierre:
 - admin MFA: cola, detalle completo y decisión bajo `/api/v1/admin/projects`;
 - público anónimo: `GET /api/v1/projects/{slug}`, limitado a proyectos publicados y
   organizaciones activas con perfil apto;
-- frontend público: `/projects/public/{slug}`;
+- marketplace público: catálogos, búsqueda paginada y detalle bajo `/api/v1/marketplace`, además
+  del perfil seguro de organización; frontend canónico `/marketplace`,
+  `/marketplace/projects/:slug` y `/marketplace/organizations/:organizationId`;
+- frontend público heredado: `/projects/public/{slug}`;
+- actividad privada: listado/alta/detalle/actualización bajo
+  `/api/v1/organizations/{organizationId}/applications` y calendario derivado bajo
+  `/api/v1/organizations/{organizationId}/calendar`;
 - importación Admin/SuperAdmin con MFA: `POST /api/v1/admin/funding-sources/{sourceId}/import-runs`,
   `GET /api/v1/admin/import-runs` y
   `GET /api/v1/admin/import-runs/{runId}`;
@@ -817,7 +885,8 @@ El orden de ejecución es:
 - FASE 7B — extracción PDF aislada, recepción Defender/Event Grid fail-closed, RSS gobernado,
   retención y deduplicación humana;
 - FASE 8A — catálogo organizacional, búsqueda, detalle completo y favoritos privados;
-- FASE 8B — project marketplace, postulaciones y calendario básico;
+- FASE 8B — marketplace, postulaciones y calendario básico completados en código; activación de
+  `019` pendiente de un despliegue autorizado;
 - FASE 9 — matching por proyecto, IA y embeddings;
 - FASE 10 — alertas, pipeline, calendario y networking básico;
 - FASE 11 — suscripciones y administración completa;
