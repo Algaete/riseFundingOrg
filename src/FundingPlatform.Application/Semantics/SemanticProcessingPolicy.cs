@@ -36,7 +36,7 @@ public sealed record SemanticProcessingPolicy(
             CalibrationVersion != "cosine-linear-shadow-v1")
         {
             throw new InvalidOperationException(
-                "Semantic processing policy is outside the Phase 9B-A shadow contract.");
+                "Semantic processing policy is outside the governed shadow-evaluation contract.");
         }
 
         // Jobs are claimed just in time and processed serially. A single lease must

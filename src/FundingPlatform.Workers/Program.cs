@@ -72,10 +72,24 @@ builder.Services.AddSingleton<IValidateOptions<ContentRetentionOptions>,
 builder.Services.AddOptions<SemanticOptions>()
     .Bind(builder.Configuration.GetSection(SemanticOptions.SectionName))
     .ValidateOnStart();
+builder.Services.AddOptions<OpenAiProviderOptions>()
+    .Bind(builder.Configuration.GetSection(OpenAiProviderOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<OpenAiProviderOptions>,
+    OpenAiProviderOptionsValidator>();
 builder.Services.AddSingleton<IValidateOptions<SemanticOptions>,
     SemanticWorkerOptionsValidator>();
+builder.Services.AddOptions<AiExplanationOptions>()
+    .Bind(builder.Configuration.GetSection(AiExplanationOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AiExplanationOptions>,
+    AiExplanationOptionsValidator>();
+builder.Services.AddSingleton<IValidateOptions<AiExplanationOptions>,
+    AiExplanationWorkerOptionsValidator>();
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<AiExplanationOptions>>().Value.ToPolicy());
 
 var queueStorage = ImportQueueStorageConfiguration.Resolve(builder.Configuration);
 var documentExtractionQueueStorage =
@@ -111,6 +125,8 @@ builder.Services.AddScoped<ISourceDocumentContentRetentionRepository,
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISemanticProcessingRepository,
     SqlSemanticProcessingRepository>();
+builder.Services.AddScoped<IAiExplanationProcessingRepository,
+    SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceiptRepository>();
 builder.Services.AddScoped<IDefenderScanWatchdogRepository,
     SqlDefenderScanWatchdogRepository>();
@@ -142,14 +158,46 @@ builder.Services.AddScoped<DefenderEventGridService>();
 builder.Services.AddScoped<DefenderScanWatchdogService>();
 builder.Services.AddScoped<ContentRetentionService>();
 builder.Services.AddScoped<SourceDocumentContentRetentionService>();
-builder.Services.AddSingleton<IEmbeddingService>(_ =>
-    builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
-        ? new DeterministicDevelopmentEmbeddingService()
-        : new UnavailableEmbeddingService());
+builder.Services.AddSingleton<DeterministicDevelopmentEmbeddingService>();
+var configuredOpenAi = builder.Configuration
+    .GetSection(OpenAiProviderOptions.SectionName)
+    .Get<OpenAiProviderOptions>() ?? new OpenAiProviderOptions();
+var openAiEndpoint = configuredOpenAi.GetEndpointOrigin();
+builder.Services.AddHttpClient<OpenAiEmbeddingService>((serviceProvider, client) =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OpenAiProviderOptions>>().Value;
+        client.BaseAddress = new Uri(options.GetEndpointOrigin(), "/v1/");
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("FundingPlatform-Workers/1.0");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() =>
+        PublicNetworkSocketsHttpHandler.Create(openAiEndpoint.IdnHost));
+builder.Services.AddHttpClient<OpenAiStructuredExplanationService>((serviceProvider, client) =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OpenAiProviderOptions>>().Value;
+        client.BaseAddress = new Uri(options.GetEndpointOrigin(), "/v1/");
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("FundingPlatform-Workers/1.0");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() =>
+        PublicNetworkSocketsHttpHandler.Create(openAiEndpoint.IdnHost));
+builder.Services.AddScoped<IEmbeddingService>(serviceProvider =>
+    new GovernedEmbeddingServiceRouter(
+        serviceProvider.GetRequiredService<DeterministicDevelopmentEmbeddingService>(),
+        serviceProvider.GetRequiredService<OpenAiEmbeddingService>(),
+        builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")));
 builder.Services.AddScoped(serviceProvider => new SemanticProcessingService(
     serviceProvider.GetRequiredService<ISemanticProcessingRepository>(),
     serviceProvider.GetRequiredService<IEmbeddingService>(),
     serviceProvider.GetRequiredService<SemanticProcessingPolicy>(),
+    serviceProvider.GetRequiredService<TimeProvider>(),
+    serviceProvider.GetRequiredService<SemanticWorkerIdentity>().InstanceId));
+builder.Services.AddScoped<IStructuredExplanationService>(serviceProvider =>
+    serviceProvider.GetRequiredService<OpenAiStructuredExplanationService>());
+builder.Services.AddScoped(serviceProvider => new AiExplanationProcessingService(
+    serviceProvider.GetRequiredService<IAiExplanationProcessingRepository>(),
+    serviceProvider.GetRequiredService<IStructuredExplanationService>(),
+    serviceProvider.GetRequiredService<AiExplanationProcessingPolicy>(),
     serviceProvider.GetRequiredService<TimeProvider>(),
     serviceProvider.GetRequiredService<SemanticWorkerIdentity>().InstanceId));
 

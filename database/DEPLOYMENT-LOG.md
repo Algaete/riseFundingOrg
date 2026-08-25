@@ -375,3 +375,39 @@ commit de Azure SQL.
   Structured Outputs, explicaciones generativas y cualquier promoción de la señal semántica.
 - No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
   cadenas de conexión, PII, prompts, respuestas crudas ni entradas canónicas.
+
+## Preparación local 022/023 — FASE 9B-B gobernada, sin despliegue (2026-08-25)
+
+- Se preparó `022_governed_openai_provider.sql` con SHA-256
+  `d961a90278a8081c175418f6331be6dd19b65a0563b75fe6c857417c266f0f56`
+  (788 líneas/9 lotes) y su smoke con SHA-256
+  `4204196816b74194ee012b63bd3c0a184e7dfa649bcd6b4f82a80d9370ca9b22`
+  (362 líneas/un lote).
+- Se preparó `023_shadow_structured_explanations.sql` con SHA-256
+  `add58976e0963dc0cec0b434d18415869eb5f0e96e0bed35264e3363a021eca9`
+  (2164 líneas/25 lotes) y su smoke con SHA-256
+  `11d1a4d51008e0d6c6c27ac9265a4078955911506de8f863fcdad0298ca62a3c`
+  (335 líneas/un lote).
+- `022` enlaza adapters reales de embeddings a una política inmutable que fija proveedor/modelo,
+  capability, endpoint regional oficial, hashes de DPA/términos, ZDR, residencia, precios, aprobador
+  y expiración. No almacena la API key ni permite elegir modelo por request.
+- `023` agrega explicaciones Structured Outputs sólo para administración y modo sombra: input
+  efímero allowlisted desde snapshots 9A/9B-A, jobs/leases, reserva de costo previa, ledger,
+  reintento idempotente y resultado estructurado inmutable. No guarda prompt, entrada canónica,
+  respuesta raw, request ID sin hash ni PII.
+- Los adapters apuntan exclusivamente a hosts oficiales allowlisted, rechazan redirects, validan
+  origen de respuesta, fingerprint y contrato exactos, y usan `/v1/embeddings` o `/v1/responses`
+  con `store=false`. El fake sigue limitado a `Development`/`Testing`; no existe fallback hosted.
+- Los runtimes `Semantic` y `AiExplanations`, OpenAI embeddings y Structured Outputs permanecen
+  deshabilitados por defecto. La API administrativa requiere MFA reciente, `Idempotency-Key`,
+  rate limit y `no-store`; no hay endpoints cliente ni cambios de frontend.
+- ScriptDom parseó los cuatro artefactos. El gate local pasó build .NET (0 warnings/0 errores),
+  347/347 pruebas unitarias, 142/142 de integración, lint frontend, 21 archivos/104 pruebas Vitest
+  y build de producción.
+- Por instrucción del propietario no se abrió una conexión SQL, no se ejecutó `--validate`,
+  `--apply`, `--test` o `--status`, no se llamó a OpenAI, no se crearon recursos Azure y no se
+  incurrió en costo. `res` sigue observado en 18/18; `019`→`023` permanecen locales.
+- Antes de cualquier activación se debe validar/aplicar la cadena completa en un ambiente
+  autorizado, aprobar el proyecto exacto para DPA/ZDR, custodiar el secreto en Key Vault, registrar
+  precios vigentes, cargar el corpus humano y ejecutar evals con presupuesto acotado. La extracción
+  generativa y todo writeback/promoción siguen fuera de este cierre.

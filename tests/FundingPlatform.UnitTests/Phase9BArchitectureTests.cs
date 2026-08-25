@@ -79,7 +79,7 @@ public sealed class Phase9BArchitectureTests
     }
 
     [Fact]
-    public void Provider_is_exact_local_only_and_hosted_api_keeps_9a_available()
+    public void Provider_is_exact_governed_and_hosted_api_keeps_9a_available()
     {
         var options = Read(
             "src", "FundingPlatform.Infrastructure", "Configuration",
@@ -92,20 +92,108 @@ public sealed class Phase9BArchitectureTests
         var fake = Read(
             "src", "FundingPlatform.Infrastructure", "Semantics",
             "DeterministicDevelopmentEmbeddingService.cs");
+        var openAi = Read(
+            "src", "FundingPlatform.Infrastructure", "Semantics",
+            "OpenAiEmbeddingService.cs");
+        var openAiOptions = Read(
+            "src", "FundingPlatform.Infrastructure", "Configuration",
+            "OpenAiProviderOptions.cs");
 
         Assert.DoesNotContain("ProviderCode", options, StringComparison.Ordinal);
         Assert.DoesNotContain("ModelCode", options, StringComparison.Ordinal);
         Assert.DoesNotContain("SEMANTIC_PROVIDER", aliases, StringComparison.Ordinal);
         Assert.DoesNotContain("SEMANTIC_MODEL", aliases, StringComparison.Ordinal);
-        Assert.Contains("configured with { Enabled = false }", api,
+        Assert.Contains("Bind(builder.Configuration.GetSection(SemanticOptions.SectionName))", api,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("configured with { Enabled = false }", api,
             StringComparison.Ordinal);
         Assert.Contains("SemanticWorkerOptionsValidator", worker,
             StringComparison.Ordinal);
-        Assert.Contains("UnavailableEmbeddingService", worker, StringComparison.Ordinal);
+        Assert.Contains("GovernedEmbeddingServiceRouter", worker, StringComparison.Ordinal);
+        Assert.Contains("OpenAiEmbeddingService", worker, StringComparison.Ordinal);
         Assert.Contains("development-deterministic", fake, StringComparison.Ordinal);
         Assert.Contains("lexical-hash-1536-v1", fake, StringComparison.Ordinal);
         Assert.DoesNotContain("OpenAI", fake, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("HttpClient", fake, StringComparison.Ordinal);
+        Assert.Contains("https://api.openai.com", openAiOptions, StringComparison.Ordinal);
+        Assert.Contains("ZeroDataRetention", openAi, StringComparison.Ordinal);
+        Assert.Contains("FixedTimeEquals", openAi, StringComparison.Ordinal);
+        Assert.DoesNotContain("OPENAI_MODEL", aliases, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Phase9bb_is_governed_disabled_shadow_only_and_never_writes_back()
+    {
+        var migration022 = Read(
+            "database", "Migrations", "022_governed_openai_provider.sql");
+        var migration023 = Read(
+            "database", "Migrations", "023_shadow_structured_explanations.sql");
+        var adapter = Read(
+            "src", "FundingPlatform.Infrastructure", "Semantics",
+            "OpenAiStructuredExplanationService.cs");
+        var inputPolicy = Read(
+            "src", "FundingPlatform.Application", "Semantics",
+            "AiExplanationInputPolicy.cs");
+        var endpoints = Read(
+            "src", "FundingPlatform.Api", "Endpoints",
+            "AdminAiExplanationEndpoints.cs");
+        var env = Read(".env.example");
+
+        Assert.Contains("ZeroDataRetention", adapter, StringComparison.Ordinal);
+        Assert.Contains("store = false", adapter, StringComparison.Ordinal);
+        Assert.Contains("json_schema", adapter, StringComparison.Ordinal);
+        Assert.Contains("gpt-5.6-sol", adapter, StringComparison.Ordinal);
+        Assert.Contains("FixedTimeEquals", adapter, StringComparison.Ordinal);
+        Assert.Contains("RequiredStructuredOutputGovernanceFingerprint", adapter,
+            StringComparison.Ordinal);
+        Assert.Contains("HasExactOrderedProperties", inputPolicy,
+            StringComparison.Ordinal);
+        Assert.Contains("rules.GetArrayLength() != RuleCodes.Length", inputPolicy,
+            StringComparison.Ordinal);
+        Assert.Contains("ReasonCodes.Contains", inputPolicy, StringComparison.Ordinal);
+        Assert.Contains("AiExplanationInputPolicy.IsCanonicalAndSafe", adapter,
+            StringComparison.Ordinal);
+        Assert.Contains("Capability = 1", migration023, StringComparison.Ordinal);
+        Assert.Contains("RetentionMode = 2", migration023, StringComparison.Ordinal);
+        Assert.Contains("MaximumProviderRetentionDays = 0", migration023,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_SemanticWorkerRole", migration023,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_SemanticAdminRole", migration023,
+            StringComparison.Ordinal);
+        Assert.Contains("DENY SELECT, INSERT, UPDATE, DELETE", migration023,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ApiKey", migration022, StringComparison.OrdinalIgnoreCase);
+        foreach (var table in new[]
+                 {
+                     "FundingPlatform_AiExplanationConfigurations",
+                     "FundingPlatform_AiExplanationRuns",
+                     "FundingPlatform_AiExplanationJobs",
+                     "FundingPlatform_AiExplanationBudgetReservations",
+                     "FundingPlatform_AiExplanationUsageLedger",
+                     "FundingPlatform_AiExplanationResults"
+                 })
+        {
+            var definition = CreateTable(migration023, table);
+            Assert.DoesNotContain("RawResponse", definition,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("CanonicalInput", definition,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("PromptText", definition,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.DoesNotContain("UPDATE dbo.FundingPlatform_ProjectFundingMatches", migration023,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("UPDATE dbo.FundingPlatform_SemanticEvaluationItems", migration023,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/api/v1/admin/semantic-explanation-runs", endpoints,
+            StringComparison.Ordinal);
+        Assert.Contains("RequireAuthorization(\"admin-mfa\")", endpoints,
+            StringComparison.Ordinal);
+        Assert.Contains("AI_EXPLANATIONS_ENABLED=\"false\"", env,
+            StringComparison.Ordinal);
+        Assert.Contains("OPENAI_STRUCTURED_OUTPUTS_ENABLED=\"false\"", env,
+            StringComparison.Ordinal);
     }
 
     [Fact]

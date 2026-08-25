@@ -133,7 +133,9 @@ public sealed record SemanticEmbeddingRequest(
     string NormalizationVersion,
     int Dimensions,
     string CanonicalInputJson,
-    byte[] InputContentHash);
+    byte[] InputContentHash,
+    decimal MaximumCostUsd,
+    AiProviderGovernanceContext? ProviderGovernance);
 
 public sealed class SemanticProcessingDataException(
     string operation,
@@ -146,12 +148,22 @@ public sealed class SemanticProcessingDataException(
     public int DatabaseErrorNumber { get; } = databaseErrorNumber;
 }
 
-public sealed class SemanticEmbeddingException(
-    string safeCode,
-    bool retryable,
-    Exception? innerException = null) : Exception(
-        "Semantic embedding generation failed.", innerException)
+public sealed class SemanticEmbeddingException : Exception
 {
-    public string SafeCode { get; } = safeCode;
-    public bool Retryable { get; } = retryable;
+    public SemanticEmbeddingException(
+        string safeCode,
+        bool retryable,
+        Exception? innerException = null,
+        SemanticProviderCallAccounting providerCallAccounting =
+            SemanticProviderCallAccounting.ChargeUncertain)
+        : base("Semantic embedding generation failed.", innerException)
+    {
+        SafeCode = safeCode;
+        Retryable = retryable;
+        ProviderCallAccounting = providerCallAccounting;
+    }
+
+    public string SafeCode { get; }
+    public bool Retryable { get; }
+    public SemanticProviderCallAccounting ProviderCallAccounting { get; }
 }

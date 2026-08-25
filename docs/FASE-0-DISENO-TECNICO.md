@@ -4,7 +4,8 @@
 Full-Text provisionado; FASE 8B completada en código local, con `019` preparada pero no aplicada ni
 validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
 sin aplicación ni prueba contra una base de datos; FASE 9B-A completada en código local y `021`
-congelada, también sin aplicación ni prueba contra una base de datos
+congelada; FASE 9B-B con adapters/gobierno/explicaciones shadow completados en código local mediante
+`022`/`023`, todos todavía sin aplicación ni prueba contra una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
 
@@ -136,8 +137,9 @@ postulaciones y un calendario básico derivado. Un filtro describe datos declara
 elegibilidad, no genera score y no constituye recomendación. FASE 9A agrega compatibilidad
 project-aware determinística, versionada y explicable; no usa IA o embeddings y tampoco confirma
 elegibilidad ni se presenta como recomendación. FASE 9B-A agrega infraestructura de embeddings y
-una evaluación corpus-level sólo en sombra, sin writeback a 9A. El proveedor real y cualquier
-ampliación visible permanecen para 9B-B, sujetos a evaluación y gobierno.
+una evaluación corpus-level sólo en sombra, sin writeback a 9A. FASE 9B-B agrega adapters reales
+gobernados y explicación administrativa shadow; su activación, evaluación real y cualquier
+ampliación visible permanecen sujetas a aprobación explícita.
 
 #### IA y matching
 
@@ -150,8 +152,9 @@ ampliación visible permanecen para 9B-B, sujetos a evaluación y gobierno.
 
 El primer corte 9A implementa sólo el motor determinístico: nueve reglas, hard gates
 `Pass`/`Fail`/`Unknown`, score conservador y cobertura sin renormalización. 9B-A materializa la
-abstracción de embeddings, un fake local y la comparación shadow; `OpenAiService`, un proveedor real,
-Structured Outputs, explicaciones generadas y la promoción no forman parte de este corte.
+abstracción de embeddings, un fake local y la comparación shadow. 9B-B materializa adapters OpenAI
+apagados por defecto y explicaciones estructuradas administrativas; extracción generativa,
+activación y promoción no forman parte del cierre local.
 
 #### Monetización y administración
 
@@ -231,7 +234,7 @@ Controller
           +----------> [Azure Blob Storage]
           |              PDF, Excel/CSV, HTML y raw grandes
           |
-          +----------> [Proveedor IA real mediante IAiService · futuro 9B-B]
+          +----------> [Proveedor IA gobernado 9B-B · apagado por defecto]
           |
           +----------> [Mercado Pago mediante IPaymentGateway]
           |
@@ -552,10 +555,11 @@ IMatchingService
 ```
 
 Los adapters viven en `Infrastructure`; ninguna entidad del dominio conoce modelos, SDKs o API keys.
-La implementación 9B-A materializa sólo `IEmbeddingService` con un fake léxico determinístico
-restringido a `Development`/`Testing` y una evaluación shadow. No materializa `OpenAiService`, no usa
-Structured Outputs, no entrena modelos y no necesita Azure ML. El adapter real de embeddings
-preentrenados y `IAiService` quedan sujetos a evals y gobierno de proveedor en 9B-B.
+La implementación 9B-A materializa `IEmbeddingService` con un fake léxico determinístico restringido
+a `Development`/`Testing` y una evaluación shadow. 9B-B agrega el adapter HTTP gobernado de
+embeddings y `IStructuredExplanationService` sobre Responses/Structured Outputs. Ambos permanecen
+deshabilitados hasta que coincidan la política SQL y el fingerprint operativo; no se entrenan modelos
+ni se necesita Azure ML.
 
 ### ADR-010 — Topología de sesión y cookie
 
@@ -591,7 +595,8 @@ editorial y el límite seguro de documentos. FASE 7A incorporó runs, raw inmuta
 durable desde Grants.gov; FASE 7B agregó extracción PDF, recepción Defender/Event Grid fail-closed,
 RSS gobernado, retención y revisión humana de duplicados. Proyectos/funders se agregaron en FASE 5/6;
 9A agrega compatibilidad project-first determinística; 9B-A prepara embeddings y evals sólo en
-sombra, y 9B-B reserva el proveedor real y la IA generativa.
+sombra, y 9B-B prepara adapters reales gobernados y explicaciones administrativas shadow sin
+activar ni promover resultados.
 
 ### 7.2 Catálogos normalizados
 
@@ -1162,12 +1167,12 @@ FK compuesta `(ImportRunItemId, ImportRunId, FundingSourceId)` impide asociar un
 run/fuente. La consola recibe códigos y mensajes sanitizados: no se guardan stack traces, tokens,
 payloads raw ni secretos. El detalle técnico se correlaciona con Application Insights.
 
-#### `AiProcessingRuns` — propuesta diferida a 9B-B
+#### `AiProcessingRuns` — propuesta genérica histórica, no adoptada por 9B-B
 
-> **Revisión 2026-08-25:** 9B-A no materializa esta tabla genérica ni ninguna operación
-> generativa. La migración local `021` usa tablas semánticas específicas descritas más abajo. Este
-> modelo queda como propuesta para Structured Outputs, extracción y explicaciones de 9B-B, sujeto a
-> DPA, retención y ciclo de vida aprobados para el proveedor real.
+> **Revisión 2026-08-25:** `021` usa tablas semánticas específicas y `023` usa tablas específicas
+> `AiExplanation*`; ninguna materializa esta tabla genérica. El modelo siguiente se conserva sólo
+> como registro de la propuesta inicial para una eventual extracción/summarization V2. No describe
+> la persistencia vigente de embeddings ni explicaciones.
 
 ```text
 Id BIGINT IDENTITY PK
@@ -1205,11 +1210,11 @@ CorrelationId NVARCHAR(100) NOT NULL
 CreatedAtUtc DATETIME2(3) NOT NULL
 ```
 
-Si 9B-B aprueba este modelo, UQ `CacheKey` y un claim atómico evitarán ejecuciones concurrentes
-conocidas; un retry reutilizará la misma fila/clave. Scope, sujeto, versión, operación, hash,
-proveedor, modelo y versiones de prompt/schema/template formarán la clave calculada en servidor.
-Las salidas estructuradas tendrán allowlists, límites e aislamiento tenant; los estados terminales
-exigirán `FinishedAtUtc`.
+Si una fase posterior recupera este modelo para extracción, UQ `CacheKey` y un claim atómico deberán
+evitar ejecuciones concurrentes conocidas. Scope, sujeto, versión, operación, hash, proveedor,
+modelo y versiones de prompt/schema/template formarían la clave calculada en servidor. Las salidas
+estructuradas requerirían allowlists, límites e aislamiento tenant; los estados terminales exigirían
+`FinishedAtUtc`.
 
 Los futuros SP de persistencia deberán validar el sujeto, no sólo el ID de run. Evidence aceptará
 runs `Extract/Summarize` ligados al raw/fondo correcto, y una explicación exigirá el mismo
@@ -1217,10 +1222,10 @@ runs `Extract/Summarize` ligados al raw/fondo correcto, y una explicación exigi
 `AiProcessingRunId` de otro tenant, versión o modelo podrá pasar por el solo hecho de tener una FK
 formalmente válida.
 
-La salida estructurada razonable podrá conservarse en SQL y una respuesta grande en Blob, una vez
-aprobadas sus políticas. No se almacenará un prompt con secretos ni el documento completo. Un crash
-después de que el proveedor cobre pero antes de persistir puede exigir retry: “no pagar dos veces” es
-best effort observable, no garantía imposible sin idempotencia del proveedor.
+La explicación 9B-B no usa Blob ni guarda una respuesta grande: persiste únicamente campos
+allowlisted, hashes y uso/costo. Un crash después de que el proveedor cobre pero antes de persistir
+puede exigir retry; `023` consume la reserva de forma conservadora cuando el cobro es incierto y
+reproduce el mismo output si sólo se perdió el ACK.
 
 #### Persistencia semántica 9B-A
 
@@ -1258,8 +1263,9 @@ patrones riesgosos, hashes que no coinciden e inputs stale se rechazan fail-clos
 
 Vectores, ledger y resultados shadow son inmutables para reproducibilidad; sólo la vigencia del
 vector puede transicionar de actual a retirado bajo guardas. 9B-A no implementa un procedimiento de
-purga porque tampoco persiste raw, prompt, respuesta o input canónico. Un proveedor real exige en
-9B-B una política explícita de DPA, retención, borrado y ciclo de vida antes de enviar contenido.
+purga porque tampoco persiste raw, prompt, respuesta o input canónico. `022`/`023` ya modelan una
+política explícita de DPA, ZDR, residencia, expiración y precios; el operador todavía debe aprobarla
+para el proyecto real y acordar el ciclo de vida antes de enviar contenido.
 
 El contrato fija 1536 dimensiones. Un cambio de dimensión, modelo, template, normalización o
 calibración exige otra configuración versionada y nuevos evals. El vector sólo es utilizable cuando
@@ -1267,8 +1273,9 @@ coinciden el sujeto, su versión, hashes y toda la configuración. La búsqueda 
 exacta; no introduce un índice aproximado ni altera los resultados 9A. La documentación oficial de
 SQL Server describe el tipo [`VECTOR`](https://learn.microsoft.com/en-us/sql/sql-server/ai/vectors?view=sql-server-ver17),
 y la API de embeddings admite fijar sus
-[`dimensions`](https://developers.openai.com/api/reference/ruby/resources/embeddings/methods/create);
-la selección de un proveedor/modelo real continúa pendiente de evals 9B-B.
+[`dimensions`](https://developers.openai.com/api/reference/ruby/resources/embeddings/methods/create).
+9B-B implementa adapters OpenAI exactos, pero su aprobación/promoción continúa pendiente de evals
+reales.
 
 ### 7.7 Matching
 
@@ -1867,6 +1874,8 @@ Un solo `PUT profile` evita una docena de endpoints chatty durante onboarding. E
 | `GET` | `/api/v1/admin/semantic-evaluation-runs` | 9B-A: historial agregado paginado; Admin/SuperAdmin + MFA reciente |
 | `GET` | `/api/v1/admin/semantic-evaluation-runs/{runId}` | 9B-A: estado y contadores sanitizados de jobs; Admin/SuperAdmin + MFA reciente |
 | `GET` | `/api/v1/admin/semantic-evaluation-runs/{runId}/report` | 9B-A: métricas agregadas por split, sin input canónico ni vectores |
+| `POST` | `/api/v1/admin/semantic-explanation-runs` | 9B-B: crea run de explicación shadow desde una evaluación semántica completada; MFA, rate limit e `Idempotency-Key`; `202` |
+| `GET` | `/api/v1/admin/semantic-explanation-runs/{runId}` | 9B-B: estado y resultados estructurados paginados, sanitizados y `no-store`; sin canonical input/raw |
 
 La ruta organizacional implementada en 8A acepta `q`, `countryIds`, `regionIds`, `categoryIds`,
 `tagIds`, `beneficiaryTypeIds`, `projectTypeIds`, `funderIds`, `sponsor`, `minAmount`, `maxAmount`,
@@ -1888,6 +1897,11 @@ pesos, versiones ni reglas desde el cliente.
 no permiten cargar labels ni cambiar configuraciones desde HTTP y no tienen UI. Autorización y
 rate limit se evalúan antes de consultar SQL; las respuestas de detalle y reporte incluyen el aviso
 de que la evaluación es interna, shadow, no recomienda fondos y no confirma elegibilidad.
+
+9B-B agrega dos rutas administrativas para explicación y tampoco expone UI o contratos cliente.
+Las políticas DPA/ZDR/precios y configuraciones sólo se publican mediante Admin CLI interactivo;
+ningún request HTTP suministra provider, model, prompt, esquema, precios o API key. Los resultados no
+se escriben sobre matching ni ranking y mantienen el mismo aviso de uso interno/orientativo.
 
 La búsqueda textual 8A combina Full-Text rank con un complemento literal y cae completamente a este
 último si el índice no está listo. `sort` se mapea por allowlist a expresiones SQL; nunca se concatena
@@ -2089,8 +2103,9 @@ es siempre `Draft`/`StagedForReview`: ninguna ruta de adquisición puede publica
 ### 9.4 Extracción mediante IA
 
 FASE 7B materializa únicamente la extracción determinística y acotada de texto PDF más evidencia
-segura. No llama a OpenAI, no interpreta campos ni modifica contenido editorial. Los pasos de IA
-estructurada siguientes permanecen en FASE 9B-B; no forman parte del worker semántico 9B-A.
+segura. No llama a OpenAI, no interpreta campos ni modifica contenido editorial. 9B-B implementa el
+adapter y el gobierno para explicaciones shadow, pero el esquema y workflow de extracción
+estructurada siguientes siguen diferidos; no forman parte del worker semántico 9B-A ni de `023`.
 
 1. Se extrae texto de una fuente no confiable en un proceso aislado y con límites.
 2. El prompt establece que el documento es datos, no instrucciones; el modelo no tiene herramientas ni credenciales.
@@ -2109,16 +2124,17 @@ estructurada siguientes permanecen en FASE 9B-B; no forman parte del worker sem�
 
 La calidad de datos se calcula con reglas determinísticas: completitud de campos críticos, evidencia, validez, conflictos, reputación de fuente y antigüedad de verificación. No se pide al LLM que se autocalifique.
 
-9B-B deberá fijar un snapshot/model ID evaluado cuando el proveedor lo permita; no dependerá de un
-alias `latest`. Un cambio de snapshot exigirá nueva versión de configuración/evals antes de cualquier
-promoción. [Catálogo oficial de modelos OpenAI](https://developers.openai.com/api/docs/models).
+`022`/`023` fijan modelos exactos y nunca aceptan un alias `latest`: embeddings
+`text-embedding-3-small`/`text-embedding-3-large` y explicación `gpt-5.6-sol`. Aún deben evaluarse
+con el proyecto real; un cambio de modelo exige nueva versión de configuración/evals antes de
+cualquier promoción. [Catálogo oficial de modelos OpenAI](https://developers.openai.com/api/docs/models).
 
 9B-A usa allowlists distintas para proyecto y oportunidad. El proyecto admite resumen/descripción,
 estado, fechas, presupuesto/financiamiento, moneda y taxonomías; excluye título/nombre, slugs, IDs de
 organización/usuario, RUT/Tax ID, emails, URLs, nombres de miembros, notas y billing. La oportunidad
 admite únicamente sus campos editoriales públicos y taxonomías. El input canónico es runtime-only,
-lleva hash y límite de 8192 bytes UTF-8. Antes de conectar un proveedor real en 9B-B se validarán
-DPA, retención y borrado; el fake local no envía datos por red.
+lleva hash y límite de 8192 bytes UTF-8. Antes de conectar el proveedor se deben aprobar en operación
+el DPA/ZDR, residencia y ciclo de vida modelados por `022`; el fake local no envía datos por red.
 
 ### 9.5 Matching
 
@@ -2137,8 +2153,9 @@ promoción indebida, pero nunca modifica sus hard gates. No se actualizan `RuleS
 `CompatibilityScore`, `Classification`, `IsCurrent` ni el orden visible.
 
 Sólo si un proveedor real supera los gates de 9B-B podría diseñarse otro perfil versionado que
-combine reglas y semántica. La ponderación, fallback y eventual explicación generativa se decidirán
-entonces; 9B-A no implementa `SemanticPoints`, writeback ni texto generado.
+combine reglas y semántica. `023` ya puede producir una explicación estructurada administrativa,
+separada y en sombra, pero no la usa como ponderación ni la muestra a clientes. 9B-A/9B-B no
+implementan `SemanticPoints`, writeback ni promoción.
 
 Ejemplo de salida:
 
@@ -2413,7 +2430,7 @@ Alertas operativas: readiness fallida, 5xx sostenido >5%, p95 fuera de SLO, dos 
 | Transporte | Azure Queue Storage | triggers at-least-once económicos; payloads solo con IDs |
 | Secretos | Azure Key Vault | rotación y acceso por Managed Identity |
 | Telemetría | Application Insights + Log Analytics | trazas, métricas, consultas y alertas |
-| IA 9B-B | OpenAI/equivalente detrás de `IAiService` | proveedor reemplazable y sujeto a evals/gobierno; 9B-A no despliega este componente |
+| IA 9B-B | OpenAI detrás de adapters Application/Infrastructure | apagado por defecto; embeddings y Responses/Structured Outputs ligados a política SQL, ZDR, presupuesto y evals |
 | Pago | Mercado Pago | suscripciones compatibles con Chile, aislado por gateway |
 
 .NET 10 es LTS, y Azure Functions lo soporta de forma GA en isolated worker; Flex Consumption es apropiado para trabajos intermitentes. Referencias oficiales: [.NET 10](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/overview), [versiones de Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions) y [background jobs en Azure](https://learn.microsoft.com/en-us/azure/architecture/best-practices/background-jobs).
@@ -2972,15 +2989,49 @@ queda explícitamente inelegible.
 
 ### FASE 9B-B — Proveedor real, gobierno e IA generativa
 
-- seleccionar un proveedor/modelo preentrenado con evals reales y presupuesto aprobado;
-- aprobar DPA, retención, borrado y ciclo de vida de datos/vectores antes de enviar contenido;
-- implementar `OpenAiService`/equivalente, Structured Outputs, evidence y explicaciones acotadas;
-- decidir mediante un cambio versionado si se promueve alguna señal semántica, manteniendo 9A como
-  baseline reproducible y sin delegar reglas exactas a IA.
+**Revisión 2026-08-25:** quedó implementada localmente la capa de código y persistencia gobernada,
+pero no se activó ni evaluó un proveedor. `022` agrega políticas inmutables de proveedor/modelo/
+capability/endpoint, hashes de DPA y términos, ZDR, residencia, precios, aprobador y expiración; una
+configuración real de embeddings queda ligada por FK y fingerprint. `023` agrega configuraciones,
+runs, jobs, leases, presupuesto y resultados estructurados para explicaciones administrativas sólo
+en modo sombra.
 
-**Salida:** decisión go/no-go basada en corpus real; 100% de campos críticos extraídos con evidencia
-válida o `null` si se aprueba el flujo generativo. Entrenar un modelo propio o usar Azure ML no es un
-requisito del MVP.
+El provider boundary usa `/v1/embeddings` para `text-embedding-3-small` o
+`text-embedding-3-large`, siempre con dimensión 1536, y `/v1/responses` con el snapshot exacto
+`gpt-5.6-sol`, `store=false` y JSON Schema estricto. Los hosts oficiales son allowlisted; no hay
+redirects ni fallback hosted al fake. Provider, modelo y fingerprints provienen de SQL inmutable,
+nunca del request HTTP o de aliases de entorno. La API key sólo puede inyectarse al worker desde
+configuración secreta/Key Vault y no se guarda en SQL, logs o responses.
+
+El input de explicación es efímero y project-first: se deriva de un resultado Test/primary
+congelado de 9B-A y de sus nueve reglas 9A. No incluye títulos de proyecto, nombres de organización,
+IDs de tenant/usuario, email, RUT, URLs, notas ni billing; máximo 8192 bytes UTF-8. SQL guarda el
+hash, no el JSON. C# exige propiedades, orden, rangos, vocabulario y nueve reglas exactas antes de
+llamar. La respuesta persiste únicamente assessment, resumen de hasta 300 caracteres, razón estable,
+máximo tres reglas citadas, uso/costo/latencia y hashes; no prompt ni raw response.
+
+Los endpoints nuevos son `POST /api/v1/admin/semantic-explanation-runs` y
+`GET /api/v1/admin/semantic-explanation-runs/{runId}`. Exigen Admin/SuperAdmin con MFA reciente,
+rate limit, no-store e idempotencia durable. No existe ruta cliente ni writeback. La explicación no
+modifica 9A, el ranking 9B-A, hard gates, score, clasificación, vigencia u orden visible y siempre se
+presenta como auditoría interna orientativa, no como elegibilidad o recomendación.
+
+Huellas locales: `022` `d961a90278a8081c175418f6331be6dd19b65a0563b75fe6c857417c266f0f56`
+(788 líneas/9 lotes), smoke `4204196816b74194ee012b63bd3c0a184e7dfa649bcd6b4f82a80d9370ca9b22`
+(362/un lote); `023` `add58976e0963dc0cec0b434d18415869eb5f0e96e0bed35264e3363a021eca9`
+(2164/25 lotes), smoke `11d1a4d51008e0d6c6c27ac9265a4078955911506de8f863fcdad0298ca62a3c`
+(335/un lote). ScriptDom pasó los cuatro. Build .NET: 0 warnings/0 errores; Unit 347/347;
+Integration 142/142; frontend lint, 21/104 y build.
+
+No se ejecutaron `019`–`023` contra SQL Server/Azure SQL, no se llamó a OpenAI, no se crearon
+recursos Azure y no hubo costo. Para un go/no-go todavía se requiere DPA/ZDR aprobado para el
+proyecto exacto, secreto en Key Vault, precios vigentes, corpus humano real, ejecución controlada de
+evals y revisión de privacidad/costo/calidad. La extracción generativa, evidence documental y toda
+promoción continúan diferidas hasta esa evidencia. Entrenar un modelo propio o usar Azure ML no es
+un requisito del MVP.
+
+**Salida de código:** proveedor reemplazable y gobernado, Structured Outputs acotado y explicación
+shadow reproducible. **Salida operacional pendiente:** decisión go/no-go basada en corpus real.
 
 ### FASE 10 — Alertas, pipeline, calendario y networking básico
 
@@ -3038,11 +3089,12 @@ las tablas y capacidades diferidas se incorporarán en las migraciones de sus fa
 2. Crea o selecciona su organización; el servidor valida la membresía en cada operación y nunca confía en el `organizationId` del navegador por sí solo.
 3. Completa el perfil institucional con geografía, áreas, beneficiarios, tipo, antigüedad, presupuesto, experiencia, idiomas y monto buscado.
 4. Administradores y proveedores aprobados incorporan convocatorias; documentos grandes quedan en Blob y cada ejecución se registra.
-5. El pipeline actual normaliza, deduplica y conserva evidencia; la extracción con IA estructurada
-   sigue pendiente de 9B-B y lo desconocido permanece `null`.
+5. El pipeline actual normaliza, deduplica y conserva evidencia; la extracción generativa de campos
+   sigue diferida y lo desconocido permanece `null`.
 6. Una persona administradora revisa los campos críticos y publica una oportunidad canónica con fuente y fecha de verificación.
 7. El motor 9A descarta incompatibilidades explícitas y calcula reglas ponderadas; 9B-A compara por
-   separado un ranking de embeddings en sombra, sin sumarlo al score ni cambiar el orden visible.
+   separado un ranking de embeddings y 9B-B prepara explicaciones administrativas en sombra, sin
+   sumarlos al score ni cambiar el orden visible.
 8. La organización ve compatibilidad orientativa, score, cobertura, razones y advertencias; puede
    buscar, guardar, marcar favorito y seguir su postulación. No recibe una recomendación semántica.
 9. El plan de la organización determina límites y funciones; solo un webhook verificado y reconciliado puede activar una suscripción pagada.

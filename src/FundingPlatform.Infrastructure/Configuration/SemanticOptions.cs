@@ -55,7 +55,9 @@ public sealed class SemanticOptionsValidator : IValidateOptions<SemanticOptions>
     }
 }
 
-public sealed class SemanticWorkerOptionsValidator(IHostEnvironment environment)
+public sealed class SemanticWorkerOptionsValidator(
+    IHostEnvironment environment,
+    IOptions<OpenAiProviderOptions> openAiOptions)
     : IValidateOptions<SemanticOptions>
 {
     public ValidateOptionsResult Validate(string? name, SemanticOptions options)
@@ -64,9 +66,60 @@ public sealed class SemanticWorkerOptionsValidator(IHostEnvironment environment)
         if (contract.Failed) return contract;
 
         var local = environment.IsDevelopment() || environment.IsEnvironment("Testing");
-        return options.Enabled && !local
-            ? ValidateOptionsResult.Fail(
-                "Phase 9B-A has no approved hosted semantic provider; the deterministic adapter is restricted to Development and Testing.")
-            : ValidateOptionsResult.Success;
+        if (!options.Enabled || local) return ValidateOptionsResult.Success;
+        var openAi = openAiOptions.Value;
+        return openAi.Enabled && openAi.EmbeddingsEnabled
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(
+                "Hosted semantic processing requires the governed OpenAI embedding adapter; the deterministic adapter remains local-only.");
+    }
+}
+
+public sealed class AiExplanationOptions
+{
+    public const string SectionName = "AiExplanations";
+
+    public bool Enabled { get; set; }
+    public int BatchSize { get; set; } = 1;
+    public int LeaseSeconds { get; set; } = 600;
+    public int TimeoutSeconds { get; set; } = 60;
+
+    public AiExplanationProcessingPolicy ToPolicy() => new(
+        Enabled,
+        BatchSize,
+        TimeSpan.FromSeconds(LeaseSeconds),
+        TimeSpan.FromSeconds(TimeoutSeconds));
+}
+
+public sealed class AiExplanationOptionsValidator : IValidateOptions<AiExplanationOptions>
+{
+    public ValidateOptionsResult Validate(string? name, AiExplanationOptions options)
+    {
+        try
+        {
+            options.ToPolicy().Validate();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return ValidateOptionsResult.Fail(exception.Message);
+        }
+
+        return ValidateOptionsResult.Success;
+    }
+}
+
+public sealed class AiExplanationWorkerOptionsValidator(
+    IOptions<OpenAiProviderOptions> openAiOptions)
+    : IValidateOptions<AiExplanationOptions>
+{
+    public ValidateOptionsResult Validate(string? name, AiExplanationOptions options)
+    {
+        var contract = new AiExplanationOptionsValidator().Validate(name, options);
+        if (contract.Failed || !options.Enabled) return contract;
+        var openAi = openAiOptions.Value;
+        return openAi.Enabled && openAi.StructuredOutputsEnabled
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(
+                "Structured explanations require the governed OpenAI Structured Outputs adapter.");
     }
 }

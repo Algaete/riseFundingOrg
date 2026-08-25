@@ -135,6 +135,9 @@ builder.Services.AddScoped<IProjectMatchingRepository, SqlProjectMatchingReposit
 builder.Services.AddScoped<ProjectMatchingService>();
 builder.Services.AddScoped<ISemanticEvaluationRepository, SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<SemanticEvaluationAdministrationService>();
+builder.Services.AddScoped<IAiExplanationAdministrationRepository,
+    SqlSemanticProcessingRepository>();
+builder.Services.AddScoped<AiExplanationAdministrationService>();
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISourceDocumentExtractionRepository,
     SqlSourceDocumentExtractionRepository>();
@@ -156,13 +159,15 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<SemanticOptions>, SemanticOptionsValidator>();
 builder.Services.AddSingleton(serviceProvider =>
-{
-    var configured = serviceProvider.GetRequiredService<IOptions<SemanticOptions>>()
-        .Value.ToPolicy();
-    return builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
-        ? configured
-        : configured with { Enabled = false };
-});
+    serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
+builder.Services
+    .AddOptions<AiExplanationOptions>()
+    .Bind(builder.Configuration.GetSection(AiExplanationOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AiExplanationOptions>,
+    AiExplanationOptionsValidator>();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<AiExplanationOptions>>().Value.ToPolicy());
 builder.Services
     .AddOptions<AuthenticationOptions>()
     .Bind(builder.Configuration.GetSection(AuthenticationOptions.SectionName))
@@ -553,6 +558,7 @@ app.MapMarketplaceEndpoints();
 app.MapFundingApplicationEndpoints();
 app.MapProjectMatchingEndpoints();
 app.MapAdminSemanticEvaluationEndpoints();
+app.MapAdminAiExplanationEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

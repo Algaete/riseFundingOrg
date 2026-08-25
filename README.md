@@ -6,13 +6,14 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **FASE 9B-A en código local** sobre la compatibilidad determinística de
-9A. Esta etapa prepara embeddings versionados y una evaluación de ranking a nivel de corpus, siempre
-en modo sombra: no cambia scores, clasificaciones, vigencia ni orden de 9A, y no agrega una señal a
-la experiencia cliente. El único proveedor incluido es un fake léxico determinístico limitado a
-`Development`/`Testing`; no se llamó a OpenAI, no se entrenó un modelo y no se usó Azure ML.
+El repositorio completó la **implementación local gobernada de FASE 9B-B** sobre la compatibilidad
+determinística de 9A y la evaluación semántica de 9B-A. Incluye adapters reales apagados por defecto
+para embeddings y Structured Outputs, políticas inmutables de proveedor/DPA/ZDR/residencia/precio,
+presupuesto previo a cada llamada y explicaciones administrativas sólo en modo sombra. No cambia
+scores, hard gates, clasificaciones, vigencia ni orden de 9A, y no agrega una señal a la experiencia
+cliente. No se llamó a OpenAI, no se enviaron datos, no se entrenó un modelo y no se usó Azure ML.
 
-Las migraciones `019`, `020` y `021`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `023`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -31,7 +32,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 8B | Código completado; activación DB pendiente | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
 | 9A | Código completado; activación DB pendiente | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
 | 9B-A | Código completado; activación DB pendiente | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
-| 9B-B | Pendiente | Proveedor real evaluado, gobierno de datos, Structured Outputs, explicaciones y eventual promoción |
+| 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
 | 10–11 | Pendiente | Alertas, networking y billing |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
@@ -41,8 +42,9 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B, `020` de 9A y `021` de 9B-A no forman parte de ese resultado: permanecen como artefactos
-locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese orden. El código
+de 8B, `020` de 9A, `021` de 9B-A y `022`/`023` de 9B-B no forman parte de ese resultado: permanecen
+como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
+orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -643,10 +645,66 @@ Huellas de los artefactos locales congelados:
 El parsing local ScriptDom terminó correctamente para los 48 lotes de la migración y el lote del
 smoke. Es una comprobación estática; no equivale a ejecutar ninguno de los archivos en SQL Server.
 
-Quedan para 9B-B el proveedor real de embeddings preentrenados y sus evals, DPA/retención y ciclo de
-vida de datos del proveedor, Structured Outputs, extracción y explicaciones generativas, y cualquier
-promoción controlada de la señal semántica. No se contempla entrenar un modelo propio ni usar Azure ML
-para 9B-A.
+## Proveedor gobernado y explicaciones en sombra — FASE 9B-B
+
+La implementación local añade un adapter HTTP real para `/v1/embeddings` y otro para
+`/v1/responses` con Structured Outputs estricto. Ambos quedan apagados por defecto. El worker sólo
+puede iniciarlos cuando coinciden exactamente proveedor, modelo, endpoint oficial, capability,
+fingerprint de la política activa, precio, vigencia y contrato ZDR. No hay fallback silencioso al
+fake: éste continúa restringido a `Development`/`Testing` y jamás es promovible.
+
+Las migraciones `022` y `023` modelan políticas inmutables de DPA/términos, residencia, retención,
+precios y expiración; configuraciones versionadas; reservas de presupuesto antes de llamar; leases,
+reintentos y cobro conservador cuando el ACK es incierto; y resultados de explicación separados e
+inmutables. SQL no persiste API keys, prompts, JSON canónico ni respuestas crudas. El input de
+explicación se deriva de snapshots 9A/9B-A, tiene máximo 8192 bytes UTF-8 y C#/SQL lo validan contra
+campos, rangos, reglas y reason codes allowlisted. La salida admite sólo cuatro razones, hasta tres
+reglas citadas y un resumen de 300 caracteres sin email, URL o RUT.
+
+La única superficie HTTP nueva es administrativa con MFA reciente y `no-store`:
+
+- `POST /api/v1/admin/semantic-explanation-runs`, con `Idempotency-Key`;
+- `GET /api/v1/admin/semantic-explanation-runs/{runId}`.
+
+Es un experimento **shadow-only**: no modifica `ProjectMatchingRuns`, `ProjectFundingMatches`,
+`SemanticEvaluationItems`, score, hard gates, clasificación, `IsCurrent`, orden visible ni frontend.
+No recomienda fondos y no confirma elegibilidad. Las políticas y configuraciones se publican por el
+Admin CLI interactivo; no existe endpoint para que un cliente elija proveedor/modelo o suba prompts.
+
+Después de aplicar las migraciones en un entorno autorizado, el operador consulta las opciones
+exactas sin exponer secretos con:
+
+~~~bash
+./.dotnet/dotnet run --project tools/FundingPlatform.AdminCli --
+~~~
+
+La secuencia es `register-openai-embedding-policy`,
+`publish-openai-semantic-configuration`, `register-openai-structured-output-policy` y
+`publish-openai-explanation-configuration`. Cada comando exige terminal interactivo, SuperAdmin,
+MFA en SQL, hashes de documentos aprobados e idempotencia; ninguno recibe ni imprime la API key.
+
+Artefactos locales congelados:
+
+- migración `022` (788 líneas/9 lotes), SHA-256
+  `d961a90278a8081c175418f6331be6dd19b65a0563b75fe6c857417c266f0f56`;
+- smoke `022` (362 líneas/un lote), SHA-256
+  `4204196816b74194ee012b63bd3c0a184e7dfa649bcd6b4f82a80d9370ca9b22`;
+- migración `023` (2164 líneas/25 lotes), SHA-256
+  `add58976e0963dc0cec0b434d18415869eb5f0e96e0bed35264e3363a021eca9`;
+- smoke `023` (335 líneas/un lote), SHA-256
+  `11d1a4d51008e0d6c6c27ac9265a4078955911506de8f863fcdad0298ca62a3c`.
+
+ScriptDom parseó los cuatro artefactos. El gate local pasó build .NET con 0 warnings/0 errores,
+347/347 pruebas unitarias, 142/142 de integración, lint frontend, 21 archivos/104 pruebas Vitest y
+build de producción. Aun así, `019`–`023` no se aplicaron ni ejecutaron en SQL Server/Azure SQL y no
+hubo llamadas de proveedor.
+
+Para activar 9B-B todavía hace falta aplicar `019`→`023` en un entorno autorizado, aprobar y cargar
+un corpus real, contratar/confirmar ZDR y DPA para el proyecto exacto, registrar precios vigentes,
+guardar la API key en Key Vault, ejecutar evals con presupuesto acotado y decidir go/no-go. La
+extracción generativa de documentos y cualquier promoción de la señal semántica siguen diferidas;
+ninguna se habilita por esta implementación. No se contempla entrenar un modelo propio ni usar
+Azure ML para el MVP.
 
 ## Pruebas y validación
 
@@ -924,7 +982,8 @@ organizaciones/perfiles, oportunidades/fuentes canónicas, plan Free y outbox. F
 evidence editorial; FASE 7A, contenido bruto/runs para Grants.gov; y FASE 7B, extracción PDF
 gobernada y un RSS oficial fijo sujeto a compliance. Proyectos/funders llegaron en FASE 5/6 y 9A
 agregó la primera compatibilidad project-first, determinística y acotada. 9B-A prepara embeddings y
-evaluación semántica sólo en sombra; el proveedor real y la IA generativa permanecen para 9B-B.
+evaluación semántica sólo en sombra; 9B-B añade adapters gobernados y explicaciones administrativas
+también en sombra, todavía sin activación ni eval real.
 Billing y alertas conservan sus fases; la autenticación completa corresponde a las
 migraciones 002/003/004 de FASE 3.
 
@@ -1035,8 +1094,8 @@ El orden de ejecución es:
   código local; activación de `020` pendiente de un despliegue autorizado;
 - FASE 9B-A — embeddings project-first y evaluación corpus-level sólo en sombra, completados en
   código local; activación de `021` pendiente;
-- FASE 9B-B — proveedor real, gobierno/DPA/retención, Structured Outputs, explicaciones y decisión
-  de promoción condicionada a evals;
+- FASE 9B-B — adapters reales, gobierno/DPA/ZDR/precios y explicaciones shadow completados en código
+  local; aplicación `022`/`023`, eval real, extracción generativa y decisión de promoción pendientes;
 - FASE 10 — alertas, pipeline, calendario y networking básico;
 - FASE 11 — suscripciones y administración completa;
 - FASE 12 — hardening, pruebas y despliegue.

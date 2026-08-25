@@ -6,6 +6,7 @@ using FundingPlatform.Infrastructure.Configuration;
 using FundingPlatform.Infrastructure.Semantics;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace FundingPlatform.UnitTests;
 
@@ -269,6 +270,26 @@ public sealed class SemanticProcessingTests
             repository.FailureAccounting);
     }
 
+    [Fact]
+    public async Task Provider_governance_rejection_before_network_is_not_charged()
+    {
+        var input = ProjectInput("Educación rural");
+        var repository = new FakeProcessingRepository
+        {
+            EmbeddingJobs = [Lease(input)],
+            Input = input
+        };
+        var provider = new RecordingEmbeddingService { ThrowPreCallFailure = true };
+
+        var result = await Service(repository, provider, Policy(enabled: true))
+            .ProcessEmbeddingsAsync(CancellationToken.None);
+
+        Assert.Equal(1, result.FailedCount);
+        Assert.Equal("embedding-provider-unavailable", repository.FailureCode);
+        Assert.Equal(SemanticProviderCallAccounting.NotInvoked,
+            repository.FailureAccounting);
+    }
+
     [Theory]
     [InlineData(1, true, 1, 0)]
     [InlineData(2, false, 0, 1)]
@@ -432,9 +453,10 @@ public sealed class SemanticProcessingTests
         var hosted = new FakeHostEnvironment { EnvironmentName = Environments.Production };
         var local = new FakeHostEnvironment { EnvironmentName = Environments.Development };
 
-        Assert.True(new SemanticWorkerOptionsValidator(hosted)
+        var disabledOpenAi = Options.Create(new OpenAiProviderOptions());
+        Assert.True(new SemanticWorkerOptionsValidator(hosted, disabledOpenAi)
             .Validate(null, options).Failed);
-        Assert.True(new SemanticWorkerOptionsValidator(local)
+        Assert.True(new SemanticWorkerOptionsValidator(local, disabledOpenAi)
             .Validate(null, options).Succeeded);
         Assert.True(new SemanticOptionsValidator().Validate(null, options).Succeeded);
     }
@@ -505,7 +527,9 @@ public sealed class SemanticProcessingTests
         "semantic-text-v1",
         1536,
         input.CanonicalText,
-        input.InputContentHash);
+        input.InputContentHash,
+        1m,
+        null);
 
     private static SemanticEmbeddingInput ProjectInput(string description) => InputFromJson(
         $$"""{"schemaVersion":"semantic-input-v1","normalizationVersion":"semantic-text-v1","summary":null,"description":"{{description}}","projectStatus":1,"startDate":null,"endDate":null,"budgetTotal":null,"confirmedFunding":null,"currency":null,"countryIds":[],"regionIds":[],"categoryIds":[],"beneficiaryTypeIds":[],"projectTypeIds":[]}""");
@@ -521,7 +545,7 @@ public sealed class SemanticProcessingTests
         var bytes = Encoding.UTF8.GetBytes(json);
         return new SemanticEmbeddingInput(
             Guid.NewGuid(), Guid.NewGuid(), subjectType, Guid.NewGuid(),
-            3, "matching", json, SHA256.HashData(bytes));
+            3, "matching", json, SHA256.HashData(bytes), null);
     }
 
     private static SemanticShadowEvaluationRunLease ShadowRun() => new(
@@ -537,6 +561,7 @@ public sealed class SemanticProcessingTests
         public int Calls { get; private set; }
         public bool ReturnWrongModel { get; init; }
         public bool ThrowTimeout { get; init; }
+        public bool ThrowPreCallFailure { get; init; }
         public List<SemanticEmbeddingRequest> Requests { get; } = [];
 
         public Task<SemanticEmbeddingGeneration> GenerateAsync(
@@ -546,6 +571,11 @@ public sealed class SemanticProcessingTests
             Calls++;
             Requests.Add(request);
             if (ThrowTimeout) throw new OperationCanceledException();
+            if (ThrowPreCallFailure)
+                throw new SemanticEmbeddingException(
+                    "embedding-provider-unavailable",
+                    retryable: false,
+                    providerCallAccounting: SemanticProviderCallAccounting.NotInvoked);
             return Task.FromResult(new SemanticEmbeddingGeneration(
                 request.ProviderCode,
                 ReturnWrongModel ? "wrong-model" : request.ModelCode,

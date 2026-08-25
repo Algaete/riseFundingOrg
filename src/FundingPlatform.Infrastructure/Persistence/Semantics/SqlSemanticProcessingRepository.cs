@@ -80,7 +80,8 @@ public sealed partial class SqlSemanticProcessingRepository : ISemanticProcessin
                 row.SubjectVersion,
                 row.PurposeCode,
                 row.CanonicalText,
-                row.InputContentHash);
+                row.InputContentHash,
+                MapGovernance(row));
         }
         catch (SqlException exception)
         {
@@ -261,6 +262,44 @@ public sealed partial class SqlSemanticProcessingRepository : ISemanticProcessin
         string operation,
         SqlException exception) => new(operation, exception.Number, exception);
 
+    private static AiProviderGovernanceContext? MapGovernance(EmbeddingInputRow row)
+    {
+        if (row.ProviderPolicyPublicId is null) return null;
+        if (row.ProviderPolicyPublicId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(row.ProviderPolicyVersion) ||
+            row.ProviderPolicyFingerprint is not { Length: 32 } ||
+            string.IsNullOrWhiteSpace(row.ProviderEndpointOrigin) ||
+            row.ProviderCapability is null ||
+            row.RetentionMode is null ||
+            row.MaximumProviderRetentionDays is null ||
+            string.IsNullOrWhiteSpace(row.DataResidencyCode) ||
+            row.InputTokenCostUsdPerMillion is null ||
+            row.OutputTokenCostUsdPerMillion is null ||
+            row.ApprovedAtUtc is null || row.ExpiresAtUtc is null ||
+            row.ExternalProcessingAllowed is null)
+        {
+            throw new SemanticProcessingDataException(
+                "materialize embedding provider governance",
+                -1,
+                new InvalidOperationException("Provider governance rowset is incomplete."));
+        }
+
+        return new AiProviderGovernanceContext(
+            row.ProviderPolicyPublicId.Value,
+            row.ProviderPolicyVersion!,
+            row.ProviderPolicyFingerprint,
+            row.ProviderCapability.Value,
+            row.ProviderEndpointOrigin!,
+            (AiProviderRetentionMode)row.RetentionMode.Value,
+            row.MaximumProviderRetentionDays.Value,
+            row.DataResidencyCode!,
+            row.InputTokenCostUsdPerMillion.Value,
+            row.OutputTokenCostUsdPerMillion.Value,
+            ToUtc(row.ApprovedAtUtc.Value),
+            ToUtc(row.ExpiresAtUtc.Value),
+            row.ExternalProcessingAllowed.Value);
+    }
+
     private sealed class EmbeddingLeaseRow
     {
         public Guid JobPublicId { get; init; }
@@ -295,6 +334,19 @@ public sealed partial class SqlSemanticProcessingRepository : ISemanticProcessin
         public string PurposeCode { get; init; } = "";
         public string CanonicalText { get; init; } = "";
         public byte[] InputContentHash { get; init; } = [];
+        public Guid? ProviderPolicyPublicId { get; init; }
+        public string? ProviderPolicyVersion { get; init; }
+        public byte[]? ProviderPolicyFingerprint { get; init; }
+        public byte? ProviderCapability { get; init; }
+        public string? ProviderEndpointOrigin { get; init; }
+        public byte? RetentionMode { get; init; }
+        public short? MaximumProviderRetentionDays { get; init; }
+        public string? DataResidencyCode { get; init; }
+        public decimal? InputTokenCostUsdPerMillion { get; init; }
+        public decimal? OutputTokenCostUsdPerMillion { get; init; }
+        public DateTime? ApprovedAtUtc { get; init; }
+        public DateTime? ExpiresAtUtc { get; init; }
+        public bool? ExternalProcessingAllowed { get; init; }
     }
 
     private sealed class LeaseMutationRow

@@ -144,7 +144,9 @@ public sealed class SemanticProcessingService(
                         job.NormalizationVersion,
                         job.Dimensions,
                         input.CanonicalText,
-                        input.InputContentHash),
+                        input.InputContentHash,
+                        job.MaximumCostUsdPerEmbedding,
+                        input.ProviderGovernance),
                     timeout.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -167,7 +169,7 @@ public sealed class SemanticProcessingService(
                     job,
                     code,
                     exception.Retryable && Retryable(job),
-                    SemanticProviderCallAccounting.ChargeUncertain,
+                    exception.ProviderCallAccounting,
                     cancellationToken);
                 failed++;
                 continue;

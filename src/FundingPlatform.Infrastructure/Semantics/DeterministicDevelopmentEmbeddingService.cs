@@ -33,7 +33,9 @@ public sealed partial class DeterministicDevelopmentEmbeddingService : IEmbeddin
                 SHA256.HashData(utf8), request.InputContentHash))
         {
             throw new SemanticEmbeddingException(
-                "embedding-provider-unavailable", retryable: false);
+                "embedding-provider-unavailable",
+                retryable: false,
+                providerCallAccounting: SemanticProviderCallAccounting.NotInvoked);
         }
 
         var started = Stopwatch.GetTimestamp();
@@ -41,7 +43,9 @@ public sealed partial class DeterministicDevelopmentEmbeddingService : IEmbeddin
         if (features.Count == 0)
         {
             throw new SemanticEmbeddingException(
-                "embedding-provider-invalid-response", retryable: false);
+                "embedding-provider-invalid-response",
+                retryable: false,
+                providerCallAccounting: SemanticProviderCallAccounting.NotInvoked);
         }
 
         var vector = new float[request.Dimensions];
@@ -59,7 +63,9 @@ public sealed partial class DeterministicDevelopmentEmbeddingService : IEmbeddin
         if (!double.IsFinite(normSquared) || normSquared <= double.Epsilon)
         {
             throw new SemanticEmbeddingException(
-                "embedding-provider-invalid-response", retryable: false);
+                "embedding-provider-invalid-response",
+                retryable: false,
+                providerCallAccounting: SemanticProviderCallAccounting.NotInvoked);
         }
 
         var inverseNorm = 1d / Math.Sqrt(normSquared);
@@ -153,5 +159,8 @@ public sealed class UnavailableEmbeddingService : IEmbeddingService
     public Task<SemanticEmbeddingGeneration> GenerateAsync(
         SemanticEmbeddingRequest request,
         CancellationToken cancellationToken) => Task.FromException<SemanticEmbeddingGeneration>(
-        new SemanticEmbeddingException("embedding-provider-unavailable", retryable: true));
+        new SemanticEmbeddingException(
+            "embedding-provider-unavailable",
+            retryable: true,
+            providerCallAccounting: SemanticProviderCallAccounting.NotInvoked));
 }

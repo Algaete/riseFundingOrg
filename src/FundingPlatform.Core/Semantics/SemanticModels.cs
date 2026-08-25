@@ -31,6 +31,28 @@ public enum SemanticProviderCallAccounting : byte
     ChargeUncertain = 1
 }
 
+public enum AiProviderRetentionMode : byte
+{
+    Default = 0,
+    ModifiedAbuseMonitoring = 1,
+    ZeroDataRetention = 2
+}
+
+public sealed record AiProviderGovernanceContext(
+    Guid PolicyPublicId,
+    string PolicyVersion,
+    byte[] PolicyFingerprint,
+    byte Capability,
+    string EndpointOrigin,
+    AiProviderRetentionMode RetentionMode,
+    short MaximumProviderRetentionDays,
+    string DataResidencyCode,
+    decimal InputTokenCostUsdPerMillion,
+    decimal OutputTokenCostUsdPerMillion,
+    DateTimeOffset ApprovedAtUtc,
+    DateTimeOffset ExpiresAtUtc,
+    bool ExternalProcessingAllowed);
+
 public sealed record SemanticEmbeddingJobLease(
     Guid JobPublicId,
     Guid LeaseId,
@@ -61,7 +83,8 @@ public sealed record SemanticEmbeddingInput(
     int SubjectVersion,
     string PurposeCode,
     string CanonicalText,
-    byte[] InputContentHash);
+    byte[] InputContentHash,
+    AiProviderGovernanceContext? ProviderGovernance);
 
 public sealed record SemanticEmbeddingGeneration(
     string ProviderCode,

@@ -9,6 +9,8 @@ using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
+using FundingPlatform.Application.Semantics;
+using FundingPlatform.Infrastructure.Persistence.Semantics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -57,6 +59,30 @@ try
             args.Skip(1).ToArray(), cancellationSource.Token);
     }
 
+    if (string.Equals(args[0], "register-openai-embedding-policy", StringComparison.OrdinalIgnoreCase))
+    {
+        return await RegisterOpenAiEmbeddingPolicyAsync(
+            args.Skip(1).ToArray(), cancellationSource.Token);
+    }
+
+    if (string.Equals(args[0], "publish-openai-semantic-configuration", StringComparison.OrdinalIgnoreCase))
+    {
+        return await PublishOpenAiSemanticConfigurationAsync(
+            args.Skip(1).ToArray(), cancellationSource.Token);
+    }
+
+    if (string.Equals(args[0], "register-openai-structured-output-policy", StringComparison.OrdinalIgnoreCase))
+    {
+        return await RegisterOpenAiStructuredOutputPolicyAsync(
+            args.Skip(1).ToArray(), cancellationSource.Token);
+    }
+
+    if (string.Equals(args[0], "publish-openai-explanation-configuration", StringComparison.OrdinalIgnoreCase))
+    {
+        return await PublishOpenAiExplanationConfigurationAsync(
+            args.Skip(1).ToArray(), cancellationSource.Token);
+    }
+
     Console.Error.WriteLine("Unknown command. Use --help to list available commands.");
     return 1;
 }
@@ -76,6 +102,13 @@ catch (FundingSourceAcquisitionPolicyDataException exception)
 {
     Console.Error.WriteLine(
         $"Funding-source policy database operation failed: operation={ForConsole(exception.Operation)}, " +
+        $"sqlError={exception.DatabaseErrorNumber}.");
+    return 4;
+}
+catch (AiProviderGovernanceAdministrationDataException exception)
+{
+    Console.Error.WriteLine(
+        $"AI-governance database operation failed: operation={ForConsole(exception.Operation)}, " +
         $"sqlError={exception.DatabaseErrorNumber}.");
     return 4;
 }
@@ -371,6 +404,228 @@ static async Task<int> ConfigureFundingSourcePolicyAsync(
     return 0;
 }
 
+static async Task<int> RegisterOpenAiEmbeddingPolicyAsync(
+    string[] arguments,
+    CancellationToken cancellationToken)
+{
+    if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        throw new InvalidOperationException(
+            "An interactive terminal is required for AI provider governance.");
+    var values = ParseNamedOptions(arguments,
+        "--superadmin-user-id", "--code", "--version", "--model",
+        "--endpoint-origin", "--data-residency", "--dpa-reference-sha256",
+        "--terms-snapshot-sha256", "--input-token-cost-usd-per-million",
+        "--approved-at-utc", "--expires-at-utc", "--idempotency-key");
+    var command = new AiEmbeddingProviderPolicyCommand(
+        RequiredGuid(values, "--superadmin-user-id"),
+        Required(values, "--code"),
+        RequiredInt(values, "--version"),
+        Required(values, "--model"),
+        Required(values, "--endpoint-origin"),
+        Required(values, "--data-residency"),
+        RequiredSha256(values, "--dpa-reference-sha256"),
+        RequiredSha256(values, "--terms-snapshot-sha256"),
+        RequiredDecimal(values, "--input-token-cost-usd-per-million"),
+        RequiredUtc(values, "--approved-at-utc"),
+        RequiredUtc(values, "--expires-at-utc"),
+        Required(values, "--idempotency-key"));
+
+    const string expected = "REGISTER OPENAI EMBEDDING POLICY";
+    Console.WriteLine(
+        "This registers an immutable OpenAI embedding governance decision. It stores " +
+        "document hashes and limits only; it stores no API key and makes no provider call.");
+    Console.Write($"Type '{expected}' to continue: ");
+    if (!string.Equals(Console.ReadLine()?.Trim(), expected, StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine("Confirmation did not match; no changes were made.");
+        return 1;
+    }
+
+    var service = CreateAiProviderGovernanceService();
+    var result = await service.RegisterEmbeddingPolicyAsync(command, cancellationToken);
+    if (!result.Succeeded || result.PolicyPublicId == Guid.Empty ||
+        result.PolicyFingerprint is not { Length: 32 })
+    {
+        Console.Error.WriteLine($"AI provider policy was not registered: code={ForConsole(result.Code)}.");
+        return 12;
+    }
+    Console.WriteLine(
+        $"AI provider policy registered: policyId={result.PolicyPublicId:D}, " +
+        $"version={ForConsole(result.PolicyVersion)}, provider={ForConsole(result.ProviderCode)}, " +
+        $"model={ForConsole(result.ModelCode)}, residency={ForConsole(result.DataResidencyCode)}, " +
+        $"fingerprint={Convert.ToHexString(result.PolicyFingerprint)}, " +
+        $"expiresAtUtc={result.ExpiresAtUtc:O}, replay={result.WasReplay}.");
+    return 0;
+}
+
+static async Task<int> PublishOpenAiSemanticConfigurationAsync(
+    string[] arguments,
+    CancellationToken cancellationToken)
+{
+    if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        throw new InvalidOperationException(
+            "An interactive terminal is required for semantic configuration publication.");
+    var values = ParseNamedOptions(arguments,
+        "--superadmin-user-id", "--provider-policy-id", "--code", "--version",
+        "--maximum-batch-size", "--maximum-cost-usd-per-embedding",
+        "--monthly-budget-usd", "--idempotency-key");
+    var batchSize = RequiredInt(values, "--maximum-batch-size");
+    if (batchSize is < byte.MinValue or > byte.MaxValue)
+        throw new ArgumentException("--maximum-batch-size is outside the supported range.");
+    var command = new OpenAiSemanticConfigurationCommand(
+        RequiredGuid(values, "--superadmin-user-id"),
+        RequiredGuid(values, "--provider-policy-id"),
+        Required(values, "--code"),
+        RequiredInt(values, "--version"),
+        (byte)batchSize,
+        RequiredDecimal(values, "--maximum-cost-usd-per-embedding"),
+        RequiredDecimal(values, "--monthly-budget-usd"),
+        Required(values, "--idempotency-key"));
+
+    const string expected = "PUBLISH OPENAI SEMANTIC CONFIGURATION";
+    Console.WriteLine(
+        "This replaces the active semantic configuration after all existing work drains. " +
+        "It does not enable the worker, run an evaluation, promote semantic results, or call OpenAI.");
+    Console.Write($"Type '{expected}' to continue: ");
+    if (!string.Equals(Console.ReadLine()?.Trim(), expected, StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine("Confirmation did not match; no changes were made.");
+        return 1;
+    }
+
+    var service = CreateAiProviderGovernanceService();
+    var result = await service.PublishOpenAiConfigurationAsync(command, cancellationToken);
+    if (!result.Succeeded || result.ConfigurationPublicId == Guid.Empty ||
+        result.ProviderPolicyFingerprint is not { Length: 32 })
+    {
+        Console.Error.WriteLine(
+            $"Semantic configuration was not published: code={ForConsole(result.Code)}.");
+        return 12;
+    }
+    Console.WriteLine(
+        $"Semantic configuration published: configurationId={result.ConfigurationPublicId:D}, " +
+        $"version={ForConsole(result.ConfigurationVersion)}, " +
+        $"policyId={result.ProviderPolicyPublicId:D}, model={ForConsole(result.ModelCode)}, " +
+        $"monthlyBudgetUsd={result.MonthlyBudgetUsd}, active={result.IsActive}, " +
+        $"replay={result.WasReplay}.");
+    return 0;
+}
+
+static AiProviderGovernanceAdministrationService CreateAiProviderGovernanceService()
+{
+    var configuration = FundingPlatformConfiguration.CreateFromEnvironment();
+    var repository = new SqlAiProviderGovernanceAdministrationRepository(
+        new SqlConnectionFactory(configuration));
+    return new AiProviderGovernanceAdministrationService(repository, TimeProvider.System);
+}
+
+static async Task<int> RegisterOpenAiStructuredOutputPolicyAsync(
+    string[] arguments,
+    CancellationToken cancellationToken)
+{
+    if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        throw new InvalidOperationException(
+            "An interactive terminal is required for AI provider governance.");
+    var values = ParseNamedOptions(arguments,
+        "--superadmin-user-id", "--code", "--version", "--endpoint-origin",
+        "--data-residency", "--dpa-reference-sha256", "--terms-snapshot-sha256",
+        "--input-token-cost-usd-per-million", "--output-token-cost-usd-per-million",
+        "--approved-at-utc", "--expires-at-utc", "--idempotency-key");
+    var command = new AiStructuredOutputProviderPolicyCommand(
+        RequiredGuid(values, "--superadmin-user-id"),
+        Required(values, "--code"),
+        RequiredInt(values, "--version"),
+        Required(values, "--endpoint-origin"),
+        Required(values, "--data-residency"),
+        RequiredSha256(values, "--dpa-reference-sha256"),
+        RequiredSha256(values, "--terms-snapshot-sha256"),
+        RequiredDecimal(values, "--input-token-cost-usd-per-million"),
+        RequiredDecimal(values, "--output-token-cost-usd-per-million"),
+        RequiredUtc(values, "--approved-at-utc"),
+        RequiredUtc(values, "--expires-at-utc"),
+        Required(values, "--idempotency-key"));
+    const string expected = "REGISTER OPENAI STRUCTURED OUTPUT POLICY";
+    Console.WriteLine(
+        "This registers an immutable Zero Data Retention governance decision for " +
+        "gpt-5.6-sol Structured Outputs. It stores hashes and limits only; it stores no " +
+        "API key and makes no provider call.");
+    Console.Write($"Type '{expected}' to continue: ");
+    if (!string.Equals(Console.ReadLine()?.Trim(), expected, StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine("Confirmation did not match; no changes were made.");
+        return 1;
+    }
+    var result = await CreateAiProviderGovernanceService()
+        .RegisterStructuredOutputPolicyAsync(command, cancellationToken);
+    if (!result.Succeeded || result.PolicyPublicId == Guid.Empty ||
+        result.PolicyFingerprint is not { Length: 32 })
+    {
+        Console.Error.WriteLine(
+            $"Structured Outputs policy was not registered: code={ForConsole(result.Code)}.");
+        return 12;
+    }
+    Console.WriteLine(
+        $"Structured Outputs policy registered: policyId={result.PolicyPublicId:D}, " +
+        $"version={ForConsole(result.PolicyVersion)}, model={ForConsole(result.ModelCode)}, " +
+        $"residency={ForConsole(result.DataResidencyCode)}, " +
+        $"fingerprint={Convert.ToHexString(result.PolicyFingerprint)}, " +
+        $"expiresAtUtc={result.ExpiresAtUtc:O}, replay={result.WasReplay}.");
+    return 0;
+}
+
+static async Task<int> PublishOpenAiExplanationConfigurationAsync(
+    string[] arguments,
+    CancellationToken cancellationToken)
+{
+    if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        throw new InvalidOperationException(
+            "An interactive terminal is required for explanation configuration publication.");
+    var values = ParseNamedOptions(arguments,
+        "--superadmin-user-id", "--provider-policy-id", "--code", "--version",
+        "--maximum-output-tokens", "--maximum-cost-usd-per-result",
+        "--monthly-budget-usd", "--idempotency-key");
+    var outputTokens = RequiredInt(values, "--maximum-output-tokens");
+    if (outputTokens is < short.MinValue or > short.MaxValue)
+        throw new ArgumentException("--maximum-output-tokens is outside the supported range.");
+    var command = new OpenAiExplanationConfigurationCommand(
+        RequiredGuid(values, "--superadmin-user-id"),
+        RequiredGuid(values, "--provider-policy-id"),
+        Required(values, "--code"),
+        RequiredInt(values, "--version"),
+        (short)outputTokens,
+        RequiredDecimal(values, "--maximum-cost-usd-per-result"),
+        RequiredDecimal(values, "--monthly-budget-usd"),
+        Required(values, "--idempotency-key"));
+    const string expected = "PUBLISH OPENAI EXPLANATION CONFIGURATION";
+    Console.WriteLine(
+        "This publishes an immutable admin-only shadow configuration. It does not enable " +
+        "the worker, create a run, call OpenAI, or change 9A/9B-A results.");
+    Console.Write($"Type '{expected}' to continue: ");
+    if (!string.Equals(Console.ReadLine()?.Trim(), expected, StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine("Confirmation did not match; no changes were made.");
+        return 1;
+    }
+    var result = await CreateAiProviderGovernanceService()
+        .PublishOpenAiExplanationConfigurationAsync(command, cancellationToken);
+    if (!result.Succeeded || result.ConfigurationPublicId == Guid.Empty ||
+        result.PromptFingerprint is not { Length: 32 } ||
+        result.ResponseSchemaFingerprint is not { Length: 32 })
+    {
+        Console.Error.WriteLine(
+            $"Explanation configuration was not published: code={ForConsole(result.Code)}.");
+        return 12;
+    }
+    Console.WriteLine(
+        $"Explanation configuration published: configurationId={result.ConfigurationPublicId:D}, " +
+        $"version={ForConsole(result.ConfigurationVersion)}, " +
+        $"policyId={result.ProviderPolicyPublicId:D}, model={ForConsole(result.ModelCode)}, " +
+        $"maximumOutputTokens={result.MaximumOutputTokens}, " +
+        $"monthlyBudgetUsd={result.MonthlyBudgetUsd}, active={result.IsActive}, " +
+        $"replay={result.WasReplay}.");
+    return 0;
+}
+
 static Dictionary<string, string?> ParseNamedOptions(
     string[] arguments,
     params string[] allowedOptions)
@@ -439,6 +694,26 @@ static short RequiredInt16(IReadOnlyDictionary<string, string?> values, string o
 static int? OptionalInt(
     IReadOnlyDictionary<string, string?> values,
     string option) => values.ContainsKey(option) ? RequiredInt(values, option) : null;
+
+static decimal RequiredDecimal(
+    IReadOnlyDictionary<string, string?> values,
+    string option) => decimal.TryParse(
+        Required(values, option),
+        System.Globalization.NumberStyles.AllowDecimalPoint,
+        System.Globalization.CultureInfo.InvariantCulture,
+        out var parsed)
+        ? parsed
+        : throw new ArgumentException($"{option} must be a non-exponential decimal using '.'.");
+
+static byte[] RequiredSha256(
+    IReadOnlyDictionary<string, string?> values,
+    string option)
+{
+    var text = Required(values, option);
+    if (text.Length != 64 || !text.All(Uri.IsHexDigit))
+        throw new ArgumentException($"{option} must contain exactly 64 hexadecimal characters.");
+    return Convert.FromHexString(text);
+}
 
 static byte[]? OptionalRowVersion(
     IReadOnlyDictionary<string, string?> values,
@@ -604,6 +879,32 @@ static void PrintUsage()
         "--maximum-response-bytes <n> --retention-days <n> " +
         "--idempotency-key <key> [--license-expires-at-utc <utc>] " +
         "[--schedule-interval-seconds <n>] [--enabled] [--compliance-approved]");
+    Console.WriteLine(
+        "  register-openai-embedding-policy --superadmin-user-id <guid> --code <code> " +
+        "--version <n> --model <text-embedding-3-small|text-embedding-3-large> " +
+        "--endpoint-origin <official-origin> --data-residency <region> " +
+        "--dpa-reference-sha256 <sha256> --terms-snapshot-sha256 <sha256> " +
+        "--input-token-cost-usd-per-million <decimal> --approved-at-utc <utc> " +
+        "--expires-at-utc <utc> --idempotency-key <key>");
+    Console.WriteLine(
+        "  publish-openai-semantic-configuration --superadmin-user-id <guid> " +
+        "--provider-policy-id <guid> --code <code> --version <n> " +
+        "--maximum-batch-size <1..64> --maximum-cost-usd-per-embedding <decimal> " +
+        "--monthly-budget-usd <decimal> --idempotency-key <key>");
+    Console.WriteLine(
+        "  register-openai-structured-output-policy --superadmin-user-id <guid> " +
+        "--code <code> --version <n> --endpoint-origin <official-origin> " +
+        "--data-residency <region> --dpa-reference-sha256 <sha256> " +
+        "--terms-snapshot-sha256 <sha256> " +
+        "--input-token-cost-usd-per-million <decimal> " +
+        "--output-token-cost-usd-per-million <decimal> --approved-at-utc <utc> " +
+        "--expires-at-utc <utc> --idempotency-key <key>");
+    Console.WriteLine(
+        "  publish-openai-explanation-configuration --superadmin-user-id <guid> " +
+        "--provider-policy-id <guid> --code <code> --version <n> " +
+        "--maximum-output-tokens <128..1024> " +
+        "--maximum-cost-usd-per-result <decimal> --monthly-budget-usd <decimal> " +
+        "--idempotency-key <key>");
 }
 
 internal sealed record BootstrapOptions(string Email, string DisplayName);

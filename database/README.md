@@ -428,17 +428,50 @@ nDCG@10 ≥0,75, delta nDCG ≥0,05 y cero promociones de incompatibles. Una cor
 terminalmente ausentes puede cerrar con reporte parcial, pero no es elegible. La configuración fake
 local tampoco puede promoverse, independientemente de sus métricas.
 
-El repositorio no incluye un proveedor hosted aprobado: el fake léxico determinístico de costo cero
-se restringe a `Development`/`Testing`; en otro ambiente la API fuerza la policy a deshabilitada y
-el worker rechaza al arranque una configuración habilitada. No se llamó a OpenAI, no se entrenó un
-modelo, no se usó Azure ML, no se crearon recursos Azure y no se activó ningún servicio pagado. 9B-B
-conserva como pendientes el adapter real y sus evals, DPA/retención/ciclo de vida del proveedor,
-Structured Outputs, explicaciones generativas y una eventual promoción controlada.
+El fake léxico determinístico de costo cero se restringe a `Development`/`Testing` y nunca es
+promovible. La activación hosted de 9B-A exige el adapter real gobernado de 9B-B; no existe fallback
+silencioso al fake.
 
-El gate local de aplicación pasó build .NET con 0 warnings/0 errores, 324/324 pruebas unitarias y
-136/136 de integración. La regresión frontend pasó lint, 21 archivos/104 pruebas Vitest y build de
-producción. Ninguno de estos gates abrió una conexión SQL, llamó a un proveedor de embeddings o
-validó una aplicación de `019`/`020`/`021`.
+## Estado de FASE 9B-B
+
+La implementación local agrega dos migraciones forward-only, todavía no aplicadas:
+
+- `022_governed_openai_provider.sql` (788 líneas/9 lotes), SHA-256
+  `d961a90278a8081c175418f6331be6dd19b65a0563b75fe6c857417c266f0f56`;
+- `022_governed_openai_provider_smoke.sql` (362 líneas/un lote), SHA-256
+  `4204196816b74194ee012b63bd3c0a184e7dfa649bcd6b4f82a80d9370ca9b22`;
+- `023_shadow_structured_explanations.sql` (2164 líneas/25 lotes), SHA-256
+  `add58976e0963dc0cec0b434d18415869eb5f0e96e0bed35264e3363a021eca9`;
+- `023_shadow_structured_explanations_smoke.sql` (335 líneas/un lote), SHA-256
+  `11d1a4d51008e0d6c6c27ac9265a4078955911506de8f863fcdad0298ca62a3c`.
+
+`022` introduce políticas de proveedor inmutables con identidad/modelo/capability/endpoint exactos,
+hashes de DPA y términos, ZDR, residencia, precios, aprobador y expiración. Una configuración real de
+embeddings queda enlazada por FK y fingerprint; el GetInput del worker entrega sólo metadatos
+allowlisted y nunca una API key. `023` agrega configuraciones y runs de explicación, jobs con lease,
+reservas mensuales previas, ledger de costo, resultados estructurados inmutables e idempotencia.
+
+El input no se persiste: SQL lo deriva durante el lease desde un ítem Test/primary congelado de
+9B-A y las nueve reglas 9A, aplica el detector de riesgo y guarda únicamente SHA-256. C# vuelve a
+validar el JSON exacto antes de la red. La salida se limita a assessment, resumen, una razón estable
+y hasta tres códigos de regla; no se guardan prompt, canonical JSON, respuesta raw, API key ni
+provider request ID sin hash.
+
+Los roles existentes se amplían sólo con los SP correspondientes: Admin publica políticas/
+configuraciones y crea/consulta runs; Worker reclama, lee input efímero, renueva, completa o falla.
+Ambos conservan `DENY SELECT, INSERT, UPDATE, DELETE` sobre las tablas nuevas. La API exige
+Admin/SuperAdmin con MFA reciente y el runtime queda deshabilitado por defecto.
+
+El gate local pasó ScriptDom para `022`, smoke `022`, `023` y smoke `023`; build .NET con 0
+warnings/0 errores; 347/347 pruebas unitarias; 142/142 de integración; lint frontend, 21 archivos/
+104 pruebas Vitest y build de producción. Estos gates no abrieron una conexión SQL ni llamaron a
+OpenAI. El estado observado de `res` sigue en 18/18: un despliegue futuro debe aplicar
+`019`→`020`→`021`→`022`→`023`, ejecutar sus smokes reales y registrar status/reapply.
+
+El adapter soporta `/v1/embeddings` y `/v1/responses` con Structured Outputs y `store=false`, pero
+queda apagado hasta aprobar el proyecto exacto para ZDR/DPA, guardar el secreto en Key Vault,
+registrar precios actuales y ejecutar evals sobre un corpus real. No se entrenó un modelo ni se usó
+Azure ML. La extracción generativa y cualquier writeback/promoción continúan fuera de este cierre.
 
 ## Carpetas
 
@@ -479,8 +512,10 @@ FASE 8B prepara en código local marketplace de proyectos, postulaciones privada
 derivado; su migración `019` sigue pendiente de aplicación autorizada. FASE 9A incorporó en código
 local la compatibilidad determinística project-first y su migración `020`, con gate local cerrado pero
 aplicación DB pendiente. FASE 9B-A prepara embeddings project-first y su evaluación corpus-level sólo
-en sombra mediante `021`, también sin aplicar. El proveedor real, la IA generativa, billing y alertas
-conservan fases posteriores. Las sesiones y MFA se incorporaron de forma aditiva en FASE 3 mediante
+en sombra mediante `021`, también sin aplicar. FASE 9B-B prepara adapters externos gobernados y
+explicaciones administrativas shadow mediante `022`/`023`, igualmente apagados y sin aplicar;
+extracción generativa, promoción, billing y alertas conservan fases o gates posteriores. Las sesiones
+y MFA se incorporaron de forma aditiva en FASE 3 mediante
 las migraciones 002/003/004.
 
 La revisión funcional del 17 de agosto mantiene el baseline 001 inmutable y reordena las próximas
