@@ -5,6 +5,7 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
+using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.Configuration;
 using FundingPlatform.Infrastructure.FundingSources;
@@ -12,10 +13,12 @@ using FundingPlatform.Infrastructure.FundingSources.GrantsGov;
 using FundingPlatform.Infrastructure.FundingSources.Rss;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Imports;
+using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
+using FundingPlatform.Infrastructure.Semantics;
 using FundingPlatform.Workers.Configuration;
 using FundingPlatform.Workers.Security;
 using FundingPlatform.Workers.Queue;
@@ -66,6 +69,13 @@ builder.Services.AddOptions<ContentRetentionOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<ContentRetentionOptions>,
     ContentRetentionOptionsValidator>();
+builder.Services.AddOptions<SemanticOptions>()
+    .Bind(builder.Configuration.GetSection(SemanticOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<SemanticOptions>,
+    SemanticWorkerOptionsValidator>();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
 
 var queueStorage = ImportQueueStorageConfiguration.Resolve(builder.Configuration);
 var documentExtractionQueueStorage =
@@ -79,6 +89,7 @@ builder.Services.AddSingleton(documentExtractionQueueStorage);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<GovernedAcquisitionRequestGate>();
 builder.Services.AddSingleton(ImportWorkerIdentity.Create());
+builder.Services.AddSingleton(SemanticWorkerIdentity.Create());
 builder.Services.AddSingleton<TokenCredential>(
     AzureRuntimeCredentialFactory.Create(
         queueStorage.ManagedIdentityClientId,
@@ -98,6 +109,8 @@ builder.Services.AddScoped<IContentRetentionRepository, SqlContentRetentionRepos
 builder.Services.AddScoped<ISourceDocumentContentRetentionRepository,
     SqlSourceDocumentContentRetentionRepository>();
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
+builder.Services.AddScoped<ISemanticProcessingRepository,
+    SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceiptRepository>();
 builder.Services.AddScoped<IDefenderScanWatchdogRepository,
     SqlDefenderScanWatchdogRepository>();
@@ -129,6 +142,16 @@ builder.Services.AddScoped<DefenderEventGridService>();
 builder.Services.AddScoped<DefenderScanWatchdogService>();
 builder.Services.AddScoped<ContentRetentionService>();
 builder.Services.AddScoped<SourceDocumentContentRetentionService>();
+builder.Services.AddSingleton<IEmbeddingService>(_ =>
+    builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
+        ? new DeterministicDevelopmentEmbeddingService()
+        : new UnavailableEmbeddingService());
+builder.Services.AddScoped(serviceProvider => new SemanticProcessingService(
+    serviceProvider.GetRequiredService<ISemanticProcessingRepository>(),
+    serviceProvider.GetRequiredService<IEmbeddingService>(),
+    serviceProvider.GetRequiredService<SemanticProcessingPolicy>(),
+    serviceProvider.GetRequiredService<TimeProvider>(),
+    serviceProvider.GetRequiredService<SemanticWorkerIdentity>().InstanceId));
 
 builder.Services.AddHttpClient<GrantsGovFundingSourceProvider>((serviceProvider, client) =>
     {

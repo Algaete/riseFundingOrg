@@ -15,6 +15,7 @@ using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Application.Matching;
+using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Projects;
@@ -31,6 +32,7 @@ using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Matching;
+using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
 using FundingPlatform.Infrastructure.Persistence.Marketplace;
 using FundingPlatform.Infrastructure.Persistence.Projects;
@@ -131,6 +133,8 @@ builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationR
 builder.Services.AddScoped<FundingApplicationService>();
 builder.Services.AddScoped<IProjectMatchingRepository, SqlProjectMatchingRepository>();
 builder.Services.AddScoped<ProjectMatchingService>();
+builder.Services.AddScoped<ISemanticEvaluationRepository, SqlSemanticProcessingRepository>();
+builder.Services.AddScoped<SemanticEvaluationAdministrationService>();
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISourceDocumentExtractionRepository,
     SqlSourceDocumentExtractionRepository>();
@@ -146,6 +150,19 @@ builder.Services.AddScoped<SecureTokenGenerator>();
 builder.Services.AddSingleton<JwtTokenIssuer>();
 builder.Services.AddSingleton<IAuthorizationHandler, RecentMfaHandler>();
 
+builder.Services
+    .AddOptions<SemanticOptions>()
+    .Bind(builder.Configuration.GetSection(SemanticOptions.SectionName))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<SemanticOptions>, SemanticOptionsValidator>();
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var configured = serviceProvider.GetRequiredService<IOptions<SemanticOptions>>()
+        .Value.ToPolicy();
+    return builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
+        ? configured
+        : configured with { Enabled = false };
+});
 builder.Services
     .AddOptions<AuthenticationOptions>()
     .Bind(builder.Configuration.GetSection(AuthenticationOptions.SectionName))
@@ -423,6 +440,16 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("semantic-evaluation-create", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 2,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 var configuredCorsOrigins = builder.Configuration["ALLOWED_CORS_ORIGINS"];
@@ -525,6 +552,7 @@ app.MapPublicProjectEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapFundingApplicationEndpoints();
 app.MapProjectMatchingEndpoints();
+app.MapAdminSemanticEvaluationEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

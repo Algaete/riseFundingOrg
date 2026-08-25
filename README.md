@@ -6,12 +6,15 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **FASE 9A en código local**. Sobre el catálogo y la actividad de 8A/8B,
-permite calcular y consultar compatibilidad determinística por proyecto, con historial versionado y
-desglose explicable de nueve reglas. Las migraciones `019` y `020`, junto con sus smokes, permanecen
-como artefactos locales: por instrucción del propietario **no se aplicaron ni validaron contra Azure
-SQL ni contra otro entorno de base de datos**. 9A no usa IA ni embeddings y no presenta sus
-resultados como recomendación o confirmación de elegibilidad.
+El repositorio completó la **FASE 9B-A en código local** sobre la compatibilidad determinística de
+9A. Esta etapa prepara embeddings versionados y una evaluación de ranking a nivel de corpus, siempre
+en modo sombra: no cambia scores, clasificaciones, vigencia ni orden de 9A, y no agrega una señal a
+la experiencia cliente. El único proveedor incluido es un fake léxico determinístico limitado a
+`Development`/`Testing`; no se llamó a OpenAI, no se entrenó un modelo y no se usó Azure ML.
+
+Las migraciones `019`, `020` y `021`, junto con sus smokes, permanecen como artefactos locales: por
+instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
+base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -27,7 +30,9 @@ resultados como recomendación o confirmación de elegibilidad.
 | 8A | Completada | Catálogo organizacional protegido, búsqueda, filtros, órdenes, paginación, detalle completo y favoritos privados |
 | 8B | Código completado; activación DB pendiente | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
 | 9A | Código completado; activación DB pendiente | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
-| 9B–11 | Pendiente | IA/embeddings evaluados, alertas, networking y billing |
+| 9B-A | Código completado; activación DB pendiente | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
+| 9B-B | Pendiente | Proveedor real evaluado, gobierno de datos, Structured Outputs, explicaciones y eventual promoción |
+| 10–11 | Pendiente | Alertas, networking y billing |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -36,8 +41,8 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B y `020` de 9A no forman parte de ese resultado: permanecen como artefactos locales pendientes
-de un despliegue posterior autorizado. El código
+de 8B, `020` de 9A y `021` de 9B-A no forman parte de ese resultado: permanecen como artefactos
+locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -118,7 +123,13 @@ Variables agrupadas:
 - Alias opcional: API_FOOTBALL_KEY se admite como nombre de configuración, pero actualmente FundingPlatform no consume API-Football.
 - Sesión: JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE y peppers de seguridad. En este entorno los valores secretos se obtienen de Key Vault; los aliases locales son solo fallback.
 - SSO: ENTRA_SSO_ENABLED, ENTRA_SSO_TENANT_ID y ENTRA_SSO_CLIENT_ID identifican la aplicación Web local. El secreto se guarda preferentemente en Key Vault como `Authentication--External--Entra--ClientSecret`, nunca en Git ni en React.
-- IA: OPENAI_API_KEY, OPENAI_MODEL y OPENAI_EMBEDDING_MODEL.
+- IA generativa futura: OPENAI_API_KEY, OPENAI_MODEL y OPENAI_EMBEDDING_MODEL permanecen sin uso en
+  9B-A; no se requiere una API key para ejecutar el fake local.
+- Semántica 9B-A: SEMANTIC_ENABLED, SEMANTIC_SHADOW_ONLY, SEMANTIC_DIMENSIONS,
+  SEMANTIC_BATCH_SIZE, SEMANTIC_LEASE_SECONDS y SEMANTIC_TIMEOUT_SECONDS. Los ejemplos fijan
+  `SEMANTIC_ENABLED=false`, `SEMANTIC_SHADOW_ONLY=true` y 1536 dimensiones. Fuera de
+  `Development`/`Testing`, la API fuerza su policy a deshabilitada y el worker rechaza al arranque
+  una configuración habilitada porque todavía no existe un proveedor hosted aprobado.
 - Storage/workers: `FundingPlatform.Workers` usa su conexión `AzureWebJobsStorage` para host y cola
   `imports` de FASE 7A. `FundingPlatform.ExtractionWorkers` usa una conexión
   `AzureWebJobsStorage` propia para su host, con otro `clientId`. Ambos se comunican por la cola de datos
@@ -326,7 +337,8 @@ tamaño, páginas, caracteres, bytes UTF-8 y profundidad. El parser solicita can
 segundos y el host tiene un límite exterior de 5 minutos. Esto separa proceso y permisos, pero no es
 una sandbox de sistema operativo ni garantiza preempción dura dentro del parser. El resultado
 expone métricas/evidencia sanitizada, nunca el contenido bruto, hash o ruta privada. Esta fase no
-llama a IA ni interpreta campos; ese enriquecimiento permanece en FASE 9B.
+llama a IA ni interpreta campos; ese enriquecimiento permanece en FASE 9B-B. La evaluación de
+embeddings de 9B-A no consume el texto PDF extraído ni modifica contenido editorial.
 
 La retención redacta en SQL el raw, items, resultados y evidencia al vencer la política. Para blobs,
 el worker solicita borrado sobre el nombre y ETag exactos e itera snapshots y versiones. La
@@ -568,6 +580,74 @@ Sus huellas locales congeladas son:
 El parsing estático T-SQL 170 y la inspección AST terminaron limpios. Estas comprobaciones locales no
 equivalen a ejecutar la migración o el smoke contra un motor SQL.
 
+## Evaluación semántica en sombra — FASE 9B-A
+
+9B-A agrega el camino durable para comparar una señal de embeddings con el orden determinístico de
+9A antes de exponerla. Es una evaluación interna **corpus-level**, no un cálculo solicitado por una
+ONG ni una nueva pantalla. Una persona Admin/SuperAdmin con MFA reciente puede crear, listar y
+consultar corridas mediante:
+
+- `POST /api/v1/admin/semantic-evaluation-runs`, con `Idempotency-Key` y las versiones exactas del
+  corpus y de la configuración semántica;
+- `GET /api/v1/admin/semantic-evaluation-runs`;
+- `GET /api/v1/admin/semantic-evaluation-runs/{runId}`;
+- `GET /api/v1/admin/semantic-evaluation-runs/{runId}/report`.
+
+El corpus es inmutable y revisado por una persona: exige al menos 30 proyectos, 100 oportunidades y
+entre 300 y 5000 pares etiquetados `0/1/2`, con splits `Development` y `Test` congelados por proyecto.
+Este repositorio define el contrato y fixtures transaccionales de smoke, pero no inventa ni siembra
+un corpus real etiquetado o una configuración activa; esos datos requieren revisión y una carga
+controlada posterior.
+El TOP 200 se interpreta por cada corrida histórica 9A subyacente; no se mezcla todo el corpus en un
+ranking global. El reporte agregado mide cobertura, éxito del proveedor, Recall@10, nDCG@10 frente
+al baseline 9A, delta nDCG, MRR@10, cambio medio de rank, costo incremental, p95 y promociones de
+hard gates. El gate de referencia exige cobertura ≥95%, éxito ≥99%, Recall@10 ≥0,80, nDCG@10
+≥0,75, delta ≥0,05 y cero promociones de incompatibles; además requiere el corpus completo. Un
+resultado parcial se informa como tal y nunca es elegible, y el fake local nunca puede promoverse.
+
+Los sujetos son la versión exacta del proyecto, privada para su tenant, y la versión exacta del
+contenido editorial público de la oportunidad. No se genera un embedding del perfil institucional.
+Las entradas se construyen en servidor con allowlists y JSON canónico de hasta 8192 bytes UTF-8; el
+proyecto excluye título/nombre, identificadores de organización o usuario, URLs, RUT, emails, notas y
+billing. SQL persiste hashes, coordenadas versionadas y `VECTOR(1536)`, pero no el JSON canónico,
+prompts, respuestas crudas ni texto enviado al proveedor. Los vectores y resultados shadow son
+inmutables para reproducibilidad; 9B-A no incorpora una purga. La retención/borrado exigida por un
+proveedor real es un gate explícito de 9B-B.
+
+El worker usa claims y leases renovables, hasta tres intentos, reservas de presupuesto previas a
+cualquier llamada y un ledger de uso/costo. En `Development`/`Testing` el adapter
+`development-deterministic`/`lexical-hash-1536-v1` genera vectores reproducibles con costo cero y sin
+red. La configuración queda deshabilitada por defecto y fail-closed en ambientes hosted: 9B-A no
+incluye un adapter OpenAI real, no activa recursos Azure y no incurre en costo de proveedor.
+
+`021` crea `FundingPlatform_SemanticWorkerRole` y `FundingPlatform_SemanticAdminRole`, pero no crea
+usuarios ni agrega principals. En un despliegue autorizado se reutilizan los principals distintos
+del worker general y de la API; respecto de la superficie semántica, el primero recibe sólo los 11 SP
+de procesamiento y el segundo sólo los cinco SP de backfill, alta, listado, detalle y reporte. Esto
+no reemplaza otros permisos mínimos que cada host ya requiera fuera de 9B-A. Ambos roles niegan
+`SELECT/INSERT/UPDATE/DELETE` directo sobre las tablas semánticas. Ninguna identidad de aplicación
+debe ser `db_owner` ni compartir ambos roles semánticos por conveniencia.
+
+La migración forward-only `021_shadow_semantic_evaluation.sql` y su smoke están preparados sólo
+localmente. No se ejecutaron `--validate`, `--apply`, `--test` ni `--status` contra SQL Server/Azure
+SQL; por ello no se declara `021` aplicada ni un smoke SQL exitoso. Su activación futura exige aplicar
+primero `019`, después `020` y finalmente `021`, mediante un cambio explícito y autorizado.
+
+Huellas de los artefactos locales congelados:
+
+- migración `021` (3995 líneas/48 lotes):
+  `f6a7cc2a7faba60edce4611c58f56850cf6fd1000b50d7a2f55a53ab188737c3`;
+- smoke `021` (1710 líneas/un lote):
+  `64ad6a521c0eaa6bbb3674b8b0966e572731110eafef57c84b87726baa94cfbc`.
+
+El parsing local ScriptDom terminó correctamente para los 48 lotes de la migración y el lote del
+smoke. Es una comprobación estática; no equivale a ejecutar ninguno de los archivos en SQL Server.
+
+Quedan para 9B-B el proveedor real de embeddings preentrenados y sus evals, DPA/retención y ciclo de
+vida de datos del proveedor, Structured Outputs, extracción y explicaciones generativas, y cualquier
+promoción controlada de la señal semántica. No se contempla entrenar un modelo propio ni usar Azure ML
+para 9B-A.
+
 ## Pruebas y validación
 
 Backend:
@@ -743,6 +823,12 @@ Vitest y el build de producción; el foco archived/matching pasó además 2 arch
 resultados y los gates estáticos de `020` no sustituyen la ejecución pendiente de `019`/`020` y sus
 smokes en SQL Server/Azure SQL.
 
+El gate local de código de 9B-A terminó con build de la solución .NET en 0 warnings/0 errores,
+324/324 pruebas unitarias y 136/136 de integración. La regresión frontend, aunque 9B-A no modificó
+su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producción. Estos resultados y
+el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
+incluyeron una llamada a OpenAI o a otro proveedor externo.
+
 Endpoints principales del backend hasta este cierre:
 
 - tenant: `POST /api/v1/organizations/{organizationId}/projects/{projectId}/publish` y
@@ -759,6 +845,8 @@ Endpoints principales del backend hasta este cierre:
   `/api/v1/organizations/{organizationId}/calendar`;
 - compatibilidad privada: alta idempotente, historial paginado y detalle explicable bajo
   `/api/v1/organizations/{organizationId}/projects/{projectId}/matching-runs`;
+- evaluación semántica shadow Admin/SuperAdmin con MFA: alta idempotente, listado, detalle y reporte
+  agregado bajo `/api/v1/admin/semantic-evaluation-runs`, sin exponer entradas canónicas ni vectores;
 - importación Admin/SuperAdmin con MFA: `POST /api/v1/admin/funding-sources/{sourceId}/import-runs`,
   `GET /api/v1/admin/import-runs` y
   `GET /api/v1/admin/import-runs/{runId}`;
@@ -835,8 +923,8 @@ El baseline de FASE 2 es deliberadamente acotado: incluye catálogos, identidad 
 organizaciones/perfiles, oportunidades/fuentes canónicas, plan Free y outbox. FASE 6 agregó
 evidence editorial; FASE 7A, contenido bruto/runs para Grants.gov; y FASE 7B, extracción PDF
 gobernada y un RSS oficial fijo sujeto a compliance. Proyectos/funders llegaron en FASE 5/6 y 9A
-agregó la primera compatibilidad project-first, determinística y acotada; IA, embeddings y semántica
-permanecen para una fase posterior.
+agregó la primera compatibilidad project-first, determinística y acotada. 9B-A prepara embeddings y
+evaluación semántica sólo en sombra; el proveedor real y la IA generativa permanecen para 9B-B.
 Billing y alertas conservan sus fases; la autenticación completa corresponde a las
 migraciones 002/003/004 de FASE 3.
 
@@ -945,7 +1033,10 @@ El orden de ejecución es:
   `019` pendiente de un despliegue autorizado;
 - FASE 9A — compatibilidad determinística, versionada y explicable por proyecto, completada en
   código local; activación de `020` pendiente de un despliegue autorizado;
-- FASE 9B — IA y embeddings condicionados a evaluación, sin delegar el score a un modelo;
+- FASE 9B-A — embeddings project-first y evaluación corpus-level sólo en sombra, completados en
+  código local; activación de `021` pendiente;
+- FASE 9B-B — proveedor real, gobierno/DPA/retención, Structured Outputs, explicaciones y decisión
+  de promoción condicionada a evals;
 - FASE 10 — alertas, pipeline, calendario y networking básico;
 - FASE 11 — suscripciones y administración completa;
 - FASE 12 — hardening, pruebas y despliegue.

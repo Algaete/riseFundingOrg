@@ -343,6 +343,103 @@ evidencia estructurada allowlisted necesarios para explicar el cálculo. 9A no a
 respuestas de modelos ni vectores: no usa IA, embeddings o similitud semántica y no declara una
 recomendación ni confirma elegibilidad.
 
+## Estado de FASE 9B-A
+
+La migración forward-only `021_shadow_semantic_evaluation.sql` y su smoke están preparados
+localmente. **No se aplicaron ni probaron contra `res`, Azure SQL u otro entorno de base de datos**:
+no se ejecutaron `--validate`, `--apply`, `--test` o `--status`, no se declara una migración `021`
+aplicada y el último estado observado de `res` continúa siendo 18/18. El orden forward-only exige
+aplicar `019`, luego `020` y finalmente `021` mediante el migrador y el preflight autorizado.
+
+Huellas de los artefactos locales congelados:
+
+- migración `021` (3995 líneas/48 lotes):
+  `f6a7cc2a7faba60edce4611c58f56850cf6fd1000b50d7a2f55a53ab188737c3`;
+- smoke `021` (1710 líneas/un lote):
+  `64ad6a521c0eaa6bbb3674b8b0966e572731110eafef57c84b87726baa94cfbc`.
+
+El parsing local ScriptDom terminó correctamente para ambos artefactos (48 lotes y un lote,
+respectivamente). Es un gate estático y no sustituye una corrida transaccional en un motor SQL.
+
+`021` prepara configuraciones semánticas versionadas e inmutables salvo desactivación one-way tras
+drenar jobs, evaluaciones y reservas activas; corpus revisados con casos
+`Development`/`Test`; jobs de embeddings con claim, lease y reintentos acotados; reservas de
+presupuesto previas a la llamada; ledger append-only de uso/costo; embeddings nativos
+`VECTOR(1536)`; corridas, snapshots de casos, items agregables e idempotencia durable. Los sujetos
+son `ProjectId + ProjectVersion` tenant-private y `FundingOpportunityId + FundingContentVersion`
+global; no existe `OrganizationProfileEmbedding` en este contrato project-first.
+
+`021` no inventa ni siembra un corpus real etiquetado o una configuración activa. El smoke usa
+fixtures que siempre se revierten; no constituyen datos evaluados. La carga futura de un manifiesto
+revisado debe ser un cambio controlado, trazable y posterior a aplicar las migraciones pendientes.
+
+La migración crea dos superficies de mínimo privilegio sin vincular principals:
+
+- `FundingPlatform_SemanticWorkerRole`: `EXECUTE` sólo sobre los 11 SP de claim/input/lease/
+  complete/fail/wait del worker;
+- `FundingPlatform_SemanticAdminRole`: `EXECUTE` sólo sobre backfill y los cuatro SP de
+  alta/listado/detalle/reporte administrativos.
+
+Ambos roles tienen `DENY SELECT, INSERT, UPDATE, DELETE` sobre las 11 tablas semánticas. El
+despliegue autorizado debe usar principals distintos para worker general y API y, respecto de esta
+superficie, asignar sólo el rol semántico correspondiente a cada uno. Esto no elimina otros permisos
+mínimos que esos hosts requieran fuera de 9B-A. Se verifican permisos efectivos; ninguna aplicación
+recibe `db_owner`, DML directo o ambos roles semánticos.
+
+Runbook futuro, sustituyendo nombres y `object-id` por las dos identidades exactas creadas mediante
+IaC (si el user ya existe, no se vuelve a crear):
+
+```sql
+CREATE USER [<general-worker-principal>] FROM EXTERNAL PROVIDER
+    WITH OBJECT_ID = '<general-worker-object-id>';
+ALTER ROLE [FundingPlatform_SemanticWorkerRole]
+    ADD MEMBER [<general-worker-principal>];
+
+CREATE USER [<api-principal>] FROM EXTERNAL PROVIDER
+    WITH OBJECT_ID = '<api-object-id>';
+ALTER ROLE [FundingPlatform_SemanticAdminRole]
+    ADD MEMBER [<api-principal>];
+```
+
+El preflight se ejecuta conectado por separado como cada principal: `USER_NAME()` debe devolver el
+user esperado; el worker debe poder ejecutar `FundingPlatform_usp_SemanticEmbeddingJob_Claim` y no
+`FundingPlatform_usp_SemanticEvaluationRun_Create`; la API debe mostrar el inverso; ambos deben
+obtener `0` al consultar `HAS_PERMS_BY_NAME` para `SELECT` sobre
+`FundingPlatform_SemanticEmbeddings`.
+
+El JSON canónico se genera en tiempo de ejecución desde campos allowlisted y está limitado a 8192
+bytes UTF-8. Ni ese JSON, ni prompts, respuestas crudas o texto enviado al proveedor se guardan en
+las tablas 9B-A. Jobs y embeddings conservan hashes, versiones y configuración efectiva; las guardas
+rechazan input inválido, stale o con patrones de email, URL o RUT. La oportunidad usa sólo contenido
+editorial público y el proyecto excluye título/nombre, IDs de organización/usuario, notas y billing.
+Vectores y resultados de evaluación son inmutables para reproducibilidad; 9B-A no agrega un SP de
+purga. Retención/borrado del proveedor real debe diseñarse y aprobarse en 9B-B.
+
+La evaluación es corpus-level y shadow-only. El conjunto exige al menos 30 proyectos, 100
+oportunidades y entre 300 y 5000 pares etiquetados `0/1/2`, congelados por proyecto. Compara el orden
+semántico por distancia coseno exacta con el orden histórico 9A de cada corrida, respetando sus hard
+gates y TOP 200. Persiste métricas agregadas de cobertura, éxito del proveedor, Recall@10, nDCG@10,
+baseline/delta, MRR@10, cambio medio de rank, costo incremental, p95 y promociones indebidas de hard
+gates. No actualiza `ProjectMatchingRuns`, `ProjectFundingMatches`, score, clasificación,
+`IsCurrent`, orden visible ni frontend.
+
+El gate de referencia exige corpus completo, cobertura ≥95%, éxito ≥99%, Recall@10 ≥0,80,
+nDCG@10 ≥0,75, delta nDCG ≥0,05 y cero promociones de incompatibles. Una corrida con embeddings
+terminalmente ausentes puede cerrar con reporte parcial, pero no es elegible. La configuración fake
+local tampoco puede promoverse, independientemente de sus métricas.
+
+El repositorio no incluye un proveedor hosted aprobado: el fake léxico determinístico de costo cero
+se restringe a `Development`/`Testing`; en otro ambiente la API fuerza la policy a deshabilitada y
+el worker rechaza al arranque una configuración habilitada. No se llamó a OpenAI, no se entrenó un
+modelo, no se usó Azure ML, no se crearon recursos Azure y no se activó ningún servicio pagado. 9B-B
+conserva como pendientes el adapter real y sus evals, DPA/retención/ciclo de vida del proveedor,
+Structured Outputs, explicaciones generativas y una eventual promoción controlada.
+
+El gate local de aplicación pasó build .NET con 0 warnings/0 errores, 324/324 pruebas unitarias y
+136/136 de integración. La regresión frontend pasó lint, 21 archivos/104 pruebas Vitest y build de
+producción. Ninguno de estos gates abrió una conexión SQL, llamó a un proveedor de embeddings o
+validó una aplicación de `019`/`020`/`021`.
+
 ## Carpetas
 
 - Tables: definiciones de tablas, claves, constraints e índices propios del objeto.
@@ -381,8 +478,10 @@ incorporó búsqueda/detalle organizacional, favoritos privados y Full-Text con 
 FASE 8B prepara en código local marketplace de proyectos, postulaciones privadas y calendario
 derivado; su migración `019` sigue pendiente de aplicación autorizada. FASE 9A incorporó en código
 local la compatibilidad determinística project-first y su migración `020`, con gate local cerrado pero
-aplicación DB pendiente. IA, embeddings, billing y alertas conservan fases posteriores. Las sesiones
-y MFA se incorporaron de forma aditiva en FASE 3 mediante las migraciones 002/003/004.
+aplicación DB pendiente. FASE 9B-A prepara embeddings project-first y su evaluación corpus-level sólo
+en sombra mediante `021`, también sin aplicar. El proveedor real, la IA generativa, billing y alertas
+conservan fases posteriores. Las sesiones y MFA se incorporaron de forma aditiva en FASE 3 mediante
+las migraciones 002/003/004.
 
 La revisión funcional del 17 de agosto mantiene el baseline 001 inmutable y reordena las próximas
 migraciones: primero proyectos; después funders/oportunidades; luego runs, raw, evidence y matching

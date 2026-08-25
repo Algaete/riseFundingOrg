@@ -3,9 +3,10 @@
 **Estado:** baseline técnico aprobado; FASE 8A completada con gate SQL aplicado hasta `018` y
 Full-Text provisionado; FASE 8B completada en código local, con `019` preparada pero no aplicada ni
 validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
-sin aplicación ni prueba contra una base de datos
+sin aplicación ni prueba contra una base de datos; FASE 9B-A completada en código local y `021`
+congelada, también sin aplicación ni prueba contra una base de datos
 
-**Fecha de referencia:** 24 de agosto de 2026
+**Fecha de referencia:** 25 de agosto de 2026
 
 **Ampliación vigente:** la revisión de visión del 17 de agosto de 2026 incorpora proyectos,
 funders, networking e ingesta gobernada. En alcance funcional, matching y roadmap prevalece
@@ -134,8 +135,9 @@ FASE 8B agrega un marketplace público de proyectos/organizaciones, seguimiento 
 postulaciones y un calendario básico derivado. Un filtro describe datos declarados; no evalúa
 elegibilidad, no genera score y no constituye recomendación. FASE 9A agrega compatibilidad
 project-aware determinística, versionada y explicable; no usa IA o embeddings y tampoco confirma
-elegibilidad ni se presenta como recomendación. La ampliación semántica permanece para 9B, sujeta a
-evaluación.
+elegibilidad ni se presenta como recomendación. FASE 9B-A agrega infraestructura de embeddings y
+una evaluación corpus-level sólo en sombra, sin writeback a 9A. El proveedor real y cualquier
+ampliación visible permanecen para 9B-B, sujetos a evaluación y gobierno.
 
 #### IA y matching
 
@@ -146,9 +148,10 @@ evaluación.
 - trazabilidad de modelo, prompt/esquema, contenido de entrada y evidencia;
 - caché por hash para no pagar dos veces por el mismo contenido.
 
-El primer corte 9A implementa solo el motor determinístico: nueve reglas, hard gates
-`Pass`/`Fail`/`Unknown`, score conservador y cobertura sin renormalización. `OpenAiService`,
-embeddings, similitud semántica y explicaciones generadas no forman parte de este corte.
+El primer corte 9A implementa sólo el motor determinístico: nueve reglas, hard gates
+`Pass`/`Fail`/`Unknown`, score conservador y cobertura sin renormalización. 9B-A materializa la
+abstracción de embeddings, un fake local y la comparación shadow; `OpenAiService`, un proveedor real,
+Structured Outputs, explicaciones generadas y la promoción no forman parte de este corte.
 
 #### Monetización y administración
 
@@ -228,7 +231,7 @@ Controller
           +----------> [Azure Blob Storage]
           |              PDF, Excel/CSV, HTML y raw grandes
           |
-          +----------> [OpenAI mediante IAiService]
+          +----------> [Proveedor IA real mediante IAiService · futuro 9B-B]
           |
           +----------> [Mercado Pago mediante IPaymentGateway]
           |
@@ -450,8 +453,9 @@ Documentación oficial: [tipo `VECTOR` de SQL Server/Azure SQL](https://learn.mi
 
 **Decisión:** la IA generativa no calcula el porcentaje. Un perfil de pesos activo define reglas
 determinísticas. FASE 9A implementa `deterministic-project-v1`, 100% determinístico; solo después de
-backfill y evaluación podrá existir un perfil híbrido `v2`, donde la similitud semántica aportaría
-como máximo 5%.
+backfill y evaluación con un proveedor real podría proponerse en 9B-B un perfil híbrido `v2`, donde
+la similitud semántica aportaría como máximo 5%. 9B-A no crea ese perfil: calcula métricas shadow y
+un flag informativo no promovible para el fake, sin cambiar 9A.
 
 Pesos implementados en `v1`:
 
@@ -541,13 +545,17 @@ IAiService
   GenerateExplanationAsync(matchBreakdown, ...)
 
 IEmbeddingService
-  GenerateEmbeddingAsync(normalizedText, ...)
+  GenerateAsync(SemanticEmbeddingRequest, ...)
 
 IMatchingService
   CalculateCompatibilityAsync(organizationId, fundingOpportunityId, ...)
 ```
 
-`OpenAiService : IAiService` y el adapter de embeddings viven en `Infrastructure`; ninguna entidad del dominio conoce modelos, SDKs o API keys.
+Los adapters viven en `Infrastructure`; ninguna entidad del dominio conoce modelos, SDKs o API keys.
+La implementación 9B-A materializa sólo `IEmbeddingService` con un fake léxico determinístico
+restringido a `Development`/`Testing` y una evaluación shadow. No materializa `OpenAiService`, no usa
+Structured Outputs, no entrena modelos y no necesita Azure ML. El adapter real de embeddings
+preentrenados y `IAiService` quedan sujetos a evals y gobierno de proveedor en 9B-B.
 
 ### ADR-010 — Topología de sesión y cookie
 
@@ -582,7 +590,8 @@ prematuramente detalles, aunque su diseño queda definido aquí. FASE 6 incorpor
 editorial y el límite seguro de documentos. FASE 7A incorporó runs, raw inmutable y adquisición
 durable desde Grants.gov; FASE 7B agregó extracción PDF, recepción Defender/Event Grid fail-closed,
 RSS gobernado, retención y revisión humana de duplicados. Proyectos/funders se agregaron en FASE 5/6;
-9A agrega compatibilidad project-first determinística y 9B reserva la ampliación con IA/embeddings.
+9A agrega compatibilidad project-first determinística; 9B-A prepara embeddings y evals sólo en
+sombra, y 9B-B reserva el proveedor real y la IA generativa.
 
 ### 7.2 Catálogos normalizados
 
@@ -1153,11 +1162,16 @@ FK compuesta `(ImportRunItemId, ImportRunId, FundingSourceId)` impide asociar un
 run/fuente. La consola recibe códigos y mensajes sanitizados: no se guardan stack traces, tokens,
 payloads raw ni secretos. El detalle técnico se correlaciona con Application Insights.
 
-#### `AiProcessingRuns`
+#### `AiProcessingRuns` — propuesta diferida a 9B-B
+
+> **Revisión 2026-08-25:** 9B-A no materializa esta tabla genérica ni ninguna operación
+> generativa. La migración local `021` usa tablas semánticas específicas descritas más abajo. Este
+> modelo queda como propuesta para Structured Outputs, extracción y explicaciones de 9B-B, sujeto a
+> DPA, retención y ciclo de vida aprobados para el proveedor real.
 
 ```text
 Id BIGINT IDENTITY PK
-Operation TINYINT NOT NULL               -- Extract/Summarize/Explain/Embed
+Operation TINYINT NOT NULL               -- Extract/Summarize/Explain; embeddings usan tablas 9B-A
 Provider NVARCHAR(50) NOT NULL
 Model NVARCHAR(150) NOT NULL
 PromptVersion NVARCHAR(50) NULL
@@ -1191,46 +1205,70 @@ CorrelationId NVARCHAR(100) NOT NULL
 CreatedAtUtc DATETIME2(3) NOT NULL
 ```
 
-UQ `CacheKey` y un claim atómico evitan ejecuciones concurrentes conocidas; un retry reutiliza la misma fila/clave. Un check exige `Global ⇒ OrganizationId IS NULL` y `Organization ⇒ OrganizationId IS NOT NULL`, además de la combinación de IDs/versiones requerida por cada `SubjectType`. La key se calcula únicamente en servidor e incluye scope, `SubjectType + SubjectId + subject version`, operación, input hash, proveedor, modelo y versiones de prompt/schema/template; el SP rechaza una key que no coincida con esos componentes. Por diseño MVP no se comparte una fila de auditoría entre dos fondos o matches aunque su texto sea idéntico; una caché de artefactos cross-subject separada solo se justificaría después de medir ahorro. Contenido público de fondos usa `Global`; perfil, match y explicación usan `Organization`, impidiendo por restricción/clave que una fila privada sea compartida entre tenants. IX `(Status, CreatedAtUtc)`; check `ISJSON(StructuredOutputJson)=1` cuando exista. `Extract` exige prompt+schema; `Summarize/Explain`, prompt; `Embed`, template. Estados terminales exigen `FinishedAtUtc`.
+Si 9B-B aprueba este modelo, UQ `CacheKey` y un claim atómico evitarán ejecuciones concurrentes
+conocidas; un retry reutilizará la misma fila/clave. Scope, sujeto, versión, operación, hash,
+proveedor, modelo y versiones de prompt/schema/template formarán la clave calculada en servidor.
+Las salidas estructuradas tendrán allowlists, límites e aislamiento tenant; los estados terminales
+exigirán `FinishedAtUtc`.
 
-Los SP de persistencia validan el sujeto, no solo el ID de run: si existen `ImportRunItemId + RawFundingOpportunityId`, el item debe referenciar ese mismo raw/fuente; un embedding de fondo exige `Operation=Embed`, scope global y los mismos `FundingOpportunityId + FundingContentVersion + InputContentHash + Provider/Model/Template`; uno institucional exige scope y `OrganizationId + OrganizationProfileVersion` equivalentes. Evidence solo acepta runs `Extract/Summarize` ligados al raw/fondo correcto. Una futura explicación 9B exigirá `Operation=Explain`, mismo `ProjectFundingMatchId`, organización, proyecto, fondo y fingerprint de desglose. UQ auxiliares/FKs compuestas por run+sujeto se usan donde no introducen ciclos; las referencias circulares nullable se completan mediante SP tras crear la ejecución. Así un `AiProcessingRunId` de otro tenant, versión o modelo no pasa por “tener una FK válida”.
+Los futuros SP de persistencia deberán validar el sujeto, no sólo el ID de run. Evidence aceptará
+runs `Extract/Summarize` ligados al raw/fondo correcto, y una explicación exigirá el mismo
+`ProjectFundingMatchId`, organización, proyecto, fondo y fingerprint de desglose. Ningún
+`AiProcessingRunId` de otro tenant, versión o modelo podrá pasar por el solo hecho de tener una FK
+formalmente válida.
 
-La salida estructurada razonable se conserva en SQL; una respuesta grande vive en Blob. No se almacena el prompt con secretos ni el documento completo. Un crash después de que el proveedor cobre pero antes de persistir puede exigir retry: “no pagar dos veces” es best effort observable, no garantía imposible sin idempotencia del proveedor.
+La salida estructurada razonable podrá conservarse en SQL y una respuesta grande en Blob, una vez
+aprobadas sus políticas. No se almacenará un prompt con secretos ni el documento completo. Un crash
+después de que el proveedor cobre pero antes de persistir puede exigir retry: “no pagar dos veces” es
+best effort observable, no garantía imposible sin idempotencia del proveedor.
 
-#### Embeddings
+#### Persistencia semántica 9B-A
 
-```text
-FundingOpportunityEmbeddings
-  FundingOpportunityId BIGINT
-  EmbeddingVersion SMALLINT
-  ContentVersion INT
-  PurposeCode NVARCHAR(50)
-  Provider NVARCHAR(50)
-  Model NVARCHAR(150)
-  Dimensions SMALLINT                   -- CHECK = 1536 en v1
-  TemplateVersion NVARCHAR(50)
-  ContentHash BINARY(32)
-  Embedding VECTOR(1536)
-  AiProcessingRunId BIGINT NOT NULL
-  IsCurrent BIT
-  CreatedAtUtc DATETIME2(3)
-  RetiredAtUtc DATETIME2(3) NULL
-  PK (FundingOpportunityId, ContentVersion, PurposeCode, EmbeddingVersion)
+> **Revisión 2026-08-25:** el sujeto privado es project-first. El diseño anterior de
+> `OrganizationProfileEmbeddings` queda descartado para 9B-A.
 
-OrganizationProfileEmbeddings
-  OrganizationId BIGINT
-  ProfileVersion INT
-  EmbeddingVersion SMALLINT
-  PurposeCode, Provider, Model, Dimensions, TemplateVersion, ContentHash
-  Embedding VECTOR(1536)
-  AiProcessingRunId BIGINT NOT NULL
-  IsCurrent BIT
-  CreatedAtUtc DATETIME2(3)
-  RetiredAtUtc DATETIME2(3) NULL
-  PK (OrganizationId, ProfileVersion, PurposeCode, EmbeddingVersion)
-```
+La migración local `021` separa configuración, trabajo durable, vectores, presupuesto y evaluación:
 
-La propuesta v1 fija 1536 dimensiones y exige que el modelo seleccionado en FASE 9B las produzca explícitamente; `Dimensions` lleva check 1536. La [documentación oficial de embeddings de OpenAI](https://developers.openai.com/api/docs/guides/embeddings) confirma tanto modelos con salida 1536 como el parámetro `dimensions`; aun así, modelo y costo se eligen mediante evals, no por asumir un alias eterno. `EmbeddingVersion` es un contador/configuración dentro de cada versión de contenido/perfil+purpose, por eso ambas PK incluyen simétricamente `ContentVersion/ProfileVersion`. UQ filtrado `(FundingOpportunityId, PurposeCode) WHERE IsCurrent=1` y equivalente por organización seleccionan el vector vigente. Checks exigen `IsCurrent=1 ⇔ RetiredAtUtc IS NULL`. Otra dimensión exige tabla/migración versionada; no se fuerza un vector distinto dentro de la misma columna. El vector solo es utilizable cuando coincide `ContentVersion/ProfileVersion`, modelo, template y hash. `AiProcessingRunId` referencia obligatoriamente la ejecución `Embed` que produjo el vector; un reemplazo marca el anterior no vigente y completa `RetiredAtUtc` en la misma transacción.
+- `SemanticConfigurations`: proveedor/modelo, 1536 dimensiones, purpose `matching`, templates
+  `project-semantic-v1`/`opportunity-semantic-v1`, normalización `semantic-text-v1`, distancia
+  coseno y calibración `cosine-linear-shadow-v1`; la configuración publicada es inmutable y sólo
+  puede desactivarse one-way después de drenar jobs, evaluaciones y reservas activas;
+- `SemanticEvaluationSets` y `SemanticEvaluationCases`: manifiesto humano inmutable, labels
+  `0/1/2`, split `Development`/`Test` y coordenadas exactas de un match histórico 9A;
+- `SemanticEmbeddingJobs`: dirección de contenido, generaciones, hasta tres intentos, claim/lease,
+  retry y estados terminales, sin guardar el input;
+- `SemanticEmbeddings`: un `VECTOR(1536)` nativo ligado uno-a-uno al job que lo produjo, junto con
+  subject/content/input/vector hashes, proveedor/modelo/template efectivos, versión y vigencia;
+- `SemanticBudgetReservations` y `SemanticUsageLedger`: reserva dura antes de invocar al proveedor,
+  consumo/liberación y costo/tokens/latencia/outcome append-only, incluyendo cobro incierto;
+- `SemanticEvaluationRuns`, `SemanticEvaluationRunCases`, `SemanticEvaluationItems` y
+  `SemanticEvaluationRunRequests`: snapshot corpus-level, idempotencia, leases, resultados de ranking
+  y reporte agregado.
+
+La migración define ese contrato, pero no siembra una configuración activa o un corpus humano real.
+Los fixtures del smoke son transaccionales y se revierten. Incorporar un manifiesto etiquetado exige
+revisión experta, provenance/hashes y un cambio controlado posterior; la API no permite subir labels.
+
+Un embedding de proyecto exige `OrganizationId + ProjectId + ProjectVersion` y es tenant-private.
+Un embedding de oportunidad exige `FundingOpportunityId + FundingContentVersion` y es global porque
+su entrada contiene sólo contenido editorial público. El JSON canónico se construye en el SP al
+resolver el lease, usa allowlists y como máximo 8192 bytes UTF-8, y nunca se persiste. Para proyectos
+se excluyen título/nombre, slugs, URLs, IDs de organización/usuario, RUT, emails, notas y billing; los
+patrones riesgosos, hashes que no coinciden e inputs stale se rechazan fail-closed.
+
+Vectores, ledger y resultados shadow son inmutables para reproducibilidad; sólo la vigencia del
+vector puede transicionar de actual a retirado bajo guardas. 9B-A no implementa un procedimiento de
+purga porque tampoco persiste raw, prompt, respuesta o input canónico. Un proveedor real exige en
+9B-B una política explícita de DPA, retención, borrado y ciclo de vida antes de enviar contenido.
+
+El contrato fija 1536 dimensiones. Un cambio de dimensión, modelo, template, normalización o
+calibración exige otra configuración versionada y nuevos evals. El vector sólo es utilizable cuando
+coinciden el sujeto, su versión, hashes y toda la configuración. La búsqueda 9B-A usa distancia coseno
+exacta; no introduce un índice aproximado ni altera los resultados 9A. La documentación oficial de
+SQL Server describe el tipo [`VECTOR`](https://learn.microsoft.com/en-us/sql/sql-server/ai/vectors?view=sql-server-ver17),
+y la API de embeddings admite fijar sus
+[`dimensions`](https://developers.openai.com/api/reference/ruby/resources/embeddings/methods/create);
+la selección de un proveedor/modelo real continúa pendiente de evals 9B-B.
 
 ### 7.7 Matching
 
@@ -1577,13 +1615,20 @@ FundingSources ──< ImportRuns ──< ImportRunItems ──> RawFundingOppor
                                                   |
                                                   +──< Categories/Countries/Regions/...
                                                   +──< FundingFieldEvidence
-                                                  +──< FundingOpportunityEmbeddings
+                                                  +──< SemanticEmbeddings (content version)
 
 MatchingProfiles ──< MatchingRuleWeights >── MatchingRules
        |
        +──< ProjectMatchingRuns ──< ProjectFundingMatches
                                              |
                                              +──< ProjectFundingMatchRuleResults
+
+Projects ──< SemanticEmbeddings (project version)
+SemanticConfigurations ──< SemanticEmbeddingJobs ── SemanticBudgetReservations
+          |                         |                           |
+          |                         +── SemanticEmbeddings         +── SemanticUsageLedger
+          +──< SemanticEvaluationRuns ──< SemanticEvaluationRunCases/Items
+SemanticEvaluationSets ──< SemanticEvaluationCases
 ```
 
 ### 7.13 Índices guiados por consultas
@@ -1598,11 +1643,14 @@ Además de PK/UQ/FK:
 4. **Compatibilidad 9A:** historial `(OrganizationId, ProjectId, CreatedAtUtc DESC, Id DESC)`, UQ
    vigente `(ProjectId, FundingOpportunityId) WHERE IsCurrent=1` y detalle por
    `(MatchRunId, Classification, CompatibilityScore DESC, FundingOpportunityId)`.
-5. **Deadline worker:** índice filtrado `(CloseDate, Id)` para publicados activos con fecha.
-6. **Importación:** `(FundingSourceId, Status, CreatedAtUtc DESC)` y runs/items por estado.
-7. **Alertas/runs/outbox:** índice por `NextRunAtUtc` para alertas activas, `(Status, CreatedAtUtc)`/fuente para runs pendientes y `AvailableAtUtc` solo en outbox no despachado; las colas administran visibilidad/reintentos de ejecución.
-8. **Billing:** UQ de IDs externos e índice `(OrganizationId, Status, CurrentPeriodEndUtc DESC)`.
-9. **Tenancy:** todo recurso organizacional inicia sus índices de acceso por `OrganizationId`.
+5. **Semántica 9B-A:** jobs por `(Status, NextAttemptAtUtc, Id)`; vectores exactos por
+   sujeto/versión/configuración; una evaluación activa global; historial de corridas por fecha y
+   reservas/uso por configuración+mes. Los índices no habilitan ANN ni cambian el TOP 200 de 9A.
+6. **Deadline worker:** índice filtrado `(CloseDate, Id)` para publicados activos con fecha.
+7. **Importación:** `(FundingSourceId, Status, CreatedAtUtc DESC)` y runs/items por estado.
+8. **Alertas/runs/outbox:** índice por `NextRunAtUtc` para alertas activas, `(Status, CreatedAtUtc)`/fuente para runs pendientes y `AvailableAtUtc` solo en outbox no despachado; las colas administran visibilidad/reintentos de ejecución.
+9. **Billing:** UQ de IDs externos e índice `(OrganizationId, Status, CurrentPeriodEndUtc DESC)`.
+10. **Tenancy:** todo recurso organizacional inicia sus índices de acceso por `OrganizationId`.
 
 Los `INCLUDE` finales se decidirán con planes reales de búsqueda y pruebas de volumen. No se crean
 índices especulativos para cada columna. El híbrido de 8A calcula además el complemento literal aun
@@ -1624,12 +1672,16 @@ afirma haber demostrado todavía el p95 con 100.000 oportunidades.
 | `usp_FundingOpportunity_Update` | optimistic concurrency por `RowVersion`, reemplazo atómico de relaciones |
 | `usp_FundingOpportunity_Deactivate` | desactiva/audita sin borrar; idempotente |
 | `usp_Organization_GetProfile` | perfil y relaciones en múltiples result sets |
-| `usp_Organization_UpdateProfile` | valida, reemplaza relaciones, versiona y escribe `OrganizationProfileChanged` en outbox; el pipeline genera el embedding exacto y recalcula proyectos activos afectados |
+| `usp_Organization_UpdateProfile` | valida, reemplaza relaciones, versiona y escribe `OrganizationProfileChanged` en outbox; 9B-A no genera embeddings institucionales ni recalcula 9A |
 | `usp_Project_GetById` | proyecto, relaciones y versión vigente autorizados por tenant; `QueryMultipleAsync` |
 | `usp_Project_Upsert` | crea/actualiza agregado, incrementa versión y escribe `ProjectChanged` en outbox |
 | `FundingPlatform_usp_ProjectMatchingRun_Create` | resuelve versiones/configuración/catálogo, calcula TOP 200 sincrónico y persiste run, matches, reglas e idempotencia atómicamente |
 | `FundingPlatform_usp_ProjectMatchingRun_List` | historial tenant-safe paginado con contadores, versiones y vigencia calculada |
 | `FundingPlatform_usp_ProjectMatchingRun_Get` | cabecera, resultados y nueve reglas explicables de una ejecución tenant-safe |
+| `FundingPlatform_usp_SemanticEmbeddingJob_BackfillEnqueue` | encola versiones vigentes allowlisted de proyecto/oportunidad para la configuración activa |
+| `FundingPlatform_usp_SemanticEmbeddingJob_Claim/GetInput/RenewLease/Complete/Fail` | ciclo durable JIT, input canónico runtime-only, presupuesto y persistencia exacta del vector |
+| `FundingPlatform_usp_SemanticEvaluationRun_Create/Claim/GetWork/RenewLease/Complete/Wait/Fail` | snapshot corpus-level, procesamiento shadow e idempotencia sin writeback a 9A |
+| `FundingPlatform_usp_SemanticEvaluationRun_List/Get/Report` | proyección agregada para Admin/SuperAdmin con MFA, sin vectores ni input canónico |
 | `usp_Subscription_GetCurrent` | suscripción efectiva + plan, precio, features y uso |
 | `usp_ImportRun_Insert` | crea run `Queued` con idempotency key y correlation ID |
 | `usp_ImportRun_Complete` | valida transición y consolida contadores desde items |
@@ -1811,6 +1863,10 @@ Un solo `PUT profile` evita una docena de endpoints chatty durante onboarding. E
 | `GET/POST` | `/api/v1/organizations/{organizationId}/applications` | lista/crea seguimiento |
 | `GET/PATCH` | `/api/v1/organizations/{organizationId}/applications/{applicationId}` | ownership y ETag; descartar es un estado, no un borrado |
 | `GET` | `/api/v1/organizations/{organizationId}/calendar` | rango acotado; cierres de favoritos/recomendaciones y fechas de postulaciones |
+| `POST` | `/api/v1/admin/semantic-evaluation-runs` | 9B-A: Admin/SuperAdmin + MFA reciente, rate limit, `Idempotency-Key`, versiones exactas de corpus/configuración; `202` |
+| `GET` | `/api/v1/admin/semantic-evaluation-runs` | 9B-A: historial agregado paginado; Admin/SuperAdmin + MFA reciente |
+| `GET` | `/api/v1/admin/semantic-evaluation-runs/{runId}` | 9B-A: estado y contadores sanitizados de jobs; Admin/SuperAdmin + MFA reciente |
+| `GET` | `/api/v1/admin/semantic-evaluation-runs/{runId}/report` | 9B-A: métricas agregadas por split, sin input canónico ni vectores |
 
 La ruta organizacional implementada en 8A acepta `q`, `countryIds`, `regionIds`, `categoryIds`,
 `tagIds`, `beneficiaryTypeIds`, `projectTypeIds`, `funderIds`, `sponsor`, `minAmount`, `maxAmount`,
@@ -1827,6 +1883,11 @@ materializa las tres rutas `/matching-runs`: todas exigen sesión completa, memb
 aislamiento tenant mediante `404`, `no-store` y rate limit. El alta exige `Idempotency-Key` de
 16–128 caracteres; responde `201` para una ejecución nueva y `200` para su replay seguro. No acepta
 pesos, versiones ni reglas desde el cliente.
+
+9B-A materializa las cuatro rutas administrativas de evaluación semántica. No son tenant/client,
+no permiten cargar labels ni cambiar configuraciones desde HTTP y no tienen UI. Autorización y
+rate limit se evalúan antes de consultar SQL; las respuestas de detalle y reporte incluyen el aviso
+de que la evaluación es interna, shadow, no recomienda fondos y no confirma elegibilidad.
 
 La búsqueda textual 8A combina Full-Text rank con un complemento literal y cae completamente a este
 último si el índice no está listo. `sort` se mapea por allowlist a expresiones SQL; nunca se concatena
@@ -2029,7 +2090,7 @@ es siempre `Draft`/`StagedForReview`: ninguna ruta de adquisición puede publica
 
 FASE 7B materializa únicamente la extracción determinística y acotada de texto PDF más evidencia
 segura. No llama a OpenAI, no interpreta campos ni modifica contenido editorial. Los pasos de IA
-estructurada siguientes permanecen en FASE 9B.
+estructurada siguientes permanecen en FASE 9B-B; no forman parte del worker semántico 9B-A.
 
 1. Se extrae texto de una fuente no confiable en un proceso aislado y con límites.
 2. El prompt establece que el documento es datos, no instrucciones; el modelo no tiene herramientas ni credenciales.
@@ -2041,33 +2102,43 @@ estructurada siguientes permanecen en FASE 9B.
 8. El valor canónico y su provenance se actualizan en la misma transacción.
 9. Si cambió contenido canónico, se incrementa `ContentVersion`, se crea el snapshot y los resultados
    9A dejan de ser vigentes por fingerprint/versionado. Mientras siga en revisión no entra al conjunto
-   `PublicReady`. En 9B, un outbox podrá encolar primero el embedding de esa misma versión y luego un
-   recálculo masivo; publicar por sí solo no vuelve a incrementar la versión.
+   `PublicReady`. 9B-A puede detectar y encolar por polling/backfill el embedding de esa versión para
+   evals; no emite un recálculo masivo ni altera 9A. Publicar por sí solo no vuelve a incrementar la
+   versión.
 10. Costos, tokens, latencia, modelo, prompt y hashes quedan registrados sin guardar secretos.
 
 La calidad de datos se calcula con reglas determinísticas: completitud de campos críticos, evidencia, validez, conflictos, reputación de fuente y antigüedad de verificación. No se pide al LLM que se autocalifique.
 
-Producción fija un snapshot/model ID evaluado cuando el proveedor lo permite; no depende de un alias `latest`. `AiProcessingRuns.Model` conserva el identificador efectivo devuelto y un cambio de snapshot exige nueva versión de configuración/evals antes de promoverse. [Catálogo oficial de modelos OpenAI](https://developers.openai.com/api/docs/models).
+9B-B deberá fijar un snapshot/model ID evaluado cuando el proveedor lo permita; no dependerá de un
+alias `latest`. Un cambio de snapshot exigirá nueva versión de configuración/evals antes de cualquier
+promoción. [Catálogo oficial de modelos OpenAI](https://developers.openai.com/api/docs/models).
 
-Los prompts/embeddings institucionales y de proyecto usan allowlists distintas. El institucional
-admite descripción/misión, capacidades, experiencia agregada, tipo/tamaño e idiomas. El de proyecto
-admite problema/solución, objetivos, categorías, beneficiarios, geografías, duración, presupuesto e
-impacto. Ambos excluyen RUT/Tax ID, emails, nombres de miembros, notas de postulación, tokens y
-billing. Tests de privacidad fallan si un serializer de IA incorpora un campo prohibido; antes de
-producción se valida retención/DPA del proveedor.
+9B-A usa allowlists distintas para proyecto y oportunidad. El proyecto admite resumen/descripción,
+estado, fechas, presupuesto/financiamiento, moneda y taxonomías; excluye título/nombre, slugs, IDs de
+organización/usuario, RUT/Tax ID, emails, URLs, nombres de miembros, notas y billing. La oportunidad
+admite únicamente sus campos editoriales públicos y taxonomías. El input canónico es runtime-only,
+lleva hash y límite de 8192 bytes UTF-8. Antes de conectar un proveedor real en 9B-B se validarán
+DPA, retención y borrado; el fake local no envía datos por red.
 
 ### 9.5 Matching
 
-1. Seleccionar solo oportunidades publicadas y activas; aplicar disponibilidad derivada de deadline como filtro de consulta.
-2. Ejecutar hard gates de elegibilidad institucional.
-3. Evaluar reglas atómicas y almacenar resultados/razones.
-4. Para cada regla desconocida, aplicar la política versionada. Tanto v1 como v2 son conservadores: desconocido no suma puntos y reduce cobertura; no se renormaliza a 100%.
-5. Generar candidato semántico con textos normalizados y modelos idénticos.
-6. Calcular distancia coseno solo tras el prefiltro; calibrar a 0–100 con una función versionada.
-7. Calcular `RuleScore = Σ` de puntos determinísticos; calcular `SemanticPoints = semanticWeight × SemanticScore / 100`; finalmente `Score = RuleScore + SemanticPoints`.
-8. Guardar `RuleScore`, `SemanticScore`, `SemanticPoints`, `EvidenceCoverage`, versiones y fingerprint.
-9. Construir razones/advertencias desde códigos determinísticos.
-10. Opcionalmente pedir a IA que redacte una explicación, usando exclusivamente ese JSON de resultados.
+El flujo visible vigente es exclusivamente 9A:
+
+1. seleccionar oportunidades `PublicReady` abiertas y acotar cada corrida a su TOP 200;
+2. ejecutar hard gates y reglas atómicas versionadas;
+3. aplicar la política conservadora: desconocido no suma y reduce cobertura, sin renormalizar;
+4. persistir score, clasificación, razones, evidencia, versiones y fingerprint determinísticos.
+
+9B-A ejecuta un flujo separado sobre un corpus humano congelado. Genera los embeddings exactos de
+`ProjectVersion` y `FundingContentVersion`, calcula distancia coseno y un score calibrado sólo para
+ordenar el snapshot de evaluación, y compara por cada corrida 9A el ranking semántico con el baseline.
+`Compatible` siempre precede a `InsufficientData`; un `Incompatible` puede medirse para detectar una
+promoción indebida, pero nunca modifica sus hard gates. No se actualizan `RuleScore`,
+`CompatibilityScore`, `Classification`, `IsCurrent` ni el orden visible.
+
+Sólo si un proveedor real supera los gates de 9B-B podría diseñarse otro perfil versionado que
+combine reglas y semántica. La ponderación, fallback y eventual explicación generativa se decidirán
+entonces; 9B-A no implementa `SemanticPoints`, writeback ni texto generado.
 
 Ejemplo de salida:
 
@@ -2090,14 +2161,11 @@ Un match deja de ser vigente si no coinciden `Project.ProjectVersion`,
 se recalcula, la API rotula el resultado previo como desactualizado o lo omite según antigüedad;
 nunca lo presenta silenciosamente como actual.
 
-El orden durable para un cambio de proyecto es `ProjectChanged(ProjectVersion, hash) → embedding →
-ProjectMatchingRequested`. Para un cambio institucional es `OrganizationProfileChanged(ProfileVersion,
-hash) → embedding institucional → recálculo de proyectos activos`. El consumidor comprueba todas
-las versiones/hashes antes de persistir y publicar el siguiente mensaje; no usa un vector anterior
-ni degrada silenciosamente a score semántico cero. Si el perfil activo es puramente determinístico,
-el orquestador puede omitir embeddings de forma explícita y versionada.
-
-Si el proveedor semántico está temporalmente caído y la política permite fallback, v2 registra `SemanticScore=NULL`, `SemanticPoints=0`, reduce `EvidenceCoverage` por ese 5% y muestra una advertencia; nunca reutiliza un vector obsoleto ni presenta el resultado como plenamente calculado. El job queda reintentable para completar el score cuando exista el vector correcto.
+9B-A no encadena `ProjectChanged` con recálculo de matching ni genera embeddings institucionales. El
+timer consulta SQL, reclama un job justo antes de procesarlo, revalida sujeto/versión/hash y sólo
+persiste el vector si todo sigue coincidiendo. Un input stale termina separado; nunca se reutiliza un
+vector obsoleto. Una falla terminal permite cerrar un reporte parcial con menor cobertura/éxito y
+`MeetsPromotionGate=false`, sin degradar silenciosamente el score 9A.
 
 ### 9.6 Suscripción y webhook
 
@@ -2310,6 +2378,7 @@ Una respuesta limitada nunca incluye el contenido premium oculto en JSON.
 | Ingesta | lag, duración, creados, actualizados, sin cambio, duplicados, rechazados y errores por fuente |
 | IA | latencia, tokens, costo estimado, cache hit, output inválido y campos críticos sin evidencia |
 | Matching | duración, antigüedad, distribución de score/cobertura y organizaciones sin resultados |
+| Semántica shadow | jobs por estado/error seguro, cobertura/éxito, Recall/nDCG/MRR/rank, costo incremental, p95 y hard-fail promotions |
 | Search | latencia, cero resultados, filtros/orden y páginas profundas |
 | Billing | webhook pendiente más antiguo, duplicados, fallos y divergencias de reconciliación |
 | Alertas | jobs pendientes, entregas, rebotes y retraso sobre horario |
@@ -2344,7 +2413,7 @@ Alertas operativas: readiness fallida, 5xx sostenido >5%, p95 fuera de SLO, dos 
 | Transporte | Azure Queue Storage | triggers at-least-once económicos; payloads solo con IDs |
 | Secretos | Azure Key Vault | rotación y acceso por Managed Identity |
 | Telemetría | Application Insights + Log Analytics | trazas, métricas, consultas y alertas |
-| IA | OpenAI detrás de `IAiService` | proveedor reemplazable; Azure OpenAI puede incorporarse después |
+| IA 9B-B | OpenAI/equivalente detrás de `IAiService` | proveedor reemplazable y sujeto a evals/gobierno; 9B-A no despliega este componente |
 | Pago | Mercado Pago | suscripciones compatibles con Chile, aislado por gateway |
 
 .NET 10 es LTS, y Azure Functions lo soporta de forma GA en isolated worker; Flex Consumption es apropiado para trabajos intermitentes. Referencias oficiales: [.NET 10](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-10/overview), [versiones de Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions) y [background jobs en Azure](https://learn.microsoft.com/en-us/azure/architecture/best-practices/background-jobs).
@@ -2377,6 +2446,13 @@ No se agregan en MVP APIM, Front Door, Application Gateway, Private Link, Redis,
 - `C` solo tiene `Storage Blob Data Reader` sobre el container confiable. `H_general` recibe
   `Storage Blob Data Contributor` solo en cuarentena/confiable para promoción, revocación y
   retención; ese alcance no se comparte con `H_extractor` ni `C`.
+- Cuando `021` se despliegue, los principals SQL ya distintos del worker general y la API recibirán,
+  respecto de la superficie semántica, sólo `FundingPlatform_SemanticWorkerRole` y
+  `FundingPlatform_SemanticAdminRole`, respectivamente. No se agrega una UAMI dedicada: cada host
+  conserva sus otros permisos mínimos fuera de 9B-A. El primer rol ejecuta 11 SP de procesamiento;
+  el segundo, backfill y cuatro SP administrativos. Ambos tienen DML directo denegado sobre las 11
+  tablas semánticas; no se comparten entre hosts ni reciben `db_owner`. La migración crea roles, no
+  users/membresías.
 - La conexión SqlClient del extractor usa `Authentication=Active Directory Managed Identity` y
   `User Id=<client-id-C>` de esa misma UAMI. Su principal Azure SQL se crea con el `object-id`, se
   agrega a `FundingPlatform_ExtractionWorkerRole` y se verifica con `USER_NAME()` y
@@ -2515,6 +2591,10 @@ Solo `VITE_API_BASE_URL` y otras configuraciones públicas con prefijo `VITE_` e
 - parsers/normalizadores, canonicalización URL y fingerprints;
 - deduplicación exacta/difusa;
 - extracción estructurada frente a JSON válido/inválido/unknown;
+- contrato semántico 9B-A: fake reproducible de 1536 dimensiones, validación de vector, input
+  canónico allowlisted/8192 bytes, privacidad, lease/retry, cobro incierto y presupuesto fail-closed;
+- administración semántica: MFA, autorización antes de rate limit, idempotencia, errores seguros y
+  reportes que no exponen inputs/vectores;
 - idempotencia de alertas, importaciones y webhooks.
 
 xUnit + FluentAssertions + NSubstitute o Moq, eligiendo uno. Reloj, IDs y proveedores se abstraen solo donde la prueba/reproducibilidad lo exige.
@@ -2530,6 +2610,8 @@ xUnit + FluentAssertions + NSubstitute o Moq, eligiendo uno. Reloj, IDs y provee
 - aislamiento tenant A/B para leer, modificar y borrar cada recurso;
 - webhook duplicado/fuera de orden;
 - claim/retry de jobs y cierre de ImportRun;
+- contratos Dapper/SP 9B-A, carreras de claim/lease, replay exacto, reporte parcial, roles SP-only y
+  garantía de cero writeback a tablas 9A;
 - Blob/proveedores con emulador o fake contractual; sandbox real solo en suite separada.
 
 Los tests SQL no deben usar SQLite: sus tipos, Full Text, SP, locking y `VECTOR` no son equivalentes.
@@ -2541,16 +2623,27 @@ Los tests SQL no deben usar SQLite: sus tipos, Full Text, SP, locking y `VECTOR`
 - axe para chequeos de accesibilidad automatizados;
 - E2E de journeys críticos en FASE 12: registro/onboarding/recomendación/favorito/checkout admin import.
 
-### 14.4 Dataset dorado
+### 14.4 Corpus de evaluación
 
-Antes de aceptar IA/matching se prepara un conjunto revisado por una persona experta:
+9B-A exige un conjunto inmutable revisado por una persona experta, construido desde snapshots
+históricos exactos de 9A:
 
-- convocatorias completas, ambiguas, rolling, cerradas e internacionales;
-- fondos con monedas distintas, cofinanciamiento y requisitos de antigüedad;
-- organizaciones elegibles, inelegibles y con perfil incompleto;
-- ground truth de campos extraídos, evidencias y ranking esperado.
+- al menos 30 proyectos, 100 oportunidades distintas y entre 300 y 5000 pares etiquetados;
+- relevancia ordinal `0=Irrelevante`, `1=Relevante`, `2=Muy relevante`;
+- splits `Development`/`Test` congelados por proyecto para impedir fuga entre ambos;
+- manifiesto, provenance, reviewer, hashes de labels y versiones exactas de proyecto/oportunidad;
+- diversidad de convocatorias completas, ambiguas, rolling, cerradas e internacionales, monedas,
+  cofinanciamiento, antigüedad y perfiles incompletos.
 
-El objetivo inicial de FASE 9B es al menos 90% de exactitud acordada en campos críticos del corpus, y 100% de esos campos con evidencia válida o `null`; un único porcentaje global no reemplaza métricas por campo.
+Las métricas de ranking se calculan en `Test` como macro-promedio por corrida/proyecto 9A, no sobre
+un ranking global del corpus. El gate de referencia requiere cobertura ≥95%, éxito del proveedor
+≥99%, Recall@10 ≥0,80, nDCG@10 ≥0,75, mejora nDCG ≥0,05, cero promociones de hard-fail y
+corpus completamente evaluado; también se informan baseline nDCG, MRR@10, cambio medio de rank,
+costo incremental y p95. El fake local nunca es elegible aunque alcance umbrales.
+
+El ground truth de extracción y evidencia estructurada sigue siendo una necesidad distinta de 9B-B.
+Allí se medirá exactitud por campo y evidencia/`null`; no se mezcla ese objetivo generativo con las
+métricas de ranking de 9B-A.
 
 ## 15. Riesgos y mitigaciones
 
@@ -2592,7 +2685,8 @@ No bloquean FASE 1, pero sí sus respectivas implementaciones:
 3. proveedor de email y dominio/remitente verificado, con idempotency key o reconciliación por referencia demostrada para no reenviar tras respuesta incierta;
 4. primera fuente API/RSS y derechos de reutilización;
 5. taxonomía inicial revisada por experto y seed Chile;
-6. modelo OpenAI de extracción y embedding, presupuesto mensual y política de retención;
+6. proveedor/modelo real de extracción y embeddings, presupuesto mensual, DPA y política de
+   retención/borrado para 9B-B;
 7. criterio editorial mínimo para publicar y responsable de aprobación;
 8. política de privacidad, términos, retención y eliminación;
 9. dominio final y topología `app`/`api` para cookies/CORS;
@@ -2851,14 +2945,42 @@ del fondo, motor, perfil/ruleset, calendario y catálogo. Los estados visibles s
 `Incompatible` y `Datos insuficientes`. Es un resultado orientativo: 9A no usa IA/embeddings, no
 constituye una recomendación y no confirma elegibilidad.
 
-### FASE 9B — IA y semántica evaluadas
+### FASE 9B-A — Embeddings y evaluación semántica en sombra
 
-- `OpenAiService`, Structured Outputs, evidence, embeddings y costos/cache;
-- corpus dorado, backfill idempotente de versiones vigentes y evaluación antes de habilitar señales;
-- explicación acotada a partir del desglose calculado, sin delegar el porcentaje a IA.
+- configuración inmutable, embeddings `VECTOR(1536)` project-first, jobs/leases/retries y presupuesto;
+- corpus humano versionado, backfill idempotente y ranking coseno exacto por corrida histórica 9A;
+- API agregada Admin/SuperAdmin con MFA para crear/listar/detallar/reportar evaluaciones;
+- fake léxico determinístico sólo en `Development`/`Testing`; hosted deshabilitado/fail-closed;
+- ninguna mutación de score, clasificación, vigencia, orden o UI de 9A.
 
-**Salida:** 100% de campos críticos con evidencia o null y una decisión medida sobre el perfil
-híbrido; el motor determinístico 9A sigue siendo el fallback reproducible.
+**Estado:** fase completada en código local. `021_shadow_semantic_evaluation.sql` y su smoke no se han
+aplicado ni validado contra SQL Server/Azure SQL; `019` y `020` también siguen pendientes. No hubo
+llamadas OpenAI, entrenamiento, Azure ML, recursos Azure ni costo de proveedor.
+
+Artefactos locales congelados: migración `021`, 3995 líneas/48 lotes y SHA-256
+`f6a7cc2a7faba60edce4611c58f56850cf6fd1000b50d7a2f55a53ab188737c3`; smoke, 1710 líneas/un lote y
+SHA-256 `64ad6a521c0eaa6bbb3674b8b0966e572731110eafef57c84b87726baa94cfbc`. ScriptDom parseó ambos
+localmente; no se ejecutaron contra un motor SQL.
+
+El gate local pasó build .NET con 0 warnings/0 errores, 324/324 pruebas unitarias, 136/136 de
+integración, lint frontend, 21 archivos/104 pruebas Vitest y build de producción. Son verificaciones
+de código/contrato, no una validación DB ni una llamada a un proveedor.
+
+**Salida:** reporte medido de cobertura, éxito, Recall@10, nDCG@10/baseline/delta, MRR@10, rank,
+costo incremental, p95 y seguridad de hard gates. El fake nunca es promovible y un reporte parcial
+queda explícitamente inelegible.
+
+### FASE 9B-B — Proveedor real, gobierno e IA generativa
+
+- seleccionar un proveedor/modelo preentrenado con evals reales y presupuesto aprobado;
+- aprobar DPA, retención, borrado y ciclo de vida de datos/vectores antes de enviar contenido;
+- implementar `OpenAiService`/equivalente, Structured Outputs, evidence y explicaciones acotadas;
+- decidir mediante un cambio versionado si se promueve alguna señal semántica, manteniendo 9A como
+  baseline reproducible y sin delegar reglas exactas a IA.
+
+**Salida:** decisión go/no-go basada en corpus real; 100% de campos críticos extraídos con evidencia
+válida o `null` si se aprueba el flujo generativo. Entrenar un modelo propio o usar Azure ML no es un
+requisito del MVP.
 
 ### FASE 10 — Alertas, pipeline, calendario y networking básico
 
@@ -2916,9 +3038,12 @@ las tablas y capacidades diferidas se incorporarán en las migraciones de sus fa
 2. Crea o selecciona su organización; el servidor valida la membresía en cada operación y nunca confía en el `organizationId` del navegador por sí solo.
 3. Completa el perfil institucional con geografía, áreas, beneficiarios, tipo, antigüedad, presupuesto, experiencia, idiomas y monto buscado.
 4. Administradores y proveedores aprobados incorporan convocatorias; documentos grandes quedan en Blob y cada ejecución se registra.
-5. El pipeline normaliza, deduplica, extrae datos con IA estructurada y conserva evidencia; lo desconocido permanece `null`.
+5. El pipeline actual normaliza, deduplica y conserva evidencia; la extracción con IA estructurada
+   sigue pendiente de 9B-B y lo desconocido permanece `null`.
 6. Una persona administradora revisa los campos críticos y publica una oportunidad canónica con fuente y fecha de verificación.
-7. El motor descarta incompatibilidades explícitas, calcula reglas ponderadas y añade hasta 5% de similitud semántica mediante embeddings versionados.
-8. La organización ve recomendaciones, score, cobertura, razones y advertencias; puede buscar, guardar, marcar favorito y seguir su postulación.
+7. El motor 9A descarta incompatibilidades explícitas y calcula reglas ponderadas; 9B-A compara por
+   separado un ranking de embeddings en sombra, sin sumarlo al score ni cambiar el orden visible.
+8. La organización ve compatibilidad orientativa, score, cobertura, razones y advertencias; puede
+   buscar, guardar, marcar favorito y seguir su postulación. No recibe una recomendación semántica.
 9. El plan de la organización determina límites y funciones; solo un webhook verificado y reconciliado puede activar una suscripción pagada.
 10. Workers reimportan fuentes, recalculan matches y envían alertas idempotentes, mientras auditoría y telemetría permiten operar y explicar todo el recorrido.

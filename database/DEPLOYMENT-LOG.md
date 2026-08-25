@@ -37,8 +37,10 @@ recursos Defender/Event Grid continúa como operación de infraestructura. FASE 
 organizacional, filtros, detalle completo, favoritos privados y Full-Text con fallback literal;
 FASE 8B preparó localmente marketplace de proyectos, postulaciones y calendario derivado, pero su
 migración `019` no se desplegó ni se validó contra ninguna base. FASE 9A completó localmente el motor
-determinístico y preparó la migración `020`, también sin conexión ni despliegue. IA, embeddings,
-billing y alertas conservan fases posteriores del roadmap.
+determinístico y preparó la migración `020`, también sin conexión ni despliegue. FASE 9B-A prepara
+localmente la migración `021` para embeddings project-first y evaluación corpus-level sólo en sombra;
+tampoco se conectó ni se desplegó. El proveedor real, IA generativa, billing y alertas conservan fases
+posteriores del roadmap.
 
 No se registra la cadena de conexión, la identidad de despliegue ni ningún secreto.
 
@@ -331,3 +333,45 @@ commit de Azure SQL.
   no constituyen una recomendación ni confirman elegibilidad.
 - No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
   cadenas de conexión, PII ni datos reales de matching.
+
+## Preparación local 021 — FASE 9B-A, sin despliegue (2026-08-25)
+
+- Se preparó `021_shadow_semantic_evaluation.sql` con SHA-256
+  `f6a7cc2a7faba60edce4611c58f56850cf6fd1000b50d7a2f55a53ab188737c3` (3995 líneas/48 lotes).
+- Se preparó `021_shadow_semantic_evaluation_smoke.sql` con SHA-256
+  `64ad6a521c0eaa6bbb3674b8b0966e572731110eafef57c84b87726baa94cfbc` (1710 líneas/un lote).
+- Los artefactos cubren configuración semántica inmutable, corpus humano versionado, jobs/leases,
+  reservas de presupuesto y ledger, `VECTOR(1536)`, corridas shadow, métricas agregadas e
+  idempotencia. El sujeto privado es la versión exacta del proyecto; el sujeto global es la versión
+  exacta del contenido público de la oportunidad. No se crea un embedding institucional.
+- `021` no siembra una configuración activa ni un corpus real etiquetado. Los fixtures del smoke se
+  revierten y no se registran como datos evaluados; una carga futura requiere revisión y cambio
+  controlado.
+- La evaluación no actualiza runs, matches, score, clasificación, vigencia u orden de 9A y no agrega
+  rutas al frontend. Su administración es exclusivamente Admin/SuperAdmin con MFA reciente.
+- Los vectores y resultados shadow quedan inmutables para reproducibilidad. 9B-A no agrega una
+  purga; retención/borrado y ciclo de vida con proveedor real son gates de 9B-B.
+- `021` crea los roles `FundingPlatform_SemanticWorkerRole` (11 SP de procesamiento) y
+  `FundingPlatform_SemanticAdminRole` (backfill + cuatro SP administrativos), con DML directo
+  denegado sobre las 11 tablas semánticas. No crea usuarios ni membresías. Un despliegue futuro debe
+  asignarlos respectivamente a los principals distintos del worker general/API; esto no crea una
+  UAMI semántica adicional ni reemplaza sus otros permisos mínimos. Ninguno será `db_owner`, tendrá
+  DML semántico directo o recibirá ambos roles semánticos.
+- El único adapter incluido es el fake léxico determinístico de desarrollo/testing, con costo cero y
+  sin red. No se llamó a OpenAI, no se entrenó un modelo, no se usó Azure ML y no se habilitó un
+  proveedor hosted.
+- Por instrucción del propietario no se abrió una conexión a Azure SQL ni a otro entorno DB y no se
+  ejecutaron `--validate`, `--apply`, `--test` o `--status` para `019`, `020` o `021`.
+- Por lo anterior, el último estado observado de `res` continúa siendo el cierre 8A de 18/18
+  migraciones. Este registro no declara 19/19, 20/20 o 21/21, lotes aplicados, object count,
+  idempotencia de despliegue ni smokes SQL exitosos. La activación futura debe aplicar `019`, `020` y
+  `021` en ese orden, con preflight, backup/PITR y registro de resultados observados.
+- El parsing local ScriptDom terminó correctamente para los 48 lotes de la migración y el lote del
+  smoke. El gate local pasó build .NET con 0 warnings/0 errores, 324/324 pruebas unitarias, 136/136
+  de integración, lint frontend, 21 archivos/104 pruebas Vitest y build de producción. Ninguna de
+  estas validaciones abrió una conexión SQL; el parsing estático no sustituye una ejecución
+  transaccional contra SQL Server/Azure SQL.
+- 9B-B conserva como pendientes el proveedor real y sus evals, DPA/retención/ciclo de vida de datos,
+  Structured Outputs, explicaciones generativas y cualquier promoción de la señal semántica.
+- No se crearon recursos Azure, no se activaron servicios pagados y no se registraron credenciales,
+  cadenas de conexión, PII, prompts, respuestas crudas ni entradas canónicas.
