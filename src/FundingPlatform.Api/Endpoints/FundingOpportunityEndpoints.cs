@@ -11,19 +11,23 @@ public static class FundingOpportunityEndpoints
     {
         var group = endpoints
             .MapGroup("/api/v1/funding-opportunities")
-            .WithTags("Funding opportunities");
+            .WithTags("Funding opportunities")
+            .AllowAnonymous()
+            .RequireRateLimiting("marketplace-read");
 
         group.MapGet("/", SearchAsync)
             .WithName("SearchFundingOpportunities")
             .WithSummary("Searches active, published funding opportunities.")
             .Produces<FundingOpportunityListResponse>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         group.MapGet("/{slug}", GetBySlugAsync)
             .WithName("GetFundingOpportunityBySlug")
             .WithSummary("Gets a published funding opportunity and its source traceability.")
             .Produces<FundingOpportunityDetailResponse>()
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         return endpoints;
     }

@@ -4,11 +4,27 @@ using Microsoft.Data.SqlClient;
 
 namespace FundingPlatform.Infrastructure.Persistence.Migrations;
 
-public sealed class DatabaseMigrationRunner(ISqlConnectionFactory connectionFactory)
+public sealed class DatabaseMigrationRunner(
+    ISqlConnectionFactory connectionFactory,
+    string? expectedDatabaseName = null,
+    string? expectedServerFqdn = null)
 {
     private const string LockResource = "FundingPlatform:DatabaseMigrations";
     private const string FullTextLockResource = "FundingPlatform:FullTextProvisioning";
     private const int CommandTimeoutSeconds = 60;
+    private readonly SqlDeploymentTargetVerifier targetVerifier = new(
+        connectionFactory,
+        expectedDatabaseName,
+        expectedServerFqdn,
+        requireExpectedServer:
+            !string.Equals(
+                MigrationSafety.ResolveExpectedDatabaseName(expectedDatabaseName),
+                MigrationSafety.ExpectedDatabaseName,
+                StringComparison.OrdinalIgnoreCase));
+
+    public string ExpectedDatabaseName => targetVerifier.ExpectedDatabaseName;
+
+    public string? ExpectedServerFqdn => targetVerifier.ExpectedServerFqdn;
 
     public async Task<MigrationStatus> GetStatusAsync(
         IReadOnlyList<SqlScript> localMigrations,
@@ -483,21 +499,13 @@ public sealed class DatabaseMigrationRunner(ISqlConnectionFactory connectionFact
         }
     }
 
-    private static async Task EnsureTargetDatabaseAsync(
+    private async Task EnsureTargetDatabaseAsync(
         SqlConnection connection,
         SqlTransaction? transaction,
         CancellationToken cancellationToken)
     {
-        var databaseName = await connection.QuerySingleAsync<string>(new CommandDefinition(
-            "SELECT DB_NAME();",
-            transaction: transaction,
-            commandTimeout: CommandTimeoutSeconds,
-            cancellationToken: cancellationToken));
-
-        if (!MigrationSafety.IsExpectedDatabase(databaseName))
-        {
-            throw new MigrationException("unexpected_target_database");
-        }
+        _ = await targetVerifier.VerifyConnectionAsync(
+            connection, transaction, cancellationToken);
     }
 
     private static async Task AcquireLockAsync(

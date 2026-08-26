@@ -266,9 +266,38 @@ public sealed class MigrationInfrastructureTests
     [InlineData(" res ", true)]
     [InlineData("master", false)]
     [InlineData(null, false)]
-    public void Database_guard_accepts_only_res(string? databaseName, bool expected)
+    public void Database_guard_accepts_only_res_by_default(string? databaseName, bool expected)
     {
         Assert.Equal(expected, MigrationSafety.IsExpectedDatabase(databaseName));
+    }
+
+    [Theory]
+    [InlineData("risefunding-dev", "risefunding-dev", true)]
+    [InlineData("RISEFUNDING-DEV", "risefunding-dev", true)]
+    [InlineData("res", "risefunding-dev", false)]
+    [InlineData("master", "risefunding-dev", false)]
+    public void Database_guard_accepts_only_the_explicit_safe_target(
+        string databaseName,
+        string configuredDatabaseName,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            MigrationSafety.IsExpectedDatabase(databaseName, configuredDatabaseName));
+    }
+
+    [Theory]
+    [InlineData("master")]
+    [InlineData("MASTER")]
+    [InlineData("tempdb")]
+    [InlineData("unsafe database")]
+    [InlineData("bad;DROP")]
+    public void Database_guard_rejects_unsafe_expected_database_names(string configuredDatabaseName)
+    {
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => MigrationSafety.ResolveExpectedDatabaseName(configuredDatabaseName));
+
+        Assert.Equal("invalid_expected_database_name", exception.Message);
     }
 
     [Fact]

@@ -8,6 +8,8 @@ using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Core.FundingOpportunities;
 using FundingPlatform.Core.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -510,6 +512,26 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
                 Assert.True(properties.TryGetProperty(field, out _),
                     $"OpenAPI schema '{schemaName}' is missing canonical field '{field}'.");
             }
+        }
+    }
+
+    [Fact]
+    public void Public_funding_catalogs_use_the_bounded_marketplace_read_policy()
+    {
+        var endpoints = application.Services.GetRequiredService<EndpointDataSource>()
+            .Endpoints.OfType<RouteEndpoint>().ToArray();
+        foreach (var pattern in new[]
+                 {
+                     "/api/v1/funders/",
+                     "/api/v1/funders/{slug}",
+                     "/api/v1/funding-opportunities/",
+                     "/api/v1/funding-opportunities/{slug}"
+                 })
+        {
+            var endpoint = Assert.Single(endpoints, item => item.RoutePattern.RawText == pattern);
+            Assert.Equal(
+                "marketplace-read",
+                endpoint.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName);
         }
     }
 

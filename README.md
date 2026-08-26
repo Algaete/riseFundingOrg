@@ -11,7 +11,7 @@ organización, checkout/webhooks/reconciliación de Mercado Pago exclusivamente 
 suscripción y consola administrativa de billing. `Billing:Enabled=false` y los planes pagados salen
 no comprables: no se definieron precios comerciales, no hubo cobros ni se crearon recursos Azure.
 
-Las migraciones `019` a `026`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `027`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -34,7 +34,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox y administración de suscripciones |
-| 12A | IaC local completada; Azure no creado | Dev separado, API Container Apps 1→0, ACR privado, presupuesto, identidades, Storage, SQL serverless y OIDC/what-if |
+| 12A | Preparación local completada; Azure no creado | Dev separado, API Container Apps 1→0, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -43,7 +43,8 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B y `026` de 11 no forman parte de ese resultado: permanecen
+de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
+`027` de preparación runtime para 12A no forman parte de ese resultado: permanecen
 como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
 orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
@@ -399,15 +400,19 @@ esa cuenta de datos.
 
 La UAMI `C` debe coincidir en `DocumentExtractionQueueStorage__clientId`, el credential de lectura
 del container confiable y `User Id=<client-id-C>` de la conexión SqlClient con
-`Authentication=Active Directory Managed Identity`. El `object-id` usado para crear su principal SQL
-no es el `client-id`:
+`Authentication=Active Directory Managed Identity`. Su mismo `client-id` se codifica como SID
+binario de 16 bytes para crear el principal SQL sin resolución de Microsoft Graph; el
+`principalId` se reserva para RBAC de Azure:
 
 ~~~sql
-CREATE USER [<nombre-identidad>] FROM EXTERNAL PROVIDER
-    WITH OBJECT_ID = '<object-id-identidad>';
+CREATE USER [<nombre-identidad>]
+    WITH SID = <0x-sid-binario-del-client-id>, TYPE = E;
 ALTER ROLE [FundingPlatform_ExtractionWorkerRole]
     ADD MEMBER [<nombre-identidad>];
 ~~~
+
+El despliegue no arma ese SID manualmente: usa el comando idempotente y verificado descrito en
+[`infra/DEV-DEPLOYMENT-CHECKLIST.md`](infra/DEV-DEPLOYMENT-CHECKLIST.md).
 
 `FundingPlatform_ExtractionWorkerRole` solo puede ejecutar seis SP de extracción: claim, renovación
 de lease, registro de evidencia, complete, fail y requeue del watchdog. Conectado como esa identidad,
@@ -1175,8 +1180,9 @@ El orden de ejecución es:
   aplicación `025` pendiente de un despliegue autorizado;
 - FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
-- FASE 12A — IaC de dev, API Container Apps/ACR, presupuesto, Managed Identities e infraestructura
-  manual OIDC/what-if completados localmente; no se creó ningún recurso;
+- FASE 12A — IaC de dev, API Container Apps/ACR, presupuesto, Managed Identities, roles SQL runtime
+  de mínimo privilegio e infraestructura manual OIDC/what-if completados localmente; no se creó
+  ningún recurso ni usuario Entra/SQL;
 - FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente

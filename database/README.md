@@ -184,14 +184,18 @@ administrativa. Un conflicto abierto bloquea catálogo/publicación.
   propios `FundingPlatform_*`.
 
 La migración crea el rol, pero no inventa ni vincula un principal Azure. En el despliegue, el
-operador crea el usuario de la UAMI `C` exacta del consumidor extractor y la agrega al rol:
+operador crea el usuario de la UAMI `C` exacta del consumidor extractor usando su `clientId` como
+SID binario y la agrega al rol sin resolución de Microsoft Graph:
 
 ~~~sql
-CREATE USER [<nombre-identidad>] FROM EXTERNAL PROVIDER
-    WITH OBJECT_ID = '<object-id-identidad>';
+CREATE USER [<nombre-identidad>]
+    WITH SID = <0x-sid-binario-del-client-id>, TYPE = E;
 ALTER ROLE [FundingPlatform_ExtractionWorkerRole]
     ADD MEMBER [<nombre-identidad>];
 ~~~
+
+El flujo actual no calcula ese literal manualmente: `DatabaseMigrator
+--provision-runtime-identities` recibe nombre y `clientId`, comprueba el SID y la membresía exacta.
 
 La conexión SqlClient del extractor usa `Authentication=Active Directory Managed Identity` y
 `User Id=<client-id-de-C>`. Conectado como esa identidad, `USER_NAME()` debe devolver el
@@ -386,23 +390,15 @@ superficie, asignar sólo el rol semántico correspondiente a cada uno. Esto no 
 mínimos que esos hosts requieran fuera de 9B-A. Se verifican permisos efectivos; ninguna aplicación
 recibe `db_owner`, DML directo o ambos roles semánticos.
 
-Runbook futuro, sustituyendo nombres y `object-id` por las dos identidades exactas creadas mediante
-IaC (si el user ya existe, no se vuelve a crear):
+Este runbook de 9B-A queda supersedido por la migración `027`: no se asignan ya los roles
+especialistas directamente. `DatabaseMigrator --provision-runtime-identities` vincula por
+`clientId`/SID binario a `H_general` y API únicamente con
+`FundingPlatform_GeneralWorkerRole` y `FundingPlatform_ApiRuntimeRole`; esos roles agregados contienen
+la superficie especialista exacta y el comando valida idempotencia, SID y ausencia de membresías
+adicionales.
 
-```sql
-CREATE USER [<general-worker-principal>] FROM EXTERNAL PROVIDER
-    WITH OBJECT_ID = '<general-worker-object-id>';
-ALTER ROLE [FundingPlatform_SemanticWorkerRole]
-    ADD MEMBER [<general-worker-principal>];
-
-CREATE USER [<api-principal>] FROM EXTERNAL PROVIDER
-    WITH OBJECT_ID = '<api-object-id>';
-ALTER ROLE [FundingPlatform_SemanticAdminRole]
-    ADD MEMBER [<api-principal>];
-```
-
-El preflight se ejecuta conectado por separado como cada principal: `USER_NAME()` debe devolver el
-user esperado; el worker debe poder ejecutar `FundingPlatform_usp_SemanticEmbeddingJob_Claim` y no
+El preflight de permisos se ejecuta conectado por separado como cada principal: `USER_NAME()` debe
+devolver el user esperado; el worker debe poder ejecutar `FundingPlatform_usp_SemanticEmbeddingJob_Claim` y no
 `FundingPlatform_usp_SemanticEvaluationRun_Create`; la API debe mostrar el inverso; ambos deben
 obtener `0` al consultar `HAS_PERMS_BY_NAME` para `SELECT` sobre
 `FundingPlatform_SemanticEmbeddings`.
@@ -539,6 +535,24 @@ El gate local pasó build .NET 0 warnings/errores, Unit 373/373, Integration 156
 25 archivos/111 pruebas frontend y build. `026` no fue validada ni aplicada en SQL/Azure; `res`
 continúa observado en 18/18 y un despliegue futuro debe aplicar `019`→`026` en orden y ejecutar los
 26 smokes con rollback.
+
+## Preparación runtime 027 — FASE 12A
+
+`027_runtime_database_roles.sql` (371 líneas/un lote), SHA-256
+`ad9212a025cf438fcb65d6dc4463e58dd246cf42868b22862b953af5a57aef2a`, agrega únicamente los roles
+host-específicos `FundingPlatform_ApiRuntimeRole` y `FundingPlatform_GeneralWorkerRole`. La API
+recibe una allowlist exacta de 116 procedimientos, 18 permisos DML sobre siete tablas de
+Identity/MFA y `EXECUTE`/`REFERENCES` sobre cinco TVP; el worker general recibe 49 procedimientos y
+cero DML directo. El rol de extracción creado por 016 conserva sus seis procedimientos. No se
+crean usuarios Entra ni membresías desde la migración.
+
+`027_runtime_database_roles_smoke.sql` (460 líneas/un lote), SHA-256
+`256e44d812020e7163ef0cad3c15cc5ca76e37813f4bad57d1d2960dea86b296`, crea usuarios temporales
+`WITHOUT LOGIN` dentro de una transacción, verifica permisos efectivos y aislamiento entre hosts y
+revierte todo. ScriptDom parseó ambos lotes y los tres tests focales pasaron. No se abrió conexión
+SQL/Azure ni se ejecutó `validate/apply/test/status`; `res` sigue observado en 18/18. Una base dev
+nueva debe aplicar `001`→`027`, ejecutar los 27 smokes con rollback y aprovisionar fuera del historial
+sólo los tres principals runtime autorizados por nombre y `clientId` convertido a SID.
 
 ## Carpetas
 

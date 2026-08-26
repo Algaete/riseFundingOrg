@@ -66,9 +66,16 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> RegisterAsync(
         RegisterRequest request,
         HttpContext httpContext,
-        IAuthenticationService service,
+        IServiceProvider services,
+        IOptions<EmailOptions> emailOptions,
         CancellationToken cancellationToken)
     {
+        if (!emailOptions.Value.Enabled)
+        {
+            return EmailUnavailable();
+        }
+
+        var service = services.GetRequiredService<IAuthenticationService>();
         var result = await service.RegisterAsync(
             new RegistrationInput(
                 request.Email,
@@ -109,9 +116,16 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> ResendVerificationAsync(
         EmailRequest request,
         HttpContext httpContext,
-        IAuthenticationService service,
+        IServiceProvider services,
+        IOptions<EmailOptions> emailOptions,
         CancellationToken cancellationToken)
     {
+        if (!emailOptions.Value.Enabled)
+        {
+            return EmailUnavailable();
+        }
+
+        var service = services.GetRequiredService<IAuthenticationService>();
         await service.ResendVerificationAsync(
             request.Email,
             CreateClientContext(httpContext),
@@ -292,9 +306,16 @@ public static class AuthenticationEndpoints
     private static async Task<IResult> ForgotPasswordAsync(
         EmailRequest request,
         HttpContext httpContext,
-        IAuthenticationService service,
+        IServiceProvider services,
+        IOptions<EmailOptions> emailOptions,
         CancellationToken cancellationToken)
     {
+        if (!emailOptions.Value.Enabled)
+        {
+            return EmailUnavailable();
+        }
+
+        var service = services.GetRequiredService<IAuthenticationService>();
         await service.ForgotPasswordAsync(
             request.Email,
             CreateClientContext(httpContext),
@@ -499,5 +520,14 @@ public static class AuthenticationEndpoints
             title: "Origen no permitido",
             detail: "La operación fue rechazada por la política de seguridad del navegador.",
             type: "https://fundingplatform.local/problems/invalid-origin");
+    }
+
+    private static IResult EmailUnavailable()
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Correo temporalmente no disponible",
+            detail: "El registro y la recuperación por correo aún no están habilitados en este ambiente.",
+            type: "https://fundingplatform.local/problems/identity-email-disabled");
     }
 }

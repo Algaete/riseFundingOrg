@@ -2515,7 +2515,8 @@ No se agregan en MVP APIM, Front Door, Application Gateway, Private Link, Redis,
   tablas semánticas; no se comparten entre hosts ni reciben `db_owner`. La migración crea roles, no
   users/membresías.
 - La conexión SqlClient del extractor usa `Authentication=Active Directory Managed Identity` y
-  `User Id=<client-id-C>` de esa misma UAMI. Su principal Azure SQL se crea con el `object-id`, se
+  `User Id=<client-id-C>` de esa misma UAMI. Su principal Azure SQL se crea desde ese `clientId`
+  codificado como SID binario de 16 bytes; el `principalId` queda sólo para RBAC. El usuario se
   agrega a `FundingPlatform_ExtractionWorkerRole` y se verifica con `USER_NAME()` y
   `HAS_PERMS_BY_NAME`: claim permitido; administración y lectura directa de tablas denegadas.
 
@@ -2525,11 +2526,12 @@ equivocada. Cuatro UAMI no significan cuatro cuentas Storage: cola y Blob pueden
 RBAC a la cola/container exactos. Solo el host storage del extractor debe permanecer fuera de esa
 cuenta de datos.
 
-Runbook SQL de despliegue, sustituyendo placeholders por la UAMI creada mediante IaC:
+Forma conceptual; el runbook activo usa el provisioner .NET idempotente para no convertir el SID a
+mano:
 
 ```sql
-CREATE USER [<nombre-identidad>] FROM EXTERNAL PROVIDER
-    WITH OBJECT_ID = '<object-id-identidad>';
+CREATE USER [<nombre-identidad>]
+    WITH SID = <0x-sid-binario-del-client-id>, TYPE = E;
 ALTER ROLE [FundingPlatform_ExtractionWorkerRole]
     ADD MEMBER [<nombre-identidad>];
 
@@ -2543,8 +2545,9 @@ SELECT HAS_PERMS_BY_NAME(
     'dbo.FundingPlatform_SourceDocuments', 'OBJECT', 'SELECT') AS DeniedTableRead;
 ```
 
-`OBJECT_ID` usa el object/principal ID; `User Id` y los settings `*ClientId` usan client IDs. No
-se intercambian ni se infiere una identidad por existir como recurso en el Function App.
+Los `--assignee-object-id` de RBAC usan el `principalId`; el SID del usuario SQL, `User Id` y los
+settings `*ClientId` usan el `clientId`. No se intercambian ni se infiere una identidad por existir
+como recurso en el Function App.
 
 ### 13.4 Variables previstas
 
@@ -3145,7 +3148,9 @@ es no-root, excluye secretos del contexto, se construye remotamente y se desplie
 Los workflows separan compilación sin credenciales de `validate`/`what-if`/`apply` manual mediante
 OIDC; `apply` exige confirmación literal. La región se rechaza si no ofrece Container Apps, ACR y
 Functions Flex. Quedan para 12B publicación de Functions/frontend, DNS/dominio común, secretos,
-usuarios SQL, aplicación `019`→`026`, E2E, restore y decisión de piloto.
+usuarios SQL mediante aprovisionamiento idempotente, aplicación `001`→`027` en la base dev vacía,
+E2E, restore y decisión de piloto. `027` deja versionados los roles mínimos de API, worker general y
+extracción, pero no crea principals ni membresías y no fue aplicado a ninguna base.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;

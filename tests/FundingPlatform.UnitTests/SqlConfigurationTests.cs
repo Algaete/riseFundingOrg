@@ -15,6 +15,8 @@ public sealed class SqlConfigurationTests
         configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["AZURE_SQL_CONNECTION_STRING"] = "Server=sql.example;Database=funding;Integrated Security=true;",
+            ["MIGRATION_EXPECTED_DATABASE_NAME"] = "risefunding-dev",
+            ["MIGRATION_EXPECTED_SERVER_FQDN"] = "sql-rf-dev-demo.database.windows.net",
             ["BACKEND_API_BASE_URL"] = "http://localhost:5070",
             ["INTERNAL_API_KEY"] = "test-key",
             ["API_FOOTBALL_KEY"] = "football-key",
@@ -43,6 +45,10 @@ public sealed class SqlConfigurationTests
         Assert.Equal(
             "Server=sql.example;Database=funding;Integrated Security=true;",
             configuration["ConnectionStrings:DefaultConnection"]);
+        Assert.Equal("risefunding-dev", configuration["Migrations:ExpectedDatabaseName"]);
+        Assert.Equal(
+            "sql-rf-dev-demo.database.windows.net",
+            configuration["Migrations:ExpectedServerFqdn"]);
         Assert.Equal("http://localhost:5070", configuration["BackendApi:BaseUrl"]);
         Assert.Equal("test-key", configuration["ApiSecurity:InternalApiKey"]);
         Assert.Equal("test-key", configuration["BackendApi:InternalApiKey"]);

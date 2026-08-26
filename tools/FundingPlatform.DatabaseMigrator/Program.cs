@@ -5,7 +5,8 @@ using Microsoft.Data.SqlClient;
 
 LocalEnvironmentLoader.TryLoad();
 
-if (args.Length != 1 || !IsSupportedCommand(args[0]))
+if (args.Length == 0 || !IsSupportedCommand(args[0]) ||
+    (!IsRuntimeIdentityCommand(args[0]) && args.Length != 1))
 {
     PrintUsage();
     return 64;
@@ -15,10 +16,17 @@ try
 {
     var configuration = FundingPlatformConfiguration.CreateFromEnvironment();
     var connectionFactory = new SqlConnectionFactory(configuration);
+    var expectedDatabaseName =
+        configuration[MigrationSafety.ExpectedDatabaseConfigurationKey];
+    var expectedServerFqdn =
+        configuration[MigrationSafety.ExpectedServerConfigurationKey];
 
     if (args[0] == "--check-connection")
     {
-        return await CheckConnectionAsync(connectionFactory);
+        return await CheckConnectionAsync(
+            connectionFactory,
+            expectedDatabaseName,
+            expectedServerFqdn);
     }
 
     var solutionRoot = SolutionRootLocator.Find();
@@ -29,7 +37,10 @@ try
         provisioning = SqlScriptCatalog.DiscoverProvisioning(solutionRoot);
         EnsureExpectedFullTextProvisioning(provisioning);
     }
-    var runner = new DatabaseMigrationRunner(connectionFactory);
+    var runner = new DatabaseMigrationRunner(
+        connectionFactory,
+        expectedDatabaseName,
+        expectedServerFqdn);
 
     switch (args[0])
     {
@@ -81,6 +92,27 @@ try
                 else Console.Error.WriteLine(message);
                 return accepted ? 0 : 3;
             }
+
+        case "--provision-runtime-identities":
+        case "--verify-runtime-identities":
+            {
+                var plan = ParseRuntimeIdentityPlan(args.Skip(1).ToArray());
+                var provisioner = new RuntimeDatabaseIdentityProvisioner(
+                    connectionFactory,
+                    expectedDatabaseName,
+                    expectedServerFqdn);
+                var result = args[0] == "--provision-runtime-identities"
+                    ? await provisioner.ProvisionAndVerifyAsync(migrations, plan)
+                    : await provisioner.VerifyAsync(migrations, plan);
+                Console.WriteLine(
+                    $"Identidades runtime verificadas en " +
+                    $"{provisioner.ExpectedServerFqdn}/{provisioner.ExpectedDatabaseName}: " +
+                    $"usuarios={result.VerifiedUsers}, " +
+                    $"ausencias={result.VerifiedAbsentIdentities}, " +
+                    $"creados={result.CreatedUsers}, " +
+                    $"membresías agregadas={result.AddedMemberships}.");
+                return 0;
+            }
     }
 }
 catch (MigrationException exception)
@@ -115,6 +147,12 @@ catch (InvalidOperationException)
         "'ConnectionStrings:DefaultConnection' o su variable de entorno compatible.");
     return 2;
 }
+catch (ArgumentException)
+{
+    Console.Error.WriteLine("Los argumentos de la operación no son válidos.");
+    PrintUsage();
+    return 64;
+}
 catch (OperationCanceledException)
 {
     Console.Error.WriteLine("La operación fue cancelada.");
@@ -130,11 +168,26 @@ return 1;
 
 static bool IsSupportedCommand(string command) =>
     command is "--check-connection" or "--status" or "--validate" or "--apply" or "--test"
-        or "--provision-full-text";
+        or "--provision-full-text" or "--provision-runtime-identities"
+        or "--verify-runtime-identities";
 
-static void PrintUsage() => Console.Error.WriteLine(
-    "Uso: FundingPlatform.DatabaseMigrator " +
-    "[--check-connection|--status|--validate|--apply|--test|--provision-full-text]");
+static bool IsRuntimeIdentityCommand(string command) =>
+    command is "--provision-runtime-identities" or "--verify-runtime-identities";
+
+static void PrintUsage()
+{
+    Console.Error.WriteLine(
+        "Uso: FundingPlatform.DatabaseMigrator " +
+        "[--check-connection|--status|--validate|--apply|--test|--provision-full-text]");
+    Console.Error.WriteLine(
+        "  FundingPlatform.DatabaseMigrator " +
+        "[--provision-runtime-identities|--verify-runtime-identities] " +
+        "--api-user <name> --api-client-id <guid> " +
+        "--general-worker-user <name> --general-worker-client-id <guid> " +
+        "--extraction-consumer-user <name> --extraction-consumer-client-id <guid> " +
+        "--extraction-host-user <name> --extraction-host-client-id <guid> " +
+        "--extraction-sender-user <name> --extraction-sender-client-id <guid>");
+}
 
 static void EnsureExpectedFullTextProvisioning(IReadOnlyList<SqlScript> scripts)
 {
@@ -148,12 +201,27 @@ static void EnsureExpectedFullTextProvisioning(IReadOnlyList<SqlScript> scripts)
     }
 }
 
-static async Task<int> CheckConnectionAsync(ISqlConnectionFactory connectionFactory)
+static async Task<int> CheckConnectionAsync(
+    ISqlConnectionFactory connectionFactory,
+    string? expectedDatabaseName,
+    string? expectedServerFqdn)
 {
+    var targetVerifier = new SqlDeploymentTargetVerifier(
+        connectionFactory,
+        expectedDatabaseName,
+        expectedServerFqdn,
+        requireExpectedServer:
+            !string.Equals(
+                MigrationSafety.ResolveExpectedDatabaseName(expectedDatabaseName),
+                MigrationSafety.ExpectedDatabaseName,
+                StringComparison.OrdinalIgnoreCase));
+    var target = await targetVerifier.VerifyAsync();
     var result = await new SqlConnectionVerifier(connectionFactory).CheckAsync();
     if (result.Succeeded)
     {
-        Console.WriteLine("Conexión a Azure SQL verificada correctamente con SELECT 1.");
+        Console.WriteLine(
+            $"Conexión SQL verificada con SELECT 1: " +
+            $"{target.ConfiguredServerFqdn}/{target.DatabaseName}.");
         return 0;
     }
 
@@ -165,13 +233,68 @@ static async Task<int> CheckConnectionAsync(ISqlConnectionFactory connectionFact
     return 1;
 }
 
+static RuntimeDatabaseIdentityPlan ParseRuntimeIdentityPlan(string[] arguments)
+{
+    string[] allowedOptions =
+    [
+        "--api-user",
+        "--api-client-id",
+        "--general-worker-user",
+        "--general-worker-client-id",
+        "--extraction-consumer-user",
+        "--extraction-consumer-client-id",
+        "--extraction-host-user",
+        "--extraction-host-client-id",
+        "--extraction-sender-user",
+        "--extraction-sender-client-id"
+    ];
+    var allowed = allowedOptions.ToHashSet(StringComparer.Ordinal);
+    var values = new Dictionary<string, string>(StringComparer.Ordinal);
+    for (var index = 0; index < arguments.Length; index++)
+    {
+        var option = arguments[index];
+        if (!allowed.Contains(option) || !values.TryAdd(option, string.Empty) ||
+            index + 1 >= arguments.Length || arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
+        {
+            throw new ArgumentException("invalid_runtime_identity_option");
+        }
+        values[option] = arguments[++index];
+    }
+
+    if (values.Count != allowedOptions.Length)
+    {
+        throw new ArgumentException("missing_runtime_identity_option");
+    }
+
+    string Required(string option) =>
+        !string.IsNullOrWhiteSpace(values[option])
+            ? values[option]
+            : throw new ArgumentException("empty_runtime_identity_option");
+    Guid RequiredClientId(string option) =>
+        Guid.TryParseExact(Required(option), "D", out var value) && value != Guid.Empty
+            ? value
+            : throw new ArgumentException("invalid_runtime_identity_client_id");
+
+    return RuntimeDatabaseIdentityPlan.Create(
+        Required("--api-user"),
+        RequiredClientId("--api-client-id"),
+        Required("--general-worker-user"),
+        RequiredClientId("--general-worker-client-id"),
+        Required("--extraction-consumer-user"),
+        RequiredClientId("--extraction-consumer-client-id"),
+        Required("--extraction-host-user"),
+        RequiredClientId("--extraction-host-client-id"),
+        Required("--extraction-sender-user"),
+        RequiredClientId("--extraction-sender-client-id"));
+}
+
 static async Task<int> ShowStatusAsync(
     DatabaseMigrationRunner runner,
     IReadOnlyList<SqlScript> migrations)
 {
     var status = await runner.GetStatusAsync(migrations);
     var fullText = await runner.GetFullTextProvisioningStatusAsync(migrations);
-    Console.WriteLine("Base objetivo: res/verificada");
+    Console.WriteLine($"Base objetivo: {runner.ExpectedDatabaseName}/verificada");
     Console.WriteLine($"Historial: {(status.HistoryTableExists ? "presente" : "ausente")}");
     var recordedMigrations = status.Migrations.Count(item => item.State != MigrationState.Pending);
     Console.WriteLine($"Migraciones registradas: {recordedMigrations}");

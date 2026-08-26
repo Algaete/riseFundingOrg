@@ -6,11 +6,13 @@ using FundingPlatform.Api.Endpoints;
 using FundingPlatform.Infrastructure.Identity.Configuration;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 
 namespace FundingPlatform.IntegrationTests;
 
 public sealed class ApiSmokeTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
+    private readonly ApiFactory factory = factory;
     private readonly HttpClient client = factory.CreateClient(new()
     {
         AllowAutoRedirect = false
@@ -100,6 +102,35 @@ public sealed class ApiSmokeTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("entra", document.RootElement[0].GetProperty("code").GetString());
         Assert.False(document.RootElement[0].GetProperty("enabled").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData("/api/v1/auth/register", "{\"email\":\"user@example.test\",\"displayName\":\"Test User\",\"password\":\"Safe-password-1234\",\"preferredLocale\":\"es-CL\"}")]
+    [InlineData("/api/v1/auth/resend-verification", "{\"email\":\"user@example.test\"}")]
+    [InlineData("/api/v1/auth/forgot-password", "{\"email\":\"user@example.test\"}")]
+    public async Task Email_dependent_identity_flows_fail_closed_before_database_work(
+        string path,
+        string body)
+    {
+        await using var disabledApplication = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) =>
+                configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Email:Enabled"] = "false"
+                })));
+        using var disabledClient = disabledApplication.CreateClient();
+        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        using var response = await disabledClient.PostAsync(path, content);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        using var problem = JsonDocument.Parse(responseBody);
+
+        Assert.True(
+            response.StatusCode == HttpStatusCode.ServiceUnavailable,
+            $"Expected 503 for {path}; received {(int)response.StatusCode}: {responseBody}");
+        Assert.Equal(
+            "https://fundingplatform.local/problems/identity-email-disabled",
+            problem.RootElement.GetProperty("type").GetString());
     }
 
     [Fact]

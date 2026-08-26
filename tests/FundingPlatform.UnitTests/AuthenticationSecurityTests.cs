@@ -4,6 +4,7 @@ using FundingPlatform.Core.Identity;
 using FundingPlatform.Infrastructure.Identity;
 using FundingPlatform.Infrastructure.Identity.Configuration;
 using FundingPlatform.Infrastructure.Identity.Cryptography;
+using FundingPlatform.Infrastructure.Identity.Email;
 using Microsoft.Extensions.Options;
 
 namespace FundingPlatform.UnitTests;
@@ -90,6 +91,46 @@ public sealed class AuthenticationSecurityTests
         Assert.Equal(15, options.Jwt.AccessTokenMinutes);
         Assert.Equal(30, options.RefreshToken.LifetimeDays);
         Assert.Equal(60, options.Mfa.AdminSessionMinutes);
+    }
+
+    [Fact]
+    public async Task Explicitly_disabled_email_is_valid_and_sender_fails_without_echoing_input()
+    {
+        var options = new EmailOptions
+        {
+            Enabled = false,
+            FrontendBaseUrl = "https://dev.risefunding.test"
+        };
+        var sender = new DisabledIdentityEmailSender();
+
+        Assert.True(EmailOptions.IsValid(options));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sender.SendVerificationAsync(
+                "private@example.test",
+                "Private User",
+                "raw-secret-token",
+                CancellationToken.None));
+
+        Assert.Equal("identity_email_delivery_disabled", exception.Message);
+        Assert.DoesNotContain("private@example.test", exception.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("raw-secret-token", exception.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Enabled_email_still_requires_provider_and_sender_configuration()
+    {
+        Assert.False(EmailOptions.IsValid(new EmailOptions
+        {
+            Enabled = true,
+            FrontendBaseUrl = "https://dev.risefunding.test"
+        }));
+        Assert.True(EmailOptions.IsValid(new EmailOptions
+        {
+            Enabled = true,
+            Endpoint = "https://example.communication.azure.com",
+            FromAddress = "noreply@example.test",
+            FrontendBaseUrl = "https://dev.risefunding.test"
+        }));
     }
 
     [Fact]

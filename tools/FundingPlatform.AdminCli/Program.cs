@@ -9,6 +9,7 @@ using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
+using FundingPlatform.Infrastructure.Persistence.Migrations;
 using FundingPlatform.Application.Semantics;
 using FundingPlatform.Infrastructure.Persistence.Semantics;
 using Microsoft.AspNetCore.Identity;
@@ -32,6 +33,11 @@ if (args.Length == 0 || args[0] is "--help" or "-h")
 
 try
 {
+    if (IsSupportedCommand(args[0]))
+    {
+        await VerifyDeploymentTargetAsync(cancellationSource.Token);
+    }
+
     if (string.Equals(args[0], "bootstrap-superadmin", StringComparison.OrdinalIgnoreCase))
     {
         return await BootstrapSuperAdminAsync(args.Skip(1).ToArray(), cancellationSource.Token);
@@ -112,6 +118,12 @@ catch (AiProviderGovernanceAdministrationDataException exception)
         $"sqlError={exception.DatabaseErrorNumber}.");
     return 4;
 }
+catch (MigrationException exception)
+{
+    Console.Error.WriteLine(
+        $"SQL deployment target verification failed: code={ForConsole(exception.Code)}.");
+    return 2;
+}
 catch (InvalidOperationException exception)
 {
     Console.Error.WriteLine($"Configuration error: {exception.Message}");
@@ -175,6 +187,36 @@ static async Task<int> BootstrapSuperAdminAsync(
             "The email already belongs to another account; no changes were made.", 7),
         _ => WriteBootstrapResult("The SuperAdmin role seed is missing.", 8)
     };
+}
+
+static bool IsSupportedCommand(string command) => command.ToLowerInvariant() is
+    "bootstrap-superadmin" or
+    "list-admins" or
+    "grant-superadmin" or
+    "configure-defender-event-grid-trust" or
+    "configure-funding-source-policy" or
+    "register-openai-embedding-policy" or
+    "publish-openai-semantic-configuration" or
+    "register-openai-structured-output-policy" or
+    "publish-openai-explanation-configuration";
+
+static async Task VerifyDeploymentTargetAsync(CancellationToken cancellationToken)
+{
+    var configuration = FundingPlatformConfiguration.CreateFromEnvironment();
+    var expectedDatabaseName =
+        configuration[MigrationSafety.ExpectedDatabaseConfigurationKey];
+    var resolvedDatabaseName =
+        MigrationSafety.ResolveExpectedDatabaseName(expectedDatabaseName);
+    var verifier = new SqlDeploymentTargetVerifier(
+        new SqlConnectionFactory(configuration),
+        expectedDatabaseName,
+        configuration[MigrationSafety.ExpectedServerConfigurationKey],
+        requireExpectedServer:
+            !string.Equals(
+                resolvedDatabaseName,
+                MigrationSafety.ExpectedDatabaseName,
+                StringComparison.OrdinalIgnoreCase));
+    _ = await verifier.VerifyAsync(cancellationToken);
 }
 
 static async Task<int> ListAdministratorsAsync(

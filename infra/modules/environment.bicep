@@ -1,7 +1,9 @@
 param environmentName string
 param location string
 param uniqueSuffix string
+@secure()
 param sqlEntraAdminLogin string
+@secure()
 param sqlEntraAdminObjectId string
 param sqlDatabaseName string
 param deployCompute bool
@@ -26,14 +28,6 @@ var generalWorkerName = 'func-${prefix}-general'
 var extractionWorkerName = 'func-${prefix}-extract'
 var keyVaultName = take('kv-${prefix}', 24)
 var sqlServerName = take('sql-${prefix}', 63)
-var blobContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-var blobReaderRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
-var queueSenderRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
-var queueProcessorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8a0f0c08-91a1-4084-bc3d-661d67233fed')
-var secretsUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-var cryptoUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12338af0-0e69-4776-bea7-57ae8d297424')
-var metricsPublisherRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')
-var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${prefix}'
@@ -94,6 +88,44 @@ resource documents 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     resource quarantine 'containers' = { name: 'fp-source-quarantine', properties: { publicAccess: 'None' } }
     resource trusted 'containers' = { name: 'fp-source-trusted', properties: { publicAccess: 'None' } }
     resource dataProtection 'containers' = { name: 'dataprotection', properties: { publicAccess: 'None' } }
+  }
+}
+
+resource documentsLifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {
+  parent: documents
+  name: 'default'
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'delete-abandoned-source-uploads'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            actions: {
+              baseBlob: {
+                delete: {
+                  daysAfterModificationGreaterThan: 1
+                }
+              }
+              version: {
+                delete: {
+                  daysAfterCreationGreaterThan: 14
+                }
+              }
+            }
+            filters: {
+              blobTypes: [
+                'blockBlob'
+              ]
+              prefixMatch: [
+                'fp-source-incoming/uploads/'
+              ]
+            }
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -186,6 +218,15 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
     readScale: 'Disabled'
     requestedBackupStorageRedundancy: 'Local'
     zoneRedundant: false
+  }
+}
+
+resource databaseShortTermRetention 'Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies@2023-08-01' = {
+  parent: database
+  name: 'default'
+  properties: {
+    retentionDays: 7
+    diffBackupIntervalInHours: 12
   }
 }
 
@@ -282,23 +323,25 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'ClientId=${apiIdentity.properties.clientId};Authorization=AAD'
       FRONTEND_BASE_URL: frontendDefaultOrigin
       ALLOWED_CORS_ORIGINS: frontendDefaultOrigin
-      JWT_ISSUER: apiDefaultOrigin
-      JWT_AUDIENCE: 'FundingPlatform.Web'
-      AUTH_ACCESS_TOKEN_MINUTES: '15'
-      AUTH_REFRESH_TOKEN_DAYS: '30'
-      AUTH_ADMIN_SESSION_MINUTES: '60'
-      DEFENDER_EVENT_GRID_ENABLED: 'false'
-      OFFICIAL_RSS_ENABLED: 'false'
-      SEMANTIC_ENABLED: 'false'
-      OPENAI_ENABLED: 'false'
-      ALERTS_ENABLED: 'false'
-      BILLING_ENABLED: 'false'
-      BILLING_SANDBOX_ONLY: 'true'
-      PAYMENT_PROVIDER: 'Disabled'
+      Authentication__Jwt__Issuer: apiDefaultOrigin
+      Authentication__Jwt__Audience: 'FundingPlatform.Web'
+      Authentication__Jwt__AccessTokenMinutes: '15'
+      Authentication__RefreshToken__LifetimeDays: '30'
+      Authentication__Mfa__AdminSessionMinutes: '60'
+      Email__Enabled: 'false'
+      Email__FrontendBaseUrl: frontendDefaultOrigin
+      DefenderEventGrid__Enabled: 'false'
+      OfficialRss__Enabled: 'false'
+      Semantic__Enabled: 'false'
+      OpenAI__Enabled: 'false'
+      Alerts__Enabled: 'false'
+      Billing__Enabled: 'false'
+      Billing__SandboxOnly: 'true'
+      Billing__GatewayMode: 'Disabled'
     }
   }
   dependsOn: [
-    apiAcrPull
+    environmentRbac
   ]
 }
 
@@ -312,6 +355,7 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
     location: location
     applicationInsightsConnectionString: insights.properties.ConnectionString
     applicationInsightsName: insights.name
+    maximumInstanceCount: 1
     extraIdentityResourceId: extractionSenderIdentity.id
     sqlServerFqdn: sqlServer.properties.fullyQualifiedDomainName
     sqlDatabaseName: database.name
@@ -341,6 +385,7 @@ module extractionWorker './flex-function.bicep' = if (deployCompute) {
     location: location
     applicationInsightsConnectionString: insights.properties.ConnectionString
     applicationInsightsName: insights.name
+    maximumInstanceCount: 1
     extraIdentityResourceId: extractionConsumerIdentity.id
     sqlServerFqdn: sqlServer.properties.fullyQualifiedDomainName
     sqlDatabaseName: database.name
@@ -357,50 +402,26 @@ module extractionWorker './flex-function.bicep' = if (deployCompute) {
   }
 }
 
-resource apiSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vault.id, apiIdentity.id, secretsUserRoleId)
-  scope: vault
-  properties: { roleDefinitionId: secretsUserRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource apiCrypto 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vault::dataProtectionKey.id, apiIdentity.id, cryptoUserRoleId)
-  scope: vault::dataProtectionKey
-  properties: { roleDefinitionId: cryptoUserRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource apiDocuments 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(documents.id, apiIdentity.id, blobContributorRoleId)
-  scope: documents
-  properties: { roleDefinitionId: blobContributorRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource apiMetrics 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(insights.id, apiIdentity.id, metricsPublisherRoleId)
-  scope: insights
-  properties: { roleDefinitionId: metricsPublisherRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource apiAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployCompute) {
-  name: guid(apiRegistry!.id, apiIdentity.id, acrPullRoleId)
-  scope: apiRegistry
-  properties: { roleDefinitionId: acrPullRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource senderQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(dataStorage::queues::extractions.id, extractionSenderIdentity.id, queueSenderRoleId)
-  scope: dataStorage::queues::extractions
-  properties: { roleDefinitionId: queueSenderRoleId, principalId: extractionSenderIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource consumerQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(dataStorage::queues::extractions.id, extractionConsumerIdentity.id, queueProcessorRoleId)
-  scope: dataStorage::queues::extractions
-  properties: { roleDefinitionId: queueProcessorRoleId, principalId: extractionConsumerIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource consumerTrusted 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(documents::blobService::trusted.id, extractionConsumerIdentity.id, blobReaderRoleId)
-  scope: documents::blobService::trusted
-  properties: { roleDefinitionId: blobReaderRoleId, principalId: extractionConsumerIdentity.properties.principalId, principalType: 'ServicePrincipal' }
-}
-resource generalDocuments 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployCompute) {
-  name: guid(documents.id, generalWorkerName, blobContributorRoleId)
-  scope: documents
-  properties: { roleDefinitionId: blobContributorRoleId, principalId: generalWorker!.outputs.hostIdentityPrincipalId, principalType: 'ServicePrincipal' }
+module environmentRbac './environment-rbac.bicep' = {
+  name: 'rise-funding-environment-rbac'
+  params: {
+    apiIdentityPrincipalId: apiIdentity.properties.principalId
+    extractionSenderIdentityPrincipalId: extractionSenderIdentity.properties.principalId
+    extractionConsumerIdentityPrincipalId: extractionConsumerIdentity.properties.principalId
+    generalWorkerHostIdentityPrincipalId: deployCompute ? generalWorker!.outputs.hostIdentityPrincipalId : ''
+    keyVaultName: vault.name
+    dataProtectionKeyName: vault::dataProtectionKey.name
+    documentStorageName: documents.name
+    dataStorageName: dataStorage.name
+    applicationInsightsName: insights.name
+    containerRegistryName: apiRegistryName
+    deployCompute: deployCompute
+  }
+  dependsOn: [
+    documents::blobService::trusted
+    dataStorage::queues::extractions
+    apiRegistry
+  ]
 }
 
 output apiAppName string = deployCompute && deployApiContainer ? apiContainer!.outputs.appName : apiAppName
@@ -413,7 +434,12 @@ output extractionWorkerAppName string = deployCompute ? extractionWorker!.output
 output keyVaultName string = vault.name
 output sqlServerName string = sqlServer.name
 output apiManagedIdentityClientId string = apiIdentity.properties.clientId
+output apiManagedIdentityPrincipalId string = apiIdentity.properties.principalId
 output generalWorkerHostIdentityClientId string = deployCompute ? generalWorker!.outputs.hostIdentityClientId : ''
+output generalWorkerHostIdentityPrincipalId string = deployCompute ? generalWorker!.outputs.hostIdentityPrincipalId : ''
 output extractionWorkerHostIdentityClientId string = deployCompute ? extractionWorker!.outputs.hostIdentityClientId : ''
+output extractionWorkerHostIdentityPrincipalId string = deployCompute ? extractionWorker!.outputs.hostIdentityPrincipalId : ''
 output extractionSenderIdentityClientId string = extractionSenderIdentity.properties.clientId
+output extractionSenderIdentityPrincipalId string = extractionSenderIdentity.properties.principalId
 output extractionConsumerIdentityClientId string = extractionConsumerIdentity.properties.clientId
+output extractionConsumerIdentityPrincipalId string = extractionConsumerIdentity.properties.principalId

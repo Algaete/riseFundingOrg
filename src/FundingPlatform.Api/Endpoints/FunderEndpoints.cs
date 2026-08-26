@@ -9,14 +9,18 @@ public static class FunderEndpoints
     public static IEndpointRouteBuilder MapFunderEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/funders")
-            .WithTags("Funders");
+            .WithTags("Funders")
+            .AllowAnonymous()
+            .RequireRateLimiting("marketplace-read");
 
         group.MapGet("/", ListAsync)
             .Produces<PublicFunderListResponse>()
-            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesValidationProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
         group.MapGet("/{slug}", GetBySlugAsync)
             .Produces<PublicFunderDetailResponse>()
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
         return endpoints;
     }
 

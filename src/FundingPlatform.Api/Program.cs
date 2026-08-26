@@ -328,13 +328,23 @@ builder.Services.Configure<PasswordHasherOptions>(options =>
     options.IterationCount = 210_000;
 });
 
-builder.Services.AddSingleton(serviceProvider =>
+var configuredIdentityEmail = builder.Configuration
+    .GetSection(EmailOptions.SectionName)
+    .Get<EmailOptions>() ?? new EmailOptions();
+if (configuredIdentityEmail.Enabled)
 {
-    var emailOptions = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
-    var credential = serviceProvider.GetRequiredService<TokenCredential>();
-    return new EmailClient(new Uri(emailOptions.Endpoint), credential);
-});
-builder.Services.AddSingleton<IIdentityEmailSender, AzureCommunicationIdentityEmailSender>();
+    builder.Services.AddSingleton(serviceProvider =>
+    {
+        var emailOptions = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+        var credential = serviceProvider.GetRequiredService<TokenCredential>();
+        return new EmailClient(new Uri(emailOptions.Endpoint), credential);
+    });
+    builder.Services.AddSingleton<IIdentityEmailSender, AzureCommunicationIdentityEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IIdentityEmailSender, DisabledIdentityEmailSender>();
+}
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 var authenticationBuilder = builder.Services
@@ -640,10 +650,13 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("live")
 });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
-    Predicate = registration => registration.Tags.Contains("ready")
-});
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = registration => registration.Tags.Contains("ready")
+    });
+}
 app.MapFundingOpportunityEndpoints();
 app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();

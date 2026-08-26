@@ -15,8 +15,9 @@ El despliegue usa componentes separados:
 - Azure SQL Database para datos y procedimientos almacenados.
 - Storage GPv2 para host de Functions, colas y documentos privados.
 - Key Vault para secretos y claves de Data Protection.
-- Application Insights y Log Analytics para observabilidad.
-- Azure Communication Services Email para correo transaccional.
+- Log Analytics para logs de sistema/consola y Application Insights compartido con Functions; la
+  instrumentación APM del API se completa en 12B.
+- Azure Communication Services Email para correo transaccional, diferido a 12B.
 
 Defender for Storage, Event Grid y `official-rss` permanecen deshabilitados hasta completar sus
 permisos, políticas y una prueba E2E. El MVP durable nunca autopublica contenido importado.
@@ -25,7 +26,8 @@ permisos, políticas y una prueba E2E. El MVP durable nunca autopublica contenid
 
 1. Elegir una región compatible con Container Apps, Container Registry, Functions Flex Consumption, Azure SQL, Static Web
    Apps y Communication Services. No fijar una región solo por cercanía sin comprobar disponibilidad.
-2. Elegir nombres únicos. Ejemplo de convención: `rf-mvp-<recurso>-<sufijo>`.
+2. Elegir una sola vez un sufijo único de exactamente 8 caracteres `[a-z0-9]` y reutilizarlo. Ejemplo
+   de convención: `rf-mvp-<recurso>-<sufijo8>`.
 3. Comprar o disponer de un dominio. Reservar, como mínimo:
    - `app.<dominio>` para React.
    - `api.<dominio>` para la API.
@@ -52,28 +54,32 @@ credenciales. `infra-dev.yml` es exclusivamente manual, usa OIDC y exige confirm
 ## 4. Crear la base de recursos
 
 La plantilla de FASE 12A crea esta base de forma reproducible. Antes de ejecutarla, seguir
-[`infra/README.md`](../infra/README.md), configurar el environment GitHub `dev` y revisar el
-`what-if`. Los pasos de Portal siguientes sirven como verificación, no como una segunda fuente de
-infraestructura paralela.
+[`infra/README.md`](../infra/README.md) y el
+[`checklist dev`](../infra/DEV-DEPLOYMENT-CHECKLIST.md), configurar el environment GitHub `dev` y
+revisar el `what-if`. La lista siguiente describe los recursos que deben aparecer; no se crean otra
+vez manualmente en Portal.
 
 En Azure Portal:
 
-1. Crear el Resource Group de `staging`.
-2. Crear Log Analytics y Application Insights.
-3. Crear Azure SQL Server y una base exclusiva del MVP.
-4. Configurar un administrador Microsoft Entra en el servidor SQL.
-5. Crear Key Vault con RBAC de Azure y soft delete habilitado.
-6. Crear Azure Communication Services Email y verificar el remitente/dominio.
-7. Crear la cuenta de Blob documental y estos containers privados:
+1. Resource Group `dev` separado.
+2. Log Analytics y Application Insights.
+3. Azure SQL Server y base `risefunding-dev` exclusiva.
+4. Administrador Microsoft Entra en el servidor SQL.
+5. Key Vault con RBAC de Azure y soft delete habilitado.
+6. Cuenta de Blob documental y estos containers privados:
    - `fp-source-incoming`
    - `fp-source-quarantine`
    - `fp-source-trusted`
    - `dataprotection`
-8. Crear la cola `document-extractions` y la cola `imports` donde corresponda.
-9. Configurar lifecycle de `fp-source-incoming/uploads/` para eliminar cargas abandonadas después de
-   un día. La retención de documentos aceptados la gestiona el vertical durable de la aplicación.
-10. Crear Container Apps Environment Consumption y ACR Basic privado; deshabilitar usuario admin y
-    dar `AcrPull` sólo a la UAMI de la API.
+7. Cola `document-extractions` y una cola `imports` en cada host general donde corresponda.
+8. Lifecycle de `fp-source-incoming/uploads/` para retirar cargas abandonadas después de un día y
+   borrar sus versiones anteriores a los 14 días; sin esa segunda acción, Blob Versioning las
+   conservaría indefinidamente. La retención de documentos aceptados la gestiona la aplicación.
+9. Container Apps Environment Consumption y ACR Basic autenticado; usuario admin deshabilitado y
+   `AcrPull` sólo para la UAMI de la API.
+
+Azure Communication Services Email no se crea en 12A: alertas/email siguen deshabilitados hasta su
+gate propio de 12B.
 
 No habilitar acceso público anónimo en Blob. No usar account keys en App Settings.
 
@@ -85,8 +91,8 @@ No habilitar acceso público anónimo en Blob. No usar account keys en App Setti
 3. Crear dos Function Apps Flex Consumption separadas:
    - general: `FundingPlatform.Workers`;
    - extracción: `FundingPlatform.ExtractionWorkers`.
-4. Configurar probes de Container Apps en `/health`; no usar `/health/ready` como sondeo periódico
-   porque consulta SQL e impediría la auto-pausa.
+4. Configurar probes de Container Apps en `/health`; `/health/ready` no se publica en Azure porque
+   consulta SQL e impediría la auto-pausa.
 5. Cambiar el mínimo a `0` mediante Bicep cuando se acepte el cold start; una petición pública puede
    volver a escalar la aplicación.
 
@@ -124,14 +130,17 @@ Para la API:
 - `AcrPull` únicamente sobre el registry dev.
 - permisos SQL de ejecución solo para sus procedimientos requeridos.
 
-La migración crea `FundingPlatform_ExtractionWorkerRole`. Crear en Azure SQL el usuario Entra de `C`
-y agregarlo únicamente a ese rol. Los principales de API y Workers reciben roles/`EXECUTE` separados;
-la identidad que aplica migraciones no se usa para ejecutar la aplicación.
+Las migraciones crean roles host-específicos. La UAMI API recibe sólo
+`FundingPlatform_ApiRuntimeRole`, `H_general` sólo `FundingPlatform_GeneralWorkerRole` y `C` sólo
+`FundingPlatform_ExtractionWorkerRole`; `H_extractor` y `S` no tienen usuario SQL. La identidad que
+aplica migraciones no se usa para ejecutar la aplicación.
 
-Ejemplo conceptual, ejecutado por el administrador Entra y reemplazando el nombre por la UAMI real:
+Ejemplo conceptual; el despliegue real usa `DatabaseMigrator --provision-runtime-identities` para
+derivar y verificar el SID desde el `clientId`, sin Microsoft Graph:
 
 ```sql
-CREATE USER [rf-mvp-extraction-consumer] FROM EXTERNAL PROVIDER;
+CREATE USER [rf-mvp-extraction-consumer]
+    WITH SID = <0x-sid-binario-del-client-id>, TYPE = E;
 ALTER ROLE [FundingPlatform_ExtractionWorkerRole]
     ADD MEMBER [rf-mvp-extraction-consumer];
 ```
@@ -160,11 +169,13 @@ SOURCE_DOCUMENT_QUARANTINE_CONTAINER=fp-source-quarantine
 SOURCE_DOCUMENT_TRUSTED_CONTAINER=fp-source-trusted
 FRONTEND_BASE_URL=https://app.<dominio>
 ALLOWED_CORS_ORIGINS=https://app.<dominio>
-JWT_ISSUER=https://api.<dominio>
-JWT_AUDIENCE=FundingPlatform.Web
-AUTH_ACCESS_TOKEN_MINUTES=15
-AUTH_REFRESH_TOKEN_DAYS=30
-AUTH_ADMIN_SESSION_MINUTES=60
+Authentication__Jwt__Issuer=https://api.<dominio>
+Authentication__Jwt__Audience=FundingPlatform.Web
+Authentication__Jwt__AccessTokenMinutes=15
+Authentication__RefreshToken__LifetimeDays=30
+Authentication__Mfa__AdminSessionMinutes=60
+Email__Enabled=false
+Email__FrontendBaseUrl=https://app.<dominio>
 APPLICATIONINSIGHTS_CONNECTION_STRING=<referencia de Azure>
 ```
 
@@ -222,21 +233,27 @@ completo ni dejar placeholders en Production.
 
 ## 10. Aplicar la base de datos
 
-La API no aplica migraciones al arrancar. Desde una máquina administrativa autenticada o un job
-manual protegido:
+La API no aplica migraciones al arrancar. La preparación dev se ejecuta desde una terminal humana
+autenticada con el wrapper versionado; éste deriva el único servidor SQL del Resource Group, bloquea
+la carga accidental del `.env`, valida base y FQDN, y arma una regla firewall temporal con limpieza
+automática:
 
 ```bash
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --status
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --validate
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --apply
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --test
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --provision-full-text
-dotnet run --project tools/FundingPlatform.DatabaseMigrator -- --status
+AZURE_SUBSCRIPTION_ID='<subscription-id>' \
+AZURE_TENANT_ID='<tenant-id>' \
+AZURE_UNIQUE_SUFFIX='<sufijo8>' \
+RF_DEV_RELEASE_SHA='<commit-aprobado-de-40-caracteres>' \
+RF_DEV_SQL_ADMIN_GROUP_OBJECT_ID='<group-object-id>' \
+RF_DEV_SQL_ADMIN_GROUP_NAME='<display-name-exacto>' \
+RF_DEV_ADMIN_EMAIL='<superadmin-dev>' \
+bash infra/scripts/prepare-database-dev.sh
 ```
 
-Antes de `--apply`: confirmar servidor/base, backup/PITR y checksums. Después: esperar Full-Text `ready`,
-ejecutar un segundo `--apply` que reporte cero pendientes y guardar la evidencia en
-`database/DEPLOYMENT-LOG.md`.
+El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
+interactiva para la contraseña del SuperAdmin. Una base vacía recibe `001`→`027`; luego ejecuta los
+27 smokes con rollback, espera `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y
+vincula las tres UAMI SQL por `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus
+prerrequisitos están en [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).
 
 ## 11. Configurar el frontend
 
@@ -279,9 +296,9 @@ identidades reales. No se aceptan publish profiles ni secretos de service princi
 2. Asociar `app.<dominio>` a Static Web Apps y `api.<dominio>` a Container Apps.
 3. Habilitar certificados administrados y HTTPS-only.
 4. Actualizar CORS, frontend URL, issuer y redirect URI con valores finales exactos.
-5. Validar:
+5. En 12B, cuando existan dominios, frontend, ACS y SSO, validar:
    - `GET https://api.<dominio>/health`
-   - `GET https://api.<dominio>/health/ready`
+   - una lectura limitada del catálogo público para comprobar conexión/permisos SQL;
    - frontend y navegación profunda recargable
    - registro manual y Microsoft
    - refresh de sesión después de expirar el access token
@@ -291,14 +308,17 @@ identidades reales. No se aceptan publish profiles ni secretos de service princi
    - búsqueda, detalle y favorito desde una organización
    - importación manual y procesamiento de colas
    - carga PDF solo cuando el escaneo real esté habilitado
-6. Confirmar en Application Insights que no se registran JWT, refresh tokens, SAS, hashes privados ni
-   contenido raw.
+6. En el smoke 12A revisar logs de sistema/consola de Container Apps en Log Analytics. Después de
+   instrumentar APM en 12B, confirmar también en Application Insights que no se registran JWT,
+   refresh tokens, SAS, hashes privados ni contenido raw.
 7. Crear alertas de 5xx, health no disponible, colas con backlog, jobs atascados y presupuesto.
 
 ## 14. Qué puede habilitarse en el primer staging
 
-Puede probarse registro/login, organizaciones, proyectos, administración editorial, fondos públicos,
-búsqueda/favoritos y Grants.gov durable. Mantener deshabilitados hasta su propia validación:
+El primer gate 12A comprueba `/health`, base/migraciones, bootstrap SuperAdmin y arranque fail-closed.
+Con `Email__Enabled=false`, registro, reenvío de verificación y recuperación responden `503` antes de
+persistir. Registro/login de clientes, navegador, SSO, refresh cross-site y MFA E2E esperan ACS,
+frontend y dominios en 12B. Mantener además deshabilitados hasta su propia validación:
 
 - pagos y suscripciones reales;
 - Defender/Event Grid si no están completos los permisos y la prueba E2E;

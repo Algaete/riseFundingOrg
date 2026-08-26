@@ -7,16 +7,18 @@ param environmentName string = 'dev'
 @description('Azure region selected after checking service availability.')
 param location string
 
-@description('Globally unique lowercase suffix, 4-8 letters or numbers.')
-@minLength(4)
+@description('Globally unique suffix of exactly eight lowercase ASCII letters or digits: [a-z0-9]{8}.')
+@minLength(8)
 @maxLength(8)
 param uniqueSuffix string
 
 @description('Microsoft Entra login shown as the Azure SQL administrator.')
+@secure()
 @minLength(1)
 param sqlEntraAdminLogin string
 
-@description('Object ID of the Microsoft Entra user or group administering Azure SQL.')
+@description('Object ID of the Microsoft Entra group administering Azure SQL.')
+@secure()
 param sqlEntraAdminObjectId string
 
 @description('Azure SQL logical database name.')
@@ -27,13 +29,14 @@ param sqlDatabaseName string = 'risefunding-dev'
 param monthlyBudgetAmount int = 75
 
 @description('Email that receives 50%, 80% and 100% budget notifications.')
+@secure()
 @minLength(3)
 param budgetContactEmail string
 
 @description('First UTC day of the current or next month, for example 2026-09-01T00:00:00Z.')
 param budgetStartDate string
 
-@description('Create compute resources. Set false for a storage/identity/data-plane preflight deployment.')
+@description('Create compute resources. False omits them from a new incremental deployment; it does not pause or delete existing resources.')
 param deployCompute bool = true
 
 @description('Create the API Container App. The first apply keeps this false until its private image exists.')
@@ -44,10 +47,10 @@ param deployApiContainer bool = false
 @maxLength(200)
 param apiContainerImageReference string = 'rise-funding-api:preview'
 
-@description('Minimum API replicas in dev. Start at one; set zero to enable scale-to-zero.')
+@description('Minimum API replicas in dev. Defaults to scale-to-zero; select one only for a warm smoke window.')
 @minValue(0)
 @maxValue(1)
-param apiMinReplicas int = 1
+param apiMinReplicas int = 0
 
 var prefix = 'rf-${environmentName}'
 var resourceGroupName = 'rg-${prefix}-${uniqueSuffix}'
@@ -113,7 +116,12 @@ output keyVaultName string = environment.outputs.keyVaultName
 output sqlServerName string = environment.outputs.sqlServerName
 output sqlDatabaseName string = sqlDatabaseName
 output apiManagedIdentityClientId string = environment.outputs.apiManagedIdentityClientId
+output apiManagedIdentityPrincipalId string = environment.outputs.apiManagedIdentityPrincipalId
 output generalWorkerHostIdentityClientId string = environment.outputs.generalWorkerHostIdentityClientId
+output generalWorkerHostIdentityPrincipalId string = environment.outputs.generalWorkerHostIdentityPrincipalId
 output extractionWorkerHostIdentityClientId string = environment.outputs.extractionWorkerHostIdentityClientId
+output extractionWorkerHostIdentityPrincipalId string = environment.outputs.extractionWorkerHostIdentityPrincipalId
 output extractionSenderIdentityClientId string = environment.outputs.extractionSenderIdentityClientId
+output extractionSenderIdentityPrincipalId string = environment.outputs.extractionSenderIdentityPrincipalId
 output extractionConsumerIdentityClientId string = environment.outputs.extractionConsumerIdentityClientId
+output extractionConsumerIdentityPrincipalId string = environment.outputs.extractionConsumerIdentityPrincipalId

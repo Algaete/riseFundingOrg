@@ -7,6 +7,8 @@ public static class FundingPlatformConfiguration
     private static readonly (string Source, string Target)[] Aliases =
     [
         ("AZURE_SQL_CONNECTION_STRING", "ConnectionStrings:DefaultConnection"),
+        ("MIGRATION_EXPECTED_DATABASE_NAME", "Migrations:ExpectedDatabaseName"),
+        ("MIGRATION_EXPECTED_SERVER_FQDN", "Migrations:ExpectedServerFqdn"),
         ("BACKEND_API_BASE_URL", "BackendApi:BaseUrl"),
         ("INTERNAL_API_KEY", "ApiSecurity:InternalApiKey"),
         ("INTERNAL_API_KEY", "BackendApi:InternalApiKey"),

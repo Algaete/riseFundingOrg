@@ -473,3 +473,18 @@ commit de Azure SQL.
   credenciales, webhooks externos, cobros ni recursos Azure.
 - Build .NET 0 warnings/errores, Unit 373/373, Integration 156/156, frontend lint, 25/111 y build.
   No hubo `validate/apply/test/status`; `res` continúa observado en 18/18.
+
+## Preparación local 027 — roles runtime de FASE 12A, sin despliegue (2026-08-25)
+
+- `027_runtime_database_roles.sql`: SHA-256
+  `ad9212a025cf438fcb65d6dc4463e58dd246cf42868b22862b953af5a57aef2a`, 371 líneas/un lote.
+- `027_runtime_database_roles_smoke.sql`: SHA-256
+  `256e44d812020e7163ef0cad3c15cc5ca76e37813f4bad57d1d2960dea86b296`, 460 líneas/un lote.
+- La migración crea roles de mínimo privilegio, no usuarios: API con 116 SP, 18 permisos DML sobre
+  siete tablas Identity/MFA y diez permisos sobre cinco TVP; worker general con 49 SP/cero DML; el
+  rol de extracción existente conserva seis SP.
+- El smoke prueba los permisos efectivos y la separación de hosts mediante usuarios temporales
+  `WITHOUT LOGIN`, siempre dentro de rollback. ScriptDom y los tres tests focales quedaron verdes.
+- No hubo conexión, `validate`, `apply`, `test` o `status` contra SQL/Azure. `res` continúa observado
+  en 18/18; una base dev vacía deberá aplicar `001`→`027`, ejecutar los 27 smokes y aprovisionar los
+  tres usuarios UAMI fuera del historial con nombres y `clientId` exactos convertidos a SID.

@@ -13,11 +13,20 @@ permissions:
 jobs:
   bicep:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate deployment shell scripts
+        run: |
+          bash -n infra/scripts/deploy-dev.sh
+          bash -n infra/scripts/prepare-key-vault-dev.sh
+          bash -n infra/scripts/prepare-database-dev.sh
+          bash -n infra/scripts/scale-api-dev.sh
+          bash -n infra/scripts/set-api-access-dev.sh
+          bash -n infra/scripts/rollback-api-dev.sh
+          bash -n infra/scripts/verify-dev.sh
       - name: Compile Bicep without Azure credentials
-        uses: azure/CLI@v2
+        uses: azure/CLI@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
         with:
           azcliversion: 2.76.0
           inlineScript: |
