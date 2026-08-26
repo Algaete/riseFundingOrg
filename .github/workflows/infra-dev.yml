@@ -4,15 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: ARM operation; apply requires the confirmation below
+        description: ARM operation; mutations require the matching confirmation below
         required: true
         type: choice
-        options: [validate, what-if, apply]
+        options: [validate, what-if, apply-base, apply]
         default: what-if
       confirmation:
-        description: Type DEPLOY-DEV only when operation is apply
+        description: Type DEPLOY-DEV-BASE for apply-base or DEPLOY-DEV for apply
         required: false
         type: string
+      api_min_replicas:
+        description: Keep one API replica warm, or allow scale-to-zero
+        required: true
+        type: choice
+        options: ['1', '0']
+        default: '1'
 
 permissions:
   id-token: write
@@ -26,11 +32,13 @@ jobs:
   deploy:
     environment: dev
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Require explicit apply confirmation
-        if: inputs.operation == 'apply' && inputs.confirmation != 'DEPLOY-DEV'
+        if: >-
+          (inputs.operation == 'apply-base' && inputs.confirmation != 'DEPLOY-DEV-BASE') ||
+          (inputs.operation == 'apply' && inputs.confirmation != 'DEPLOY-DEV')
         run: exit 1
       - uses: azure/login@v2
         with:
@@ -47,5 +55,6 @@ jobs:
           AZURE_BUDGET_START_DATE: ${{ vars.AZURE_BUDGET_START_DATE }}
           AZURE_MONTHLY_BUDGET_AMOUNT: ${{ vars.AZURE_MONTHLY_BUDGET_AMOUNT }}
           AZURE_DEPLOY_COMPUTE: ${{ vars.AZURE_DEPLOY_COMPUTE }}
+          AZURE_API_MIN_REPLICAS: ${{ inputs.api_min_replicas }}
           AZURE_APPLY_CONFIRMATION: ${{ inputs.confirmation }}
         run: bash infra/scripts/deploy-dev.sh "${{ inputs.operation }}"

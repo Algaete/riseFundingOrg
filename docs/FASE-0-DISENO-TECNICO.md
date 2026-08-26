@@ -227,7 +227,7 @@ Controller
           |
           | HTTPS, JSON, JWT
           v
-[ASP.NET Core API · Azure App Service]
+[ASP.NET Core API · Azure Container Apps Consumption]
           |
           +----------> [Azure SQL]
           |              datos transaccionales,
@@ -567,7 +567,7 @@ ni se necesita Azure ML.
 
 Producción usará custom domains del mismo sitio, por ejemplo `app.<dominio>` y `api.<dominio>`. La cookie host-only `__Secure-fp_refresh` será `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth` y con expiración igual o menor al token. Refresh/logout validan `Origin` contra allowlist incluso con Lax; CORS permite credenciales solo desde la app.
 
-Los dominios predeterminados inconexos de Static Web Apps/App Service no son una topología de producción aceptable para esta sesión. Si el negocio no dispone del dominio antes de FASE 3, se debe elegir un proxy/BFF same-origin o diseñar `SameSite=None` + antiforgery y probar bloqueo de third-party cookies; no se improvisa después de implementar auth.
+Los dominios predeterminados inconexos de Static Web Apps/Container Apps no son una topología de producción aceptable para esta sesión. Si el negocio no dispone del dominio antes de FASE 3, se debe elegir un proxy/BFF same-origin o diseñar `SameSite=None` + antiforgery y probar bloqueo de third-party cookies; no se improvisa después de implementar auth.
 
 ---
 
@@ -2465,7 +2465,7 @@ Alertas operativas: readiness fallida, 5xx sostenido >5%, p95 fuera de SLO, dos 
 | Componente | Servicio | Razón |
 |---|---|---|
 | React/Vite | Azure Static Web Apps | hosting estático, TLS/CDN e integración simple |
-| API | Azure App Service Linux | operación sencilla para ASP.NET Core y escalado independiente |
+| API | Azure Container Apps Consumption + ACR privado | contenedor .NET 10 no-root, despliegue por digest y escala 1→0 en dev |
 | Worker general | Azure Functions v4 isolated, Flex Consumption | imports, outbox, adquisición, Defender y retención |
 | Extractor PDF | Azure Functions v4 isolated, Flex Consumption separado | cola/watchdog con identidad y dependencias mínimas |
 | Datos | Azure SQL Database | PaaS SQL Server, Dapper/SP y `VECTOR` nativo |
@@ -2483,10 +2483,10 @@ Alertas operativas: readiness fallida, 5xx sostenido >5%, p95 fuera de SLO, dos 
 
 - **Local en este workspace ARM64:** Azure SQL dev o SQL Server 2025 remoto sobre host x86-64; Azurite para Blob/Queue; proveedores fake/sandbox; `.env`. No se toma Docker/Rosetta como baseline: Microsoft soporta los containers SQL Server Linux solo en hosts Intel/AMD x86-64 y no soporta emulación/traducción. CI de integración usa runner x86-64. [Referencia oficial](https://learn.microsoft.com/en-us/sql/linux/containers/deploy?view=sql-server-ver17).
 - **Staging:** mismos tipos de recursos que producción con tamaño mínimo; base y storage separados; datos sintéticos. Azure SQL serverless es aceptable si no hay dispatcher frecuente.
-- **Producción piloto:** App Service con Always On, **Azure SQL provisionado pequeño**, Functions Flex y budgets. El polling acotado del outbox/readiness impediría normalmente el auto-pause, por lo que serverless no es la recomendación productiva de costo real.
+- **Producción piloto:** Container Apps con mínimo definido tras medir cold start, **Azure SQL provisionado pequeño**, Functions Flex y budgets. El polling acotado del outbox impediría normalmente el auto-pause, por lo que serverless no es la recomendación productiva de costo real.
 - Recursos separados por ambiente y despliegue por infraestructura como código en FASE 12.
 
-No se agregan en MVP APIM, Front Door, Application Gateway, Private Link, Redis, Service Bus, Container Apps ni AKS. Se revisan al aparecer una necesidad medida de WAF global, networking privado, cache distribuida, mensajería avanzada o escalado independiente.
+No se agregan en MVP APIM, Front Door, Application Gateway, Private Link, Redis, Service Bus ni AKS. Container Apps se adopta sólo para la API dev; los demás servicios se revisan al aparecer una necesidad medida de WAF global, networking privado, cache distribuida o mensajería avanzada.
 
 ### 13.3 Identidad de servicios y secretos
 
@@ -3138,12 +3138,14 @@ policies administrativas verificadas. No se cobran pagos reales todavía.
 ### FASE 12 — Hardening, testing y despliegue
 
 **Estado FASE 12A (2026-08-25):** IaC de `dev` preparada localmente en Bicep, sin ejecutar Azure.
-Incluye presupuesto con notificaciones, SQL serverless auto-pause, App Service B1, Static Web Apps
-Free, Functions Flex, tres fronteras Storage, cinco UAMI, Key Vault/Data Protection y observabilidad.
+Incluye presupuesto con notificaciones, SQL serverless auto-pause, API Container Apps Consumption
+0,5 vCPU/1 GiB con réplica `1` reducible a `0`, ACR Basic privado, Static Web Apps Free, Functions
+Flex, tres fronteras Storage, cinco UAMI, Key Vault/Data Protection y observabilidad. La imagen API
+es no-root, excluye secretos del contexto, se construye remotamente y se despliega por digest OCI.
 Los workflows separan compilación sin credenciales de `validate`/`what-if`/`apply` manual mediante
-OIDC; `apply` exige confirmación literal. La región se rechaza si no ofrece .NET 10 en App Service y
-Functions Flex. Quedan para 12B el despliegue de paquetes, DNS/dominio común, secretos, usuarios SQL,
-aplicación `019`→`026`, E2E, restore y decisión de piloto.
+OIDC; `apply` exige confirmación literal. La región se rechaza si no ofrece Container Apps, ACR y
+Functions Flex. Quedan para 12B publicación de Functions/frontend, DNS/dominio común, secretos,
+usuarios SQL, aplicación `019`→`026`, E2E, restore y decisión de piloto.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;

@@ -3,9 +3,9 @@ name: Infrastructure validation
 on:
   push:
     branches: [main]
-    paths: ['infra/**', '.github/workflows/infra-*.yml']
+    paths: ['infra/**', 'src/FundingPlatform.Api/Dockerfile', '.dockerignore', '.github/workflows/infra-*.yml']
   pull_request:
-    paths: ['infra/**', '.github/workflows/infra-*.yml']
+    paths: ['infra/**', 'src/FundingPlatform.Api/Dockerfile', '.dockerignore', '.github/workflows/infra-*.yml']
 
 permissions:
   contents: read
@@ -23,3 +23,5 @@ jobs:
           inlineScript: |
             az bicep install --version v0.46.1
             az bicep build --file infra/main.bicep --stdout > /dev/null
+      - name: Build the non-root API container without publishing it
+        run: docker build --file src/FundingPlatform.Api/Dockerfile --tag rise-funding-api:ci .

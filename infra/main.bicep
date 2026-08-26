@@ -36,6 +36,19 @@ param budgetStartDate string
 @description('Create compute resources. Set false for a storage/identity/data-plane preflight deployment.')
 param deployCompute bool = true
 
+@description('Create the API Container App. The first apply keeps this false until its private image exists.')
+param deployApiContainer bool = false
+
+@description('API repository plus tag/digest already present in the environment Azure Container Registry.')
+@minLength(7)
+@maxLength(200)
+param apiContainerImageReference string = 'rise-funding-api:preview'
+
+@description('Minimum API replicas in dev. Start at one; set zero to enable scale-to-zero.')
+@minValue(0)
+@maxValue(1)
+param apiMinReplicas int = 1
+
 var prefix = 'rf-${environmentName}'
 var resourceGroupName = 'rg-${prefix}-${uniqueSuffix}'
 var commonTags = {
@@ -81,12 +94,18 @@ module environment './modules/environment.bicep' = {
     sqlEntraAdminObjectId: sqlEntraAdminObjectId
     sqlDatabaseName: sqlDatabaseName
     deployCompute: deployCompute
+    deployApiContainer: deployApiContainer
+    apiContainerImageReference: apiContainerImageReference
+    apiMinReplicas: apiMinReplicas
     tags: commonTags
   }
 }
 
 output resourceGroupName string = environmentResourceGroup.name
 output apiAppName string = environment.outputs.apiAppName
+output apiContainerFqdn string = environment.outputs.apiContainerFqdn
+output apiContainerRegistryName string = environment.outputs.apiContainerRegistryName
+output apiContainerRegistryLoginServer string = environment.outputs.apiContainerRegistryLoginServer
 output staticWebAppName string = environment.outputs.staticWebAppName
 output generalWorkerAppName string = environment.outputs.generalWorkerAppName
 output extractionWorkerAppName string = environment.outputs.extractionWorkerAppName

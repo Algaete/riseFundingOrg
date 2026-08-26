@@ -5,13 +5,22 @@ param sqlEntraAdminLogin string
 param sqlEntraAdminObjectId string
 param sqlDatabaseName string
 param deployCompute bool
+param deployApiContainer bool
+param apiContainerImageReference string
+
+@minValue(0)
+@maxValue(1)
+param apiMinReplicas int
+
 param tags object
 
 var prefix = 'rf-${environmentName}-${uniqueSuffix}'
 var compact = take(replace(prefix, '-', ''), 14)
 var documentStorageName = take('stdoc${compact}${uniqueString(resourceGroup().id)}', 24)
 var dataStorageName = take('stdata${compact}${uniqueString(subscription().id, prefix)}', 24)
-var apiAppName = 'app-${prefix}-api'
+var apiRegistryName = take('cr${compact}${uniqueString(subscription().id, prefix)}', 50)
+var apiAppName = 'ca-${prefix}-api'
+var apiEnvironmentName = 'cae-${prefix}'
 var staticWebAppName = 'swa-${prefix}'
 var generalWorkerName = 'func-${prefix}-general'
 var extractionWorkerName = 'func-${prefix}-extract'
@@ -24,6 +33,7 @@ var queueProcessorRoleId = subscriptionResourceId('Microsoft.Authorization/roleD
 var secretsUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
 var cryptoUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12338af0-0e69-4776-bea7-57ae8d297424')
 var metricsPublisherRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')
+var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${prefix}'
@@ -179,54 +189,52 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-resource apiPlan 'Microsoft.Web/serverfarms@2024-04-01' = if (deployCompute) {
-  name: 'plan-${prefix}-api'
+resource apiRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' = if (deployCompute) {
+  name: apiRegistryName
   location: location
-  kind: 'linux'
-  tags: tags
-  sku: { name: 'B1', tier: 'Basic', capacity: 1 }
-  properties: { reserved: true }
+  tags: union(tags, { boundary: 'private-container-images' })
+  sku: { name: 'Basic' }
+  properties: {
+    adminUserEnabled: false
+    anonymousPullEnabled: false
+    dataEndpointEnabled: false
+    networkRuleBypassOptions: 'AzureServices'
+    policies: {
+      azureADAuthenticationAsArmPolicy: { status: 'enabled' }
+      exportPolicy: { status: 'enabled' }
+      quarantinePolicy: { status: 'disabled' }
+      retentionPolicy: { days: 7, status: 'disabled' }
+      trustPolicy: { status: 'disabled', type: 'Notary' }
+    }
+    publicNetworkAccess: 'Enabled'
+    roleAssignmentMode: 'LegacyRegistryPermissions'
+    zoneRedundancy: 'Disabled'
+  }
 }
 
-resource api 'Microsoft.Web/sites@2024-04-01' = if (deployCompute) {
-  name: apiAppName
+resource apiContainerEnvironment 'Microsoft.App/managedEnvironments@2025-01-01' = if (deployCompute) {
+  name: apiEnvironmentName
   location: location
-  kind: 'app,linux'
   tags: tags
-  identity: { type: 'UserAssigned', userAssignedIdentities: { '${apiIdentity.id}': {} } }
   properties: {
-    serverFarmId: apiPlan.id
-    httpsOnly: true
-    clientAffinityEnabled: false
-    siteConfig: {
-      alwaysOn: true
-      ftpsState: 'Disabled'
-      healthCheckPath: '/health/ready'
-      http20Enabled: true
-      linuxFxVersion: 'DOTNETCORE|10.0'
-      minTlsVersion: '1.2'
-      appSettings: [
-        { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
-        { name: 'AZURE_KEY_VAULT_URI', value: vault.properties.vaultUri }
-        { name: 'AZURE_STORAGE_DATA_PROTECTION_BLOB_URI', value: '${documents.properties.primaryEndpoints.blob}dataprotection/keys.xml' }
-        { name: 'AZURE_KEY_VAULT_DATA_PROTECTION_KEY_URI', value: '${vault.properties.vaultUri}keys/data-protection' }
-        { name: 'AZURE_SQL_CONNECTION_STRING', value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${database.name};Encrypt=True;TrustServerCertificate=False;Authentication=Active Directory Managed Identity;User Id=${apiIdentity.properties.clientId};' }
-        { name: 'AZURE_STORAGE_BLOB_SERVICE_URI', value: documents.properties.primaryEndpoints.blob }
-        { name: 'SOURCE_DOCUMENT_INCOMING_CONTAINER', value: 'fp-source-incoming' }
-        { name: 'SOURCE_DOCUMENT_QUARANTINE_CONTAINER', value: 'fp-source-quarantine' }
-        { name: 'SOURCE_DOCUMENT_TRUSTED_CONTAINER', value: 'fp-source-trusted' }
-        { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: insights.properties.ConnectionString }
-        { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'ClientId=${apiIdentity.properties.clientId};Authorization=AAD' }
-        { name: 'DEFENDER_EVENT_GRID_ENABLED', value: 'false' }
-        { name: 'OFFICIAL_RSS_ENABLED', value: 'false' }
-        { name: 'SEMANTIC_ENABLED', value: 'false' }
-        { name: 'OPENAI_ENABLED', value: 'false' }
-        { name: 'ALERTS_ENABLED', value: 'false' }
-        { name: 'BILLING_ENABLED', value: 'false' }
-        { name: 'BILLING_SANDBOX_ONLY', value: 'true' }
-        { name: 'PAYMENT_PROVIDER', value: 'Disabled' }
-      ]
+    appLogsConfiguration: {
+      destination: 'azure-monitor'
     }
+    zoneRedundant: false
+  }
+}
+
+resource apiContainerEnvironmentDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (deployCompute) {
+  name: 'send-to-${logs.name}'
+  scope: apiContainerEnvironment
+  properties: {
+    workspaceId: logs.id
+    logs: [
+      { categoryGroup: 'allLogs', enabled: true }
+    ]
+    metrics: [
+      { category: 'AllMetrics', enabled: true }
+    ]
   }
 }
 
@@ -240,6 +248,58 @@ resource staticSite 'Microsoft.Web/staticSites@2025-03-01' = if (deployCompute) 
     publicNetworkAccess: 'Enabled'
     stagingEnvironmentPolicy: 'Disabled'
   }
+}
+
+var apiDefaultOrigin = deployCompute ? 'https://${apiAppName}.${apiContainerEnvironment!.properties.defaultDomain}' : ''
+var frontendDefaultOrigin = deployCompute ? 'https://${staticSite!.properties.defaultHostname}' : ''
+
+module apiContainer './container-api.bicep' = if (deployCompute && deployApiContainer) {
+  name: 'api-container'
+  params: {
+    appName: apiAppName
+    location: location
+    managedEnvironmentId: apiContainerEnvironment.id
+    registryServer: apiRegistry!.properties.loginServer
+    registryIdentityResourceId: apiIdentity.id
+    runtimeIdentityResourceId: apiIdentity.id
+    imageReference: apiContainerImageReference
+    minReplicas: apiMinReplicas
+    tags: tags
+    appSettings: {
+      ASPNETCORE_ENVIRONMENT: 'Production'
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: 'true'
+      ASPNETCORE_HTTP_PORTS: '8080'
+      AZURE_CLIENT_ID: apiIdentity.properties.clientId
+      AZURE_KEY_VAULT_URI: vault.properties.vaultUri
+      AZURE_STORAGE_DATA_PROTECTION_BLOB_URI: '${documents.properties.primaryEndpoints.blob}dataprotection/keys.xml'
+      AZURE_KEY_VAULT_DATA_PROTECTION_KEY_URI: '${vault.properties.vaultUri}keys/data-protection'
+      AZURE_SQL_CONNECTION_STRING: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${database.name};Encrypt=True;TrustServerCertificate=False;Authentication=Active Directory Managed Identity;User Id=${apiIdentity.properties.clientId};'
+      AZURE_STORAGE_BLOB_SERVICE_URI: documents.properties.primaryEndpoints.blob
+      SOURCE_DOCUMENT_INCOMING_CONTAINER: 'fp-source-incoming'
+      SOURCE_DOCUMENT_QUARANTINE_CONTAINER: 'fp-source-quarantine'
+      SOURCE_DOCUMENT_TRUSTED_CONTAINER: 'fp-source-trusted'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: insights.properties.ConnectionString
+      APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'ClientId=${apiIdentity.properties.clientId};Authorization=AAD'
+      FRONTEND_BASE_URL: frontendDefaultOrigin
+      ALLOWED_CORS_ORIGINS: frontendDefaultOrigin
+      JWT_ISSUER: apiDefaultOrigin
+      JWT_AUDIENCE: 'FundingPlatform.Web'
+      AUTH_ACCESS_TOKEN_MINUTES: '15'
+      AUTH_REFRESH_TOKEN_DAYS: '30'
+      AUTH_ADMIN_SESSION_MINUTES: '60'
+      DEFENDER_EVENT_GRID_ENABLED: 'false'
+      OFFICIAL_RSS_ENABLED: 'false'
+      SEMANTIC_ENABLED: 'false'
+      OPENAI_ENABLED: 'false'
+      ALERTS_ENABLED: 'false'
+      BILLING_ENABLED: 'false'
+      BILLING_SANDBOX_ONLY: 'true'
+      PAYMENT_PROVIDER: 'Disabled'
+    }
+  }
+  dependsOn: [
+    apiAcrPull
+  ]
 }
 
 var documentsBlobUri = documents.properties.primaryEndpoints.blob
@@ -317,6 +377,11 @@ resource apiMetrics 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: insights
   properties: { roleDefinitionId: metricsPublisherRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
 }
+resource apiAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployCompute) {
+  name: guid(apiRegistry!.id, apiIdentity.id, acrPullRoleId)
+  scope: apiRegistry
+  properties: { roleDefinitionId: acrPullRoleId, principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
+}
 resource senderQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(dataStorage::queues::extractions.id, extractionSenderIdentity.id, queueSenderRoleId)
   scope: dataStorage::queues::extractions
@@ -338,7 +403,10 @@ resource generalDocuments 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   properties: { roleDefinitionId: blobContributorRoleId, principalId: generalWorker!.outputs.hostIdentityPrincipalId, principalType: 'ServicePrincipal' }
 }
 
-output apiAppName string = deployCompute ? api.name : apiAppName
+output apiAppName string = deployCompute && deployApiContainer ? apiContainer!.outputs.appName : apiAppName
+output apiContainerFqdn string = deployCompute && deployApiContainer ? apiContainer!.outputs.fqdn : ''
+output apiContainerRegistryName string = deployCompute ? apiRegistry!.name : ''
+output apiContainerRegistryLoginServer string = deployCompute ? apiRegistry!.properties.loginServer : ''
 output staticWebAppName string = deployCompute ? staticSite.name : staticWebAppName
 output generalWorkerAppName string = deployCompute ? generalWorker!.outputs.appName : generalWorkerName
 output extractionWorkerAppName string = deployCompute ? extractionWorker!.outputs.appName : extractionWorkerName

@@ -3,7 +3,6 @@ using System.Threading.RateLimiting;
 using Azure.Communication.Email;
 using Azure.Core;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using FundingPlatform.Api.Configuration;
 using FundingPlatform.Api.Authorization;
@@ -69,11 +68,20 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1024 * 1024);
 builder.Configuration.AddFundingPlatformAliases();
 
-var azureCredential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+var hasManagedIdentityClientId = Guid.TryParse(
+    builder.Configuration["AZURE_CLIENT_ID"],
+    out var managedIdentityClientId);
+if (!builder.Environment.IsDevelopment() &&
+    !builder.Environment.IsEnvironment("Testing") &&
+    !hasManagedIdentityClientId)
 {
-    ExcludeInteractiveBrowserCredential = true,
-    ExcludeManagedIdentityCredential = builder.Environment.IsDevelopment()
-});
+    throw new InvalidOperationException(
+        "AZURE_CLIENT_ID debe identificar explícitamente la UAMI de la API.");
+}
+
+var azureCredential = AzureRuntimeCredentialFactory.Create(
+    hasManagedIdentityClientId ? managedIdentityClientId : null,
+    builder.Environment.EnvironmentName);
 
 if (!builder.Environment.IsEnvironment("Testing"))
 {
@@ -110,7 +118,18 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddSingleton<TokenCredential>(azureCredential);
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+if (!builder.Environment.IsDevelopment() &&
+    !builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddSingleton<ISqlConnectionFactory>(_ =>
+        new UserAssignedManagedIdentitySqlConnectionFactory(
+            builder.Configuration,
+            managedIdentityClientId));
+}
+else
+{
+    builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+}
 builder.Services.AddSingleton<SqlConnectionVerifier>();
 builder.Services.AddScoped<IFundingOpportunityRepository, SqlFundingOpportunityRepository>();
 builder.Services.AddScoped<FundingOpportunityCatalogService>();

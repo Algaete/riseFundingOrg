@@ -9,19 +9,28 @@ public sealed class Phase12AInfrastructureTests
     {
         var main = Read("infra", "main.bicep");
         var environment = Read("infra", "modules", "environment.bicep");
+        var containerApi = Read("infra", "modules", "container-api.bicep");
         var functions = Read("infra", "modules", "flex-function.bicep");
 
         Assert.Contains("@allowed(['dev'])", main, StringComparison.Ordinal);
         Assert.Contains("Microsoft.Consumption/budgets", main, StringComparison.Ordinal);
         Assert.Contains("GP_S_Gen5_1", environment, StringComparison.Ordinal);
         Assert.Contains("autoPauseDelay: 60", environment, StringComparison.Ordinal);
-        Assert.Contains("sku: { name: 'B1'", environment, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.App/managedEnvironments", environment, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.ContainerRegistry/registries", environment, StringComparison.Ordinal);
+        Assert.Contains("sku: { name: 'Basic'", environment, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.App/containerApps", containerApi, StringComparison.Ordinal);
+        Assert.Contains("minReplicas: minReplicas", containerApi, StringComparison.Ordinal);
+        Assert.Contains("maxReplicas: 1", containerApi, StringComparison.Ordinal);
+        Assert.Contains("memory: '1Gi'", containerApi, StringComparison.Ordinal);
+        Assert.Contains("path: '/health'", containerApi, StringComparison.Ordinal);
+        Assert.DoesNotContain("/health/ready", containerApi, StringComparison.Ordinal);
         Assert.Contains("tier: 'FlexConsumption'", functions, StringComparison.Ordinal);
         Assert.Contains("allowSharedKeyAccess: false", environment, StringComparison.Ordinal);
         Assert.Contains("allowSharedKeyAccess: false", functions, StringComparison.Ordinal);
         Assert.Contains("Storage Queue Data Message Sender", Read("docs", "AZURE-MVP-DEPLOYMENT.md"), StringComparison.Ordinal);
-        Assert.DoesNotContain("listKeys(", main + environment + functions, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("AccountKey", main + environment + functions, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("listKeys(", main + environment + containerApi + functions, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("AccountKey", main + environment + containerApi + functions, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -48,9 +57,34 @@ public sealed class Phase12AInfrastructureTests
         Assert.DoesNotContain("push:", workflow, StringComparison.Ordinal);
         Assert.Contains("DEPLOY-DEV", workflow, StringComparison.Ordinal);
         Assert.Contains("list-flexconsumption-runtimes", script, StringComparison.Ordinal);
+        Assert.Contains("Microsoft.App", script, StringComparison.Ordinal);
+        Assert.Contains("az acr build", script, StringComparison.Ordinal);
+        Assert.Contains("apply-base", script, StringComparison.Ordinal);
+        Assert.Contains("DEPLOY-DEV-BASE", script, StringComparison.Ordinal);
+        Assert.Contains("deployApiContainer=false", script, StringComparison.Ordinal);
+        Assert.Contains("AZURE_API_MIN_REPLICAS", script, StringComparison.Ordinal);
         Assert.Contains("deployment sub what-if", script, StringComparison.Ordinal);
         Assert.Contains("AZURE_APPLY_CONFIRMATION", script, StringComparison.Ordinal);
         Assert.Contains("bicep build", validation, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Api_container_is_non_root_private_and_managed_identity_only()
+    {
+        var dockerfile = Read("src", "FundingPlatform.Api", "Dockerfile");
+        var dockerIgnore = Read(".dockerignore");
+        var environment = Read("infra", "modules", "environment.bicep");
+        var apiProgram = Read("src", "FundingPlatform.Api", "Program.cs");
+
+        Assert.Contains("USER $APP_UID", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("/p:UseAppHost=false", dockerfile, StringComparison.Ordinal);
+        Assert.Contains(".env", dockerIgnore, StringComparison.Ordinal);
+        Assert.Contains("adminUserEnabled: false", environment, StringComparison.Ordinal);
+        Assert.Contains("anonymousPullEnabled: false", environment, StringComparison.Ordinal);
+        Assert.Contains("apiAcrPull", environment, StringComparison.Ordinal);
+        Assert.Contains("AZURE_CLIENT_ID: apiIdentity.properties.clientId", environment, StringComparison.Ordinal);
+        Assert.Contains("AzureRuntimeCredentialFactory.Create", apiProgram, StringComparison.Ordinal);
+        Assert.Contains("UserAssignedManagedIdentitySqlConnectionFactory", apiProgram, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] parts)

@@ -34,7 +34,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox y administración de suscripciones |
-| 12A | IaC local completada; Azure no creado | Dev separado, presupuesto, identidades, Storage, SQL serverless, compute y validación OIDC/what-if |
+| 12A | IaC local completada; Azure no creado | Dev separado, API Container Apps 1→0, ACR privado, presupuesto, identidades, Storage, SQL serverless y OIDC/what-if |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -57,7 +57,7 @@ Defender.
 - Workers: Azure Functions v4 isolated sobre .NET 10.
 - Datos: Azure SQL o SQL Server 2025, con procedimientos almacenados cuando aporten valor.
 - Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, Tailwind CSS y shadcn/ui.
-- Infraestructura: Azure App Service, Static Web Apps, Functions, Queue Storage, Blob Storage, Key Vault y Application Insights.
+- Infraestructura: Azure Container Apps Consumption, Container Registry, Static Web Apps, Functions, Queue Storage, Blob Storage, Key Vault y Application Insights.
 - Integraciones previstas: OpenAI, proveedor de email y Mercado Pago detrás de abstracciones reemplazables.
 
 ## Prerrequisitos
@@ -1030,7 +1030,7 @@ az login
 az account show
 ~~~
 
-La identidad debe tener acceso concedido a `res` y la red local debe estar autorizada por el firewall de Azure SQL. En Azure no se usa una sesión de CLI: App Service, Functions y herramientas desplegadas autentican con Managed Identity y permisos mínimos sobre la base.
+La identidad debe tener acceso concedido a `res` y la red local debe estar autorizada por el firewall de Azure SQL. En Azure no se usa una sesión de CLI: Container Apps, Functions y herramientas desplegadas autentican con Managed Identity y permisos mínimos sobre la base.
 
 El chequeo no destructivo de conectividad se ejecuta con:
 
@@ -1127,7 +1127,7 @@ validación están en [Despliegue del MVP en Azure](docs/AZURE-MVP-DEPLOYMENT.md
 Topología del MVP:
 
 - React en Azure Static Web Apps.
-- API en Azure App Service Linux.
+- API en Azure Container Apps Consumption, con imagen privada en ACR y una réplica inicial reducible a cero.
 - Worker general y extractor documental aislado en Azure Functions Flex Consumption separados.
 - Azure SQL provisionado pequeño para el piloto.
 - Blob Storage para documentos/raw y Queue Storage para transporte.
@@ -1175,8 +1175,8 @@ El orden de ejecución es:
   aplicación `025` pendiente de un despliegue autorizado;
 - FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
-- FASE 12A — IaC de dev, presupuesto, Managed Identities y workflows manuales OIDC/what-if
-  completados localmente; no se creó ningún recurso;
+- FASE 12A — IaC de dev, API Container Apps/ACR, presupuesto, Managed Identities e infraestructura
+  manual OIDC/what-if completados localmente; no se creó ningún recurso;
 - FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente

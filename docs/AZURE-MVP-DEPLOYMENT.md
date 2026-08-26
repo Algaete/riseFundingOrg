@@ -9,7 +9,7 @@ producción esté habilitada.
 El despliegue usa componentes separados:
 
 - `frontend/funding-platform-web`: Azure Static Web Apps.
-- `src/FundingPlatform.Api`: Azure App Service Linux.
+- `src/FundingPlatform.Api`: Azure Container Apps Consumption con imagen privada en ACR.
 - `src/FundingPlatform.Workers`: Azure Functions para importaciones, outbox, retención y Event Grid.
 - `src/FundingPlatform.ExtractionWorkers`: otra Function App para extraer PDF con identidad limitada.
 - Azure SQL Database para datos y procedimientos almacenados.
@@ -23,7 +23,7 @@ permisos, políticas y una prueba E2E. El MVP durable nunca autopublica contenid
 
 ## 2. Decisiones que deben tomarse antes de crear recursos
 
-1. Elegir una región compatible con App Service, Functions Flex Consumption, Azure SQL, Static Web
+1. Elegir una región compatible con Container Apps, Container Registry, Functions Flex Consumption, Azure SQL, Static Web
    Apps y Communication Services. No fijar una región solo por cercanía sin comprobar disponibilidad.
 2. Elegir nombres únicos. Ejemplo de convención: `rf-mvp-<recurso>-<sufijo>`.
 3. Comprar o disponer de un dominio. Reservar, como mínimo:
@@ -35,15 +35,14 @@ permisos, políticas y una prueba E2E. El MVP durable nunca autopublica contenid
 
 Los subdominios `app` y `api` deben compartir el mismo sitio registrable. La cookie refresh es segura,
 host-only y `SameSite=Lax`; una Static Web App bajo `azurestaticapps.net` y una API bajo
-`azurewebsites.net` no constituyen la topología final de sesión.
+`azurecontainerapps.io` no constituyen la topología final de sesión.
 
 ## 3. Preparar GitHub
 
 1. Proteger `main`: exigir pull request y el workflow `CI` en cambios posteriores al primer push.
 2. No almacenar publish profiles, connection strings, contraseñas ni JSON de service principals.
-3. Para despliegues usar OpenID Connect (OIDC). En App Service/Functions, Deployment Center puede
-   crear el workflow y la credencial federada. Las identidades de despliegue son diferentes de las
-   identidades que ejecutan la aplicación.
+3. Para despliegues usar OpenID Connect (OIDC). La credencial federada de GitHub es distinta de las
+   identidades que ejecutan Container Apps y Functions; no se usan publish profiles.
 4. Definir entornos de GitHub `staging` y `production`, con aprobación manual para `production`.
 
 El workflow `.github/workflows/ci.yml` compila y prueba. `infra-validate.yml` compila Bicep sin
@@ -73,19 +72,23 @@ En Azure Portal:
 8. Crear la cola `document-extractions` y la cola `imports` donde corresponda.
 9. Configurar lifecycle de `fp-source-incoming/uploads/` para eliminar cargas abandonadas después de
    un día. La retención de documentos aceptados la gestiona el vertical durable de la aplicación.
+10. Crear Container Apps Environment Consumption y ACR Basic privado; deshabilitar usuario admin y
+    dar `AcrPull` sólo a la UAMI de la API.
 
 No habilitar acceso público anónimo en Blob. No usar account keys en App Settings.
 
 ## 5. Crear las aplicaciones
 
 1. Crear Azure Static Web Apps para el frontend.
-2. Crear App Service Linux para `FundingPlatform.Api` y habilitar HTTPS-only.
+2. Construir `FundingPlatform.Api` con su Dockerfile no-root y desplegarla en Container Apps con
+   ingress HTTPS, 0,5 vCPU/1 GiB, máximo una réplica y mínimo inicial `1`.
 3. Crear dos Function Apps Flex Consumption separadas:
    - general: `FundingPlatform.Workers`;
    - extracción: `FundingPlatform.ExtractionWorkers`.
-4. Configurar health check de App Service en `/health/ready`.
-5. Mantener al menos una instancia disponible en el piloto si el tiempo de arranque observado no es
-   aceptable; decidirlo después de medir costo y latencia.
+4. Configurar probes de Container Apps en `/health`; no usar `/health/ready` como sondeo periódico
+   porque consulta SQL e impediría la auto-pausa.
+5. Cambiar el mínimo a `0` mediante Bicep cuando se acepte el cold start; una petición pública puede
+   volver a escalar la aplicación.
 
 Antes de elegir una versión del runtime en el Portal, comprobar que soporte el `global.json` y los
 `TargetFramework` del repositorio. El pipeline es la fuente de verdad: cualquier downgrade debe ser
@@ -108,6 +111,8 @@ Reglas obligatorias:
 - En cada Function App solo se adjuntan las identidades indicadas en la tabla.
 - El host storage del extractor no es la cuenta documental ni la cola de datos de extracción.
 - La API usa su propia Managed Identity.
+- La misma UAMI autentica en ACR para pull, Key Vault, Blob y SQL; `AZURE_CLIENT_ID` la fija de forma
+  explícita y no se adjunta otra identidad a Container Apps.
 - Otorgar permisos al scope más pequeño posible: cola o container, no toda la suscripción.
 
 Para la API:
@@ -116,6 +121,7 @@ Para la API:
 - `Key Vault Crypto User` sobre la clave de Data Protection.
 - `Storage Blob Data Contributor` limitado al container `dataprotection` y a los containers que la
   API realmente escribe.
+- `AcrPull` únicamente sobre el registry dev.
 - permisos SQL de ejecución solo para sus procedimientos requeridos.
 
 La migración crea `FundingPlatform_ExtractionWorkerRole`. Crear en Azure SQL el usuario Entra de `C`
@@ -140,7 +146,7 @@ Crear valores aleatorios independientes y guardar secretos con nombres jerárqui
 - `Authentication--External--Entra--ClientSecret` cuando SSO esté habilitado
 
 Los peppers y la signing key se generan fuera del repositorio. No se reutilizan entre staging y
-producción. Configurar en App Service, sin copiar secretos:
+producción. Configurar en Container Apps/Key Vault, sin copiar secretos:
 
 ```text
 ASPNETCORE_ENVIRONMENT=Production
@@ -255,20 +261,22 @@ No colocar tokens, claves ni connection strings en variables `VITE_*`.
 ## 12. Despliegue continuo
 
 1. Ejecutar primero el workflow `CI` del repositorio.
-2. En Deployment Center de App Service seleccionar GitHub, repositorio, `main` y OIDC.
-3. Repetir para cada Function App, indicando el `.csproj` correcto.
-4. Crear la Static Web App desde el repositorio con las rutas del punto anterior.
-5. Exigir aprobación del entorno GitHub `production`.
-6. No reutilizar las UAMI runtime como identidad de GitHub Actions.
+2. Ejecutar `infra-dev.yml` con `validate`, después `what-if` y finalmente `apply-base` confirmado;
+   esta última operación crea ACR/entorno pero todavía no crea la API.
+3. Cargar secretos, crear usuarios/roles SQL y ejecutar `apply`; recién entonces ACR Build publica la
+   imagen y Container Apps la consume por digest OCI.
+4. Publicar cada Function App desde un workflow posterior indicando el `.csproj` correcto.
+5. Crear/publicar la Static Web App desde el repositorio con las rutas del punto anterior.
+6. Exigir aprobación del entorno GitHub `production` y no reutilizar UAMI runtime en Actions.
 
-FASE 12A agrega el workflow manual de **infraestructura**, no uno de publicación de paquetes. La
-publicación de API/Functions/frontend se incorpora después de observar outputs, dominios e
-identidades reales. No se aceptan publish profiles ni secretos de service principal.
+FASE 12A deja preparado el build remoto y despliegue por digest de la **API** dentro del apply manual.
+La publicación de Functions/frontend sigue en 12B, después de observar outputs, dominios e
+identidades reales. No se aceptan publish profiles ni secretos de service principal o de ACR.
 
 ## 13. Dominios, TLS y comprobación final
 
 1. Verificar la propiedad del dominio con el TXT solicitado por Azure antes de agregar CNAME/A.
-2. Asociar `app.<dominio>` a Static Web Apps y `api.<dominio>` a App Service.
+2. Asociar `app.<dominio>` a Static Web Apps y `api.<dominio>` a Container Apps.
 3. Habilitar certificados administrados y HTTPS-only.
 4. Actualizar CORS, frontend URL, issuer y redirect URI con valores finales exactos.
 5. Validar:

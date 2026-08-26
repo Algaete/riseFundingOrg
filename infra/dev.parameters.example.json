@@ -9,6 +9,9 @@
     "budgetContactEmail": { "value": "REPLACE_WITH_EMAIL" },
     "budgetStartDate": { "value": "REPLACE_WITH_FIRST_DAY_UTC" },
     "monthlyBudgetAmount": { "value": 75 },
-    "deployCompute": { "value": true }
+    "deployCompute": { "value": true },
+    "deployApiContainer": { "value": false },
+    "apiContainerImageReference": { "value": "rise-funding-api@sha256:REPLACE_WITH_DIGEST" },
+    "apiMinReplicas": { "value": 1 }
   }
 }
