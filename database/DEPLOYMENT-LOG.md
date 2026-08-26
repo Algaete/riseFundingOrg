@@ -39,8 +39,10 @@ FASE 8B preparó localmente marketplace de proyectos, postulaciones y calendario
 migración `019` no se desplegó ni se validó contra ninguna base. FASE 9A completó localmente el motor
 determinístico y preparó la migración `020`, también sin conexión ni despliegue. FASE 9B-A prepara
 localmente la migración `021` para embeddings project-first y evaluación corpus-level sólo en sombra;
-tampoco se conectó ni se desplegó. El proveedor real, IA generativa, billing y alertas conservan fases
-posteriores del roadmap.
+tampoco se conectó ni se desplegó. FASE 9B-B agregó localmente el gobierno de proveedor y las
+explicaciones shadow de `022`/`023`; FASE 10A preparó búsquedas guardadas y alertas diarias en `024`,
+apagadas por defecto. La activación del proveedor, la IA generativa fuera de sombra, networking y
+billing conservan gates o fases posteriores del roadmap.
 
 No se registra la cadena de conexión, la identidad de despliegue ni ningún secreto.
 
@@ -411,3 +413,32 @@ commit de Azure SQL.
   autorizado, aprobar el proyecto exacto para DPA/ZDR, custodiar el secreto en Key Vault, registrar
   precios vigentes, cargar el corpus humano y ejecutar evals con presupuesto acotado. La extracción
   generativa y todo writeback/promoción siguen fuera de este cierre.
+
+## Preparación local 024 — FASE 10A, sin despliegue (2026-08-25)
+
+- Se preparó `024_saved_search_alerts.sql` con SHA-256
+  `f6222f40fb6b6ad436e6496d383f4b05900458e4201d9176165dcf9d113e99a4`
+  (1264 líneas, 18 separadores `GO`/19 lotes).
+- Se preparó `024_saved_search_alerts_smoke.sql` con SHA-256
+  `24f5aa7def2ecd6b7bf6f9c5c6843e105f34afca1fad0f69c8e4c5f484d7b035`
+  (293 líneas, sin separadores `GO`/un lote).
+- Los artefactos agregan búsquedas privadas por usuario+organización, filtros normalizados,
+  suscripciones email diarias y un ledger idempotente de digests. La selección se vuelve a ejecutar
+  server-side sobre `PublicReady`, conserva la semántica de filtros 8A y se limita a 50 publicaciones
+  nuevas por ventana.
+- Scheduler y delivery usan leases. Una caída superior a 24 horas se colapsa en un único digest de
+  recuperación; un resultado incierto del proveedor queda terminal `Unknown` y nunca se reenvía a
+  ciegas. SQL no persiste email, cuerpo ni bearer de baja.
+- `024` crea `FundingPlatform_AlertWorkerRole` con `EXECUTE` únicamente sobre los seis SP de
+  scheduler/delivery y deniega DML directo sobre las tablas principales. No crea usuario Entra ni
+  asigna membresías.
+- ScriptDom parseó los 19 lotes de migración y el lote del smoke. El gate local pasó build .NET con
+  0 warnings/0 errores, 360/360 pruebas unitarias, 149/149 de integración, lint frontend,
+  23 archivos/108 pruebas Vitest y build de producción.
+- Por instrucción del propietario no se abrió una conexión SQL, no se ejecutó `--validate`,
+  `--apply`, `--test` o `--status`, no se llamó a Communication Services, no se creó ningún recurso
+  Azure y no se envió correo. `res` sigue observado en 18/18; `019`→`024` permanecen locales.
+- La activación posterior exige aplicar las migraciones en orden, ejecutar todos los smokes con
+  rollback y registrar reapply/status; además requiere `ALERTS_ENABLED=true`, principal del worker
+  en el rol mínimo, dominio/remitente verificados, permiso Email Sender y la clave HMAC de baja en
+  Key Vault/App Settings.

@@ -11,6 +11,7 @@ using FundingPlatform.Api.Endpoints;
 using FundingPlatform.Api.Health;
 using FundingPlatform.Api.Middleware;
 using FundingPlatform.Application.Authentication;
+using FundingPlatform.Application.Alerts;
 using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
@@ -29,6 +30,7 @@ using FundingPlatform.Infrastructure.Identity.Cryptography;
 using FundingPlatform.Infrastructure.Identity.Email;
 using FundingPlatform.Infrastructure.Identity.Persistence;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
+using FundingPlatform.Infrastructure.Persistence.Alerts;
 using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Matching;
@@ -110,6 +112,8 @@ builder.Services.AddScoped<FundingOpportunityCatalogService>();
 builder.Services.AddScoped<IFundingOpportunityWorkspaceRepository,
     SqlFundingOpportunityWorkspaceRepository>();
 builder.Services.AddScoped<FundingOpportunityWorkspaceService>();
+builder.Services.AddScoped<ISavedSearchAlertRepository, SqlSavedSearchAlertRepository>();
+builder.Services.AddScoped<SavedSearchAlertService>();
 builder.Services.AddScoped<IFunderRepository, SqlFunderRepository>();
 builder.Services.AddScoped<FunderEditorialService>();
 builder.Services.AddScoped<IFundingOpportunityEditorialRepository,
@@ -185,6 +189,23 @@ builder.Services
     .Bind(builder.Configuration.GetSection(EmailOptions.SectionName))
     .Validate(EmailOptions.IsValid, "La configuración Email no es válida.")
     .ValidateOnStart();
+builder.Services
+    .AddOptions<AlertOptions>()
+    .Bind(builder.Configuration.GetSection(AlertOptions.SectionName))
+    .Validate(options => AlertOptions.IsValid(
+        options,
+        builder.Configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ??
+            new EmailOptions()), "La configuración Alerts no es válida.")
+    .ValidateOnStart();
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var alerts = serviceProvider.GetRequiredService<IOptions<AlertOptions>>().Value;
+    var email = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+    var policy = alerts.ToPolicy(email);
+    policy.EnsureValid();
+    return policy;
+});
+builder.Services.AddSingleton<AlertUnsubscribeTokenService>();
 builder.Services
     .AddOptions<SourceDocumentOptions>()
     .Bind(builder.Configuration.GetSection(SourceDocumentOptions.SectionName))
@@ -559,6 +580,7 @@ app.MapFundingApplicationEndpoints();
 app.MapProjectMatchingEndpoints();
 app.MapAdminSemanticEvaluationEndpoints();
 app.MapAdminAiExplanationEndpoints();
+app.MapSavedSearchAlertEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

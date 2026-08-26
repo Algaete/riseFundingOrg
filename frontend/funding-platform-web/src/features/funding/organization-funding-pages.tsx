@@ -10,6 +10,7 @@ import {
   Heart,
   ListFilter,
   LoaderCircle,
+  Save,
   Search,
   SlidersHorizontal,
   X,
@@ -538,6 +539,10 @@ export function OrganizationFundingCatalogPage() {
     'fundingTypeIds', 'organizationTypeIds', 'currency', 'minAmount', 'maxAmount', 'closingFrom',
     'closingTo', 'sponsor',
   ].filter((key) => searchParams.has(key)).length + (searchParams.get('onlyOpen') === 'false' ? 1 : 0)
+  const savedSearchParameters = new URLSearchParams(searchParams)
+  savedSearchParameters.delete('page')
+  savedSearchParameters.delete('pageSize')
+  savedSearchParameters.set('new', 'true')
 
   return (
     <div className="space-y-6">
@@ -647,6 +652,9 @@ export function OrganizationFundingCatalogPage() {
           {opportunities.isFetching && <span> · Actualizando…</span>}
         </p>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link to={`/alerts?${savedSearchParameters.toString()}`}><Save className="size-4" /> Guardar búsqueda</Link>
+          </Button>
           <label className="grid gap-1 text-xs font-semibold" htmlFor="funding-sort">Ordenar
             <select className={selectClass} id="funding-sort" onChange={(event) => replaceParameter('sort', event.target.value)} value={criteria.sort}>
               <option disabled={!urlQuery.trim()} value="relevance">Relevancia</option>

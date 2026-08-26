@@ -20,15 +20,6 @@ export function DashboardPage() {
   )
 }
 
-export function AlertsPage() {
-  return (
-    <PagePlaceholder
-      title="Alertas"
-      description="Preferencias y registro de notificaciones relevantes."
-    />
-  )
-}
-
 export function OrganizationProfilePage() {
   return <OrganizationWorkspacePage />
 }

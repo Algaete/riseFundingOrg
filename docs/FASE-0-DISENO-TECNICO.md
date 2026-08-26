@@ -5,7 +5,8 @@ Full-Text provisionado; FASE 8B completada en código local, con `019` preparada
 validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
 sin aplicación ni prueba contra una base de datos; FASE 9B-A completada en código local y `021`
 congelada; FASE 9B-B con adapters/gobierno/explicaciones shadow completados en código local mediante
-`022`/`023`, todos todavía sin aplicación ni prueba contra una base de datos o proveedor real
+`022`/`023`; FASE 10A completada en código local con búsquedas guardadas y alertas diarias mediante
+`024`, todos todavía sin aplicación ni prueba contra una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
 
@@ -589,14 +590,15 @@ Los dominios predeterminados inconexos de Static Web Apps/App Service no son una
 
 La primera migración de FASE 2 incluye catálogos, identidad base, organizaciones,
 fondos/fuentes canónicos, entitlements Free y outbox. Matching, autenticación completa,
-billing y alertas se agregarán en migraciones de su fase para no congelar
-prematuramente detalles, aunque su diseño queda definido aquí. FASE 6 incorporó evidence
+billing y alertas se agregan en migraciones de su fase para no congelar prematuramente detalles;
+matching y alertas ya tienen artefactos locales, mientras billing continúa pendiente. FASE 6 incorporó evidence
 editorial y el límite seguro de documentos. FASE 7A incorporó runs, raw inmutable y adquisición
 durable desde Grants.gov; FASE 7B agregó extracción PDF, recepción Defender/Event Grid fail-closed,
 RSS gobernado, retención y revisión humana de duplicados. Proyectos/funders se agregaron en FASE 5/6;
 9A agrega compatibilidad project-first determinística; 9B-A prepara embeddings y evals sólo en
 sombra, y 9B-B prepara adapters reales gobernados y explicaciones administrativas shadow sin
-activar ni promover resultados.
+activar ni promover resultados. FASE 10A prepara búsquedas guardadas y alertas diarias apagadas por
+defecto mediante `024`.
 
 ### 7.2 Catálogos normalizados
 
@@ -1484,71 +1486,103 @@ UQ `(Provider, ProviderEventId)` es la barrera idempotente. El adapter construye
 
 ```text
 Id BIGINT IDENTITY PK
+PublicId UNIQUEIDENTIFIER UQ
 OrganizationId BIGINT NOT NULL
 UserId BIGINT NOT NULL
 Name NVARCHAR(150) NOT NULL
 QueryText NVARCHAR(300) NULL
-SponsorText NVARCHAR(200) NULL
+SponsorText NVARCHAR(300) NULL
 MinAmount DECIMAL(19,4) NULL
 MaxAmount DECIMAL(19,4) NULL
 Currency CHAR(3) NULL
 ClosingFrom DATE NULL
 ClosingTo DATE NULL
-EligibilityFilter TINYINT NULL           -- Any/Eligible/Ineligible/Unknown; no Allowed/Excluded
-OnlyOpen BIT NOT NULL DEFAULT 1
-MinimumMatchScore DECIMAL(5,2) NULL
+OnlyOpen BIT NOT NULL
+SortCode TINYINT NOT NULL                -- cinco órdenes allowlisted de 8A
 DeletedAtUtc DATETIME2(3) NULL
 CreatedAtUtc, UpdatedAtUtc DATETIME2(3)
 RowVersion ROWVERSION
 ```
 
-Las selecciones múltiples se normalizan en `SavedSearchCountries`, `SavedSearchRegions`, `SavedSearchCategories`, `SavedSearchTags`, `SavedSearchFundingTypes`, `SavedSearchOrganizationTypes`, `SavedSearchBeneficiaryTypes` y `SavedSearchProjectTypes`, todas con PK compuesta. De esta forma una alerta reproduce todos los predicados admitidos por la búsqueda —incluido el rango `ClosingFrom/ClosingTo`; sort y paginación no forman parte de una alerta— y no guarda CSV separados por coma. Checks exigen `MaxAmount >= MinAmount`, moneda cuando hay monto, `ClosingTo >= ClosingFrom` y score 0–100. Existen FK compuesta `(OrganizationId, UserId) → OrganizationUsers` y UQ auxiliar `(Id, OrganizationId, UserId)`. `DELETE` es lógico: marca `DeletedAtUtc` y desactiva sus alertas en una transacción; búsquedas normales filtran eliminadas y los logs históricos conservan sus FKs.
+Las selecciones múltiples se normalizan en `SavedSearchCountries`, `SavedSearchRegions`,
+`SavedSearchCategories`, `SavedSearchTags`, `SavedSearchFundingTypes`,
+`SavedSearchOrganizationTypes`, `SavedSearchBeneficiaryTypes`, `SavedSearchProjectTypes` y
+`SavedSearchFunders`, todas con PK compuesta. La búsqueda reproduce los predicados de 8A sin CSV;
+la alerta reevalúa esos filtros server-side y no usa score, matching ni una lista enviada por React.
+Checks exigen `MaxAmount >= MinAmount`, moneda cuando hay monto, `ClosingTo >= ClosingFrom` y un
+orden allowlisted. Una FK compuesta exige membresía usuario+organización; `DELETE` es lógico,
+desactiva la alerta en la misma transacción y conserva el lineage de los logs. Un ledger separado
+de create requests hace durable `Idempotency-Key + request hash`.
 
 #### `AlertSubscriptions`
 
 ```text
 Id BIGINT IDENTITY PK
+PublicId UNIQUEIDENTIFIER UQ
 SavedSearchId BIGINT NOT NULL
 OrganizationId BIGINT NOT NULL
 UserId BIGINT NOT NULL
 Channel TINYINT NOT NULL                -- Email en MVP
 Frequency TINYINT NOT NULL              -- Daily en MVP
-PreferredHourLocal TINYINT NULL
+PreferredHourLocal TINYINT NOT NULL
 TimeZoneId NVARCHAR(100) NOT NULL
 NextRunAtUtc DATETIME2(3) NOT NULL
 LastRunAtUtc DATETIME2(3) NULL
 IsActive BIT NOT NULL DEFAULT 1
 DisabledReasonCode NVARCHAR(100) NULL
 DisabledAtUtc DATETIME2(3) NULL
+UnsubscribeNonce UNIQUEIDENTIFIER NOT NULL
+LeaseOwner, LeaseId UNIQUEIDENTIFIER NULL
+LeaseUntilUtc DATETIME2(3) NULL
 CreatedAtUtc, UpdatedAtUtc DATETIME2(3)
+RowVersion ROWVERSION
 ```
 
-UQ `(SavedSearchId, Channel)` hace que el `PUT` cree, actualice o reactive una sola suscripción por búsqueda/canal; IX `(IsActive, NextRunAtUtc)` permite reclamar alertas vencidas. Un check exige campos de desactivación null cuando está activa y `DisabledReasonCode + DisabledAtUtc` cuando no; distingue unsubscribe, búsqueda eliminada, membresía, downgrade y bounce. `NextRunAtUtc` se deriva de hora local + zona IANA y se recalcula tras cada envío, por lo que respeta cambios DST.
+UQ `(SavedSearchId, Channel)` hace que `PUT` cree, actualice o reactive una sola suscripción por
+búsqueda/canal. El scheduler reclama con lease, desactiva si ya no existe usuario/membresía/tenant o
+la búsqueda se eliminó, y calcula el próximo envío desde hora local + zona IANA respetando DST. Una
+caída superior a 24 horas se colapsa en un único digest de recuperación, no en un correo por día
+perdido.
 
-UQ auxiliar `(Id, OrganizationId, UserId)` y FK compuesta `(SavedSearchId, OrganizationId, UserId) → SavedSearches(Id, OrganizationId, UserId)` impiden suscribir a un usuario/tenant a la búsqueda privada de otro.
+La FK compuesta `(SavedSearchId, OrganizationId, UserId)` impide suscribir a otro tenant/usuario.
+El token público de baja se firma HMAC-SHA256 sobre IDs+nonce; SQL sólo persiste el nonce, nunca el
+bearer ni la clave.
 
 #### `NotificationLogs`
 
 ```text
 Id BIGINT IDENTITY PK
-AlertSubscriptionId BIGINT NULL
+PublicId UNIQUEIDENTIFIER UQ
+AlertSubscriptionId BIGINT NOT NULL
 OrganizationId BIGINT NOT NULL
 UserId BIGINT NOT NULL
+ScheduledForUtc DATETIME2(3) NOT NULL
 Channel TINYINT NOT NULL
 TemplateCode NVARCHAR(100) NOT NULL
 Locale NVARCHAR(10) NOT NULL
-IdempotencyKey NVARCHAR(200) NOT NULL
+IdempotencyKey BINARY(32) NOT NULL
 Status TINYINT NOT NULL
-ProviderMessageId NVARCHAR(200) NULL
 AttemptCount SMALLINT NOT NULL DEFAULT 0
+AvailableAtUtc DATETIME2(3) NOT NULL
+LeaseOwner, LeaseId UNIQUEIDENTIFIER NULL
+LeaseUntilUtc DATETIME2(3) NULL
+ProviderMessageId NVARCHAR(200) NULL
 SentAtUtc DATETIME2(3) NULL
 ErrorCode NVARCHAR(100) NULL
-CreatedAtUtc DATETIME2(3) NOT NULL
+ItemCount SMALLINT NOT NULL
+WasTruncated BIT NOT NULL
+CreatedAtUtc, UpdatedAtUtc DATETIME2(3) NOT NULL
 ```
 
-UQ `IdempotencyKey`; IX `(OrganizationId, UserId, CreatedAtUtc DESC)` e IX `(Status, CreatedAtUtc)`. FK compuesta a `OrganizationUsers` y FK nullable `(AlertSubscriptionId, OrganizationId, UserId) → AlertSubscriptions(Id, OrganizationId, UserId)` preservan el lineage tenant/usuario cuando el log nace de una alerta; una fila representa un digest por alerta/ventana, no un email por fondo. La misma key se pasa al provider: un estado de respuesta incierta queda `Unknown` y se reconcilia, nunca se reenvía a ciegas.
+UQ `IdempotencyKey` y `(AlertSubscriptionId, ScheduledForUtc)` garantizan un digest por
+alerta+ventana. La entrega usa claim/renew/complete/fail; un fallo confirmado antes del envío puede
+reintentarse hasta el máximo y un ACK/resultado incierto termina `Unknown`, sin reenvío automático.
+No se afirma reconciliación hasta que exista un adapter con consulta idempotente por referencia.
+Email y body se leen/crean de forma efímera y nunca se guardan.
 
-`NotificationLogItems(NotificationLogId BIGINT, FundingOpportunityId BIGINT, MatchScore DECIMAL(5,2) NULL, PK compuesta)` conserva los ítems del digest. La clave idempotente combina alerta + ventana y existe un máximo configurable de ítems por email.
+`NotificationLogItems(NotificationLogId BIGINT, FundingOpportunityId BIGINT, PublishedAtUtc
+DATETIME2(3), PK compuesta)` conserva hasta 50 publicaciones nuevas de la ventana. No almacena
+match score porque 10A no calcula compatibilidad ni elegibilidad.
 
 #### `OutboxMessages`
 
@@ -1941,6 +1975,12 @@ postulación activa. No persiste una tabla calendario y excluye postulaciones `D
 - `POST /api/v1/alerts/unsubscribe` con token opaco de un solo propósito desde email
 
 El servidor vuelve a ejecutar la búsqueda guardada; no acepta que React envíe una lista de fondos para alertar.
+Las rutas organizacionales exigen sesión completa, membresía activa y aislamiento user+tenant;
+usan `no-store`, rate limit, `Idempotency-Key` al crear y ETag/`If-Match` al modificar o eliminar.
+La baja pública es `POST`, no enumera suscripciones y valida un bearer HMAC de un solo propósito.
+La página exige confirmación explícita antes del `POST`; abrir o previsualizar la URL no modifica
+estado. El bearer se ubica en el fragmento `#token`, fuera del request HTTP del hosting.
+`Alerts:Enabled=false` mantiene scheduler, activación y proveedor apagados por defecto.
 
 ### 8.6 Suscripciones
 
@@ -2202,14 +2242,17 @@ Cancelación al fin de período conserva acceso hasta `CurrentPeriodEndUtc`. `re
 ### 9.7 Alertas
 
 1. Scheduler reclama alertas cuyo `NextRunAtUtc` venció.
-2. Antes de materializar el envío, revalida `Users.Status=Active`, membresía activa/ownership, búsqueda no eliminada y entitlement/límites actuales. Suspensión, baja o downgrade pausa/desactiva con reason code; una FK por sí sola no autoriza.
-3. Ejecuta el mismo motor de búsqueda server-side, no una versión duplicada.
-4. Selecciona fondos nuevos desde la última ventana y aplica score mínimo.
-5. Inserta `NotificationLogs` con clave idempotente antes de enviar.
-6. Envía plantilla localizada con enlaces al dominio propio y fuente original, pasando la misma key a un provider que soporte create idempotente o consulta por referencia.
-7. Registra provider ID/estado sin almacenar el cuerpo completo. Si el provider pudo aceptar pero la respuesta se perdió, marca `Unknown` y reconcilia por key antes de cualquier retry.
-8. Reintenta solo fallos confirmadamente no aceptados con backoff; rebotes permanentes deshabilitan tras política.
-9. Actualiza `LastRunAtUtc/NextRunAtUtc` transaccionalmente.
+2. Antes de materializar, revalida usuario activo, membresía, organización, búsqueda no eliminada y
+   suscripción activa; una FK por sí sola no autoriza.
+3. Ejecuta server-side los predicados literales y filtros de 8A sobre `PublicReady`, sin matching ni
+   score, y selecciona sólo publicaciones nuevas de `LastRunAtUtc..ScheduledForUtc`.
+4. Materializa como máximo 50 ítems y el ledger `NotificationLog` en la misma transacción que avanza
+   `LastRunAtUtc/NextRunAtUtc`; la clave SHA-256 alerta+ventana vuelve el paso idempotente.
+5. Delivery vuelve a comprobar destinatario y disponibilidad pública, reclama con lease y construye
+   email/token únicamente en memoria.
+6. Registra receipt/estado acotados sin guardar email ni body. Un fallo confirmadamente pre-envío
+   puede reintentarse; un timeout o ACK incierto queda terminal `Unknown` y no se reenvía a ciegas.
+7. Un run sin novedades queda `Skipped`; una caída extensa produce un solo digest de recuperación.
 
 ---
 
@@ -3033,14 +3076,30 @@ un requisito del MVP.
 **Salida de código:** proveedor reemplazable y gobernado, Structured Outputs acotado y explicación
 shadow reproducible. **Salida operacional pendiente:** decisión go/no-go basada en corpus real.
 
-### FASE 10 — Alertas, pipeline, calendario y networking básico
+### FASE 10A — Búsquedas guardadas y alertas diarias
 
-- búsquedas guardadas, email diario y recordatorios;
-- pipeline de postulación por proyecto/oportunidad;
-- búsqueda de organizaciones y solicitud `Connect` moderada.
+- búsquedas privadas por usuario+organización, filtros normalizados y reapertura desde la SPA;
+- digest email diario `PublicReady`, historial, baja segura y delivery idempotente con leases;
+- runtime apagado por defecto y rol SQL mínimo del worker.
 
-**Salida:** alerta y pipeline E2E sin duplicados lógicos; una brecha de partnership produce una
-recomendación explicable y el contacto exige acción del usuario.
+Código local completado mediante `024_saved_search_alerts.sql` (1264 líneas/19 lotes, SHA-256
+`f6222f40fb6b6ad436e6496d383f4b05900458e4201d9176165dcf9d113e99a4`) y smoke (293 líneas/un
+lote, SHA-256 `24f5aa7def2ecd6b7bf6f9c5c6843e105f34afca1fad0f69c8e4c5f484d7b035`). Gates:
+ScriptDom, build .NET 0 warnings/0 errores, Unit 360/360, Integration 149/149, lint frontend,
+23 archivos/108 pruebas Vitest y build. `019`→`024` no se ejecutaron contra una base; no se llamó a
+Communication Services ni se envió email.
+
+El pipeline y calendario ya pertenecen a 8B; 10A no los duplica. La activación exige aplicar las
+migraciones, crear el usuario Entra/rol mínimo, verificar dominio y remitente, asignar Email Sender,
+guardar la clave HMAC en Key Vault y habilitar `Alerts` de forma explícita.
+
+### FASE 10B — Networking básico
+
+- búsqueda pública segura de organizaciones/proyectos para colaboración;
+- solicitud `Connect` moderada, con aceptación/rechazo explícitos y sin exponer PII;
+- una brecha de partnership puede sugerir explorar colaboración, nunca contactar automáticamente.
+
+**Salida:** networking privado y moderado sin modificar matching, postulaciones ni alertas.
 
 ### FASE 11 — Suscripciones y administración completa
 

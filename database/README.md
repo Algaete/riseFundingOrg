@@ -473,6 +473,33 @@ queda apagado hasta aprobar el proyecto exacto para ZDR/DPA, guardar el secreto 
 registrar precios actuales y ejecutar evals sobre un corpus real. No se entrenó un modelo ni se usó
 Azure ML. La extracción generativa y cualquier writeback/promoción continúan fuera de este cierre.
 
+## Estado de FASE 10A
+
+La implementación local agrega una migración forward-only todavía no aplicada:
+
+- `024_saved_search_alerts.sql` (1264 líneas/19 lotes), SHA-256
+  `f6222f40fb6b6ad436e6496d383f4b05900458e4201d9176165dcf9d113e99a4`;
+- `024_saved_search_alerts_smoke.sql` (293 líneas/un lote), SHA-256
+  `24f5aa7def2ecd6b7bf6f9c5c6843e105f34afca1fad0f69c8e4c5f484d7b035`.
+
+`024` agrega búsquedas privadas por usuario+organización, filtros N:N normalizados, suscripción diaria,
+ledger del digest e ítems por oportunidad. La materialización reusa
+`FundingPlatform_ifn_FundingOpportunityPublicReady`, replica los predicados 8A y considera sólo
+publicaciones nuevas de la ventana. El máximo es 50; si hubo una caída de más de 24 horas se genera
+un único digest de recuperación en vez de uno por día perdido.
+
+La entrega usa claim/renew/complete/fail con leases e intentos. Un timeout/ACK incierto termina
+`Unknown` y no vuelve a enviarse; un fallo confirmado antes de enviar puede quedar
+`RetryScheduled`. SQL no persiste email, body ni bearer de baja. Solo guarda nonce, receipt acotado,
+estado y código seguro. `FundingPlatform_AlertWorkerRole` recibe `EXECUTE` en seis SP de scheduler/
+delivery y `DENY` de DML directo sobre las tablas principales; la migración no crea el usuario Entra.
+
+ScriptDom parseó los 19 lotes de migración y el lote transaccional del smoke. El gate local pasó
+build .NET 0 warnings/0 errores, Unit 360/360, Integration 149/149, lint frontend, 23/108 Vitest y
+build. No se abrió una conexión DB/Azure, no se aplicó `024` ni se envió email. El último estado
+observado de `res` sigue en 18/18; el despliegue posterior debe validar/aplicar en orden
+`019`→`024`, correr todos los smokes con rollback, reapply/status y registrar los resultados reales.
+
 ## Carpetas
 
 - Tables: definiciones de tablas, claves, constraints e índices propios del objeto.
@@ -514,7 +541,8 @@ local la compatibilidad determinística project-first y su migración `020`, con
 aplicación DB pendiente. FASE 9B-A prepara embeddings project-first y su evaluación corpus-level sólo
 en sombra mediante `021`, también sin aplicar. FASE 9B-B prepara adapters externos gobernados y
 explicaciones administrativas shadow mediante `022`/`023`, igualmente apagados y sin aplicar;
-extracción generativa, promoción, billing y alertas conservan fases o gates posteriores. Las sesiones
+FASE 10A prepara búsquedas guardadas y alertas diarias mediante `024`, apagadas y sin aplicar;
+extracción generativa, promoción, networking y billing conservan fases o gates posteriores. Las sesiones
 y MFA se incorporaron de forma aditiva en FASE 3 mediante
 las migraciones 002/003/004.
 

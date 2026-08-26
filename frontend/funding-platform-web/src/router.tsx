@@ -8,7 +8,8 @@ const AppShell = lazy(() => import('@/components/app-shell').then((module) => ({
 const PublicLayout = lazy(() => import('@/components/public-layout').then((module) => ({ default: module.PublicLayout })))
 
 const AccountPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.AccountPage })))
-const AlertsPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.AlertsPage })))
+const AlertsPage = lazy(() => import('@/features/alerts/alerts-pages').then((module) => ({ default: module.AlertsWorkspacePage })))
+const AlertUnsubscribePage = lazy(() => import('@/features/alerts/alerts-pages').then((module) => ({ default: module.AlertUnsubscribePage })))
 const ApplicationsPage = lazy(() => import('@/features/applications/application-pages').then((module) => ({ default: module.ApplicationsWorkspacePage })))
 const CalendarPage = lazy(() => import('@/features/calendar/calendar-pages').then((module) => ({ default: module.CalendarWorkspacePage })))
 const DashboardPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.DashboardPage })))
@@ -80,6 +81,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/auth/external/callback', element: <ExternalAuthenticationCallbackPage /> },
       { path: '/projects/public/:slug', element: <PublicProjectPage /> },
       { path: '/reset-password', element: <ResetPasswordPage /> },
+      { path: '/alerts/unsubscribe', element: <AlertUnsubscribePage /> },
       { path: '/mfa', element: <MfaChallengePage /> },
       { path: '/mfa/setup', element: <MfaSetupPage /> },
     ],

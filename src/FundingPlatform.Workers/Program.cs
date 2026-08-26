@@ -1,9 +1,11 @@
 using System.Net;
+using Azure.Communication.Email;
 using Azure.Core;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using FundingPlatform.Application.FundingOpportunities;
+using FundingPlatform.Application.Alerts;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.SourceDocuments;
@@ -12,6 +14,7 @@ using FundingPlatform.Infrastructure.FundingSources;
 using FundingPlatform.Infrastructure.FundingSources.GrantsGov;
 using FundingPlatform.Infrastructure.FundingSources.Rss;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
+using FundingPlatform.Infrastructure.Persistence.Alerts;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
@@ -19,6 +22,8 @@ using FundingPlatform.Infrastructure.Persistence.Sql;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
 using FundingPlatform.Infrastructure.Semantics;
+using FundingPlatform.Infrastructure.Notifications;
+using FundingPlatform.Infrastructure.Identity.Configuration;
 using FundingPlatform.Workers.Configuration;
 using FundingPlatform.Workers.Security;
 using FundingPlatform.Workers.Queue;
@@ -86,10 +91,28 @@ builder.Services.AddSingleton<IValidateOptions<AiExplanationOptions>,
     AiExplanationOptionsValidator>();
 builder.Services.AddSingleton<IValidateOptions<AiExplanationOptions>,
     AiExplanationWorkerOptionsValidator>();
+builder.Services.AddOptions<EmailOptions>()
+    .Bind(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.AddOptions<AlertOptions>()
+    .Bind(builder.Configuration.GetSection(AlertOptions.SectionName))
+    .Validate(options => AlertOptions.IsValid(
+        options,
+        builder.Configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ??
+            new EmailOptions()), "Alerts configuration is invalid.")
+    .ValidateOnStart();
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<AiExplanationOptions>>().Value.ToPolicy());
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var alerts = serviceProvider.GetRequiredService<IOptions<AlertOptions>>().Value;
+    var email = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+    var policy = alerts.ToPolicy(email);
+    policy.EnsureValid();
+    return policy;
+});
+builder.Services.AddSingleton<AlertUnsubscribeTokenService>();
 
 var queueStorage = ImportQueueStorageConfiguration.Resolve(builder.Configuration);
 var documentExtractionQueueStorage =
@@ -104,6 +127,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<GovernedAcquisitionRequestGate>();
 builder.Services.AddSingleton(ImportWorkerIdentity.Create());
 builder.Services.AddSingleton(SemanticWorkerIdentity.Create());
+builder.Services.AddSingleton(AlertWorkerIdentity.Create());
 builder.Services.AddSingleton<TokenCredential>(
     AzureRuntimeCredentialFactory.Create(
         queueStorage.ManagedIdentityClientId,
@@ -125,6 +149,7 @@ builder.Services.AddScoped<ISourceDocumentContentRetentionRepository,
 builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepository>();
 builder.Services.AddScoped<ISemanticProcessingRepository,
     SqlSemanticProcessingRepository>();
+builder.Services.AddScoped<ISavedSearchAlertRepository, SqlSavedSearchAlertRepository>();
 builder.Services.AddScoped<IAiExplanationProcessingRepository,
     SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceiptRepository>();
@@ -200,6 +225,31 @@ builder.Services.AddScoped(serviceProvider => new AiExplanationProcessingService
     serviceProvider.GetRequiredService<AiExplanationProcessingPolicy>(),
     serviceProvider.GetRequiredService<TimeProvider>(),
     serviceProvider.GetRequiredService<SemanticWorkerIdentity>().InstanceId));
+var configuredAlerts = builder.Configuration
+    .GetSection(AlertOptions.SectionName).Get<AlertOptions>() ?? new AlertOptions();
+if (configuredAlerts.Enabled && !builder.Environment.IsDevelopment() &&
+    !builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddSingleton(serviceProvider =>
+    {
+        var email = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+        return new EmailClient(
+            new Uri(email.Endpoint),
+            serviceProvider.GetRequiredService<TokenCredential>());
+    });
+    builder.Services.AddSingleton<IAlertEmailSender, AzureCommunicationAlertEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IAlertEmailSender, DevelopmentAlertEmailSender>();
+}
+builder.Services.AddScoped(serviceProvider => new AlertProcessingService(
+    serviceProvider.GetRequiredService<ISavedSearchAlertRepository>(),
+    serviceProvider.GetRequiredService<IAlertEmailSender>(),
+    serviceProvider.GetRequiredService<AlertUnsubscribeTokenService>(),
+    serviceProvider.GetRequiredService<AlertProcessingPolicy>(),
+    serviceProvider.GetRequiredService<TimeProvider>(),
+    serviceProvider.GetRequiredService<AlertWorkerIdentity>().InstanceId));
 
 builder.Services.AddHttpClient<GrantsGovFundingSourceProvider>((serviceProvider, client) =>
     {

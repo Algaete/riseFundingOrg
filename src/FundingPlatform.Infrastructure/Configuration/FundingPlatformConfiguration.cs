@@ -85,6 +85,8 @@ public static class FundingPlatformConfiguration
             "OpenAI:RequiredStructuredOutputGovernancePolicySha256"),
         ("OPENAI_MAXIMUM_RESPONSE_BYTES", "OpenAI:MaximumResponseBytes"),
         ("AI_EXPLANATIONS_ENABLED", "AiExplanations:Enabled"),
+        ("ALERTS_ENABLED", "Alerts:Enabled"),
+        ("ALERTS_UNSUBSCRIBE_TOKEN_KEY", "Alerts:UnsubscribeTokenKey"),
         ("AI_EXPLANATIONS_BATCH_SIZE", "AiExplanations:BatchSize"),
         ("AI_EXPLANATIONS_LEASE_SECONDS", "AiExplanations:LeaseSeconds"),
         ("AI_EXPLANATIONS_TIMEOUT_SECONDS", "AiExplanations:TimeoutSeconds"),

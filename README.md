@@ -6,14 +6,13 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **implementación local gobernada de FASE 9B-B** sobre la compatibilidad
-determinística de 9A y la evaluación semántica de 9B-A. Incluye adapters reales apagados por defecto
-para embeddings y Structured Outputs, políticas inmutables de proveedor/DPA/ZDR/residencia/precio,
-presupuesto previo a cada llamada y explicaciones administrativas sólo en modo sombra. No cambia
-scores, hard gates, clasificaciones, vigencia ni orden de 9A, y no agrega una señal a la experiencia
-cliente. No se llamó a OpenAI, no se enviaron datos, no se entrenó un modelo y no se usó Azure ML.
+El repositorio completó la **implementación local de FASE 10A** sobre el catálogo 8A: búsquedas
+guardadas privadas, resumen diario por email, baja con token de un solo propósito e historial de
+notificaciones. El runtime de alertas permanece apagado por defecto; no se envió correo ni se creó
+un recurso Azure. La compatibilidad 9A y la experimentación 9B continúan separadas y sin alterar el
+contenido ni la selección de las alertas.
 
-Las migraciones `019` a `023`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `024`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -33,7 +32,9 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 9A | Código completado; activación DB pendiente | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
 | 9B-A | Código completado; activación DB pendiente | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
 | 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
-| 10–11 | Pendiente | Alertas, networking y billing |
+| 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
+| 10B | Pendiente | Networking básico y solicitudes Connect moderadas |
+| 11 | Pendiente | Suscripciones, billing sandbox y administración completa |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -42,7 +43,7 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B, `020` de 9A, `021` de 9B-A y `022`/`023` de 9B-B no forman parte de ese resultado: permanecen
+de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B y `024` de 10A no forman parte de ese resultado: permanecen
 como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
 orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
@@ -706,6 +707,45 @@ extracción generativa de documentos y cualquier promoción de la señal semánt
 ninguna se habilita por esta implementación. No se contempla entrenar un modelo propio ni usar
 Azure ML para el MVP.
 
+## Búsquedas guardadas y alertas diarias — FASE 10A
+
+La SPA permite guardar desde `/opportunities` los filtros privados del usuario, abrirlos de nuevo,
+eliminarlos, activar o desactivar un digest diario y consultar el historial en `/alerts`. La alerta
+vuelve a evaluar en SQL la misma semántica literal/filtros de 8A sobre `PublicReady`; el navegador no
+envía una lista de fondos y el correo nunca afirma elegibilidad.
+
+La API usa sesión completa, `no-store`, aislamiento por usuario+organización, `Idempotency-Key` para
+crear y ETag/`If-Match` para modificar/eliminar. La baja pública usa
+`POST /api/v1/alerts/unsubscribe` y responde `204` de forma no enumerativa. El bearer firmado contiene
+sólo IDs/nonce, se valida con HMAC-SHA256 y no se persiste; la clave de 32 bytes queda exclusivamente
+en Key Vault/App Settings. Abrir el enlace sólo muestra una confirmación: la SPA no ejecuta la baja
+automáticamente, para que un escáner de correo no la active por visitar la URL. El bearer viaja en
+el fragmento `#token`, que el navegador no envía al hosting como parte del request HTTP.
+
+El Functions general ejecuta scheduler cada cinco minutos y delivery cada minuto. SQL materializa
+como máximo 50 novedades por digest, colapsa caídas superiores a 24 horas en un solo resumen de
+recuperación y usa leases, intentos e idempotencia por alerta+ventana. Un resultado incierto del
+proveedor queda `Unknown` y no se reenvía a ciegas; solo un fallo confirmado pre-envío puede
+reintentarse. No se guardan dirección de email, body HTML/texto ni token de baja en el ledger.
+
+Artefactos locales congelados:
+
+- migración `024_saved_search_alerts.sql` (1264 líneas/19 lotes), SHA-256
+  `f6222f40fb6b6ad436e6496d383f4b05900458e4201d9176165dcf9d113e99a4`;
+- smoke `024_saved_search_alerts_smoke.sql` (293 líneas/un lote), SHA-256
+  `24f5aa7def2ecd6b7bf6f9c5c6843e105f34afca1fad0f69c8e4c5f484d7b035`.
+
+ScriptDom parseó ambos artefactos. El gate local pasó build .NET con 0 warnings/0 errores,
+360/360 pruebas unitarias, 149/149 de integración, lint frontend, 23 archivos/108 pruebas Vitest y
+build de producción. No se abrió una conexión DB/Azure; `res` permanece observado en 18/18 y la
+activación futura debe aplicar `019`→`024` en orden y ejecutar todos los smokes.
+
+`ALERTS_ENABLED=false` es el valor inicial. Para habilitarlo se requiere `024` aplicada, un usuario
+Entra del worker miembro de `FundingPlatform_AlertWorkerRole`, permiso Communication Email Sender,
+endpoint/from address verificados, URL frontend HTTPS y la clave de baja en Key Vault. 10A no agrega
+recordatorios de postulaciones ni networking; el calendario/pipeline ya pertenecen a 8B y Connect
+queda para 10B.
+
 ## Pruebas y validación
 
 Backend:
@@ -911,7 +951,10 @@ Endpoints principales del backend hasta este cierre:
 - catálogo organizacional: `GET /api/v1/organizations/{organizationId}/funding-opportunities` y
   `GET /api/v1/organizations/{organizationId}/funding-opportunities/{idOrSlug}`;
 - favoritos privados: `GET /api/v1/organizations/{organizationId}/favorites` y `PUT`/`DELETE`
-  sobre `/api/v1/organizations/{organizationId}/favorites/{fundingOpportunityId}`.
+  sobre `/api/v1/organizations/{organizationId}/favorites/{fundingOpportunityId}`;
+- búsquedas/alertas privadas: `GET/POST /api/v1/organizations/{organizationId}/saved-searches`,
+  `GET/PATCH/DELETE /saved-searches/{id}`, `PUT/DELETE /saved-searches/{id}/alert` y
+  `GET /notification-logs`; la baja pública es `POST /api/v1/alerts/unsubscribe`.
 
 FASE 6 incorporó CRUD y revisión de funders/oportunidades, ETag, idempotencia, auditoría,
 correcciones versionadas, atribución, interstitial anti-phishing y el límite seguro de carga
@@ -984,7 +1027,7 @@ gobernada y un RSS oficial fijo sujeto a compliance. Proyectos/funders llegaron 
 agregó la primera compatibilidad project-first, determinística y acotada. 9B-A prepara embeddings y
 evaluación semántica sólo en sombra; 9B-B añade adapters gobernados y explicaciones administrativas
 también en sombra, todavía sin activación ni eval real.
-Billing y alertas conservan sus fases; la autenticación completa corresponde a las
+Billing y networking conservan sus fases; la autenticación completa corresponde a las
 migraciones 002/003/004 de FASE 3.
 
 ## Arquitectura
@@ -1096,7 +1139,9 @@ El orden de ejecución es:
   código local; activación de `021` pendiente;
 - FASE 9B-B — adapters reales, gobierno/DPA/ZDR/precios y explicaciones shadow completados en código
   local; aplicación `022`/`023`, eval real, extracción generativa y decisión de promoción pendientes;
-- FASE 10 — alertas, pipeline, calendario y networking básico;
+- FASE 10A — búsquedas guardadas y alertas email completadas en código local; aplicación `024` y
+  activación del proveedor pendientes;
+- FASE 10B — networking básico y solicitudes Connect moderadas;
 - FASE 11 — suscripciones y administración completa;
 - FASE 12 — hardening, pruebas y despliegue.
 
