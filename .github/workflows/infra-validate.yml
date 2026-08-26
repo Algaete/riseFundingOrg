@@ -1,11 +1,10 @@
 name: Infrastructure validation
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-    paths: ['infra/**', 'src/FundingPlatform.Api/Dockerfile', '.dockerignore', '.github/workflows/infra-*.yml']
   pull_request:
-    paths: ['infra/**', 'src/FundingPlatform.Api/Dockerfile', '.dockerignore', '.github/workflows/infra-*.yml']
 
 permissions:
   contents: read
@@ -28,7 +27,7 @@ jobs:
       - name: Compile Bicep without Azure credentials
         uses: azure/CLI@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
         with:
-          azcliversion: 2.76.0
+          azcliversion: 2.88.0
           inlineScript: |
             az bicep install --version v0.46.1
             az bicep build --file infra/main.bicep --stdout > /dev/null

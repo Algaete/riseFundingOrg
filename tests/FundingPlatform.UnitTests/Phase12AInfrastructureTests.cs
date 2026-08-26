@@ -136,7 +136,10 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("rollback-api", workflow, StringComparison.Ordinal);
         Assert.Contains("pause-api", workflow, StringComparison.Ordinal);
         Assert.Contains("resume-api", workflow, StringComparison.Ordinal);
-        Assert.Contains("azcliversion: 2.76.0", workflow, StringComparison.Ordinal);
+        Assert.Contains("azcliversion: 2.88.0", workflow, StringComparison.Ordinal);
+        Assert.Contains("azcliversion: 2.88.0", validation, StringComparison.Ordinal);
+        Assert.DoesNotContain("azcliversion: 2.76.0", workflow + validation, StringComparison.Ordinal);
+        Assert.Contains("workflow_dispatch", validation, StringComparison.Ordinal);
         Assert.Contains("default: '0'", workflow, StringComparison.Ordinal);
         Assert.Contains("bicep build", validation, StringComparison.Ordinal);
     }

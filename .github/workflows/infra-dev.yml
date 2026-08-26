@@ -84,7 +84,7 @@ jobs:
           AZURE_API_ROLLBACK_DIGEST: ${{ inputs.api_rollback_digest }}
           AZURE_API_ACCESS_CONFIRMATION: ${{ inputs.confirmation }}
         with:
-          azcliversion: 2.76.0
+          azcliversion: 2.88.0
           inlineScript: |
             if [[ "$RF_INFRA_OPERATION" == "scale-api" ]]; then
               bash infra/scripts/scale-api-dev.sh
