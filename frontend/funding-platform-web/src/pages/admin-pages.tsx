@@ -1,4 +1,8 @@
-import { PagePlaceholder } from '@/components/page-placeholder'
+import {
+  AdminOrganizationDetailPage as AdminOrganizationDetailWorkspacePage,
+  AdminOrganizationsWorkspacePage,
+} from '@/features/admin-organizations/admin-organization-pages'
+import { AdminErrorsWorkspacePage } from '@/features/admin-errors/admin-error-pages'
 import {
   AdminImportRunDetailPage,
   AdminImportRunsPage,
@@ -41,13 +45,11 @@ export function AdminUsersPage() {
 }
 
 export function AdminOrganizationsPage() {
-  return (
-    <PagePlaceholder
-      title="Organizaciones"
-      description="Consulta y soporte de perfiles institucionales."
-      eyebrow="Administración"
-    />
-  )
+  return <AdminOrganizationsWorkspacePage />
+}
+
+export function AdminOrganizationDetailPage() {
+  return <AdminOrganizationDetailWorkspacePage />
 }
 
 export function AdminSubscriptionsPage() {
@@ -55,11 +57,5 @@ export function AdminSubscriptionsPage() {
 }
 
 export function AdminErrorsPage() {
-  return (
-    <PagePlaceholder
-      title="Errores operacionales"
-      description="Diagnóstico de fallos de ingesta, IA e integraciones."
-      eyebrow="Administración"
-    />
-  )
+  return <AdminErrorsWorkspacePage />
 }

@@ -5,8 +5,13 @@ import { createMemoryRouter } from 'react-router-dom'
 import { createAppQueryClient } from '@/api/query-client'
 import { App } from '@/App'
 import { appRoutes } from '@/router'
+import { alertsApi } from '@/features/alerts/alerts-api'
+import { applicationApi } from '@/features/applications/application-api'
 import { authApi } from '@/features/auth/auth-api'
 import { setAuthenticatedSession } from '@/features/auth/auth-session'
+import { calendarApi } from '@/features/calendar/calendar-api'
+import { organizationApi } from '@/features/organizations/organization-api'
+import { projectApi } from '@/features/projects/project-api'
 
 function authenticate(roles = ['Professional']) {
   setAuthenticatedSession({
@@ -34,6 +39,25 @@ describe('aplicación', () => {
     localStorage.clear()
     sessionStorage.clear()
     document.documentElement.classList.remove('dark')
+    vi.spyOn(organizationApi, 'list').mockResolvedValue([{
+      publicId: '11111111-2222-3333-4444-555555555555',
+      name: 'Espacio de organización',
+      membershipRole: 'admin',
+      profileStatus: 2,
+      profileCompleteness: 100,
+      profileVersion: 1,
+      updatedAtUtc: '2026-08-26T12:00:00Z',
+    }])
+    vi.spyOn(projectApi, 'list').mockResolvedValue([])
+    vi.spyOn(applicationApi, 'list').mockResolvedValue({
+      items: [], totalCount: 0, pageNumber: 1, pageSize: 5,
+    })
+    vi.spyOn(calendarApi, 'get').mockResolvedValue({
+      from: '2026-08-26', to: '2026-10-25', items: [],
+    })
+    vi.spyOn(alertsApi, 'list').mockResolvedValue({
+      items: [], totalCount: 0, page: 1, pageSize: 1,
+    })
   })
 
   afterEach(() => {

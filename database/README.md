@@ -547,12 +547,34 @@ cero DML directo. El rol de extracción creado por 016 conserva sus seis procedi
 crean usuarios Entra ni membresías desde la migración.
 
 `027_runtime_database_roles_smoke.sql` (460 líneas/un lote), SHA-256
-`256e44d812020e7163ef0cad3c15cc5ca76e37813f4bad57d1d2960dea86b296`, crea usuarios temporales
+`a994e3ac4ff7da2e21cf4180d28d9f7c27a67a2c06dd609db7ce45bf40960856`, crea usuarios temporales
 `WITHOUT LOGIN` dentro de una transacción, verifica permisos efectivos y aislamiento entre hosts y
-revierte todo. ScriptDom parseó ambos lotes y los tres tests focales pasaron. No se abrió conexión
-SQL/Azure ni se ejecutó `validate/apply/test/status`; `res` sigue observado en 18/18. Una base dev
-nueva debe aplicar `001`→`027`, ejecutar los 27 smokes con rollback y aprovisionar fuera del historial
-sólo los tres principals runtime autorizados por nombre y `clientId` convertido a SID.
+revierte todo. Tras `028`, el mismo smoke congela el contrato acumulado de API en 119 procedimientos
+y 147 permisos directos; la migración `027` conserva su allowlist original. ScriptDom parseó ambos
+lotes y los tests focales pasaron. No se abrió conexión SQL/Azure ni se ejecutó
+`validate/apply/test/status`; `res` sigue observado en 18/18. Una base dev nueva debe aplicar
+`001`→`028`, ejecutar los 28 smokes con rollback y aprovisionar fuera del historial sólo los tres
+principals runtime autorizados por nombre y `clientId` convertido a SID.
+
+## Cierre administrativo 028 — paneles operativos y resumen del usuario
+
+`028_admin_operations_completion.sql` (346 líneas/cinco lotes), SHA-256
+`81691a037d245fda2e5415528a6902ca5dc9d2a731a193b71f00efcca848c8ef`, agrega tres consultas
+administrativas de solo lectura: listado y ficha segura de organizaciones, y una bandeja de errores
+operacionales sanitizados. Extiende el rol runtime de API únicamente con `EXECUTE` sobre esos tres
+procedimientos; el contrato acumulado queda en 119 SP y 147 permisos directos.
+
+`028_admin_operations_completion_smoke.sql` (109 líneas/un lote), SHA-256
+`b4c6e82754edf277dacb6cb813a73623f540188c2f6337553ad472602e6f503d`, crea fixtures dentro de una
+transacción, ejerce los tres procedimientos con un administrador MFA, verifica los grants y termina
+con rollback. La API expone `/api/v1/admin/organizations`, su detalle y
+`/api/v1/admin/operational-errors`; no devuelve identificadores tributarios, payloads, stack traces,
+tokens ni mensajes crudos de proveedores. El frontend reemplaza además el resumen de usuario por
+métricas derivadas de proyectos, postulaciones, calendario y alertas existentes.
+
+ScriptDom T-SQL 170 y los tests focales de arquitectura, HTTP y frontend quedaron verdes. El gate
+completo se registra en el log de despliegue. No se conectó SQL/Azure ni se ejecutó
+`validate/apply/test/status`; `028` debe desplegarse sólo después de `027`.
 
 ## Carpetas
 

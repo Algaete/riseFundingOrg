@@ -160,7 +160,7 @@ done
 
    El script hace `git fetch`, exige `main` limpio e idéntico a `origin/main`, valida grupo/miembro y
    el administrador efectivo del servidor SQL, deriva la conexión dev, registra PITR, abre una regla
-   firewall única con cleanup verificado, aplica `001`→`027`, ejecuta los 27 smokes, espera Full-Text
+   firewall única con cleanup verificado, aplica `001`→`028`, ejecuta los 28 smokes, espera Full-Text
    listo y prueba reapply/provisioning idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.

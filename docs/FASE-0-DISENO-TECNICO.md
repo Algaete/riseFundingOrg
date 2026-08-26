@@ -3123,13 +3123,16 @@ validate/apply/smoke/reapply/status en un ambiente autorizado.
 
 ### FASE 11 — Suscripciones y administración completa
 
-**Estado 2026-08-25:** implementación local cerrada mediante `026`: planes y precios separados,
+**Estado 2026-08-26:** implementación local cerrada mediante `026` y el complemento aditivo `028`:
+planes y precios separados,
 Free efectivo por ausencia de suscripción pagada, entitlements server-side, checkout idempotente,
 webhook autenticado con inbox durable, consulta autoritativa y reconciliación. La API y frontend
 exponen planes, suscripción/uso, cancelación/reanudación y vistas administrativas sin datos de
 tarjeta ni payload crudo. El adapter real queda limitado a Mercado Pago sandbox y
 `Billing:Enabled=false`; Professional/Organization no son comprables hasta aprobar precios e IDs de
-prueba. No se aplicó `019`→`026` ni se conectó DB/Azure/proveedor.
+prueba. `028` completa el resumen del usuario con proyectos, postulaciones, calendario y alertas, y
+las vistas administrativas de organizaciones y errores sanitizados. No se aplicó `019`→`028` ni se
+conectó DB/Azure/proveedor.
 
 - precios/uso, Mercado Pago **sandbox**, checkout, webhook y reconciliación;
 - revisión/deduplicación, fuentes, runs, errores, usuarios, organizaciones y billing;
@@ -3148,7 +3151,7 @@ es no-root, excluye secretos del contexto, se construye remotamente y se desplie
 Los workflows separan compilación sin credenciales de `validate`/`what-if`/`apply` manual mediante
 OIDC; `apply` exige confirmación literal. La región se rechaza si no ofrece Container Apps, ACR y
 Functions Flex. Quedan para 12B publicación de Functions/frontend, DNS/dominio común, secretos,
-usuarios SQL mediante aprovisionamiento idempotente, aplicación `001`→`027` en la base dev vacía,
+usuarios SQL mediante aprovisionamiento idempotente, aplicación `001`→`028` en la base dev vacía,
 E2E, restore y decisión de piloto. `027` deja versionados los roles mínimos de API, worker general y
 extracción, pero no crea principals ni membresías y no fue aplicado a ninguna base.
 

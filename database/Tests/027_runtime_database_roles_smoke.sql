@@ -49,7 +49,7 @@ IF (SELECT COUNT_BIG(1)
       AND permissions.class = 1
       AND permissions.minor_id = 0
       AND permissions.permission_name = N'EXECUTE'
-      AND permissions.state IN (N'G', N'W')) <> 116
+      AND permissions.state IN (N'G', N'W')) <> 119
     THROW 54853, N'The API stored-procedure allowlist count is invalid.', 1;
 
 IF (SELECT COUNT_BIG(1)
@@ -101,7 +101,7 @@ DECLARE @GeneralWorkerProcedureMaterial NVARCHAR(MAX) =
    );
 
 IF HASHBYTES(N'SHA2_256', @ApiProcedureMaterial) <>
-       0x4448EADD744D003B0CAF35BAB3A1BFA635BEF7B2AD46A09E485F1B1EA2AC9505
+       0xE7159B0780D4FA84AC4E51DF929DC418ABEB95399E93B3DC77AEE73B2FF96DAB
    OR HASHBYTES(N'SHA2_256', @GeneralWorkerProcedureMaterial) <>
        0x0D65C72A3143DABC51A183F11C62C58180F0C954514B0734125B5D34874D8A9D
     THROW 54855, N'The runtime stored-procedure allowlist fingerprint is invalid.', 1;
@@ -255,7 +255,7 @@ IF EXISTS
     THROW 54858, N'A runtime role has permission outside its bounded contract.', 1;
 
 IF (SELECT COUNT_BIG(1) FROM sys.database_permissions
-    WHERE grantee_principal_id = @ApiRoleId) <> 144
+    WHERE grantee_principal_id = @ApiRoleId) <> 147
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @GeneralWorkerRoleId) <> 49
     THROW 54859, N'Runtime roles contain an unexpected direct permission.', 1;

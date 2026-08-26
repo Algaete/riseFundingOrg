@@ -10,8 +10,12 @@ El repositorio completó la **implementación local de FASE 11**: catálogo de p
 organización, checkout/webhooks/reconciliación de Mercado Pago exclusivamente sandbox, pantalla de
 suscripción y consola administrativa de billing. `Billing:Enabled=false` y los planes pagados salen
 no comprables: no se definieron precios comerciales, no hubo cobros ni se crearon recursos Azure.
+El cierre aditivo `028` reemplaza los últimos placeholders visibles: el resumen del usuario presenta
+datos reales de proyectos, postulaciones, calendario y alertas; la consola administrativa incorpora
+organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
+requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Las migraciones `019` a `027`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `028`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -33,7 +37,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
-| 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox y administración de suscripciones |
+| 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
 | 12A | Preparación local completada; Azure no creado | Dev separado, API Container Apps 1→0, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
@@ -49,7 +53,8 @@ Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo 
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
 de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
-`027` de preparación runtime para 12A no forman parte de ese resultado: permanecen
+`027` de preparación runtime para 12A y `028` de cierre de organizaciones/errores administrativos no
+forman parte de ese resultado: permanecen
 como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
 orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y

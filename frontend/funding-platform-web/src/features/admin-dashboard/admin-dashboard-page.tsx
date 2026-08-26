@@ -19,6 +19,8 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { adminUsersApi } from '@/features/admin-users/admin-users-api'
+import { adminOrganizationsApi } from '@/features/admin-organizations/admin-organizations-api'
+import { adminErrorsApi } from '@/features/admin-errors/admin-errors-api'
 import {
   adminFundersApi,
   adminFundingOpportunitiesApi,
@@ -90,6 +92,14 @@ export function AdminDashboardWorkspacePage() {
     queryKey: [...queryRoot, 'users'],
     queryFn: ({ signal }) => adminUsersApi.list({ page: 1, pageSize: 1 }, signal),
   })
+  const organizations = useQuery({
+    queryKey: [...queryRoot, 'organizations'],
+    queryFn: ({ signal }) => adminOrganizationsApi.list({ page: 1, pageSize: 1 }, signal),
+  })
+  const operationalErrors = useQuery({
+    queryKey: [...queryRoot, 'operational-errors'],
+    queryFn: ({ signal }) => adminErrorsApi.list({ page: 1, pageSize: 1 }, signal),
+  })
   const projects = useQuery({
     queryKey: [...queryRoot, 'projects'],
     queryFn: ({ signal }) => projectReviewApi.list(1, 5, signal),
@@ -121,7 +131,8 @@ export function AdminDashboardWorkspacePage() {
     queryFn: ({ signal }) => adminImportApi.listSources(signal),
   })
   const queries = [
-    users, projects, opportunities, pendingOpportunities, funders, imports, sources,
+    users, organizations, operationalErrors, projects, opportunities,
+    pendingOpportunities, funders, imports, sources,
   ]
   const refreshing = queries.some(query => query.isFetching)
   const unavailable = queries.filter(query => query.isError).length
@@ -159,6 +170,8 @@ export function AdminDashboardWorkspacePage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard detail="esperando moderación" failed={projects.isError} icon={ShieldCheck} pending={projects.isPending} title="Proyectos pendientes" to="/admin/projects" value={projects.data?.totalCount} />
         <MetricCard detail="cuentas registradas" failed={users.isError} icon={Users} pending={users.isPending} title="Usuarios" to="/admin/users" value={users.data?.totalCount} />
+        <MetricCard detail="perfiles institucionales" failed={organizations.isError} icon={Building2} pending={organizations.isPending} title="Organizaciones" to="/admin/organizations" value={organizations.data?.totalCount} />
+        <MetricCard detail="incidentes sanitizados" failed={operationalErrors.isError} icon={CircleAlert} pending={operationalErrors.isPending} title="Errores" to="/admin/errors" value={operationalErrors.data?.totalCount} />
         <MetricCard detail="oportunidades registradas" failed={opportunities.isError} icon={WalletCards} pending={opportunities.isPending} title="Fondos" to="/admin/funding" value={opportunities.data?.totalCount} />
         <MetricCard detail="esperando revisión editorial" failed={pendingOpportunities.isError} icon={Building2} pending={pendingOpportunities.isPending} title="Fondos pendientes" to="/admin/funding?status=1" value={pendingOpportunities.data?.totalCount} />
         <MetricCard detail="entidades registradas" failed={funders.isError} icon={Landmark} pending={funders.isPending} title="Financiadores" to="/admin/funders" value={funders.data?.totalCount} />
@@ -179,6 +192,7 @@ export function AdminDashboardWorkspacePage() {
           <Link className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:bg-accent/40" to="/admin/funding?status=1"><div><p className="font-semibold">Revisión editorial de fondos</p><p className="text-sm text-muted-foreground">Oportunidades enviadas para aprobación.</p></div><strong>{pendingOpportunities.isError ? '!' : pendingOpportunities.data?.totalCount ?? '—'}</strong></Link>
           <Link className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:bg-accent/40" to="/admin/imports"><div><p className="font-semibold">Importaciones con incidentes</p><p className="text-sm text-muted-foreground">Detectadas entre las últimas cinco ejecuciones.</p></div><strong>{imports.isError ? '!' : recentImportIssues}</strong></Link>
           <Link className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:bg-accent/40" to="/admin/sources"><div><p className="font-semibold">Fuentes que requieren atención</p><p className="text-sm text-muted-foreground">Fuentes habilitadas que aún no están listas para adquisición.</p></div><strong>{sources.isError ? '!' : sourceIssues}</strong></Link>
+          <Link className="flex items-center justify-between gap-4 rounded-lg border p-4 hover:bg-accent/40" to="/admin/errors"><div><p className="font-semibold">Errores operacionales</p><p className="text-sm text-muted-foreground">Incidentes sanitizados de ingesta, extracción, IA y pagos.</p></div><strong>{operationalErrors.isError ? '!' : operationalErrors.data?.totalCount ?? '—'}</strong></Link>
         </CardContent>
       </Card>
 

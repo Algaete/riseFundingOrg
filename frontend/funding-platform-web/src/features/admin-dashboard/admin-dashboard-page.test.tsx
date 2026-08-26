@@ -4,6 +4,8 @@ import { createMemoryRouter } from 'react-router-dom'
 import { createAppQueryClient } from '@/api/query-client'
 import { App } from '@/App'
 import { adminUsersApi } from '@/features/admin-users/admin-users-api'
+import { adminErrorsApi } from '@/features/admin-errors/admin-errors-api'
+import { adminOrganizationsApi } from '@/features/admin-organizations/admin-organizations-api'
 import {
   adminFundersApi,
   adminFundingOpportunitiesApi,
@@ -39,6 +41,8 @@ describe('panel de control administrativo', () => {
     sessionStorage.clear()
     authenticate()
     vi.spyOn(adminUsersApi, 'list').mockResolvedValue(page(12))
+    vi.spyOn(adminOrganizationsApi, 'list').mockResolvedValue(page(6))
+    vi.spyOn(adminErrorsApi, 'list').mockResolvedValue(page(4))
     vi.spyOn(projectReviewApi, 'list').mockResolvedValue({
       items: [{
         projectId: '22222222-2222-2222-2222-222222222222',
@@ -127,6 +131,8 @@ describe('panel de control administrativo', () => {
     expect(await screen.findByRole('heading', { name: 'Panel de control' })).toBeInTheDocument()
     expect(await screen.findByTestId('metric-Proyectos pendientes')).toHaveTextContent('2')
     expect(screen.getByTestId('metric-Usuarios')).toHaveTextContent('12')
+    expect(screen.getByTestId('metric-Organizaciones')).toHaveTextContent('6')
+    expect(screen.getByTestId('metric-Errores')).toHaveTextContent('4')
     expect(screen.getByTestId('metric-Fondos')).toHaveTextContent('21')
     expect(screen.getByTestId('metric-Fondos pendientes')).toHaveTextContent('3')
     expect(screen.getByTestId('metric-Financiadores')).toHaveTextContent('8')

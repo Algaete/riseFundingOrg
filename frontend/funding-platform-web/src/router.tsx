@@ -41,6 +41,7 @@ const AdminFundersPage = lazy(() => import('@/features/funding/admin-funder-page
 const AdminImportDetailPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminImportDetailPage })))
 const AdminImportsPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminImportsPage })))
 const AdminOrganizationsPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminOrganizationsPage })))
+const AdminOrganizationDetailPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminOrganizationDetailPage })))
 const AdminSourceDocumentDetailRoutePage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminSourceDocumentDetailRoutePage })))
 const AdminSourceDocumentUploadRoutePage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminSourceDocumentUploadRoutePage })))
 const AdminSourcesPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminSourcesPage })))
@@ -125,6 +126,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/admin/sources', element: <AdminSourcesPage /> },
       { path: '/admin/users', element: <AdminUsersPage /> },
       { path: '/admin/organizations', element: <AdminOrganizationsPage /> },
+      { path: '/admin/organizations/:organizationId', element: <AdminOrganizationDetailPage /> },
       { path: '/admin/subscriptions', element: <AdminSubscriptionsPage /> },
       { path: '/admin/errors', element: <AdminErrorsPage /> },
     ],

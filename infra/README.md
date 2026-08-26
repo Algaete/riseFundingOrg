@@ -115,8 +115,8 @@ completo posterior exige elevación temporal aprobada; `scale-api` no la necesit
 5. Ejecutar `apply-base`; luego usar `prepare-key-vault-dev.sh` para crear las tres claves sin
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
-   FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; aplica `001`→`027`, corre
-   los 27 smokes, estabiliza Full-Text, aprovisiona por `clientId`/SID los tres usuarios runtime y crea
+   FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; aplica `001`→`028`, corre
+   los 28 smokes, estabiliza Full-Text, aprovisiona por `clientId`/SID los tres usuarios runtime y crea
    interactivamente el SuperAdmin. No usa Graph para crear principals SQL.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y
    reducir los permisos amplios JIT en la misma sesión. Email continúa apagado y la aplicación falla

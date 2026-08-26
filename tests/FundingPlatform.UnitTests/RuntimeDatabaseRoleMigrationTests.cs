@@ -13,7 +13,7 @@ public sealed class RuntimeDatabaseRoleMigrationTests
     [Fact]
     public void Runtime_procedure_allowlists_match_the_registered_host_repositories()
     {
-        var migration = Read("database", "Migrations", "027_runtime_database_roles.sql");
+        var migration = RuntimeRoleMigrations();
 
         var expectedApi = ExtractProcedures(ApiRepositoryFiles)
             .Except(ApiExcludedProcedures, StringComparer.Ordinal)
@@ -27,7 +27,7 @@ public sealed class RuntimeDatabaseRoleMigrationTests
         var grantedApi = ExtractRoleProcedures(migration, ApiRole);
         var grantedWorker = ExtractRoleProcedures(migration, GeneralWorkerRole);
 
-        Assert.Equal(116, expectedApi.Length);
+        Assert.Equal(119, expectedApi.Length);
         Assert.Equal(49, expectedWorker.Length);
         Assert.Equal(expectedApi, grantedApi);
         Assert.Equal(expectedWorker, grantedWorker);
@@ -100,16 +100,19 @@ public sealed class RuntimeDatabaseRoleMigrationTests
     public void Runtime_role_smoke_is_transactional_effective_and_preserves_specialist_roles()
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
-        var migration = File.ReadAllText(Path.Combine(
+        var migration027 = File.ReadAllText(Path.Combine(
             root, "database", "Migrations", "027_runtime_database_roles.sql"));
+        var migration028 = File.ReadAllText(Path.Combine(
+            root, "database", "Migrations", "028_admin_operations_completion.sql"));
+        var migration = migration027 + Environment.NewLine + migration028;
         var smoke = File.ReadAllText(Path.Combine(
             root, "database", "Tests", "027_runtime_database_roles_smoke.sql"));
         var test = Assert.Single(
             SqlScriptCatalog.DiscoverTests(root), script => script.Sequence == 27);
 
-        Assert.Single(GoBatchSplitter.Split(migration));
+        Assert.Single(GoBatchSplitter.Split(migration027));
         Assert.Single(test.Batches);
-        Assert.Contains("<> 116", smoke, StringComparison.Ordinal);
+        Assert.Contains("<> 119", smoke, StringComparison.Ordinal);
         Assert.Contains("<> 49", smoke, StringComparison.Ordinal);
         Assert.Contains("@ExpectedApiTablePermissions", smoke, StringComparison.Ordinal);
         Assert.Contains("@ExpectedApiTypePermissions", smoke, StringComparison.Ordinal);
@@ -192,6 +195,11 @@ public sealed class RuntimeDatabaseRoleMigrationTests
         return File.ReadAllText(Path.Combine([root, .. parts]));
     }
 
+    private static string RuntimeRoleMigrations() =>
+        Read("database", "Migrations", "027_runtime_database_roles.sql")
+        + Environment.NewLine
+        + Read("database", "Migrations", "028_admin_operations_completion.sql");
+
     private static readonly string[][] ApiRepositoryFiles =
     [
         ["src", "FundingPlatform.Infrastructure", "Identity", "Persistence", "SqlAuthenticationRepository.cs"],
@@ -215,7 +223,8 @@ public sealed class RuntimeDatabaseRoleMigrationTests
         ["src", "FundingPlatform.Infrastructure", "Persistence", "Semantics", "SqlSemanticEvaluationProcessingRepository.cs"],
         ["src", "FundingPlatform.Infrastructure", "Persistence", "Semantics", "SqlAiExplanationRepository.cs"],
         ["src", "FundingPlatform.Infrastructure", "Persistence", "SourceDocuments", "SqlSourceDocumentRepository.cs"],
-        ["src", "FundingPlatform.Infrastructure", "Persistence", "SourceDocuments", "SqlSourceDocumentExtractionRepository.cs"]
+        ["src", "FundingPlatform.Infrastructure", "Persistence", "SourceDocuments", "SqlSourceDocumentExtractionRepository.cs"],
+        ["src", "FundingPlatform.Infrastructure", "Persistence", "Administration", "SqlAdminOperationsRepository.cs"]
     ];
 
     private static readonly string[][] GeneralWorkerRepositoryFiles =

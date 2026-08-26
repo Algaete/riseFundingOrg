@@ -1,5 +1,5 @@
-import { PagePlaceholder } from '@/components/page-placeholder'
 import { OrganizationWorkspacePage } from '@/features/organizations/organization-pages'
+import { DashboardWorkspacePage } from '@/features/dashboard/dashboard-page'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { authApi } from '@/features/auth/auth-api'
 import { useAuth } from '@/features/auth/use-auth'
@@ -13,12 +13,7 @@ export function OnboardingPage() {
 }
 
 export function DashboardPage() {
-  return (
-    <PagePlaceholder
-      title="Resumen"
-      description="Tus cálculos de compatibilidad, cierres próximos y actividad reciente."
-    />
-  )
+  return <DashboardWorkspacePage />
 }
 
 export function OrganizationProfilePage() {

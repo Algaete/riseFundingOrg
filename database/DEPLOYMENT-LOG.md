@@ -479,12 +479,31 @@ commit de Azure SQL.
 - `027_runtime_database_roles.sql`: SHA-256
   `ad9212a025cf438fcb65d6dc4463e58dd246cf42868b22862b953af5a57aef2a`, 371 líneas/un lote.
 - `027_runtime_database_roles_smoke.sql`: SHA-256
-  `256e44d812020e7163ef0cad3c15cc5ca76e37813f4bad57d1d2960dea86b296`, 460 líneas/un lote.
+  `a994e3ac4ff7da2e21cf4180d28d9f7c27a67a2c06dd609db7ce45bf40960856`, 460 líneas/un lote.
 - La migración crea roles de mínimo privilegio, no usuarios: API con 116 SP, 18 permisos DML sobre
   siete tablas Identity/MFA y diez permisos sobre cinco TVP; worker general con 49 SP/cero DML; el
   rol de extracción existente conserva seis SP.
 - El smoke prueba los permisos efectivos y la separación de hosts mediante usuarios temporales
-  `WITHOUT LOGIN`, siempre dentro de rollback. ScriptDom y los tres tests focales quedaron verdes.
+  `WITHOUT LOGIN`, siempre dentro de rollback. Después de `028` congela el contrato acumulado de
+  API en 119 SP y 147 permisos directos; `027` conserva su allowlist original. ScriptDom y los tests
+  focales quedaron verdes.
 - No hubo conexión, `validate`, `apply`, `test` o `status` contra SQL/Azure. `res` continúa observado
-  en 18/18; una base dev vacía deberá aplicar `001`→`027`, ejecutar los 27 smokes y aprovisionar los
+  en 18/18; una base dev vacía deberá aplicar `001`→`028`, ejecutar los 28 smokes y aprovisionar los
   tres usuarios UAMI fuera del historial con nombres y `clientId` exactos convertidos a SID.
+
+## Preparación local 028 — cierre de módulos operativos, sin despliegue (2026-08-26)
+
+- `028_admin_operations_completion.sql`: SHA-256
+  `81691a037d245fda2e5415528a6902ca5dc9d2a731a193b71f00efcca848c8ef`, 346 líneas/cinco lotes.
+- `028_admin_operations_completion_smoke.sql`: SHA-256
+  `b4c6e82754edf277dacb6cb813a73623f540188c2f6337553ad472602e6f503d`, 109 líneas/un lote.
+- Se completaron el listado y detalle administrativos de organizaciones, la bandeja de errores
+  operacionales sanitizados y los paneles reales de usuario y administración. Los endpoints
+  administrativos requieren rol global, MFA reciente, `no-store` y rate limit.
+- La proyección de organizaciones excluye RUT y datos de facturación. La bandeja de errores sólo
+  conserva categorías, códigos seguros, timestamps y contexto público; no expone payloads, tokens,
+  stack traces ni mensajes crudos.
+- `028` extiende `FundingPlatform_ApiRuntimeRole` con tres `EXECUTE`; el acumulado queda en 119 SP y
+  147 permisos directos. No agrega DML ni permisos a los workers.
+- ScriptDom parseó los cinco lotes y el smoke transaccional. No se abrió conexión SQL/Azure y no se
+  ejecutaron `validate`, `apply`, `test` o `status`; `res` continúa observado en 18/18.

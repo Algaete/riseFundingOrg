@@ -250,8 +250,8 @@ bash infra/scripts/prepare-database-dev.sh
 ```
 
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
-interactiva para la contraseña del SuperAdmin. Una base vacía recibe `001`→`027`; luego ejecuta los
-27 smokes con rollback, espera `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y
+interactiva para la contraseña del SuperAdmin. Una base vacía recibe `001`→`028`; luego ejecuta los
+28 smokes con rollback, espera `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y
 vincula las tres UAMI SQL por `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus
 prerrequisitos están en [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).
 
