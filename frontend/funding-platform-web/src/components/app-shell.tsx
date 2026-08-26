@@ -17,7 +17,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { BrandMark } from '@/components/brand-mark'
@@ -82,6 +82,9 @@ function NavigationLink({ item }: { item: NavigationItem }) {
 export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
   const navigation = mode === 'admin' ? adminNavigation : memberNavigation
   const auth = useAuth()
+  const isPlatformAdministrator = auth.session?.user.roles.some(
+    role => role === 'Admin' || role === 'SuperAdmin',
+  ) ?? false
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -139,6 +142,9 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
             {mode === 'admin' ? 'Consola administrativa' : 'Espacio de organización'}
           </p>
           <div className="flex items-center gap-2">
+            {mode === 'member' && isPlatformAdministrator && <Button asChild size="sm" variant="outline">
+              <Link aria-label="Ir al panel administrativo" to="/admin"><ShieldCheck className="size-4" /><span className="hidden sm:inline">Panel administrativo</span></Link>
+            </Button>}
             <span className="hidden text-sm font-medium sm:inline">
               {auth.session?.user.displayName}
             </span>

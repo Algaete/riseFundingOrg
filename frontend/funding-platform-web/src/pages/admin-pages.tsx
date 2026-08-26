@@ -9,6 +9,7 @@ import {
   AdminSourceDocumentUploadPage,
 } from '@/features/source-documents/source-document-pages'
 import { AdminBillingPage } from '@/features/billing/billing-pages'
+import { AdminUsersWorkspacePage } from '@/features/admin-users/admin-user-pages'
 
 export function AdminDashboardPage() {
   return (
@@ -41,13 +42,7 @@ export function AdminSourceDocumentDetailRoutePage() {
 }
 
 export function AdminUsersPage() {
-  return (
-    <PagePlaceholder
-      title="Usuarios"
-      description="Consulta y administración de accesos a la plataforma."
-      eyebrow="Administración"
-    />
-  )
+  return <AdminUsersWorkspacePage />
 }
 
 export function AdminOrganizationsPage() {

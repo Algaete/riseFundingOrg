@@ -8,7 +8,7 @@ import { appRoutes } from '@/router'
 import { authApi } from '@/features/auth/auth-api'
 import { setAuthenticatedSession } from '@/features/auth/auth-session'
 
-function authenticate() {
+function authenticate(roles = ['Professional']) {
   setAuthenticatedSession({
     status: 'authenticated',
     accessToken: 'test-access-token',
@@ -18,7 +18,7 @@ function authenticate() {
       email: 'member@example.test',
       displayName: 'Organización demo',
       preferredLocale: 'es-CL',
-      roles: ['Professional'],
+      roles,
       mfaEnabled: false,
     },
   })
@@ -51,6 +51,22 @@ describe('aplicación', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Espacio de organización')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Concursos disponibles' })[0]).toHaveAttribute('href', '/opportunities')
+  })
+
+  it('muestra el acceso al panel administrativo sólo a administradores', async () => {
+    authenticate(['Admin'])
+    const view = renderRoute('/dashboard')
+
+    expect(await screen.findByRole('link', { name: 'Ir al panel administrativo' })).toHaveAttribute('href', '/admin')
+
+    view.unmount()
+    localStorage.clear()
+    sessionStorage.clear()
+    authenticate()
+    renderRoute('/dashboard')
+
+    await screen.findByRole('heading', { name: 'Resumen', level: 1 })
+    expect(screen.queryByRole('link', { name: 'Ir al panel administrativo' })).not.toBeInTheDocument()
   })
 
   it('adapta el inicio público cuando ya existe una sesión', async () => {

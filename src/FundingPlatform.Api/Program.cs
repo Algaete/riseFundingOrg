@@ -182,6 +182,8 @@ builder.Services.AddSingleton<ISourceDocumentContentInspector, StreamingPdfConte
 builder.Services.AddSingleton<ISourceDocumentScanner, ConfiguredSourceDocumentScanner>();
 builder.Services.AddSingleton<ISourceDocumentBlobStore, AzureSourceDocumentBlobStore>();
 builder.Services.AddScoped<SqlAuthenticationRepository>();
+builder.Services.AddScoped<IAdminUserDirectoryRepository, SqlAdminUserDirectoryRepository>();
+builder.Services.AddScoped<AdminUserDirectoryService>();
 builder.Services.AddScoped<SecureTokenGenerator>();
 builder.Services.AddSingleton<JwtTokenIssuer>();
 builder.Services.AddSingleton<IAuthorizationHandler, RecentMfaHandler>();
@@ -669,6 +671,7 @@ app.MapExternalAuthenticationEndpoints();
 app.MapOrganizationEndpoints();
 app.MapProjectEndpoints();
 app.MapAdminProjectEndpoints();
+app.MapAdminUserEndpoints();
 app.MapPublicProjectEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapFundingApplicationEndpoints();
