@@ -3120,6 +3120,14 @@ validate/apply/smoke/reapply/status en un ambiente autorizado.
 
 ### FASE 11 — Suscripciones y administración completa
 
+**Estado 2026-08-25:** implementación local cerrada mediante `026`: planes y precios separados,
+Free efectivo por ausencia de suscripción pagada, entitlements server-side, checkout idempotente,
+webhook autenticado con inbox durable, consulta autoritativa y reconciliación. La API y frontend
+exponen planes, suscripción/uso, cancelación/reanudación y vistas administrativas sin datos de
+tarjeta ni payload crudo. El adapter real queda limitado a Mercado Pago sandbox y
+`Billing:Enabled=false`; Professional/Organization no son comprables hasta aprobar precios e IDs de
+prueba. No se aplicó `019`→`026` ni se conectó DB/Azure/proveedor.
+
 - precios/uso, Mercado Pago **sandbox**, checkout, webhook y reconciliación;
 - revisión/deduplicación, fuentes, runs, errores, usuarios, organizaciones y billing;
 - paywalls backend/frontend, dashboard operativo y auditoría consultable.

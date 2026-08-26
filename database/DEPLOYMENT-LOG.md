@@ -462,3 +462,14 @@ commit de Azure SQL.
 - No se abrió conexión SQL/Azure ni se ejecutaron `--validate`, `--apply`, `--test` o `--status`.
   `res` sigue observado en 18/18; `019`→`025` permanecen locales y deben desplegarse en orden con
   smoke rollback, reapply y status registrados.
+
+## Preparación local 026 — FASE 11, sin despliegue (2026-08-25)
+
+- `026_subscription_billing_sandbox.sql`: SHA-256
+  `697d595947861a48252a7d73f853a56347e9f1ee257a9cadf96a4450520f90b7`, 988 líneas.
+- `026_subscription_billing_sandbox_smoke.sql`: SHA-256
+  `d5c1e7268174309efd7abdfc0399b5fb38adbdb9801f8a0d5ea02174297a32f5`, 94 líneas.
+- Billing queda apagado, sandbox-only y sin planes pagados comprables. No se configuraron precios,
+  credenciales, webhooks externos, cobros ni recursos Azure.
+- Build .NET 0 warnings/errores, Unit 373/373, Integration 156/156, frontend lint, 25/111 y build.
+  No hubo `validate/apply/test/status`; `res` continúa observado en 18/18.

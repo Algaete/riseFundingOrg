@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/use-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSearchParams } from 'react-router-dom'
+import { SubscriptionWorkspacePage } from '@/features/billing/billing-pages'
 
 export function OnboardingPage() {
   return <OrganizationWorkspacePage onboarding />
@@ -35,10 +36,5 @@ export function AccountPage() {
 }
 
 export function SubscriptionPage() {
-  return (
-    <PagePlaceholder
-      title="Suscripción"
-      description="Estado del plan, límites de uso e historial de facturación."
-    />
-  )
+  return <SubscriptionWorkspacePage />
 }

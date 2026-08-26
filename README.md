@@ -6,12 +6,12 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **implementación local de FASE 10B**: directorio opt-in de ONG con
-proyectos públicos y solicitudes Connect privadas, moderadas e idempotentes. No hay chat, contacto
-automático ni exposición de PII de miembros. Las alertas 10A siguen apagadas y 10B no creó recursos
-Azure ni modificó matching, postulaciones o alertas.
+El repositorio completó la **implementación local de FASE 11**: catálogo de planes, entitlements por
+organización, checkout/webhooks/reconciliación de Mercado Pago exclusivamente sandbox, pantalla de
+suscripción y consola administrativa de billing. `Billing:Enabled=false` y los planes pagados salen
+no comprables: no se definieron precios comerciales, no hubo cobros ni se crearon recursos Azure.
 
-Las migraciones `019` a `025`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `026`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -33,7 +33,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
-| 11 | Pendiente | Suscripciones, billing sandbox y administración completa |
+| 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox y administración de suscripciones |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -42,7 +42,7 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A y `025` de 10B no forman parte de ese resultado: permanecen
+de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B y `026` de 11 no forman parte de ese resultado: permanecen
 como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
 orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
@@ -1172,7 +1172,8 @@ El orden de ejecución es:
   activación del proveedor pendientes;
 - FASE 10B — networking opt-in y solicitudes Connect moderadas completados en código local;
   aplicación `025` pendiente de un despliegue autorizado;
-- FASE 11 — suscripciones y administración completa;
+- FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
+  credenciales de prueba y E2E del proveedor siguen pendientes;
 - FASE 12 — hardening, pruebas y despliegue.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente

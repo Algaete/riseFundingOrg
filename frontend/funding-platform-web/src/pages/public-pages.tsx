@@ -2,7 +2,7 @@ import { ArrowRight, BellRing, BrainCircuit, SearchCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-import { PagePlaceholder } from '@/components/page-placeholder'
+import { PublicPricingPage } from '@/features/billing/billing-pages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -134,15 +134,7 @@ export function ExternalAuthenticationCallbackPage() {
 }
 
 export function PricingPage() {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <PagePlaceholder
-        title="Planes simples para cada etapa"
-        description="Vista pública preparada para publicar la propuesta comercial del MVP."
-        eyebrow="Planes"
-      />
-    </div>
-  )
+  return <PublicPricingPage />
 }
 
 export function RegisterPage() {

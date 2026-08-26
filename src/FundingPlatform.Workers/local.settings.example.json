@@ -48,6 +48,12 @@
     "AI_EXPLANATIONS_TIMEOUT_SECONDS": "60",
     "ALERTS_ENABLED": "false",
     "ALERTS_UNSUBSCRIBE_TOKEN_KEY": "",
+    "BILLING_ENABLED": "false",
+    "BILLING_SANDBOX_ONLY": "true",
+    "PAYMENT_PROVIDER": "Disabled",
+    "MERCADO_PAGO_ACCESS_TOKEN": "",
+    "MERCADO_PAGO_WEBHOOK_SECRET": "",
+    "MERCADO_PAGO_WEBHOOK_URL": "http://localhost:5070/api/v1/webhooks/payments/mercado-pago",
     "AZURE_COMMUNICATION_SERVICES_ENDPOINT": "",
     "EMAIL_FROM_ADDRESS": "",
     "FRONTEND_BASE_URL": "http://localhost:5173"

@@ -8,6 +8,7 @@ import {
   AdminSourceDocumentDetailPage,
   AdminSourceDocumentUploadPage,
 } from '@/features/source-documents/source-document-pages'
+import { AdminBillingPage } from '@/features/billing/billing-pages'
 
 export function AdminDashboardPage() {
   return (
@@ -60,13 +61,7 @@ export function AdminOrganizationsPage() {
 }
 
 export function AdminSubscriptionsPage() {
-  return (
-    <PagePlaceholder
-      title="Suscripciones"
-      description="Operación de planes y estados de suscripción."
-      eyebrow="Administración"
-    />
-  )
+  return <AdminBillingPage />
 }
 
 export function AdminErrorsPage() {

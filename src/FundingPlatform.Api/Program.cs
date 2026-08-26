@@ -12,6 +12,7 @@ using FundingPlatform.Api.Health;
 using FundingPlatform.Api.Middleware;
 using FundingPlatform.Application.Authentication;
 using FundingPlatform.Application.Alerts;
+using FundingPlatform.Application.Billing;
 using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
@@ -25,6 +26,7 @@ using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts;
 using FundingPlatform.Core.Identity;
 using FundingPlatform.Infrastructure.Configuration;
+using FundingPlatform.Infrastructure.Billing;
 using FundingPlatform.Infrastructure.Identity;
 using FundingPlatform.Infrastructure.Identity.Configuration;
 using FundingPlatform.Infrastructure.Identity.Cryptography;
@@ -32,6 +34,7 @@ using FundingPlatform.Infrastructure.Identity.Email;
 using FundingPlatform.Infrastructure.Identity.Persistence;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Alerts;
+using FundingPlatform.Infrastructure.Persistence.Billing;
 using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Matching;
@@ -139,6 +142,9 @@ builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationR
 builder.Services.AddScoped<FundingApplicationService>();
 builder.Services.AddScoped<INetworkingRepository, SqlNetworkingRepository>();
 builder.Services.AddScoped<NetworkingService>();
+builder.Services.AddScoped<IBillingRepository, SqlBillingRepository>();
+builder.Services.AddScoped<BillingService>();
+builder.Services.AddScoped<PaymentWebhookIngressService>();
 builder.Services.AddScoped<IProjectMatchingRepository, SqlProjectMatchingRepository>();
 builder.Services.AddScoped<ProjectMatchingService>();
 builder.Services.AddScoped<ISemanticEvaluationRepository, SqlSemanticProcessingRepository>();
@@ -210,6 +216,29 @@ builder.Services.AddSingleton(serviceProvider =>
     return policy;
 });
 builder.Services.AddSingleton<AlertUnsubscribeTokenService>();
+builder.Services
+    .AddOptions<BillingOptions>()
+    .Bind(builder.Configuration.GetSection(BillingOptions.SectionName))
+    .Validate(options => BillingOptions.IsValid(options, builder.Environment.EnvironmentName),
+        "La configuración Billing no es válida o no está restringida a sandbox.")
+    .ValidateOnStart();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value.ToPolicy());
+builder.Services.AddSingleton<IPaymentWebhookVerifier, MercadoPagoWebhookVerifier>();
+builder.Services.AddHttpClient<MercadoPagoPaymentGateway>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
+    client.BaseAddress = new Uri(options.ApiBaseUri);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+});
+builder.Services.AddScoped<DevelopmentPaymentGateway>();
+builder.Services.AddScoped<IPaymentGateway>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
+    return options.GatewayMode == "DevelopmentFake"
+        ? serviceProvider.GetRequiredService<DevelopmentPaymentGateway>()
+        : serviceProvider.GetRequiredService<MercadoPagoPaymentGateway>();
+});
 builder.Services
     .AddOptions<SourceDocumentOptions>()
     .Bind(builder.Configuration.GetSection(SourceDocumentOptions.SectionName))
@@ -396,6 +425,26 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("billing-write", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("payment-webhook", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
@@ -596,6 +645,7 @@ app.MapAdminSemanticEvaluationEndpoints();
 app.MapAdminAiExplanationEndpoints();
 app.MapSavedSearchAlertEndpoints();
 app.MapNetworkingEndpoints();
+app.MapBillingEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

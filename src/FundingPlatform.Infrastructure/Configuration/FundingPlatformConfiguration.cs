@@ -104,7 +104,13 @@ public static class FundingPlatformConfiguration
         ("ENTRA_SSO_ENABLED", "Authentication:External:Entra:Enabled"),
         ("ENTRA_SSO_TENANT_ID", "Authentication:External:Entra:TenantId"),
         ("ENTRA_SSO_CLIENT_ID", "Authentication:External:Entra:ClientId"),
-        ("ENTRA_SSO_CLIENT_SECRET", "Authentication:External:Entra:ClientSecret")
+        ("ENTRA_SSO_CLIENT_SECRET", "Authentication:External:Entra:ClientSecret"),
+        ("BILLING_ENABLED", "Billing:Enabled"),
+        ("BILLING_SANDBOX_ONLY", "Billing:SandboxOnly"),
+        ("PAYMENT_PROVIDER", "Billing:GatewayMode"),
+        ("MERCADO_PAGO_ACCESS_TOKEN", "Billing:AccessToken"),
+        ("MERCADO_PAGO_WEBHOOK_SECRET", "Billing:WebhookSecret"),
+        ("MERCADO_PAGO_WEBHOOK_URL", "Billing:WebhookUrl")
     ];
 
     public static ConfigurationManager CreateFromEnvironment()

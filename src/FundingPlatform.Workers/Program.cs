@@ -6,15 +6,18 @@ using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Alerts;
+using FundingPlatform.Application.Billing;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.Configuration;
+using FundingPlatform.Infrastructure.Billing;
 using FundingPlatform.Infrastructure.FundingSources;
 using FundingPlatform.Infrastructure.FundingSources.GrantsGov;
 using FundingPlatform.Infrastructure.FundingSources.Rss;
 using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Alerts;
+using FundingPlatform.Infrastructure.Persistence.Billing;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
@@ -100,6 +103,11 @@ builder.Services.AddOptions<AlertOptions>()
         builder.Configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ??
             new EmailOptions()), "Alerts configuration is invalid.")
     .ValidateOnStart();
+builder.Services.AddOptions<BillingOptions>()
+    .Bind(builder.Configuration.GetSection(BillingOptions.SectionName))
+    .Validate(options => BillingOptions.IsValid(options, builder.Environment.EnvironmentName),
+        "Billing configuration is invalid or not sandbox-only.")
+    .ValidateOnStart();
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
@@ -150,6 +158,7 @@ builder.Services.AddScoped<ISourceDocumentRepository, SqlSourceDocumentRepositor
 builder.Services.AddScoped<ISemanticProcessingRepository,
     SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<ISavedSearchAlertRepository, SqlSavedSearchAlertRepository>();
+builder.Services.AddScoped<IBillingRepository, SqlBillingRepository>();
 builder.Services.AddScoped<IAiExplanationProcessingRepository,
     SqlSemanticProcessingRepository>();
 builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceiptRepository>();
@@ -250,6 +259,21 @@ builder.Services.AddScoped(serviceProvider => new AlertProcessingService(
     serviceProvider.GetRequiredService<AlertProcessingPolicy>(),
     serviceProvider.GetRequiredService<TimeProvider>(),
     serviceProvider.GetRequiredService<AlertWorkerIdentity>().InstanceId));
+builder.Services.AddHttpClient<MercadoPagoPaymentGateway>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
+    client.BaseAddress = new Uri(options.ApiBaseUri);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+});
+builder.Services.AddScoped<DevelopmentPaymentGateway>();
+builder.Services.AddScoped<IPaymentGateway>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
+    return options.GatewayMode == "DevelopmentFake"
+        ? serviceProvider.GetRequiredService<DevelopmentPaymentGateway>()
+        : serviceProvider.GetRequiredService<MercadoPagoPaymentGateway>();
+});
+builder.Services.AddScoped<BillingProcessingService>();
 
 builder.Services.AddHttpClient<GrantsGovFundingSourceProvider>((serviceProvider, client) =>
     {

@@ -527,6 +527,19 @@ abrió una conexión SQL/Azure ni se ejecutaron `--validate`, `--apply`, `--test
 `025`; `res` continúa observado en 18/18. Un despliegue futuro debe aplicar `019`→`025` en orden,
 ejecutar todos los smokes con rollback y registrar status/reapply reales.
 
+## Estado de FASE 11
+
+`026_subscription_billing_sandbox.sql` (988 líneas) y su smoke transaccional (94 líneas) preparan
+planes, precios, entitlements, suscripciones, pagos, checkout, inbox de webhooks y reconciliación.
+Professional y Organization se publican sin precio y no comprables; Free es el fallback. No se
+persisten cuerpos de webhook, tarjetas, tokens ni secretos. La configuración sale apagada y exige
+Mercado Pago sandbox para habilitarse.
+
+El gate local pasó build .NET 0 warnings/errores, Unit 373/373, Integration 156/156, lint,
+25 archivos/111 pruebas frontend y build. `026` no fue validada ni aplicada en SQL/Azure; `res`
+continúa observado en 18/18 y un despliegue futuro debe aplicar `019`→`026` en orden y ejecutar los
+26 smokes con rollback.
+
 ## Carpetas
 
 - Tables: definiciones de tablas, claves, constraints e índices propios del objeto.
