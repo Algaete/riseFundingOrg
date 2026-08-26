@@ -112,6 +112,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.DoesNotContain("push:", workflow, StringComparison.Ordinal);
         Assert.Contains("DEPLOY-DEV", workflow, StringComparison.Ordinal);
         Assert.Contains("list-flexconsumption-runtimes", script, StringComparison.Ordinal);
+        Assert.Contains("sku.functionAppConfigProperties.runtime.version=='10.0'", script, StringComparison.Ordinal);
+        Assert.Contains("dotnet10_runtime_count", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("grep -q '10.0'", script, StringComparison.Ordinal);
         Assert.Contains("Microsoft.App", script, StringComparison.Ordinal);
         Assert.Contains("az acr build", script, StringComparison.Ordinal);
         Assert.Contains("apply-base", script, StringComparison.Ordinal);

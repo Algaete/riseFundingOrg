@@ -61,10 +61,14 @@ flex_count="$(az functionapp list-flexconsumption-locations --query "[?name=='${
 if [[ "$flex_count" != "1" ]]; then
   echo "Flex Consumption is unavailable in ${AZURE_LOCATION}" >&2; exit 3
 fi
-az functionapp list-flexconsumption-runtimes --location "$AZURE_LOCATION" --runtime dotnet-isolated \
-  --output tsv | grep -q '10.0' || {
-    echo ".NET 10 isolated is unavailable for Flex Consumption in ${AZURE_LOCATION}" >&2; exit 3;
-  }
+dotnet10_runtime_count="$(az functionapp list-flexconsumption-runtimes \
+  --location "$AZURE_LOCATION" \
+  --runtime dotnet-isolated \
+  --query "[?sku.functionAppConfigProperties.runtime.name=='dotnet-isolated' && sku.functionAppConfigProperties.runtime.version=='10.0'] | length(@)" \
+  --output tsv)"
+if [[ "$dotnet10_runtime_count" != "1" ]]; then
+  echo ".NET 10 isolated is unavailable for Flex Consumption in ${AZURE_LOCATION}" >&2; exit 3
+fi
 az provider show --namespace Microsoft.App \
   --query "resourceTypes[?resourceType=='managedEnvironments'].locations[]" --output tsv \
   | grep -Fxiq "$location_display" || {
