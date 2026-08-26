@@ -244,6 +244,8 @@ builder.Services
         "La configuración Billing no es válida o no está restringida a sandbox.")
     .ValidateOnStart();
 builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value);
+builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton<IPaymentWebhookVerifier, MercadoPagoWebhookVerifier>();
 builder.Services.AddHttpClient<MercadoPagoPaymentGateway>((serviceProvider, client) =>

@@ -109,6 +109,8 @@ builder.Services.AddOptions<BillingOptions>()
         "Billing configuration is invalid or not sandbox-only.")
     .ValidateOnStart();
 builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<BillingOptions>>().Value);
+builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SemanticOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<AiExplanationOptions>>().Value.ToPolicy());
