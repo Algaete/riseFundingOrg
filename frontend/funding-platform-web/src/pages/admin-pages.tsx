@@ -10,15 +10,10 @@ import {
 } from '@/features/source-documents/source-document-pages'
 import { AdminBillingPage } from '@/features/billing/billing-pages'
 import { AdminUsersWorkspacePage } from '@/features/admin-users/admin-user-pages'
+import { AdminDashboardWorkspacePage } from '@/features/admin-dashboard/admin-dashboard-page'
 
 export function AdminDashboardPage() {
-  return (
-    <PagePlaceholder
-      title="Administración"
-      description="Indicadores operacionales, ingestas recientes y tareas pendientes."
-      eyebrow="Administración"
-    />
-  )
+  return <AdminDashboardWorkspacePage />
 }
 
 export function AdminImportsPage() {
