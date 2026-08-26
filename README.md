@@ -40,6 +40,11 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
 [docs/REVISION-VISION-FUNDRAISING-GLOBAL.md](docs/REVISION-VISION-FUNDRAISING-GLOBAL.md).
+La documentación para usuarios finales está disponible en formato
+[Word](docs/user-guide/Manual-de-Usuario-FundingPlatform.docx) y
+[PDF](docs/user-guide/Manual-de-Usuario-FundingPlatform.pdf). Incluye guías visuales basadas en la
+interfaz; las capturas reales del ambiente dev se incorporarán después del despliegue con datos
+ficticios y sin información personal.
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
