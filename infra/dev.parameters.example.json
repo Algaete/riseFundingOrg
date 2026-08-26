@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "value": "REPLACE_WITH_VALIDATED_REGION" },
+    "uniqueSuffix": { "value": "REPLACE" },
+    "sqlEntraAdminLogin": { "value": "REPLACE_WITH_ENTRA_GROUP_NAME" },
+    "sqlEntraAdminObjectId": { "value": "00000000-0000-0000-0000-000000000000" },
+    "budgetContactEmail": { "value": "REPLACE_WITH_EMAIL" },
+    "budgetStartDate": { "value": "REPLACE_WITH_FIRST_DAY_UTC" },
+    "monthlyBudgetAmount": { "value": 75 },
+    "deployCompute": { "value": true }
+  }
+}

@@ -1,0 +1,51 @@
+name: Azure dev infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: ARM operation; apply requires the confirmation below
+        required: true
+        type: choice
+        options: [validate, what-if, apply]
+        default: what-if
+      confirmation:
+        description: Type DEPLOY-DEV only when operation is apply
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: rise-funding-azure-dev-infrastructure
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment: dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require explicit apply confirmation
+        if: inputs.operation == 'apply' && inputs.confirmation != 'DEPLOY-DEV'
+        run: exit 1
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Validate, preview or apply
+        env:
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_UNIQUE_SUFFIX: ${{ vars.AZURE_UNIQUE_SUFFIX }}
+          AZURE_SQL_ADMIN_LOGIN: ${{ vars.AZURE_SQL_ADMIN_LOGIN }}
+          AZURE_SQL_ADMIN_OBJECT_ID: ${{ vars.AZURE_SQL_ADMIN_OBJECT_ID }}
+          AZURE_BUDGET_EMAIL: ${{ vars.AZURE_BUDGET_EMAIL }}
+          AZURE_BUDGET_START_DATE: ${{ vars.AZURE_BUDGET_START_DATE }}
+          AZURE_MONTHLY_BUDGET_AMOUNT: ${{ vars.AZURE_MONTHLY_BUDGET_AMOUNT }}
+          AZURE_DEPLOY_COMPUTE: ${{ vars.AZURE_DEPLOY_COMPUTE }}
+          AZURE_APPLY_CONFIRMATION: ${{ inputs.confirmation }}
+        run: bash infra/scripts/deploy-dev.sh "${{ inputs.operation }}"

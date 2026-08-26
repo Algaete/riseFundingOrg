@@ -3137,6 +3137,14 @@ policies administrativas verificadas. No se cobran pagos reales todavía.
 
 ### FASE 12 — Hardening, testing y despliegue
 
+**Estado FASE 12A (2026-08-25):** IaC de `dev` preparada localmente en Bicep, sin ejecutar Azure.
+Incluye presupuesto con notificaciones, SQL serverless auto-pause, App Service B1, Static Web Apps
+Free, Functions Flex, tres fronteras Storage, cinco UAMI, Key Vault/Data Protection y observabilidad.
+Los workflows separan compilación sin credenciales de `validate`/`what-if`/`apply` manual mediante
+OIDC; `apply` exige confirmación literal. La región se rechaza si no ofrece .NET 10 en App Service y
+Functions Flex. Quedan para 12B el despliegue de paquetes, DNS/dominio común, secretos, usuarios SQL,
+aplicación `019`→`026`, E2E, restore y decisión de piloto.
+
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;
 - staging y smoke tests de Azure.

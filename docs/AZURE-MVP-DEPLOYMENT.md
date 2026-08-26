@@ -1,7 +1,8 @@
 # Despliegue del MVP en Azure
 
-Estado: repositorio preparado para integración continua. Este documento no acredita que los recursos
-Azure estén creados ni que producción esté habilitada.
+Estado: FASE 12A preparada localmente mediante `infra/main.bicep`, módulos y workflows de validación
+y despliegue manual. Este documento no acredita que los recursos Azure estén creados ni que
+producción esté habilitada.
 
 ## 1. Arquitectura del MVP
 
@@ -45,10 +46,16 @@ host-only y `SameSite=Lax`; una Static Web App bajo `azurestaticapps.net` y una 
    identidades que ejecutan la aplicación.
 4. Definir entornos de GitHub `staging` y `production`, con aprobación manual para `production`.
 
-El workflow `.github/workflows/ci.yml` solo compila y prueba. No despliega hasta que existan recursos,
-dominios e identidades; esto evita publicar accidentalmente con una configuración incompleta.
+El workflow `.github/workflows/ci.yml` compila y prueba. `infra-validate.yml` compila Bicep sin
+credenciales. `infra-dev.yml` es exclusivamente manual, usa OIDC y exige confirmación literal para
+`apply`; por defecto sólo ejecuta `what-if`.
 
 ## 4. Crear la base de recursos
+
+La plantilla de FASE 12A crea esta base de forma reproducible. Antes de ejecutarla, seguir
+[`infra/README.md`](../infra/README.md), configurar el environment GitHub `dev` y revisar el
+`what-if`. Los pasos de Portal siguientes sirven como verificación, no como una segunda fuente de
+infraestructura paralela.
 
 En Azure Portal:
 
@@ -254,9 +261,9 @@ No colocar tokens, claves ni connection strings en variables `VITE_*`.
 5. Exigir aprobación del entorno GitHub `production`.
 6. No reutilizar las UAMI runtime como identidad de GitHub Actions.
 
-No se agrega todavía un workflow de deploy escrito a mano porque sus nombres de recurso, slots y
-credenciales federadas aún no existen. Deployment Center puede generarlo una vez creados y así evita
-inventar identificadores o guardar publish profiles.
+FASE 12A agrega el workflow manual de **infraestructura**, no uno de publicación de paquetes. La
+publicación de API/Functions/frontend se incorpora después de observar outputs, dominios e
+identidades reales. No se aceptan publish profiles ni secretos de service principal.
 
 ## 13. Dominios, TLS y comprobación final
 

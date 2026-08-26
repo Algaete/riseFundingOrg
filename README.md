@@ -34,7 +34,8 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox y administración de suscripciones |
-| 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
+| 12A | IaC local completada; Azure no creado | Dev separado, presupuesto, identidades, Storage, SQL serverless, compute y validación OIDC/what-if |
+| 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
@@ -1174,7 +1175,9 @@ El orden de ejecución es:
   aplicación `025` pendiente de un despliegue autorizado;
 - FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
-- FASE 12 — hardening, pruebas y despliegue.
+- FASE 12A — IaC de dev, presupuesto, Managed Identities y workflows manuales OIDC/what-if
+  completados localmente; no se creó ningún recurso;
+- FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente
 web requiere revisión de términos, `robots.txt`, rate limits, allowlist y kill switch. La beta de

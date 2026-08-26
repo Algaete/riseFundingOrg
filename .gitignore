@@ -58,6 +58,9 @@ secrets.json
 # Azure and local emulators
 .azure/
 .azurite/
+infra/**/*.parameters.json
+!infra/**/*.parameters.example.json
+infra/.what-if/
 __azurite_db*__
 __blobstorage__/
 __queuestorage__/
