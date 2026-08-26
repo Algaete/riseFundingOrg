@@ -27,6 +27,7 @@ const MarketplacePage = lazy(() => import('@/features/marketplace/marketplace-pa
 const MarketplaceProjectDetailPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceProjectDetailPage })))
 const MarketplaceOrganizationPage = lazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceOrganizationPage })))
 const MatchingPage = lazy(() => import('@/features/matching/matching-pages').then((module) => ({ default: module.MatchingWorkspacePage })))
+const NetworkPage = lazy(() => import('@/features/network/network-pages').then((module) => ({ default: module.NetworkWorkspacePage })))
 const SubscriptionPage = lazy(() => import('@/pages/app-pages').then((module) => ({ default: module.SubscriptionPage })))
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminDashboardPage })))
@@ -99,6 +100,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/applications', element: <ApplicationsPage /> },
       { path: '/calendar', element: <CalendarPage /> },
       { path: '/alerts', element: <AlertsPage /> },
+      { path: '/network', element: <NetworkPage /> },
       { path: '/organization/profile', element: <OrganizationProfilePage /> },
       { path: '/projects', element: <ProjectsPage /> },
       { path: '/projects/:projectId', element: <ProjectDetailPage /> },

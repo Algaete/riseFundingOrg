@@ -42,6 +42,7 @@ const memberNavigation: NavigationItem[] = [
   { label: 'Postulaciones', to: '/applications', icon: ClipboardList },
   { label: 'Calendario', to: '/calendar', icon: CalendarDays },
   { label: 'Alertas', to: '/alerts', icon: Bell },
+  { label: 'Conexiones', to: '/network', icon: Users },
   { label: 'Organización', to: '/organization/profile', icon: Building2 },
   { label: 'Proyectos', to: '/projects', icon: Target },
 ]

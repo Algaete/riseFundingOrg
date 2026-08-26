@@ -16,6 +16,7 @@ using FundingPlatform.Application.Applications;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Application.Matching;
+using FundingPlatform.Application.Networking;
 using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Application.Marketplace;
@@ -34,6 +35,7 @@ using FundingPlatform.Infrastructure.Persistence.Alerts;
 using FundingPlatform.Infrastructure.Persistence.Applications;
 using FundingPlatform.Infrastructure.Persistence.Imports;
 using FundingPlatform.Infrastructure.Persistence.Matching;
+using FundingPlatform.Infrastructure.Persistence.Networking;
 using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
 using FundingPlatform.Infrastructure.Persistence.Marketplace;
@@ -135,6 +137,8 @@ builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
 builder.Services.AddScoped<FundingApplicationService>();
+builder.Services.AddScoped<INetworkingRepository, SqlNetworkingRepository>();
+builder.Services.AddScoped<NetworkingService>();
 builder.Services.AddScoped<IProjectMatchingRepository, SqlProjectMatchingRepository>();
 builder.Services.AddScoped<ProjectMatchingService>();
 builder.Services.AddScoped<ISemanticEvaluationRepository, SqlSemanticProcessingRepository>();
@@ -396,6 +400,16 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("network-connect-write", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
     options.AddPolicy("matching-run-create", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -581,6 +595,7 @@ app.MapProjectMatchingEndpoints();
 app.MapAdminSemanticEvaluationEndpoints();
 app.MapAdminAiExplanationEndpoints();
 app.MapSavedSearchAlertEndpoints();
+app.MapNetworkingEndpoints();
 
 static string GetRateLimitPartition(HttpContext context)
 {

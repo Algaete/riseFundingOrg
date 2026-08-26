@@ -498,7 +498,34 @@ ScriptDom parseó los 19 lotes de migración y el lote transaccional del smoke. 
 build .NET 0 warnings/0 errores, Unit 360/360, Integration 149/149, lint frontend, 23/108 Vitest y
 build. No se abrió una conexión DB/Azure, no se aplicó `024` ni se envió email. El último estado
 observado de `res` sigue en 18/18; el despliegue posterior debe validar/aplicar en orden
-`019`→`024`, correr todos los smokes con rollback, reapply/status y registrar los resultados reales.
+`019`→`025`, correr todos los smokes con rollback, reapply/status y registrar los resultados reales.
+
+## Estado de FASE 10B
+
+La implementación local agrega dos artefactos forward-only todavía no ejecutados contra una base:
+
+- `025_organization_networking.sql` (717 líneas/11 lotes), SHA-256
+  `f0add029613446ad5350b9ddaa8873497e4074a5483b40c6518838941abc24cf`;
+- `025_organization_networking_smoke.sql` (273 líneas/dos lotes), SHA-256
+  `02485713222d60c4a87b5bc514bd34a1b1f094247625bd75d4c8976335e87af7`.
+
+`025` agrega preferencias opt-in por organización, solicitudes Connect y un ledger de creación
+idempotente. El directorio reutiliza las guardas `OrganizationMarketplaceReady` y
+`ProjectMarketplaceReady`: no inventa otra publicación ni expone miembros/PII. Visibilidad y
+recepción de solicitudes son decisiones separadas; bloqueo excluye el par del directorio.
+
+Los SP vuelven a validar usuario, membresía, tenant y rol administrador en cada mutación. Create
+exige hash de clave/request, un proyecto público opcional, snapshots seguros y cuotas durables;
+Action exige rowversion y transiciones explícitas. Dos triggers hacen inmutables identidad,
+mensaje, snapshots, historial terminal y ledger. El smoke transaccional prepara dos ONG/proyectos
+públicos, ejerce opt-in, directorio, create/replay/conflict, accept, list/get, block y privacidad,
+y termina con rollback.
+
+El gate local pasó ScriptDom mediante la suite de infraestructura, build .NET 0 warnings/0 errores,
+Unit 370/370, Integration 156/156, lint frontend, 25 archivos/111 pruebas Vitest y build. No se
+abrió una conexión SQL/Azure ni se ejecutaron `--validate`, `--apply`, `--test` o `--status` para
+`025`; `res` continúa observado en 18/18. Un despliegue futuro debe aplicar `019`→`025` en orden,
+ejecutar todos los smokes con rollback y registrar status/reapply reales.
 
 ## Carpetas
 
@@ -542,7 +569,8 @@ aplicación DB pendiente. FASE 9B-A prepara embeddings project-first y su evalua
 en sombra mediante `021`, también sin aplicar. FASE 9B-B prepara adapters externos gobernados y
 explicaciones administrativas shadow mediante `022`/`023`, igualmente apagados y sin aplicar;
 FASE 10A prepara búsquedas guardadas y alertas diarias mediante `024`, apagadas y sin aplicar;
-extracción generativa, promoción, networking y billing conservan fases o gates posteriores. Las sesiones
+FASE 10B prepara networking opt-in moderado mediante `025`, también sin aplicar. Extracción
+generativa, promoción y billing conservan fases o gates posteriores. Las sesiones
 y MFA se incorporaron de forma aditiva en FASE 3 mediante
 las migraciones 002/003/004.
 

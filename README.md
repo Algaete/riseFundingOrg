@@ -6,13 +6,12 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 
 ## Estado del proyecto
 
-El repositorio completó la **implementación local de FASE 10A** sobre el catálogo 8A: búsquedas
-guardadas privadas, resumen diario por email, baja con token de un solo propósito e historial de
-notificaciones. El runtime de alertas permanece apagado por defecto; no se envió correo ni se creó
-un recurso Azure. La compatibilidad 9A y la experimentación 9B continúan separadas y sin alterar el
-contenido ni la selección de las alertas.
+El repositorio completó la **implementación local de FASE 10B**: directorio opt-in de ONG con
+proyectos públicos y solicitudes Connect privadas, moderadas e idempotentes. No hay chat, contacto
+automático ni exposición de PII de miembros. Las alertas 10A siguen apagadas y 10B no creó recursos
+Azure ni modificó matching, postulaciones o alertas.
 
-Las migraciones `019` a `024`, junto con sus smokes, permanecen como artefactos locales: por
+Las migraciones `019` a `025`, junto con sus smokes, permanecen como artefactos locales: por
 instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
 base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
 
@@ -33,7 +32,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 9B-A | Código completado; activación DB pendiente | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
 | 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
-| 10B | Pendiente | Networking básico y solicitudes Connect moderadas |
+| 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | Pendiente | Suscripciones, billing sandbox y administración completa |
 | 12 | Pendiente | Hardening, pruebas, observabilidad y despliegue del piloto |
 
@@ -43,7 +42,7 @@ la ampliación project-first está en
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
-de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B y `024` de 10A no forman parte de ese resultado: permanecen
+de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A y `025` de 10B no forman parte de ese resultado: permanecen
 como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
 orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
@@ -738,13 +737,41 @@ Artefactos locales congelados:
 ScriptDom parseó ambos artefactos. El gate local pasó build .NET con 0 warnings/0 errores,
 360/360 pruebas unitarias, 149/149 de integración, lint frontend, 23 archivos/108 pruebas Vitest y
 build de producción. No se abrió una conexión DB/Azure; `res` permanece observado en 18/18 y la
-activación futura debe aplicar `019`→`024` en orden y ejecutar todos los smokes.
+activación futura debe aplicar `019`→`025` en orden y ejecutar todos los smokes.
 
 `ALERTS_ENABLED=false` es el valor inicial. Para habilitarlo se requiere `024` aplicada, un usuario
 Entra del worker miembro de `FundingPlatform_AlertWorkerRole`, permiso Communication Email Sender,
 endpoint/from address verificados, URL frontend HTTPS y la clave de baja en Key Vault. 10A no agrega
-recordatorios de postulaciones ni networking; el calendario/pipeline ya pertenecen a 8B y Connect
-queda para 10B.
+recordatorios de postulaciones ni networking; el calendario/pipeline pertenecen a 8B y Connect se
+implementa por separado en 10B.
+
+## Networking entre organizaciones — FASE 10B
+
+La ruta privada `/network` permite que cualquier miembro activo explore un directorio derivado
+exclusivamente del marketplace 8B. Una ONG aparece solo después de opt-in explícito y si mantiene
+al menos un proyecto público; puede permanecer visible y pausar nuevas solicitudes por separado.
+El directorio no devuelve email, teléfono, RUT, razón social privada, miembros ni proyectos draft.
+
+Solo un administrador de la organización puede cambiar la preferencia, enviar solicitudes o
+moderarlas. La invitación admite un mensaje privado inicial de 10–500 caracteres y un proyecto
+público opcional; bloquea patrones obvios de email, URL y teléfono. No existe chat ni contacto
+automático. El ciclo es `Pending`→`Accepted`/`Rejected`/`Cancelled`/`Blocked`, con bloqueo también
+desde una conexión aceptada. Las identidades y snapshots son inmutables y el historial no se borra.
+
+Create usa `Idempotency-Key`, las acciones y preferencias existentes usan ETag/`If-Match`, SQL
+impone un par activo, cinco envíos por 24 horas y veinte pendientes por ONG, y la API suma cinco
+intentos por diez minutos por usuario. Lecturas y escrituras exigen sesión completa, contexto tenant
+y `no-store`; cualquier miembro puede leer, pero SQL vuelve a exigir rol de administrador al mutar.
+
+Artefactos locales: `025_organization_networking.sql` (717 líneas/11 lotes), SHA-256
+`f0add029613446ad5350b9ddaa8873497e4074a5483b40c6518838941abc24cf`, y smoke transaccional
+`025_organization_networking_smoke.sql` (273 líneas/dos lotes), SHA-256
+`02485713222d60c4a87b5bc514bd34a1b1f094247625bd75d4c8976335e87af7`.
+ScriptDom quedó cubierto por la suite de infraestructura. El gate local pasó build .NET con
+0 warnings/0 errores, Unit 370/370, Integration 156/156, lint frontend, 25 archivos/111 pruebas
+Vitest y build de producción. No se abrió una conexión DB/Azure: `res` sigue observado en 18/18 y
+la futura activación debe validar/aplicar `019`→`025`, ejecutar los 25 smokes con rollback y registrar
+reapply/status reales.
 
 ## Pruebas y validación
 
@@ -955,6 +982,8 @@ Endpoints principales del backend hasta este cierre:
 - búsquedas/alertas privadas: `GET/POST /api/v1/organizations/{organizationId}/saved-searches`,
   `GET/PATCH/DELETE /saved-searches/{id}`, `PUT/DELETE /saved-searches/{id}/alert` y
   `GET /notification-logs`; la baja pública es `POST /api/v1/alerts/unsubscribe`.
+- networking privado: settings, directorio y conexiones bajo
+  `/api/v1/organizations/{organizationId}/network`, con Create idempotente y acciones versionadas.
 
 FASE 6 incorporó CRUD y revisión de funders/oportunidades, ETag, idempotencia, auditoría,
 correcciones versionadas, atribución, interstitial anti-phishing y el límite seguro de carga
@@ -1141,7 +1170,8 @@ El orden de ejecución es:
   local; aplicación `022`/`023`, eval real, extracción generativa y decisión de promoción pendientes;
 - FASE 10A — búsquedas guardadas y alertas email completadas en código local; aplicación `024` y
   activación del proveedor pendientes;
-- FASE 10B — networking básico y solicitudes Connect moderadas;
+- FASE 10B — networking opt-in y solicitudes Connect moderadas completados en código local;
+  aplicación `025` pendiente de un despliegue autorizado;
 - FASE 11 — suscripciones y administración completa;
 - FASE 12 — hardening, pruebas y despliegue.
 

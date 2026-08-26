@@ -5,8 +5,9 @@ Full-Text provisionado; FASE 8B completada en código local, con `019` preparada
 validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
 sin aplicación ni prueba contra una base de datos; FASE 9B-A completada en código local y `021`
 congelada; FASE 9B-B con adapters/gobierno/explicaciones shadow completados en código local mediante
-`022`/`023`; FASE 10A completada en código local con búsquedas guardadas y alertas diarias mediante
-`024`, todos todavía sin aplicación ni prueba contra una base de datos o proveedor real
+`022`/`023`; FASE 10A completada localmente mediante `024`; FASE 10B completada en código local con
+networking opt-in y Connect moderado mediante `025`, todos todavía sin aplicación ni prueba contra
+una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
 
@@ -3086,7 +3087,7 @@ Código local completado mediante `024_saved_search_alerts.sql` (1264 líneas/19
 `f6222f40fb6b6ad436e6496d383f4b05900458e4201d9176165dcf9d113e99a4`) y smoke (293 líneas/un
 lote, SHA-256 `24f5aa7def2ecd6b7bf6f9c5c6843e105f34afca1fad0f69c8e4c5f484d7b035`). Gates:
 ScriptDom, build .NET 0 warnings/0 errores, Unit 360/360, Integration 149/149, lint frontend,
-23 archivos/108 pruebas Vitest y build. `019`→`024` no se ejecutaron contra una base; no se llamó a
+23 archivos/108 pruebas Vitest y build. `019`→`025` no se ejecutaron contra una base; no se llamó a
 Communication Services ni se envió email.
 
 El pipeline y calendario ya pertenecen a 8B; 10A no los duplica. La activación exige aplicar las
@@ -3095,11 +3096,27 @@ guardar la clave HMAC en Key Vault y habilitar `Alerts` de forma explícita.
 
 ### FASE 10B — Networking básico
 
-- búsqueda pública segura de organizaciones/proyectos para colaboración;
-- solicitud `Connect` moderada, con aceptación/rechazo explícitos y sin exponer PII;
-- una brecha de partnership puede sugerir explorar colaboración, nunca contactar automáticamente.
+- directorio privado para miembros, derivado solo de ONG/proyectos marketplace-ready y opt-in;
+- preferencias `IsDiscoverable`/`AllowRequests` separadas, editables únicamente por OrganizationAdmin;
+- solicitud `Connect` con proyecto público opcional, mensaje privado allowlisted, purpose fijo,
+  idempotencia durable, un par activo y cuotas HTTP+SQL;
+- aceptación/rechazo por destinatario, cancelación por remitente y bloqueo explícito, todo con ETag;
+- ningún chat, contacto automático, PII de miembros, proyecto draft o cambio de matching.
 
-**Salida:** networking privado y moderado sin modificar matching, postulaciones ni alertas.
+Código local completado mediante `025_organization_networking.sql` (717 líneas/11 lotes, SHA-256
+`f0add029613446ad5350b9ddaa8873497e4074a5483b40c6518838941abc24cf`) y smoke transaccional
+(273 líneas/dos lotes, SHA-256
+`02485713222d60c4a87b5bc514bd34a1b1f094247625bd75d4c8976335e87af7`). Las tablas conservan
+preferencias, solicitudes/snapshots e idempotency ledger; triggers impiden borrar o reescribir el
+historial fuera de sus transiciones. API y UI usan sesión completa/no-store, tenant server-side,
+roles revalidados, `Idempotency-Key`, ETag y estados seguros.
+
+Gate local: ScriptDom mediante tests de infraestructura, build .NET 0 warnings/0 errores,
+Unit 370/370, Integration 156/156, lint frontend, 25 archivos/111 pruebas Vitest y build. `019`→`025`
+no se ejecutaron contra SQL Server/Azure SQL; `res` sigue observado en 18/18 y la activación requiere
+validate/apply/smoke/reapply/status en un ambiente autorizado.
+
+**Salida:** networking privado, opt-in y moderado sin modificar matching, postulaciones ni alertas.
 
 ### FASE 11 — Suscripciones y administración completa
 

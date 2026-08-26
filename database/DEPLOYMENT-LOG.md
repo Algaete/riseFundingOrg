@@ -40,9 +40,9 @@ migración `019` no se desplegó ni se validó contra ninguna base. FASE 9A comp
 determinístico y preparó la migración `020`, también sin conexión ni despliegue. FASE 9B-A prepara
 localmente la migración `021` para embeddings project-first y evaluación corpus-level sólo en sombra;
 tampoco se conectó ni se desplegó. FASE 9B-B agregó localmente el gobierno de proveedor y las
-explicaciones shadow de `022`/`023`; FASE 10A preparó búsquedas guardadas y alertas diarias en `024`,
-apagadas por defecto. La activación del proveedor, la IA generativa fuera de sombra, networking y
-billing conservan gates o fases posteriores del roadmap.
+explicaciones shadow de `022`/`023`; FASE 10A preparó búsquedas/alertas en `024`; FASE 10B preparó
+networking opt-in moderado en `025`. La activación del proveedor, la IA generativa fuera de sombra y
+billing conservan gates posteriores del roadmap.
 
 No se registra la cadena de conexión, la identidad de despliegue ni ningún secreto.
 
@@ -437,8 +437,28 @@ commit de Azure SQL.
   23 archivos/108 pruebas Vitest y build de producción.
 - Por instrucción del propietario no se abrió una conexión SQL, no se ejecutó `--validate`,
   `--apply`, `--test` o `--status`, no se llamó a Communication Services, no se creó ningún recurso
-  Azure y no se envió correo. `res` sigue observado en 18/18; `019`→`024` permanecen locales.
+  Azure y no se envió correo. `res` sigue observado en 18/18; `019`→`025` permanecen locales.
 - La activación posterior exige aplicar las migraciones en orden, ejecutar todos los smokes con
   rollback y registrar reapply/status; además requiere `ALERTS_ENABLED=true`, principal del worker
   en el rol mínimo, dominio/remitente verificados, permiso Email Sender y la clave HMAC de baja en
   Key Vault/App Settings.
+
+## Preparación local 025 — FASE 10B, sin despliegue (2026-08-25)
+
+- Se preparó `025_organization_networking.sql` con SHA-256
+  `f0add029613446ad5350b9ddaa8873497e4074a5483b40c6518838941abc24cf`
+  (717 líneas, 10 separadores `GO`/11 lotes).
+- Se preparó `025_organization_networking_smoke.sql` con SHA-256
+  `02485713222d60c4a87b5bc514bd34a1b1f094247625bd75d4c8976335e87af7`
+  (273 líneas, un separador `GO`/dos lotes).
+- `025` agrega preferencias opt-in, directorio tenant sobre proyecciones públicas 8B, solicitudes
+  Connect privadas con snapshots seguros, ledger idempotente, rowversion, cuotas y bloqueo.
+- Solo OrganizationAdmin muta. Cualquier miembro activo puede leer dentro de su organización. No
+  existe chat, publicación de contacto, PII de miembros, proyecto draft ni writeback a matching.
+- El smoke transaccional prepara dos ONG/proyectos marketplace-ready, ejecuta opt-in, búsqueda,
+  create/replay/conflict, accept, get/list y block, verifica privacidad y revierte los fixtures.
+- El gate local pasó ScriptDom mediante la suite de infraestructura, build .NET 0 warnings/0 errores,
+  Unit 370/370, Integration 156/156, lint frontend, 25 archivos/111 pruebas Vitest y build.
+- No se abrió conexión SQL/Azure ni se ejecutaron `--validate`, `--apply`, `--test` o `--status`.
+  `res` sigue observado en 18/18; `019`→`025` permanecen locales y deben desplegarse en orden con
+  smoke rollback, reapply y status registrados.
