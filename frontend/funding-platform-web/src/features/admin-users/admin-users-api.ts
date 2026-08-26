@@ -44,7 +44,7 @@ export const adminUsersApi = {
     if (filters.q?.trim()) parameters.set('q', filters.q.trim())
     if (filters.status !== undefined) parameters.set('status', String(filters.status))
     if (filters.role?.trim()) parameters.set('role', filters.role.trim())
-    return apiClient.get<AdminUserPage>(`/api/v1/admin/users?${parameters}`, {
+    return apiClient.get<AdminUserPage>(`admin/users?${parameters}`, {
       cache: 'no-store',
       signal,
     })
