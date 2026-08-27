@@ -42,6 +42,8 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("siteConfig: {", functions, StringComparison.Ordinal);
         Assert.Contains("var additionalAppSettings = [for setting in items(appSettings)", functions, StringComparison.Ordinal);
         Assert.Contains("appSettings: concat(additionalAppSettings", functions, StringComparison.Ordinal);
+        Assert.Contains("runtime: { name: 'dotnet-isolated', version: runtimeVersion }", functions, StringComparison.Ordinal);
+        Assert.DoesNotContain("FUNCTIONS_WORKER_RUNTIME", functions + environment, StringComparison.Ordinal);
         Assert.DoesNotContain("resource settings 'config'", functions, StringComparison.Ordinal);
         Assert.Contains("module hostRbac './flex-function-rbac.bicep'", functions, StringComparison.Ordinal);
         Assert.Contains("name: '${appName}-host-rbac'", functions, StringComparison.Ordinal);

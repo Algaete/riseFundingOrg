@@ -104,7 +104,8 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
       http20Enabled: true
       appSettings: concat(additionalAppSettings, [
         { name: 'AZURE_FUNCTIONS_ENVIRONMENT', value: 'Production' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'dotnet-isolated' }
+        // Flex Consumption derives the worker runtime from functionAppConfig.runtime and rejects
+        // the legacy worker-runtime application setting during resource creation.
         { name: 'AzureWebJobsStorage__accountName', value: hostStorage.name }
         { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
         { name: 'AzureWebJobsStorage__clientId', value: hostIdentity.properties.clientId }
