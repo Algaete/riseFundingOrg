@@ -543,3 +543,21 @@ commit de Azure SQL.
 - El gate local posterior pasó build Release con 0 warnings/0 errores, 418/418 pruebas unitarias,
   178/178 de integración, lint frontend, 30 archivos/119 pruebas Vitest y build de producción. No
   hubo llamadas a OpenAI, envío de correos, cobros ni datos reales.
+
+## Aplicación parcial Azure dev y preflight de 029 (2026-08-27)
+
+- `001`→`028` fueron aplicadas correctamente en
+  `sql-rf-dev-ag26rf01-centralus/risefunding-dev`; el historial quedó en 28 migraciones registradas.
+- Se preparó localmente `029_sql_hyphen_allowlist_compatibility.sql` como corrección forward-only de
+  allowlists SQL compatibles con `Latin1_General_100_BIN2`. No modifica migraciones aplicadas ni sus
+  checksums.
+- El preflight conjunto final ejecutó la pendiente `029` en siete lotes, completó 29/29 smokes y
+  revirtió íntegramente todos los cambios. La cadena local quedó validada en 29 migraciones/355 lotes.
+- El gate local del mismo árbol pasó build Release con 0 warnings/0 errores, 423/423 pruebas
+  unitarias, 178/178 de integración, lint frontend, 30 archivos/119 pruebas Vitest y build de
+  producción. La regla temporal del preflight final quedó eliminada y Azure devolvió `[]`.
+- El rollback preservó el historial real de Azure en `001`→`028`: `029` **no** está aplicada. El
+  siguiente intento debe repetir el preflight desde el SHA aprobado y aplicar sólo esa migración
+  pendiente antes de continuar con los gates posteriores.
+- Full-Text, reapply/status final, principals runtime, bootstrap SuperAdmin y compute permanecen
+  pendientes. No se declara la base lista para la aplicación.

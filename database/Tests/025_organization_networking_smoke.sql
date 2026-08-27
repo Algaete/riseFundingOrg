@@ -22,6 +22,15 @@ DECLARE @DirectoryDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OrganizationNetworkDirectory_Search'));
 DECLARE @ActionDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OrganizationConnection_Action'));
+DECLARE @PreWriteCommitToken NVARCHAR(50) = N'BEGIN COMMIT; SELECT';
+DECLARE @CreatePreWriteCommitCount INT =
+    (DATALENGTH(@CreateDefinition) -
+     DATALENGTH(REPLACE(@CreateDefinition, @PreWriteCommitToken, N''))) /
+    DATALENGTH(@PreWriteCommitToken);
+DECLARE @ActionPreWriteCommitCount INT =
+    (DATALENGTH(@ActionDefinition) -
+     DATALENGTH(REPLACE(@ActionDefinition, @PreWriteCommitToken, N''))) /
+    DATALENGTH(@PreWriteCommitToken);
 IF @CreateDefinition NOT LIKE N'%@Role <> 1%'
    OR @CreateDefinition NOT LIKE N'%IdempotencyKeyHash%'
    OR @CreateDefinition NOT LIKE N'%Status = 4%'
@@ -32,6 +41,10 @@ IF @CreateDefinition NOT LIKE N'%@Role <> 1%'
    OR @DirectoryDefinition NOT LIKE N'%preferences.IsDiscoverable = 1%'
    OR @DirectoryDefinition LIKE N'%Email%'
    OR @ActionDefinition NOT LIKE N'%@RowVersion <> @ExpectedRowVersion%'
+   OR @CreateDefinition LIKE N'%BEGIN ROLLBACK; SELECT%'
+   OR @ActionDefinition LIKE N'%BEGIN ROLLBACK; SELECT%'
+   OR @CreatePreWriteCommitCount <> 7
+   OR @ActionPreWriteCommitCount <> 3
     THROW 54202, N'FASE 10B privacy, opt-in, quota, idempotency or ETag guards drifted.', 1;
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes
@@ -197,6 +210,7 @@ BEGIN TRY
         THROW 54209, N'Durable idempotent replay duplicated or changed the request.', 1;
 
     DELETE @Mutations;
+    DECLARE @CreateConflictTransactionCount INT = @@TRANCOUNT;
     INSERT @Mutations EXEC dbo.FundingPlatform_usp_OrganizationConnection_Create
         @UserPublicId = @AdminAPublicId,
         @RequesterOrganizationPublicId = @OrgAPublicId,
@@ -205,6 +219,8 @@ BEGIN TRY
         @PurposeCode = 1, @Message = N'Mensaje distinto para conflicto durable.',
         @IdempotencyKeyHash = @Key,
         @RequestHash = @ConflictingRequest, @NowUtc = @NowUtc;
+    IF @@TRANCOUNT <> @CreateConflictTransactionCount
+        THROW 54215, N'Idempotency conflict changed the caller transaction count.', 1;
     IF NOT EXISTS (SELECT 1 FROM @Mutations WHERE Code = N'idempotency-conflict')
         THROW 54210, N'Idempotency payload conflict was accepted.', 1;
 
@@ -220,6 +236,16 @@ BEGIN TRY
        OR NOT EXISTS (SELECT 1 FROM dbo.FundingPlatform_OrganizationConnectionRequests
                       WHERE PublicId = @ConnectionPublicId AND Status = 1)
         THROW 54211, N'Recipient could not accept the pending request.', 1;
+
+    DELETE @Codes;
+    INSERT @Codes EXEC dbo.FundingPlatform_usp_OrganizationConnection_Action
+        @UserPublicId = @AdminBPublicId, @OrganizationPublicId = @OrgBPublicId,
+        @ConnectionPublicId = @ConnectionPublicId, @ActionCode = 2,
+        @ExpectedRowVersion = @RowVersion, @NowUtc = @AcceptedAtUtc;
+    IF NOT EXISTS (SELECT 1 FROM @Codes WHERE Code = N'etag-conflict')
+       OR NOT EXISTS (SELECT 1 FROM dbo.FundingPlatform_OrganizationConnectionRequests
+                      WHERE PublicId = @ConnectionPublicId AND Status = 1)
+        THROW 54216, N'Stale connection action was accepted or changed state.', 1;
 
     EXEC dbo.FundingPlatform_usp_OrganizationConnection_Get
         @UserPublicId = @MemberAPublicId, @OrganizationPublicId = @OrgAPublicId,

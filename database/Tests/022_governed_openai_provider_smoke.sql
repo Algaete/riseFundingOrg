@@ -67,10 +67,13 @@ IF @GetInputDefinition NOT LIKE N'%ProviderPolicyFingerprint%'
    OR @GetInputDefinition LIKE N'%ApiKey%'
     THROW 54306, N'Embedding input wire does not carry bounded governance metadata.', 1;
 
-BEGIN TRANSACTION;
+DECLARE @InitialTransactionCount INT = @@TRANCOUNT;
+IF @InitialTransactionCount = 0 BEGIN TRANSACTION;
+ELSE SAVE TRANSACTION FP_Smoke022;
 BEGIN TRY
     DECLARE @NowUtc DATETIME2(3) = SYSUTCDATETIME();
-    DECLARE @Suffix NVARCHAR(32) = REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N'');
+    DECLARE @Suffix NVARCHAR(32) =
+        LOWER(REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N''));
     DECLARE @SuperAdminRoleId SMALLINT =
         (SELECT TOP (1) Id FROM dbo.FundingPlatform_Roles
          WHERE NormalizedName = N'SUPERADMIN' ORDER BY Id);
@@ -105,18 +108,38 @@ BEGIN TRY
             CONVERT(DECIMAL(19,6), 1), N'|', 1
         ))
     ));
-    INSERT INTO dbo.FundingPlatform_SemanticConfigurations
-        (Code, Version, ProviderCode, ModelCode, Dimensions, PurposeCode,
-         ProjectTemplateVersion, OpportunityTemplateVersion, NormalizationVersion,
-         DistanceMetric, CalibrationVersion, MaximumInputUtf8Bytes,
-         MaximumBatchSize, MaximumAttempts, MaximumCostUsdPerEmbedding,
-         MonthlyBudgetUsd, ConfigurationFingerprint, IsLocalFake, IsActive,
-         PublishedAtUtc, CreatedAtUtc)
-    VALUES
-        (@FakeCode, 1, N'development-deterministic', N'lexical-hash-1536-v1',
-         1536, N'matching', N'project-semantic-v1', N'opportunity-semantic-v1',
-         N'semantic-text-v1', 1, N'cosine-linear-shadow-v1', 8192, 8, 3,
-         0, 1, @FakeFingerprint, 1, 0, @NowUtc, @NowUtc);
+    BEGIN TRY
+        INSERT INTO dbo.FundingPlatform_SemanticConfigurations
+            (Code, Version, ProviderCode, ModelCode, Dimensions, PurposeCode,
+             ProjectTemplateVersion, OpportunityTemplateVersion, NormalizationVersion,
+             DistanceMetric, CalibrationVersion, MaximumInputUtf8Bytes,
+             MaximumBatchSize, MaximumAttempts, MaximumCostUsdPerEmbedding,
+             MonthlyBudgetUsd, ConfigurationFingerprint, IsLocalFake, IsActive,
+             PublishedAtUtc, CreatedAtUtc)
+        VALUES
+            (@FakeCode, 1, N'development-deterministic', N'lexical-hash-1536-v1',
+             1536, N'matching', N'project-semantic-v1', N'opportunity-semantic-v1',
+             N'semantic-text-v1', 1, N'cosine-linear-shadow-v1', 8192, 8, 3,
+             0, 1, @FakeFingerprint, 1, 0, @NowUtc, @NowUtc);
+    END TRY
+    BEGIN CATCH
+        IF ERROR_NUMBER() = 547
+           AND ERROR_MESSAGE() LIKE N'%FundingPlatform_CK_SemanticConfigurations_FrozenContract%'
+            THROW 54317, N'The legacy fake violated the frozen configuration contract.', 1;
+        IF ERROR_NUMBER() = 547
+           AND ERROR_MESSAGE() LIKE N'%FundingPlatform_CK_SemanticConfigurations_Bounds%'
+            THROW 54318, N'The legacy fake violated semantic configuration bounds.', 1;
+        IF ERROR_NUMBER() = 547
+           AND ERROR_MESSAGE() LIKE N'%FundingPlatform_CK_SemanticConfigurations_Text%'
+            THROW 54319, N'The legacy fake violated the repaired text allowlist.', 1;
+        IF ERROR_NUMBER() = 547
+           AND ERROR_MESSAGE() LIKE N'%FundingPlatform_CK_SemanticConfigurations_LocalFake%'
+            THROW 54320, N'The legacy fake violated local-provider separation.', 1;
+        IF ERROR_NUMBER() = 547
+           AND ERROR_MESSAGE() LIKE N'%FundingPlatform_CK_SemanticConfigurations_GovernedProvider%'
+            THROW 54321, N'The legacy fake violated governed-provider compatibility.', 1;
+        THROW;
+    END CATCH;
     DECLARE @FakeConfigurationId INT = SCOPE_IDENTITY();
     IF NOT EXISTS
        (SELECT 1
@@ -306,6 +329,7 @@ BEGIN TRY
         WHERE PublicId = @ConfigurationPublicId AND WasReplay = 1 AND Code = N'replayed')
         THROW 54314, N'Semantic configuration replay was not exact and idempotent.', 1;
 
+    SAVE TRANSACTION FP_Smoke022PolicyGuard;
     SET @ExpectedError = 0;
     BEGIN TRY
         UPDATE dbo.FundingPlatform_AiProviderGovernancePolicies
@@ -314,6 +338,11 @@ BEGIN TRY
     BEGIN CATCH SET @ExpectedError = ERROR_NUMBER(); END CATCH;
     IF @ExpectedError <> 54205 OR XACT_STATE() <> 1
         THROW 54315, N'Active configuration did not protect its governance policy.', 1;
+    ROLLBACK TRANSACTION FP_Smoke022PolicyGuard;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_AiProviderGovernancePolicies
+        WHERE PublicId = @PolicyPublicId AND IsActive = 1)
+        THROW 54322, N'The rejected governance deactivation was not reverted.', 1;
 
     DECLARE @NoMfaPublicId UNIQUEIDENTIFIER = NEWID();
     DECLARE @NoMfaEmail NVARCHAR(320) =
@@ -353,10 +382,13 @@ BEGIN TRY
     IF @ExpectedError <> 51602 OR XACT_STATE() <> 1
         THROW 54316, N'Governance publication did not require recent MFA.', 1;
 
-    ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 ROLLBACK TRANSACTION;
+    ELSE ROLLBACK TRANSACTION FP_Smoke022;
     SELECT N'FASE 9B-B governed OpenAI provider smoke passed.' AS Result;
 END TRY
 BEGIN CATCH
-    IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 AND XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    ELSE IF @InitialTransactionCount > 0 AND XACT_STATE() = 1
+        ROLLBACK TRANSACTION FP_Smoke022;
     THROW;
 END CATCH;

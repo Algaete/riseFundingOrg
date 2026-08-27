@@ -83,9 +83,19 @@ IF EXISTS
     THROW 54204, N'FASE 9B-A immutable or fail-closed triggers are incomplete.', 1;
 
 IF NOT EXISTS
+   (SELECT 1
+    FROM sys.triggers
+    WHERE object_id =
+          OBJECT_ID(N'dbo.FundingPlatform_tr_SemanticEvaluationItems_SubjectGuard')
+      AND parent_id = OBJECT_ID(N'dbo.FundingPlatform_SemanticEvaluationItems')
+      AND is_disabled = 0
+      AND is_instead_of_trigger = 1)
+    THROW 54262, N'The semantic item subject guard does not validate before mutation.', 1;
+
+IF NOT EXISTS
    (SELECT 1 FROM sys.columns
     WHERE object_id = OBJECT_ID(N'dbo.FundingPlatform_SemanticEmbeddings')
-      AND name = N'Embedding' AND TYPE_NAME(system_type_id) = N'vector'
+      AND name = N'Embedding' AND TYPE_NAME(user_type_id) = N'vector'
       AND vector_dimensions = 1536 AND vector_base_type = 0)
    OR COL_LENGTH(N'dbo.FundingPlatform_SemanticEmbeddings', N'CanonicalInputJson') IS NOT NULL
    OR COL_LENGTH(N'dbo.FundingPlatform_SemanticEmbeddingJobs', N'CanonicalInputJson') IS NOT NULL
@@ -828,7 +838,15 @@ BEGIN TRY
     (
         JobPublicId UNIQUEIDENTIFIER, LeaseId UNIQUEIDENTIFIER, SubjectType TINYINT,
         SubjectPublicId UNIQUEIDENTIFIER, SubjectVersion INT, PurposeCode NVARCHAR(32),
-        CanonicalText NVARCHAR(MAX), InputContentHash BINARY(32)
+        CanonicalText NVARCHAR(MAX), InputContentHash BINARY(32),
+        ProviderPolicyPublicId UNIQUEIDENTIFIER, ProviderPolicyVersion NVARCHAR(64),
+        ProviderPolicyFingerprint BINARY(32), ProviderCapability TINYINT,
+        ProviderEndpointOrigin NVARCHAR(200), RetentionMode TINYINT,
+        MaximumProviderRetentionDays SMALLINT, DataResidencyCode NVARCHAR(16),
+        InputTokenCostUsdPerMillion DECIMAL(19,6),
+        OutputTokenCostUsdPerMillion DECIMAL(19,6),
+        ApprovedAtUtc DATETIME2(3), ExpiresAtUtc DATETIME2(3),
+        ExternalProcessingAllowed BIT
     );
     DECLARE @EmbeddingCompleteRows TABLE
         (EmbeddingPublicId UNIQUEIDENTIFIER, WasReplay BIT);
@@ -893,7 +911,19 @@ BEGIN TRY
             WHERE JobPublicId = @JobPublicId AND LeaseId = @JobLeaseId
               AND InputContentHash = @ClaimInputHash
               AND dbo.FundingPlatform_fn_SemanticInputHash(CanonicalText) = InputContentHash
-              AND JSON_VALUE(CanonicalText, N'$.schemaVersion') = N'semantic-input-v1')
+              AND JSON_VALUE(CanonicalText, N'$.schemaVersion') = N'semantic-input-v1'
+              AND ProviderPolicyPublicId IS NULL
+              AND ProviderPolicyVersion IS NULL
+              AND ProviderPolicyFingerprint IS NULL
+              AND ProviderCapability IS NULL
+              AND ProviderEndpointOrigin IS NULL
+              AND RetentionMode IS NULL
+              AND MaximumProviderRetentionDays IS NULL
+              AND DataResidencyCode IS NULL
+              AND InputTokenCostUsdPerMillion IS NULL
+              AND OutputTokenCostUsdPerMillion IS NULL
+              AND ApprovedAtUtc IS NULL AND ExpiresAtUtc IS NULL
+              AND ExternalProcessingAllowed IS NULL)
             THROW 54226, N'Claimed input envelope did not revalidate its exact UTF-8 hash.', 1;
         IF @ClaimSubjectType = 0 AND EXISTS
            (SELECT 1 FROM @InputRows
@@ -1034,6 +1064,9 @@ BEGIN TRY
     WHERE cases.SemanticEvaluationRunId = @EvaluationRunId
       AND cases.DatasetSplit = 0
     ORDER BY cases.CaseOrdinal;
+    IF @FirstCaseOrdinal IS NULL OR @FirstMatchId IS NULL
+       OR @FirstProjectEmbeddingId IS NULL OR @FirstOpportunityEmbeddingId IS NULL
+        THROW 54259, N'Forged-output probe could not resolve an embedded corpus case.', 1;
     DECLARE @TamperError INT = 0;
     SET XACT_ABORT OFF;
     BEGIN TRY
@@ -1052,10 +1085,13 @@ BEGIN TRY
     END TRY
     BEGIN CATCH SET @TamperError = ERROR_NUMBER(); END CATCH;
     SET XACT_ABORT ON;
-    IF @TamperError <> 54103 OR XACT_STATE() <> 1
-       OR EXISTS (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationItems
-                  WHERE SemanticEvaluationRunId = @EvaluationRunId)
+    IF @TamperError = 0
         THROW 54232, N'Forged semantic distance/score output was accepted.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationItems
+               WHERE SemanticEvaluationRunId = @EvaluationRunId)
+        THROW 54261, N'Rejected forged semantic output remained persisted.', 1;
+    IF @TamperError <> 54103 OR XACT_STATE() <> 1
+        THROW 54260, N'Forged semantic output failed outside the exact subject guard.', 1;
 
     DELETE FROM @EvaluationClaims;
     INSERT INTO @EvaluationClaims
@@ -1337,6 +1373,16 @@ BEGIN TRY
            OpportunityContentHash, RelevanceLabel, LabelProvenanceHash, @NowUtc
     FROM @Corpus2;
 
+    /* The first run records usage at its completion clock. Keep the synthetic
+       worker clock monotonic so cached usage cannot be attributed to run two. */
+    DECLARE @LatestPriorUsageAtUtc DATETIME2(3) =
+       (SELECT MAX(RecordedAtUtc)
+        FROM dbo.FundingPlatform_SemanticUsageLedger
+        WHERE SemanticConfigurationId = @ActiveConfigurationId);
+    IF @LatestPriorUsageAtUtc IS NOT NULL
+       AND @WorkerNowUtc <= @LatestPriorUsageAtUtc
+        SET @WorkerNowUtc = DATEADD(MILLISECOND, 1, @LatestPriorUsageAtUtc);
+
     DELETE FROM @CreateRows;
     DECLARE @PartialSetVersion NVARCHAR(64) = CONCAT(@EvaluationSetCode2, N'-v1');
     DECLARE @PartialKey BINARY(32) = HASHBYTES('SHA2_256', N'partial-key-' + @Suffix);
@@ -1408,22 +1454,44 @@ BEGIN TRY
     IF NOT EXISTS
        (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
         WHERE Id = @PartialRunId AND Status = 2 AND EvaluatedCount = 290
-          AND LabelledCount = 290 AND CoveragePercentage = 96.67
-          AND SuccessPercentage = 99.23 AND TotalEstimatedCostUsd = 0
-          AND P95LatencyMilliseconds = 0 AND IsPromotionEligible = 0)
-       OR (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_SemanticEvaluationItems
-           WHERE SemanticEvaluationRunId = @PartialRunId AND DatasetSplit = 0) <> 140
-       OR (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_SemanticEvaluationItems
-           WHERE SemanticEvaluationRunId = @PartialRunId AND DatasetSplit = 1) <> 150
-       OR @PartialMatchCountBefore <>
-          (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_ProjectFundingMatches
-           WHERE MatchRunId IN (SELECT ProjectMatchingRunId FROM @Corpus2))
-       OR @PartialMatchChecksumBefore <>
-          (SELECT CHECKSUM_AGG(BINARY_CHECKSUM
-              (Id, Classification, HardGateStatus, CompatibilityScore, IsCurrent))
-           FROM dbo.FundingPlatform_ProjectFundingMatches
-           WHERE MatchRunId IN (SELECT ProjectMatchingRunId FROM @Corpus2))
-        THROW 54243, N'Partial report hid missing work or became promotion eligible.', 1;
+          AND LabelledCount = 290)
+        THROW 54263, N'Partial report completion counts drifted.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+        WHERE Id = @PartialRunId AND CoveragePercentage = 96.67)
+        THROW 54264, N'Partial report coverage drifted.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+        WHERE Id = @PartialRunId AND SuccessPercentage = 99.23)
+        THROW 54265, N'Partial report provider-success metric drifted.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+        WHERE Id = @PartialRunId AND TotalEstimatedCostUsd = 0)
+        THROW 54266, N'Partial report estimated cost included unrelated work.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+        WHERE Id = @PartialRunId AND P95LatencyMilliseconds = 0)
+        THROW 54267, N'Partial report latency included unrelated work.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+        WHERE Id = @PartialRunId AND IsPromotionEligible = 0)
+        THROW 54268, N'Partial report became promotion eligible.', 1;
+    IF (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_SemanticEvaluationItems
+        WHERE SemanticEvaluationRunId = @PartialRunId AND DatasetSplit = 0) <> 140
+        THROW 54269, N'Partial report development-split item count drifted.', 1;
+    IF (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_SemanticEvaluationItems
+        WHERE SemanticEvaluationRunId = @PartialRunId AND DatasetSplit = 1) <> 150
+        THROW 54270, N'Partial report holdout-split item count drifted.', 1;
+    IF @PartialMatchCountBefore <>
+       (SELECT COUNT_BIG(1) FROM dbo.FundingPlatform_ProjectFundingMatches
+        WHERE MatchRunId IN (SELECT ProjectMatchingRunId FROM @Corpus2))
+        THROW 54271, N'Partial evaluation mutated deterministic match rows.', 1;
+    IF @PartialMatchChecksumBefore <>
+       (SELECT CHECKSUM_AGG(BINARY_CHECKSUM
+           (Id, Classification, HardGateStatus, CompatibilityScore, IsCurrent))
+        FROM dbo.FundingPlatform_ProjectFundingMatches
+        WHERE MatchRunId IN (SELECT ProjectMatchingRunId FROM @Corpus2))
+        THROW 54272, N'Partial evaluation mutated deterministic match content.', 1;
     EXEC dbo.FundingPlatform_usp_SemanticEvaluationRun_Report
         @AdminUserPublicId = @AdminPublicId, @RunPublicId = @PartialRunPublicId;
 
@@ -1559,26 +1627,52 @@ END CATCH;';
 
     /* A low real-provider cap must fail before creating any run or jobs. */
     DECLARE @LowBudgetCode NVARCHAR(50) = N'smoke-low-budget-' + @Suffix;
-    DECLARE @LowBudgetFingerprint BINARY(32) = CONVERT(BINARY(32), HASHBYTES
-    (
-        'SHA2_256', CONVERT(VARBINARY(MAX), CONCAT
-        (@LowBudgetCode, N'|1|smoke-real-provider|smoke-real-model-v1|1536|matching|',
-         N'project-semantic-v1|opportunity-semantic-v1|semantic-text-v1|1|',
-         N'cosine-linear-shadow-v1|8192|8|3|0.001000|0.010000|0'))
-    ));
-    INSERT INTO dbo.FundingPlatform_SemanticConfigurations
-        (Code, Version, ProviderCode, ModelCode, Dimensions, PurposeCode,
-         ProjectTemplateVersion, OpportunityTemplateVersion, NormalizationVersion,
-         DistanceMetric, CalibrationVersion, MaximumInputUtf8Bytes, MaximumBatchSize,
-         MaximumAttempts, MaximumCostUsdPerEmbedding, MonthlyBudgetUsd,
-         ConfigurationFingerprint, IsLocalFake, IsActive, PublishedAtUtc, CreatedAtUtc)
-    VALUES
-        (@LowBudgetCode, 1, N'smoke-real-provider', N'smoke-real-model-v1', 1536,
-         N'matching', N'project-semantic-v1', N'opportunity-semantic-v1',
-         N'semantic-text-v1', 1, N'cosine-linear-shadow-v1', 8192, 8, 3,
-         0.001000, 0.010000, @LowBudgetFingerprint, 0, 1, @NowUtc, @NowUtc);
-    DECLARE @LowBudgetConfigurationId INT = SCOPE_IDENTITY();
+    DECLARE @LowBudgetPolicyCode NVARCHAR(50) = N'smoke-low-policy-' + @Suffix;
+    DECLARE @LowBudgetPolicyExpiresAtUtc DATETIME2(3) = DATEADD(DAY, 90, @NowUtc);
+    EXEC dbo.FundingPlatform_usp_AiEmbeddingProviderPolicy_AdminRegister
+        @SuperAdminUserPublicId = @AdminPublicId,
+        @Code = @LowBudgetPolicyCode,
+        @Version = 1,
+        @ModelCode = N'text-embedding-3-small',
+        @EndpointOrigin = N'https://api.openai.com',
+        @DataResidencyCode = N'global',
+        @DpaReferenceHash =
+            0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,
+        @TermsSnapshotHash =
+            0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB,
+        @InputTokenCostUsdPerMillion = 0.000000,
+        @ApprovedAtUtc = @NowUtc,
+        @ExpiresAtUtc = @LowBudgetPolicyExpiresAtUtc,
+        @IdempotencyKeyHash =
+            0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC,
+        @RequestHash =
+            0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD,
+        @NowUtc = @NowUtc;
+    DECLARE @LowBudgetPolicyPublicId UNIQUEIDENTIFIER =
+       (SELECT PublicId
+        FROM dbo.FundingPlatform_AiProviderGovernancePolicies
+        WHERE Code = @LowBudgetPolicyCode AND Version = 1);
+
+    EXEC dbo.FundingPlatform_usp_SemanticConfiguration_AdminPublishOpenAi
+        @SuperAdminUserPublicId = @AdminPublicId,
+        @ProviderPolicyPublicId = @LowBudgetPolicyPublicId,
+        @Code = @LowBudgetCode,
+        @Version = 1,
+        @MaximumBatchSize = 8,
+        @MaximumCostUsdPerEmbedding = 0.001000,
+        @MonthlyBudgetUsd = 0.010000,
+        @IdempotencyKeyHash =
+            0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE,
+        @RequestHash =
+            0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF,
+        @NowUtc = @NowUtc;
+    DECLARE @LowBudgetConfigurationId INT =
+       (SELECT Id FROM dbo.FundingPlatform_SemanticConfigurations
+        WHERE Code = @LowBudgetCode AND Version = 1);
     DECLARE @LowBudgetVersion NVARCHAR(64) = CONCAT(@LowBudgetCode, N'-v1');
+    IF @LowBudgetPolicyPublicId IS NULL OR @LowBudgetConfigurationId IS NULL
+       OR @LowBudgetVersion IS NULL
+        THROW 54273, N'Governed low-budget configuration fixture was not published.', 1;
 
     DECLARE @BackfillRows TABLE
         (ScannedCount BIGINT, QueuedCount BIGINT, RejectedCount BIGINT,
@@ -1595,11 +1689,26 @@ END CATCH;';
                    WHERE ScannedCount = 0 AND QueuedCount = 0 AND RejectedCount = 0)
         THROW 54250, N'Bounded polling-only backfill no-op contract drifted.', 1;
 
-    DELETE FROM @CreateOutcome;
     DECLARE @BudgetKey BINARY(32) = HASHBYTES('SHA2_256', N'budget-key-' + @Suffix);
     DECLARE @BudgetRequestHash BINARY(32) =
         HASHBYTES('SHA2_256', N'budget-request-' + @Suffix);
-    INSERT INTO @CreateOutcome
+    IF NOT EXISTS
+       (SELECT 1
+        FROM dbo.FundingPlatform_SemanticConfigurations AS configurations
+        CROSS APPLY dbo.FundingPlatform_ifn_SemanticConfigurationState(configurations.Id)
+            AS state
+        WHERE configurations.Id = @LowBudgetConfigurationId
+          AND configurations.IsActive = 1
+          AND configurations.MaximumCostUsdPerEmbedding = 0.001000
+          AND configurations.MonthlyBudgetUsd = 0.010000
+          AND configurations.ConfigurationFingerprint = state.CalculatedFingerprint)
+       OR EXISTS
+          (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns WHERE ActiveSlot = 1)
+        THROW 54274, N'Governed low-budget preconditions drifted.', 1;
+
+    /* The procedure rolls back its savepoint before returning this expected
+       outcome. Execute directly because SQL Server forbids ROLLBACK inside
+       INSERT...EXEC; the result row remains visible to the smoke caller. */
     EXEC dbo.FundingPlatform_usp_SemanticEvaluationRun_Create
         @AdminUserPublicId = @AdminPublicId,
         @EvaluationSetVersion = @EvaluationSetVersion,
@@ -1607,9 +1716,7 @@ END CATCH;';
         @IdempotencyKeyHash = @BudgetKey,
         @RequestHash = @BudgetRequestHash,
         @RuntimeEnabled = 1, @NowUtc = @WorkerNowUtc;
-    IF NOT EXISTS (SELECT 1 FROM @CreateOutcome
-                   WHERE Succeeded = 0 AND Code = N'budget-insufficient')
-       OR EXISTS (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
+    IF EXISTS (SELECT 1 FROM dbo.FundingPlatform_SemanticEvaluationRuns
                   WHERE SemanticConfigurationId = @LowBudgetConfigurationId)
        OR EXISTS (SELECT 1 FROM dbo.FundingPlatform_SemanticEmbeddingJobs
                   WHERE SemanticConfigurationId = @LowBudgetConfigurationId)
@@ -1622,25 +1729,26 @@ END CATCH;';
     /* The minimum real-provider cost exercises the overflow-safe Claim path:
        its nominal monthly capacity is 10,000,000,000, larger than INT. */
     DECLARE @MinimumCostCode NVARCHAR(50) = N'smoke-min-cost-' + @Suffix;
-    DECLARE @MinimumCostFingerprint BINARY(32) = CONVERT(BINARY(32), HASHBYTES
-    (
-        'SHA2_256', CONVERT(VARBINARY(MAX), CONCAT
-        (@MinimumCostCode, N'|1|smoke-real-provider|smoke-real-model-v1|1536|matching|',
-         N'project-semantic-v1|opportunity-semantic-v1|semantic-text-v1|1|',
-         N'cosine-linear-shadow-v1|8192|64|3|0.000001|10000.000000|0'))
-    ));
-    INSERT INTO dbo.FundingPlatform_SemanticConfigurations
-        (Code, Version, ProviderCode, ModelCode, Dimensions, PurposeCode,
-         ProjectTemplateVersion, OpportunityTemplateVersion, NormalizationVersion,
-         DistanceMetric, CalibrationVersion, MaximumInputUtf8Bytes, MaximumBatchSize,
-         MaximumAttempts, MaximumCostUsdPerEmbedding, MonthlyBudgetUsd,
-         ConfigurationFingerprint, IsLocalFake, IsActive, PublishedAtUtc, CreatedAtUtc)
-    VALUES
-        (@MinimumCostCode, 1, N'smoke-real-provider', N'smoke-real-model-v1', 1536,
-         N'matching', N'project-semantic-v1', N'opportunity-semantic-v1',
-         N'semantic-text-v1', 1, N'cosine-linear-shadow-v1', 8192, 64, 3,
-         0.000001, 10000.000000, @MinimumCostFingerprint, 0, 1, @NowUtc, @NowUtc);
-    DECLARE @MinimumCostConfigurationId INT = SCOPE_IDENTITY();
+    EXEC dbo.FundingPlatform_usp_SemanticConfiguration_AdminPublishOpenAi
+        @SuperAdminUserPublicId = @AdminPublicId,
+        @ProviderPolicyPublicId = @LowBudgetPolicyPublicId,
+        @Code = @MinimumCostCode,
+        @Version = 1,
+        @MaximumBatchSize = 64,
+        @MaximumCostUsdPerEmbedding = 0.000001,
+        @MonthlyBudgetUsd = 10000.000000,
+        @IdempotencyKeyHash =
+            0x1212121212121212121212121212121212121212121212121212121212121212,
+        @RequestHash =
+            0x3434343434343434343434343434343434343434343434343434343434343434,
+        @NowUtc = @NowUtc;
+    DECLARE @MinimumCostConfigurationId INT =
+       (SELECT Id FROM dbo.FundingPlatform_SemanticConfigurations
+        WHERE Code = @MinimumCostCode AND Version = 1);
+    DECLARE @MinimumCostFingerprint BINARY(32) =
+       (SELECT ConfigurationFingerprint
+        FROM dbo.FundingPlatform_SemanticConfigurations
+        WHERE Id = @MinimumCostConfigurationId);
     IF NOT EXISTS
        (SELECT 1 FROM dbo.FundingPlatform_ifn_SemanticConfigurationState(@MinimumCostConfigurationId)
         WHERE CalculatedFingerprint = @MinimumCostFingerprint)

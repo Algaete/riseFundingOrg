@@ -32,7 +32,7 @@ try
     var solutionRoot = SolutionRootLocator.Find();
     var migrations = SqlScriptCatalog.DiscoverMigrations(solutionRoot);
     IReadOnlyList<SqlScript> provisioning = [];
-    if (args[0] is "--validate" or "--provision-full-text")
+    if (args[0] is "--validate" or "--preflight" or "--provision-full-text")
     {
         provisioning = SqlScriptCatalog.DiscoverProvisioning(solutionRoot);
         EnsureExpectedFullTextProvisioning(provisioning);
@@ -66,6 +66,19 @@ try
                 Console.WriteLine(
                     $"Aplicación correcta: {result.ExecutedScripts} migración(es), " +
                     $"{result.ExecutedBatches} lote(s).");
+                return 0;
+            }
+
+        case "--preflight":
+            {
+                var tests = SqlScriptCatalog.DiscoverTests(solutionRoot);
+                var result = await runner.PreflightAsync(migrations, tests);
+                Console.WriteLine(
+                    $"Preflight correcto: {result.Migrations.ExecutedScripts} migración(es), " +
+                    $"{result.Migrations.ExecutedBatches} lote(s); " +
+                    $"{result.Tests.ExecutedScripts} prueba(s), " +
+                    $"{result.Tests.ExecutedBatches} lote(s). " +
+                    "Todos los cambios fueron revertidos.");
                 return 0;
             }
 
@@ -167,7 +180,8 @@ catch (Exception)
 return 1;
 
 static bool IsSupportedCommand(string command) =>
-    command is "--check-connection" or "--status" or "--validate" or "--apply" or "--test"
+    command is "--check-connection" or "--status" or "--validate" or "--preflight"
+        or "--apply" or "--test"
         or "--provision-full-text" or "--provision-runtime-identities"
         or "--verify-runtime-identities";
 
@@ -178,7 +192,8 @@ static void PrintUsage()
 {
     Console.Error.WriteLine(
         "Uso: FundingPlatform.DatabaseMigrator " +
-        "[--check-connection|--status|--validate|--apply|--test|--provision-full-text]");
+        "[--check-connection|--status|--validate|--preflight|--apply|--test|" +
+        "--provision-full-text]");
     Console.Error.WriteLine(
         "  FundingPlatform.DatabaseMigrator " +
         "[--provision-runtime-identities|--verify-runtime-identities] " +

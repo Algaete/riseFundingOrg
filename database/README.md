@@ -5,11 +5,19 @@ ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
 ## Estado Azure dev — 2026-08-27
 
+Azure SQL dev tiene registradas y aplicadas `001`→`028`. La migración forward-only
+`029_sql_hyphen_allowlist_compatibility.sql` permanece pendiente de aplicación. El preflight final
+la ejecutó en siete lotes, completó 29/29 smokes y revirtió íntegramente la transacción: la cadena
+local de 29 migraciones/355 lotes quedó validada sin agregar `029` al historial Azure. Full-Text,
+reapply/status final, principals runtime y bootstrap SuperAdmin también están pendientes.
+
+### Snapshot anterior al primer apply
+
 La cadena completa `001`→`028` pasó `DatabaseMigrator --validate` contra
 `sql-rf-dev-ag26rf01-centralus/risefunding-dev`: 28 migraciones/348 lotes dentro de una única
-transacción, seguidos de rollback completo. La base dev continúa sin historial ni migraciones
-aplicadas. No se ejecutaron `--apply`, los 28 smokes mediante `--test`, Full-Text, reapply/status,
-principals runtime o bootstrap de SuperAdmin.
+transacción, seguidos de rollback completo. En ese snapshot la base dev todavía no tenía historial
+ni migraciones aplicadas. No se ejecutaron `--apply`, los 28 smokes mediante `--test`, Full-Text,
+reapply/status, principals runtime o bootstrap de SuperAdmin.
 
 Artefactos corregidos; las migraciones de esta lista quedaron validadas:
 
@@ -28,8 +36,8 @@ Artefactos corregidos; las migraciones de esta lista quedaron validadas:
   `06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`.
 
 Las secciones de preparación por fase preservan el estado y las huellas de sus cierres locales
-originales. Este bloque los supersede únicamente respecto de la validación transaccional actual; no
-declara aplicación, smokes exitosos ni estado final de la base dev.
+originales. Este snapshot documenta la validación previa al apply y no reemplaza el estado posterior
+de 28 migraciones aplicadas descrito arriba.
 
 ## Estado de FASE 2
 

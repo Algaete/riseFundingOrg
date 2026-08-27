@@ -3,6 +3,12 @@
 Este checklist prepara una sesión de despliegue reproducible. No contiene secretos y ningún push a
 `main` crea recursos: las operaciones con costo son manuales desde el environment GitHub `dev`.
 
+**Estado actual (2026-08-27):** la infraestructura base existe y Azure SQL dev tiene aplicadas
+`001`→`028`. El preflight final validó la cadena local de 29 migraciones/355 lotes y los 29 smokes
+con rollback total; `029` no fue aplicada. Full-Text, principals runtime y bootstrap SuperAdmin
+permanecen pendientes. No continuar al apply de compute hasta preparar y aprobar un nuevo SHA,
+aplicar `029` desde ese SHA y completar los gates posteriores.
+
 ## 1. Datos que deben estar decididos
 
 - Suscripción y tenant correctos.
@@ -167,8 +173,9 @@ done
    El script hace `git fetch`, exige `main` limpio e idéntico a `origin/main`, valida grupo/miembro y
    el administrador efectivo del servidor SQL, obtiene el token SQL y fija `AzureCliCredential`,
    deriva la conexión dev, registra PITR, abre una regla
-   firewall única con cleanup verificado, aplica `001`→`028`, ejecuta los 28 smokes, espera Full-Text
-   listo y prueba reapply/provisioning idempotente. Después crea por `clientId`/SID y verifica los
+   firewall única con cleanup verificado, ejecuta `--preflight`, aplica la pendiente `029` sobre
+   `001`→`028`, ejecuta los 29 smokes, espera Full-Text listo y prueba reapply/provisioning
+   idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.
 

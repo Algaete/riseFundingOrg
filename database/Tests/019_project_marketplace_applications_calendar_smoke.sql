@@ -866,12 +866,12 @@ BEGIN TRY
         THROW 53939, N'Application outbox payload contains private application data.', 1;
 
     DECLARE @AcknowledgedCount INT = 0;
-    DECLARE @FirstAckAtUtc DATETIME2(3) = DATEADD(SECOND, 1, @NowUtc);
-    DECLARE @SecondAckAtUtc DATETIME2(3) = DATEADD(SECOND, 2, @NowUtc);
+    DECLARE @FirstAckAtUtc DATETIME2(3) = DATEADD(SECOND, 1, SYSUTCDATETIME());
+    DECLARE @SecondAckAtUtc DATETIME2(3) = DATEADD(SECOND, 1, @FirstAckAtUtc);
     EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge
         @BatchSize = 500, @NowUtc = @FirstAckAtUtc,
         @AcknowledgedCount = @AcknowledgedCount OUTPUT;
-    IF @AcknowledgedCount <> 5
+    IF @AcknowledgedCount <> 6
        OR EXISTS
           (SELECT 1 FROM dbo.FundingPlatform_OutboxMessages
            WHERE MessageType IN (N'FundingApplicationCreated', N'FundingApplicationUpdated')

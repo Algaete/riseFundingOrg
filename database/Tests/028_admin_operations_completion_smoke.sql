@@ -2,8 +2,11 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
+DECLARE @InitialTransactionCount INT = @@TRANCOUNT;
+IF @InitialTransactionCount = 0 BEGIN TRANSACTION;
+ELSE SAVE TRANSACTION FP_Smoke028;
+
 BEGIN TRY
-    BEGIN TRANSACTION;
 
     IF OBJECT_ID(N'dbo.FundingPlatform_usp_AdminOrganization_List', N'P') IS NULL
        OR OBJECT_ID(N'dbo.FundingPlatform_usp_AdminOrganization_Get', N'P') IS NULL
@@ -101,9 +104,12 @@ BEGIN TRY
        OR CHARINDEX(N'LastErrorMessage AS SanitizedMessage', @ErrorDefinition) > 0
         THROW 54925, N'Operational error output exposes a forbidden raw field.', 1;
 
-    ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 ROLLBACK TRANSACTION;
+    ELSE ROLLBACK TRANSACTION FP_Smoke028;
 END TRY
 BEGIN CATCH
-    IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 AND XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    ELSE IF @InitialTransactionCount > 0 AND XACT_STATE() = 1
+        ROLLBACK TRANSACTION FP_Smoke028;
     THROW;
 END CATCH;

@@ -74,6 +74,26 @@ public sealed class Phase8BArchitectureTests
     }
 
     [Fact]
+    public void Smoke_acknowledges_every_successful_application_event()
+    {
+        var smoke = Read(
+            "database",
+            "Tests",
+            "019_project_marketplace_applications_calendar_smoke.sql");
+
+        Assert.Contains("IF @AcknowledgedCount <> 6", smoke, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @AcknowledgedCount <> 5", smoke, StringComparison.Ordinal);
+        Assert.Contains(
+            "DATEADD(SECOND, 1, SYSUTCDATETIME())",
+            smoke,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "DATEADD(SECOND, 1, @FirstAckAtUtc)",
+            smoke,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Sql_repositories_materialize_datetime_before_datetimeoffset()
     {
         var marketplace = Read(

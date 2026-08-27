@@ -115,10 +115,13 @@ IF @CompleteDefinition NOT LIKE N'%@ExpectedProviderCode%'
    OR @CompleteDefinition NOT LIKE N'%Completed explanation replay did not match%'
     THROW 54517, N'Completed output replay does not bind the exact provider contract.', 1;
 
-BEGIN TRANSACTION;
+DECLARE @InitialTransactionCount INT = @@TRANCOUNT;
+IF @InitialTransactionCount = 0 BEGIN TRANSACTION;
+ELSE SAVE TRANSACTION FP_Smoke023;
 BEGIN TRY
     DECLARE @NowUtc DATETIME2(3) = SYSUTCDATETIME();
-    DECLARE @Suffix NVARCHAR(32) = REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N'');
+    DECLARE @Suffix NVARCHAR(32) =
+        LOWER(REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N''));
     DECLARE @SuperAdminRoleId SMALLINT =
         (SELECT TOP (1) Id FROM dbo.FundingPlatform_Roles
          WHERE NormalizedName = N'SUPERADMIN' ORDER BY Id);
@@ -282,6 +285,7 @@ BEGIN TRY
           @RunCountBefore
         THROW 54514, N'Disabled runtime did not remain a no-write kill switch.', 1;
 
+    SAVE TRANSACTION FP_Smoke023PolicyGuard;
     DECLARE @ExpectedError INT = 0;
     BEGIN TRY
         UPDATE dbo.FundingPlatform_AiProviderGovernancePolicies
@@ -290,6 +294,11 @@ BEGIN TRY
     BEGIN CATCH SET @ExpectedError = ERROR_NUMBER(); END CATCH;
     IF @ExpectedError <> 54205 OR XACT_STATE() <> 1
         THROW 54515, N'Active explanation configuration did not protect its policy.', 1;
+    ROLLBACK TRANSACTION FP_Smoke023PolicyGuard;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.FundingPlatform_AiProviderGovernancePolicies
+        WHERE PublicId = @PolicyPublicId AND IsActive = 1)
+        THROW 54518, N'The rejected explanation-policy deactivation was not reverted.', 1;
 
     DECLARE @NoMfaPublicId UNIQUEIDENTIFIER = NEWID();
     DECLARE @NoMfaPolicyCode NVARCHAR(50) = N'no-mfa-' + LEFT(@Suffix, 20);
@@ -326,10 +335,13 @@ BEGIN TRY
     IF @ExpectedError <> 51602 OR XACT_STATE() <> 1
         THROW 54516, N'Structured policy publication did not require recent MFA.', 1;
 
-    ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 ROLLBACK TRANSACTION;
+    ELSE ROLLBACK TRANSACTION FP_Smoke023;
     SELECT N'FASE 9B-B Structured Outputs control-plane smoke passed.' AS Result;
 END TRY
 BEGIN CATCH
-    IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    IF @InitialTransactionCount = 0 AND XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+    ELSE IF @InitialTransactionCount > 0 AND XACT_STATE() = 1
+        ROLLBACK TRANSACTION FP_Smoke023;
     THROW;
 END CATCH;

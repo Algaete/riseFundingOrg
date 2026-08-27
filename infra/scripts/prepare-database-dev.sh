@@ -192,7 +192,7 @@ if (( initial_recorded > 0 )) && [[ -z "$earliest_restore_date_before" ]]; then
   echo "A non-empty database must have an observable PITR window before migration" >&2
   exit 5
 fi
-"${migrator[@]}" --validate
+"${migrator[@]}" --preflight
 "${migrator[@]}" --apply
 "${migrator[@]}" --test
 "${migrator[@]}" --provision-full-text
@@ -276,8 +276,8 @@ fi
 
 final_status="$("${migrator[@]}" --status)"
 printf '%s\n' "$final_status"
-if ! grep -Fq 'Migraciones registradas: 28' <<<"$final_status" ||
-   ! grep -Fq 'Migraciones locales: 28' <<<"$final_status" ||
+if ! grep -Fq 'Migraciones registradas: 29' <<<"$final_status" ||
+   ! grep -Fq 'Migraciones locales: 29' <<<"$final_status" ||
    ! grep -Fq 'Full-Text 8A: listo' <<<"$final_status"; then
   echo "Final database status is incomplete" >&2
   exit 5

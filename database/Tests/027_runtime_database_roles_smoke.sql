@@ -142,7 +142,8 @@ IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTablePermissions) <> 18
           SELECT expected.ObjectId, expected.PermissionName
           FROM @ExpectedApiTablePermissions AS expected
           EXCEPT
-          SELECT permissions.major_id, permissions.permission_name
+          SELECT permissions.major_id,
+                 permissions.permission_name COLLATE DATABASE_DEFAULT
           FROM sys.database_permissions AS permissions
           WHERE permissions.grantee_principal_id = @ApiRoleId
             AND permissions.class = 1
@@ -151,7 +152,8 @@ IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTablePermissions) <> 18
       )
    OR EXISTS
       (
-          SELECT permissions.major_id, permissions.permission_name
+          SELECT permissions.major_id,
+                 permissions.permission_name COLLATE DATABASE_DEFAULT
           FROM sys.database_permissions AS permissions
           INNER JOIN sys.tables AS tables
               ON tables.object_id = permissions.major_id
@@ -189,7 +191,8 @@ IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTypePermissions) <> 10
           SELECT expected.TypeId, expected.PermissionName
           FROM @ExpectedApiTypePermissions AS expected
           EXCEPT
-          SELECT permissions.major_id, permissions.permission_name
+          SELECT permissions.major_id,
+                 permissions.permission_name COLLATE DATABASE_DEFAULT
           FROM sys.database_permissions AS permissions
           WHERE permissions.grantee_principal_id = @ApiRoleId
             AND permissions.class = 6
@@ -197,7 +200,8 @@ IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTypePermissions) <> 10
       )
    OR EXISTS
       (
-          SELECT permissions.major_id, permissions.permission_name
+          SELECT permissions.major_id,
+                 permissions.permission_name COLLATE DATABASE_DEFAULT
           FROM sys.database_permissions AS permissions
           WHERE permissions.grantee_principal_id = @ApiRoleId
             AND permissions.class = 6
@@ -231,11 +235,13 @@ IF EXISTS
                          AND permissions.minor_id = 0 AND EXISTS
                          (SELECT 1 FROM @ExpectedApiTablePermissions AS expected
                           WHERE expected.ObjectId = permissions.major_id
-                            AND expected.PermissionName = permissions.permission_name))
+                            AND expected.PermissionName =
+                                permissions.permission_name COLLATE DATABASE_DEFAULT))
                      OR (permissions.class = 6 AND EXISTS
                          (SELECT 1 FROM @ExpectedApiTypePermissions AS expected
                           WHERE expected.TypeId = permissions.major_id
-                            AND expected.PermissionName = permissions.permission_name))
+                            AND expected.PermissionName =
+                                permissions.permission_name COLLATE DATABASE_DEFAULT))
                  )
              )
    )
@@ -349,6 +355,7 @@ BEGIN TRY
 
     SET @PermissionSql = N'
 EXECUTE AS USER = N''' + REPLACE(@ApiTestUser, N'''', N'''''') + N''';
+SET XACT_ABORT OFF;
 BEGIN TRY
     IF HAS_PERMS_BY_NAME(
            N''dbo.FundingPlatform_usp_FundingOpportunity_OrganizationSearch'',
@@ -397,9 +404,11 @@ BEGIN TRY
     BEGIN CATCH
         IF ERROR_NUMBER() <> 52001 THROW;
     END CATCH;
+    SET XACT_ABORT ON;
     REVERT;
 END TRY
 BEGIN CATCH
+    SET XACT_ABORT ON;
     REVERT;
     THROW;
 END CATCH;';
@@ -450,11 +459,9 @@ END CATCH;';
     PRINT N'Runtime database roles smoke passed.';
 END TRY
 BEGIN CATCH
-    IF XACT_STATE() <> 0
-    BEGIN
-        IF @InitialTransactionCount = 0 ROLLBACK TRANSACTION;
-        ELSE IF XACT_STATE() = 1 ROLLBACK TRANSACTION FP_Smoke027;
-        ELSE ROLLBACK TRANSACTION;
-    END;
+    IF @InitialTransactionCount = 0 AND XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    ELSE IF @InitialTransactionCount > 0 AND XACT_STATE() = 1
+        ROLLBACK TRANSACTION FP_Smoke027;
     THROW;
 END CATCH;

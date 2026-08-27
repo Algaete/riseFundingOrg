@@ -110,8 +110,12 @@ BEGIN TRY
     DECLARE @OpportunityId BIGINT =
         (SELECT Id FROM dbo.FundingPlatform_FundingOpportunities
          WHERE PublicId = @OpportunityPublicId);
-    INSERT dbo.FundingPlatform_FundingOpportunityCountries VALUES (@OpportunityId, 152);
-    INSERT dbo.FundingPlatform_FundingOpportunityCategories VALUES (@OpportunityId, 1);
+    INSERT dbo.FundingPlatform_FundingOpportunityCountries
+        (FundingOpportunityId, CountryId)
+    VALUES (@OpportunityId, 152);
+    INSERT dbo.FundingPlatform_FundingOpportunityCategories
+        (FundingOpportunityId, FundingCategoryId)
+    VALUES (@OpportunityId, 1);
     INSERT dbo.FundingPlatform_FundingOpportunityFunders
         (FundingOpportunityId, FunderId, Role, IsActive, CreatedAtUtc, UpdatedAtUtc)
     VALUES (@OpportunityId, @FunderId, 1, 1, @BaseUtc, @BaseUtc);

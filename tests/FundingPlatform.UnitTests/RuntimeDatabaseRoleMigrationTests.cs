@@ -134,6 +134,7 @@ public sealed class RuntimeDatabaseRoleMigrationTests
             StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WITHOUT LOGIN", smoke, StringComparison.Ordinal);
         Assert.Contains("EXECUTE AS USER", smoke, StringComparison.Ordinal);
+        Assert.Contains("SET XACT_ABORT OFF", smoke, StringComparison.Ordinal);
         Assert.Contains("ROLLBACK TRANSACTION FP_Smoke027", smoke, StringComparison.Ordinal);
         Assert.DoesNotContain("FROM EXTERNAL PROVIDER", smoke,
             StringComparison.OrdinalIgnoreCase);

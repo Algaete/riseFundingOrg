@@ -11,11 +11,13 @@ una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
 
-**Actualización operativa 2026-08-27:** la infraestructura base Azure dev ya existe y la cadena
-`001`→`028` pasó validación transaccional real en Azure SQL (28 migraciones/348 lotes, rollback
-completo). Las migraciones, smokes, Full-Text, principals runtime y paquetes de aplicación todavía
-no están aplicados en dev. Las afirmaciones históricas de “sin conexión/validación DB” incluidas en
-los cierres por fase describen su fecha original y quedan supersedidas por esta actualización.
+**Actualización operativa 2026-08-27:** la infraestructura base Azure dev ya existe y Azure SQL
+tiene aplicadas `001`→`028`. El preflight conjunto de la cadena local pasó con 29
+migraciones/355 lotes y 29/29 smokes bajo rollback total. La corrección forward-only `029` permanece
+pendiente de aplicación; Full-Text, principals runtime, bootstrap SuperAdmin y paquetes de
+aplicación siguen pendientes. Las afirmaciones
+históricas de “sin conexión/validación DB” incluidas en los cierres por fase describen su fecha
+original y quedan supersedidas por esta actualización.
 
 **Ampliación vigente:** la revisión de visión del 17 de agosto de 2026 incorpora proyectos,
 funders, networking e ingesta gobernada. En alcance funcional, matching y roadmap prevalece
@@ -3173,6 +3175,13 @@ respectivamente, `6d6e9a0a86a3ea7ff31c5ae43f31b4528aaa16d9ad14cd9a9f1cbecdbad3eb
 `06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`. El smoke `019` vigente es
 `eb346bf26c9226df80a93eb7bdd3f2900254f437e252ffaf94548254b4a8fbeb`. `--apply`, los 28 smokes,
 Full-Text, principals runtime, paquetes de aplicación, E2E y restore continúan pendientes.
+
+**Actualización posterior FASE 12A (2026-08-27):** `001`→`028` fueron aplicadas correctamente en
+Azure SQL dev. El preflight posterior ejecutó `029_sql_hyphen_allowlist_compatibility.sql` en siete
+lotes, completó los 29 smokes y revirtió todos los cambios; la cadena local validada suma 29
+migraciones/355 lotes. `029` no modificó los checksums ya registrados y continúa pendiente de
+aplicación, por lo que Azure conserva 28 migraciones en su historial. Full-Text, principals runtime,
+bootstrap SuperAdmin, paquetes de aplicación, E2E y restore continúan pendientes.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;

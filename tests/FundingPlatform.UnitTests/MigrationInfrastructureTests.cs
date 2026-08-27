@@ -158,6 +158,129 @@ public sealed class MigrationInfrastructureTests
     }
 
     [Fact]
+    public void Sql_hyphen_allowlist_repair_is_forward_only_and_transactionally_smoked()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var migration = SqlScriptCatalog.DiscoverMigrations(root)
+            .Single(script => script.Sequence == 29);
+        var smoke = SqlScriptCatalog.DiscoverTests(root)
+            .Single(script => script.Sequence == 29);
+        var migrationSql = File.ReadAllText(Path.Combine(
+            root, "database", "Migrations", migration.FileName));
+        var smokeSql = File.ReadAllText(Path.Combine(
+            root, "database", "Tests", smoke.FileName));
+        Assert.Equal("sql_hyphen_allowlist_compatibility", migration.Name);
+        Assert.Equal("sql_hyphen_allowlist_compatibility_smoke", smoke.Name);
+        Assert.Equal(7, migration.Batches.Count);
+        Assert.Single(smoke.Batches);
+        Assert.Contains("WITH CHECK ADD CONSTRAINT", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("CHECK CONSTRAINT", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("@LegacyLower", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("@SafeLower", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'%[^a-z0-9._-]%'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'%[^-a-z0-9._]%'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'%[^A-Za-z0-9._-]%'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'%[^-A-Za-z0-9._]%'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("ExpectedLowerCount", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("ExpectedUpperCount", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("ExpectedCount INT NOT NULL", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'CREATE OR ALTER PROCEDURE'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_usp_OrganizationConnection_Create", migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_usp_OrganizationConnection_Action", migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("N'BEGIN COMMIT; SELECT'", migrationSql, StringComparison.Ordinal);
+        Assert.Contains(
+            "CREATE OR ALTER TRIGGER dbo.FundingPlatform_tr_SemanticEvaluationItems_SubjectGuard",
+            migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("INSTEAD OF INSERT", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("is_instead_of_trigger = 1", migrationSql, StringComparison.Ordinal);
+        Assert.Contains(
+            "CREATE OR ALTER TRIGGER dbo.FundingPlatform_tr_AiProviderGovernancePolicies_Immutable",
+            migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_AiExplanationConfigurations", migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("OBJECT_ID(N'dbo.' + @ProcedureName, N'P') <> @ProcedureObjectId",
+            migrationSql, StringComparison.Ordinal);
+        Assert.Contains("@ConstraintNotTrusted <> 0", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("N'smoke-029_a.b-'", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("N'invalid/'", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("@InvalidCharacterError <> 547", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_usp_OrganizationConnection_Create", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_usp_OrganizationConnection_Action", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("@LegacyPreWriteRollbackToken", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("N'BEGIN COMMIT; SELECT'", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("CHARINDEX(@LegacyPreWriteRollbackToken, @OrganizationCreateDefinition) > 0",
+            smokeSql, StringComparison.Ordinal);
+        Assert.Contains("CHARINDEX(@LegacyPreWriteRollbackToken, @OrganizationActionDefinition) > 0",
+            smokeSql, StringComparison.Ordinal);
+        Assert.Contains("@OrganizationCreateCommitCount <> 7", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("@OrganizationActionCommitCount <> 3", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_tr_SemanticEvaluationItems_SubjectGuard", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("is_instead_of_trigger = 1", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_tr_AiProviderGovernancePolicies_Immutable", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("is_instead_of_trigger = 0", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("FundingPlatform_AiExplanationConfigurations", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("DECLARE @InitialTransactionCount INT = @@TRANCOUNT", smokeSql,
+            StringComparison.Ordinal);
+        Assert.Contains("SAVE TRANSACTION FP_Smoke029", smokeSql, StringComparison.Ordinal);
+        Assert.Contains("ROLLBACK TRANSACTION FP_Smoke029", smokeSql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Migration_preflight_executes_pending_schema_then_smokes_before_rollback()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var source = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "FundingPlatform.Infrastructure",
+            "Persistence",
+            "Migrations",
+            "DatabaseMigrationRunner.cs"));
+        var start = source.IndexOf(
+            "public async Task<MigrationPreflightResult> PreflightAsync",
+            StringComparison.Ordinal);
+        var end = source.IndexOf(
+            "public async Task<MigrationRunResult> TestAsync",
+            start,
+            StringComparison.Ordinal);
+
+        Assert.True(start >= 0 && end > start, "The migration preflight method is missing.");
+        var method = source[start..end];
+        var migrations = method.IndexOf("var migrationResult = await ExecutePendingAsync",
+            StringComparison.Ordinal);
+        var tests = method.IndexOf("var testResult = await ExecutePendingAsync",
+            StringComparison.Ordinal);
+        var rollback = method.IndexOf("await transaction.RollbackAsync(CancellationToken.None)",
+            StringComparison.Ordinal);
+
+        Assert.True(migrations >= 0 && tests > migrations && rollback > tests);
+        Assert.Contains("recordHistory: true", method, StringComparison.Ordinal);
+        Assert.Contains("recordHistory: false", method, StringComparison.Ordinal);
+        Assert.Contains("await RollbackIfNeededAsync(transaction)", method,
+            StringComparison.Ordinal);
+
+        var executePendingStart = source.IndexOf(
+            "private static async Task<MigrationRunResult> ExecutePendingAsync",
+            StringComparison.Ordinal);
+        Assert.True(executePendingStart >= 0);
+        var executePending = source[executePendingStart..];
+        Assert.Contains("SELECT XACT_STATE();", executePending, StringComparison.Ordinal);
+        Assert.Contains("migration_transaction_not_committable", executePending,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Full_text_provisioning_is_non_transactional_locked_and_drift_checked()
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);

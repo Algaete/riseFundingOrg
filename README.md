@@ -15,9 +15,11 @@ datos reales de proyectos, postulaciones, calendario y alertas; la consola admin
 organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
 requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Las migraciones `019` a `028` aún no están aplicadas. El 2026-08-27 la cadena completa `001`→`028`
-pasó `--validate` contra la base Azure SQL dev vacía: 28 migraciones/348 lotes ejecutados dentro de
-una transacción y revertidos. Los 28 smokes, `--apply`, Full-Text, principals runtime y bootstrap
+Azure SQL dev tiene aplicadas `001`→`028`. La corrección forward-only
+`029_sql_hyphen_allowlist_compatibility.sql` está versionada localmente pero continúa pendiente de
+aplicación. El preflight conjunto final pasó: ejecutó `029` en siete lotes, completó los 29 smokes y
+revirtió íntegramente la transacción. La cadena local suma 29 migraciones/355 lotes, mientras Azure
+conserva sólo las 28 registradas. Full-Text, principals runtime y bootstrap SuperAdmin también
 siguen pendientes. La base compartida histórica `res` continúa en 18/18, correspondiente a 8A.
 
 | Fase | Estado | Resultado esperado |
@@ -32,14 +34,14 @@ siguen pendientes. La base compartida histórica `res` continúa en 18/18, corre
 | 7A | Completada | Grants.gov durable, runs/raw, outbox/Queue, Functions y consola administrativa sin autopublicación |
 | 7B | Completada | Extracción PDF aislada, recepción Defender/Event Grid fail-closed, RSS gobernado, retención y deduplicación humana |
 | 8A | Completada | Catálogo organizacional protegido, búsqueda, filtros, órdenes, paginación, detalle completo y favoritos privados |
-| 8B | Código completado; activación DB pendiente | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
-| 9A | Código completado; activación DB pendiente | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
-| 9B-A | Código completado; activación DB pendiente | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
-| 9B-B | Código gobernado completado; activación y eval real pendientes | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
-| 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
-| 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
-| 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Base Azure dev creada; activación DB y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 8B | Código y DB dev aplicados; preflight SQL validado | Marketplace público, postulaciones privadas y calendario básico derivados del proyecto/fondo |
+| 9A | Código y DB dev aplicados; preflight SQL validado | Compatibilidad determinística y explicable por proyecto, historial e idempotencia |
+| 9B-A | Código y DB dev aplicados; preflight SQL validado | Embeddings versionados, presupuesto y evaluación semántica corpus-level sólo en sombra |
+| 9B-B | DB dev y preflight SQL validados; eval real pendiente | Adapters OpenAI apagados por defecto, DPA/ZDR/precios versionados y explicaciones admin sólo en sombra |
+| 10A | DB dev y preflight SQL validados; email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
+| 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
+| 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
+| 12A | Base Azure y `001`→`028` creadas; preflight 29/29 validado; `029` y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -55,8 +57,9 @@ Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo 
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
 de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
 `027` de preparación runtime para 12A y `028` de cierre de organizaciones/errores administrativos no
-forman parte de ese resultado. Ya compilan transaccionalmente en Azure SQL dev, pero permanecen
-pendientes de aplicación y deben desplegarse en ese orden. El código
+forman parte de ese resultado histórico de `res`. En Azure SQL dev, `019`→`028` ya están aplicadas;
+el preflight de la cadena local y sus 29 smokes pasó con rollback, pero la migración correctiva
+`029` permanece pendiente de aplicación. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -88,7 +91,16 @@ Huellas vigentes de los artefactos corregidos:
 El gate local posterior pasó build Release sin advertencias, 418 pruebas unitarias, 178 de
 integración, lint frontend, 30 archivos/119 pruebas Vitest y build de producción. Las huellas y
 afirmaciones de “sin validación DB” incluidas más abajo se conservan como snapshots históricos de los
-cierres locales del 2026-08-24/25; este bloque registra el estado actual.
+cierres locales del 2026-08-24/25.
+
+### Estado posterior de Azure dev — 2026-08-27
+
+La aplicación de `001`→`028` terminó correctamente y dejó 28 migraciones registradas en
+`risefunding-dev`. El preflight posterior ejecutó transaccionalmente `029` en siete lotes, completó
+29/29 smokes y revirtió todos los cambios. La cadena local quedó validada con 29 migraciones/355
+lotes; `029` corrige de forma forward-only las allowlists SQL de guiones sin alterar los checksums ya
+aplicados, pero no fue aplicada y el historial Azure permanece en 28. Full-Text, principals runtime,
+bootstrap SuperAdmin y despliegue de compute continúan pendientes.
 
 ## Stack objetivo
 

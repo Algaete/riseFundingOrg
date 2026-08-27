@@ -5,6 +5,38 @@ namespace FundingPlatform.UnitTests;
 public sealed class Phase9BArchitectureTests
 {
     [Fact]
+    public void Semantic_smoke_resolves_vector_from_the_user_type_identifier()
+    {
+        var smoke = Read(
+            "database", "Tests", "021_shadow_semantic_evaluation_smoke.sql");
+
+        Assert.Contains(
+            "TYPE_NAME(user_type_id) = N'vector'",
+            smoke,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TYPE_NAME(system_type_id) = N'vector'",
+            smoke,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Semantic_smoke_consumes_the_final_governed_input_wire_shape()
+    {
+        var smoke = Read(
+            "database", "Tests", "021_shadow_semantic_evaluation_smoke.sql");
+
+        Assert.Contains("ProviderPolicyPublicId UNIQUEIDENTIFIER", smoke,
+            StringComparison.Ordinal);
+        Assert.Contains("ProviderPolicyFingerprint BINARY(32)", smoke,
+            StringComparison.Ordinal);
+        Assert.Contains("ExternalProcessingAllowed BIT", smoke,
+            StringComparison.Ordinal);
+        Assert.Contains("ProviderPolicyPublicId IS NULL", smoke,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Governed_provider_columns_exist_before_constraints_are_compiled()
     {
         var migration = Read(

@@ -108,6 +108,13 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
+## Estado operativo de la base dev — 2026-08-27
+
+La base `risefunding-dev` tiene aplicadas `001`→`028`. El preflight conjunto validó la cadena local
+de 29 migraciones/355 lotes y los 29 smokes con rollback total; la corrección `029` todavía no fue
+aplicada. Full-Text, principals runtime y bootstrap SuperAdmin siguen pendientes; por eso todavía no
+corresponde ejecutar el apply de compute.
+
 ## Condiciones antes del primer `apply`
 
 1. Revisar el costo con Azure Pricing Calculator. El presupuesto sólo alerta: no detiene recursos.
@@ -117,9 +124,10 @@ completo posterior exige elevación temporal aprobada; `scale-api` no la necesit
 5. Ejecutar `apply-base`; luego usar `prepare-key-vault-dev.sh` para crear las tres claves sin
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
-   FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; aplica `001`→`028`, corre
-   los 28 smokes, estabiliza Full-Text, aprovisiona por `clientId`/SID los tres usuarios runtime y crea
-   interactivamente el SuperAdmin. No usa Graph para crear principals SQL.
+   FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
+   `--preflight`, aplica la pendiente `029` sobre `001`→`028`, corre los 29 smokes, estabiliza
+   Full-Text, aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
+   SuperAdmin. No usa Graph para crear principals SQL.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y
    reducir los permisos amplios JIT en la misma sesión. Email continúa apagado y la aplicación falla
    cerrada si falta una dependencia.
@@ -134,10 +142,14 @@ RSS, email, OpenAI ni billing.
 
 ## Evidencia del snapshot
 
+Este bloque conserva el cierre local anterior a la creación de Azure dev; el estado operativo
+posterior está documentado arriba.
+
 Antes del push se observaron: Bicep `0.46.1` sin errores ni warnings, build Release `0` warnings/`0`
 errors, Unit `411/411`, Integration `160/160`, tests focales de infraestructura `5/5`, parsing de
 scripts/YAML y `git diff --check` limpios. `Infrastructure validation` remoto con la misma versión de
 Bicep sigue siendo gate obligatorio del commit exacto. Los conteos/hashes manuales de plantillas no
 se congelan en este documento porque se vuelven obsoletos con cada hardening.
 
-No se ha ejecutado `validate`, `what-if`, ACR build ni `apply` contra una suscripción Azure.
+En ese snapshot todavía no se había ejecutado `validate`, `what-if`, ACR build ni `apply` contra una
+suscripción Azure.

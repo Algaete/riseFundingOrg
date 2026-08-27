@@ -25,6 +25,10 @@ public sealed record MigrationStatus(
 
 public sealed record MigrationRunResult(int ExecutedScripts, int ExecutedBatches);
 
+public sealed record MigrationPreflightResult(
+    MigrationRunResult Migrations,
+    MigrationRunResult Tests);
+
 public sealed record FullTextProvisioningStatus(string State)
 {
     public bool IsReady => string.Equals(State, "ready", StringComparison.Ordinal);

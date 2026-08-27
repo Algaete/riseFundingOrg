@@ -155,6 +155,57 @@ public sealed class DatabaseMigrationRunner(
         return new MigrationRunResult(executedScripts, executedBatches);
     }
 
+    public async Task<MigrationPreflightResult> PreflightAsync(
+        IReadOnlyList<SqlScript> migrations,
+        IReadOnlyList<SqlScript> tests,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureTargetDatabaseAsync(connection, transaction: null, cancellationToken);
+        await using var transaction =
+            (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            await AcquireLockAsync(connection, transaction, cancellationToken);
+            var applied = await ReadAppliedIfPresentAsync(
+                connection,
+                transaction,
+                cancellationToken);
+            MigrationHistory.EnsureConsistent(migrations, applied);
+            await EnsureNoBaselineCollisionAsync(
+                connection,
+                transaction,
+                applied.Count,
+                cancellationToken);
+            await EnsureHistoryTableAsync(connection, transaction, cancellationToken);
+
+            var migrationResult = await ExecutePendingAsync(
+                connection,
+                transaction,
+                migrations,
+                applied,
+                recordHistory: true,
+                cancellationToken);
+            var testResult = await ExecutePendingAsync(
+                connection,
+                transaction,
+                tests,
+                applied: [],
+                recordHistory: false,
+                cancellationToken);
+
+            await transaction.RollbackAsync(CancellationToken.None);
+            return new MigrationPreflightResult(migrationResult, testResult);
+        }
+        catch
+        {
+            await RollbackIfNeededAsync(transaction);
+            throw;
+        }
+    }
+
     public async Task<MigrationRunResult> TestAsync(
         IReadOnlyList<SqlScript> migrations,
         IReadOnlyList<SqlScript> tests,
@@ -397,6 +448,19 @@ public sealed class DatabaseMigrationRunner(
                         commandTimeout: CommandTimeoutSeconds,
                         cancellationToken: cancellationToken));
                     executedBatches++;
+                }
+
+                var transactionState = await connection.QuerySingleAsync<int>(
+                    new CommandDefinition(
+                        "SELECT XACT_STATE();",
+                        transaction: transaction,
+                        commandTimeout: CommandTimeoutSeconds,
+                        cancellationToken: cancellationToken));
+                if (transactionState != 1)
+                {
+                    throw new MigrationException(
+                        "migration_transaction_not_committable",
+                        script.Name);
                 }
 
                 if (recordHistory)

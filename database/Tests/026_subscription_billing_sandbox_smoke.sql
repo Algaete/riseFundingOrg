@@ -42,7 +42,7 @@ BEGIN TRY
     VALUES (@OrganizationId, @UserId, 1, 1, @NowUtc);
 
     IF NOT EXISTS (SELECT 1 FROM dbo.FundingPlatform_ifn_OrganizationEntitlements(@OrganizationId,@NowUtc)
-                   WHERE FeatureCode=N'alerts.max' AND IsEnabled=1 AND LimitValue=3)
+                   WHERE FeatureCode=N'alerts.max' AND IsEnabled=1 AND LimitValue=1)
         THROW 54753, N'Free fallback entitlement is incorrect.', 1;
 
     UPDATE dbo.FundingPlatform_SubscriptionPlans SET IsPurchasable=1 WHERE Code=N'PROFESSIONAL';
@@ -51,31 +51,36 @@ BEGIN TRY
         (SubscriptionPlanId,BillingInterval,Currency,Amount,CountryId,Provider,ProviderPriceId,IsActive,CreatedAtUtc,UpdatedAtUtc)
     VALUES (@ProfessionalPlanId,1,'CLP',1000,152,N'mercado-pago-sandbox',N'fase11-' + @Suffix,1,@NowUtc,@NowUtc);
     DECLARE @PriceId INT=SCOPE_IDENTITY();
+    DECLARE @IdempotencyKeyHash BINARY(32) = HASHBYTES('SHA2_256', N'idem-' + @Suffix);
+    DECLARE @CheckoutRequestHash BINARY(32) = HASHBYTES('SHA2_256', N'request-' + @Suffix);
+    DECLARE @CheckoutExpiresAtUtc DATETIME2(3) = DATEADD(MINUTE, 15, @NowUtc);
     DECLARE @Checkout TABLE(Code NVARCHAR(40),CheckoutPublicId UNIQUEIDENTIFIER,PayerEmail NVARCHAR(320),ProviderPriceId NVARCHAR(200));
     INSERT @Checkout EXEC dbo.FundingPlatform_usp_SubscriptionCheckout_Begin
         @UserPublicId,@OrganizationPublicId,@PriceId,
-        HASHBYTES('SHA2_256',N'idem-' + @Suffix),HASHBYTES('SHA2_256',N'request-' + @Suffix),
-        @NowUtc,DATEADD(MINUTE,15,@NowUtc);
+        @IdempotencyKeyHash,@CheckoutRequestHash,@NowUtc,@CheckoutExpiresAtUtc;
     DECLARE @CheckoutPublicId UNIQUEIDENTIFIER=(SELECT CheckoutPublicId FROM @Checkout WHERE Code=N'created');
     IF @CheckoutPublicId IS NULL THROW 54754, N'Sandbox checkout was not created.', 1;
     DELETE @Checkout;
     INSERT @Checkout EXEC dbo.FundingPlatform_usp_SubscriptionCheckout_Begin
         @UserPublicId,@OrganizationPublicId,@PriceId,
-        HASHBYTES('SHA2_256',N'idem-' + @Suffix),HASHBYTES('SHA2_256',N'request-' + @Suffix),
-        @NowUtc,DATEADD(MINUTE,15,@NowUtc);
+        @IdempotencyKeyHash,@CheckoutRequestHash,@NowUtc,@CheckoutExpiresAtUtc;
     IF NOT EXISTS(SELECT 1 FROM @Checkout WHERE Code=N'replayed')
         THROW 54755, N'Checkout replay failed.', 1;
 
+    DECLARE @ProviderEventId NVARCHAR(200) = N'event-' + @Suffix;
+    DECLARE @ProviderRequestId NVARCHAR(200) = N'request-' + @Suffix;
+    DECLARE @ProviderResourceId NVARCHAR(200) = N'resource-' + @Suffix;
+    DECLARE @PayloadHash BINARY(32) = HASHBYTES('SHA2_256', N'payload');
     DECLARE @Received TABLE(Inserted BIT);
     INSERT @Received EXEC dbo.FundingPlatform_usp_PaymentWebhookEvent_Receive
-        N'event-' + @Suffix,N'request-' + @Suffix,N'subscription_preapproval',N'preapproval',
-        N'resource-' + @Suffix,N'updated',@NowUtc,HASHBYTES('SHA2_256',N'payload'),@NowUtc;
+        @ProviderEventId,@ProviderRequestId,N'subscription_preapproval',N'preapproval',
+        @ProviderResourceId,N'updated',@NowUtc,@PayloadHash,@NowUtc;
     IF NOT EXISTS(SELECT 1 FROM @Received WHERE Inserted=1)
         THROW 54756, N'Webhook was not durably received.', 1;
     DELETE @Received;
     INSERT @Received EXEC dbo.FundingPlatform_usp_PaymentWebhookEvent_Receive
-        N'event-' + @Suffix,N'request-' + @Suffix,N'subscription_preapproval',N'preapproval',
-        N'resource-' + @Suffix,N'updated',@NowUtc,HASHBYTES('SHA2_256',N'payload'),@NowUtc;
+        @ProviderEventId,@ProviderRequestId,N'subscription_preapproval',N'preapproval',
+        @ProviderResourceId,N'updated',@NowUtc,@PayloadHash,@NowUtc;
     IF NOT EXISTS(SELECT 1 FROM @Received WHERE Inserted=0)
         THROW 54757, N'Webhook replay is not idempotent.', 1;
 
