@@ -4,7 +4,7 @@ set -euo pipefail
 operation="${1:-validate}"
 case "$operation" in validate|what-if|apply-base|apply) ;; *) echo "operation must be validate, what-if, apply-base or apply" >&2; exit 2 ;; esac
 
-required=(AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_LOCATION AZURE_UNIQUE_SUFFIX AZURE_SQL_ADMIN_LOGIN AZURE_SQL_ADMIN_OBJECT_ID AZURE_BUDGET_EMAIL AZURE_BUDGET_START_DATE AZURE_MONTHLY_BUDGET_AMOUNT)
+required=(AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_LOCATION AZURE_SQL_LOCATION AZURE_UNIQUE_SUFFIX AZURE_SQL_ADMIN_LOGIN AZURE_SQL_ADMIN_OBJECT_ID AZURE_BUDGET_EMAIL AZURE_BUDGET_START_DATE AZURE_MONTHLY_BUDGET_AMOUNT)
 for name in "${required[@]}"; do
   if [[ -z "${!name:-}" ]]; then echo "$name is required" >&2; exit 2; fi
 done
@@ -57,6 +57,14 @@ for namespace in Microsoft.Resources Microsoft.Authorization Microsoft.Consumpti
 done
 location_display="$(az account list-locations --query "[?name=='${AZURE_LOCATION}'].displayName | [0]" --output tsv)"
 if [[ -z "$location_display" ]]; then echo "Unknown Azure location ${AZURE_LOCATION}" >&2; exit 3; fi
+sql_location_display="$(az account list-locations --query "[?name=='${AZURE_SQL_LOCATION}'].displayName | [0]" --output tsv)"
+if [[ -z "$sql_location_display" ]]; then echo "Unknown Azure SQL location ${AZURE_SQL_LOCATION}" >&2; exit 3; fi
+sql_serverless_count="$(az sql db list-editions --location "$AZURE_SQL_LOCATION" \
+  --query "[].supportedServiceLevelObjectives[?computeModel=='Serverless' && sku.name=='GP_S_Gen5' && reason==null][] | length(@)" \
+  --output tsv)"
+if [[ ! "$sql_serverless_count" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Azure SQL GP_S_Gen5 Serverless is unavailable for this subscription in ${AZURE_SQL_LOCATION}" >&2; exit 3
+fi
 flex_count="$(az functionapp list-flexconsumption-locations --query "[?name=='${AZURE_LOCATION}'] | length(@)" --output tsv)"
 if [[ "$flex_count" != "1" ]]; then
   echo "Flex Consumption is unavailable in ${AZURE_LOCATION}" >&2; exit 3
@@ -88,6 +96,7 @@ az provider show --namespace Microsoft.Web \
 common_parameters=(
   environmentName=dev
   location="$AZURE_LOCATION"
+  sqlLocation="$AZURE_SQL_LOCATION"
   uniqueSuffix="$AZURE_UNIQUE_SUFFIX"
   sqlEntraAdminLogin="$AZURE_SQL_ADMIN_LOGIN"
   sqlEntraAdminObjectId="$AZURE_SQL_ADMIN_OBJECT_ID"

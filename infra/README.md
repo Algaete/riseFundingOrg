@@ -88,6 +88,8 @@ Functions Flex y `dotnet-isolated` 10.0 en la región antes de `validate`, `what
 
 - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`: identidad de despliegue OIDC;
 - `AZURE_LOCATION`: región validada;
+- `AZURE_SQL_LOCATION`: región validada de Azure SQL; puede diferir de la aplicación cuando la
+  suscripción restringe SQL en la región principal (`centralus` para el ambiente dev actual);
 - `AZURE_UNIQUE_SUFFIX`: exactamente 8 caracteres `[a-z0-9]`; se elige una vez y se reutiliza;
 - `AZURE_SQL_ADMIN_LOGIN`, `AZURE_SQL_ADMIN_OBJECT_ID`: grupo Entra administrador;
 - `AZURE_BUDGET_START_DATE`, `AZURE_MONTHLY_BUDGET_AMOUNT` (moneda de facturación de la

@@ -51,6 +51,7 @@ AZURE_CLIENT_ID
 AZURE_TENANT_ID
 AZURE_SUBSCRIPTION_ID
 AZURE_LOCATION
+AZURE_SQL_LOCATION
 AZURE_UNIQUE_SUFFIX
 AZURE_SQL_ADMIN_LOGIN
 AZURE_SQL_ADMIN_OBJECT_ID
@@ -58,6 +59,11 @@ AZURE_BUDGET_START_DATE
 AZURE_MONTHLY_BUDGET_AMOUNT
 AZURE_DEPLOY_COMPUTE=true
 ```
+
+Para este ambiente recuperado, mantener `AZURE_LOCATION=eastus2` y
+`AZURE_SQL_LOCATION=centralus`: la suscripción rechazó SQL en `eastus2`, mientras el catálogo
+de la suscripción confirmó `GP_S_Gen5` Serverless disponible en `centralus`. No cambiar la región
+de los recursos ya creados ni el sufijo.
 
 Registrar `AZURE_BUDGET_EMAIL` como **environment secret** para evitar publicar PII en metadata o
 logs. Los tres IDs y el Object ID no son secretos. No guardar claves, passwords ni connection
@@ -110,7 +116,7 @@ done
 4. Ejecutar `what-if`, guardar la salida y revisar tipos, región, nombres y presupuesto.
 5. Ejecutar `apply-base`, confirmación `DEPLOY-DEV-BASE`, réplica `1`.
 6. Ejecutar localmente
-   `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_UNIQUE_SUFFIX=<sufijo8> bash infra/scripts/verify-dev.sh base`.
+   `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> bash infra/scripts/verify-dev.sh base`.
 7. Obtener el Object ID del principal OIDC y darle `AcrPull` sobre el ACR dev. `Contributor` permite
    el quick build durante bootstrap; cuando se reduzca ese permiso, conservar explícitamente
    `Container Registry Tasks Contributor`.
@@ -175,7 +181,7 @@ done
     `expected_release_sha=$RF_DEV_RELEASE_SHA`. El workflow rechaza otro commit, construye la imagen
     en ACR y despliega el API por digest OCI.
 11. Ejecutar
-    `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 bash infra/scripts/verify-dev.sh api`.
+    `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 bash infra/scripts/verify-dev.sh api`.
 12. No publicar todavía Functions: el host general está diseñado para fallar cerrado mientras
     Defender/Event Grid permanezca deshabilitado. Frontend, dominios y publicación de Functions son
     el siguiente gate de FASE 12B.

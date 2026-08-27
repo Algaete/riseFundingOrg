@@ -16,6 +16,10 @@ if [[ ! "${AZURE_SUBSCRIPTION_ID:-}" =~ ^[0-9a-fA-F-]{36}$ ]] ||
   echo "AZURE_SUBSCRIPTION_ID and AZURE_TENANT_ID must be explicit UUIDs" >&2
   exit 2
 fi
+if [[ ! "${AZURE_SQL_LOCATION:-}" =~ ^[a-z0-9]+$ ]]; then
+  echo "AZURE_SQL_LOCATION must be an explicit Azure region code" >&2
+  exit 2
+fi
 
 expected_min_replicas="${AZURE_API_MIN_REPLICAS:-0}"
 if [[ "$expected_min_replicas" != "0" && "$expected_min_replicas" != "1" ]]; then
@@ -83,6 +87,11 @@ if [[ "$acr_pull_count" != "1" ]]; then
 fi
 
 sql_server_name="$(az sql server list --resource-group "$resource_group" --query '[0].name' --output tsv)"
+sql_server_location="$(az sql server show --resource-group "$resource_group" --name "$sql_server_name" --query location --output tsv)"
+if [[ "$sql_server_location" != "$AZURE_SQL_LOCATION" ]]; then
+  echo "Unexpected Azure SQL location: ${sql_server_location}" >&2
+  exit 3
+fi
 database_name="$(az sql db list --resource-group "$resource_group" --server "$sql_server_name" \
   --query "[?name!='master'].name | [0]" --output tsv)"
 if [[ "$database_name" != "risefunding-dev" ]]; then

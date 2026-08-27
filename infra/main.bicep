@@ -7,6 +7,9 @@ param environmentName string = 'dev'
 @description('Azure region selected after checking service availability.')
 param location string
 
+@description('Azure SQL region selected independently when the subscription restricts SQL provisioning in the application region.')
+param sqlLocation string
+
 @description('Globally unique suffix of exactly eight lowercase ASCII letters or digits: [a-z0-9]{8}.')
 @minLength(8)
 @maxLength(8)
@@ -92,6 +95,7 @@ module environment './modules/environment.bicep' = {
   params: {
     environmentName: environmentName
     location: location
+    sqlLocation: sqlLocation
     uniqueSuffix: uniqueSuffix
     sqlEntraAdminLogin: sqlEntraAdminLogin
     sqlEntraAdminObjectId: sqlEntraAdminObjectId

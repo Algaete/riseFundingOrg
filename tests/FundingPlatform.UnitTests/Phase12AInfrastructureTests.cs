@@ -93,6 +93,8 @@ public sealed class Phase12AInfrastructureTests
         var validation = Read(".github", "workflows", "infra-validate.yml");
         var ci = Read(".github", "workflows", "ci.yml");
         var script = Read("infra", "scripts", "deploy-dev.sh");
+        var main = Read("infra", "main.bicep");
+        var environment = Read("infra", "modules", "environment.bicep");
         var suffixGuardedScripts = new[]
         {
             script,
@@ -115,6 +117,10 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("- DEPLOY-DEV-BASE", workflow, StringComparison.Ordinal);
         Assert.Contains("DEPLOY-DEV", workflow, StringComparison.Ordinal);
         Assert.Contains("list-flexconsumption-runtimes", script, StringComparison.Ordinal);
+        Assert.Contains("AZURE_SQL_LOCATION", workflow + script, StringComparison.Ordinal);
+        Assert.Contains("az sql db list-editions", script, StringComparison.Ordinal);
+        Assert.Contains("sqlLocation", main + environment, StringComparison.Ordinal);
+        Assert.DoesNotContain("enablePurgeProtection: false", environment, StringComparison.Ordinal);
         Assert.Contains("sku.functionAppConfigProperties.runtime.version=='10.0'", script, StringComparison.Ordinal);
         Assert.Contains("dotnet10_runtime_count", script, StringComparison.Ordinal);
         Assert.DoesNotContain("grep -q '10.0'", script, StringComparison.Ordinal);
@@ -190,6 +196,8 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("app.Environment.IsDevelopment()", Read("src", "FundingPlatform.Api", "Program.cs"), StringComparison.Ordinal);
         Assert.Contains("AZURE_SUBSCRIPTION_ID", verifier, StringComparison.Ordinal);
         Assert.Contains("AZURE_TENANT_ID", verifier, StringComparison.Ordinal);
+        Assert.Contains("AZURE_SQL_LOCATION", verifier, StringComparison.Ordinal);
+        Assert.Contains("sql server show", verifier, StringComparison.Ordinal);
         Assert.Contains("--retry-max-time 120", verifier, StringComparison.Ordinal);
         Assert.DoesNotContain("secret list", verifier, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("group delete", verifier, StringComparison.OrdinalIgnoreCase);

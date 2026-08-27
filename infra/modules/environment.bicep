@@ -1,5 +1,6 @@
 param environmentName string
 param location string
+param sqlLocation string
 param uniqueSuffix string
 @secure()
 param sqlEntraAdminLogin string
@@ -160,7 +161,6 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: tenant().tenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
-    enablePurgeProtection: false
     softDeleteRetentionInDays: 30
     publicNetworkAccess: 'Enabled'
     sku: { family: 'A', name: 'standard' }
@@ -182,7 +182,7 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: sqlServerName
-  location: location
+  location: sqlLocation
   tags: tags
   properties: {
     administrators: {
@@ -209,7 +209,7 @@ resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-prev
 resource database 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDatabaseName
-  location: location
+  location: sqlLocation
   tags: tags
   sku: { name: 'GP_S_Gen5_1', tier: 'GeneralPurpose', family: 'Gen5', capacity: 1 }
   properties: {
