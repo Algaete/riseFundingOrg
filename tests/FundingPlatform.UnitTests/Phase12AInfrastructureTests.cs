@@ -120,6 +120,7 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("AZURE_SQL_LOCATION", workflow + script, StringComparison.Ordinal);
         Assert.Contains("az sql db list-editions", script, StringComparison.Ordinal);
         Assert.Contains("sqlLocation", main + environment, StringComparison.Ordinal);
+        Assert.Contains("'sql-${prefix}-${sqlLocation}'", environment, StringComparison.Ordinal);
         Assert.DoesNotContain("enablePurgeProtection: false", environment, StringComparison.Ordinal);
         Assert.Contains("sku.functionAppConfigProperties.runtime.version=='10.0'", script, StringComparison.Ordinal);
         Assert.Contains("dotnet10_runtime_count", script, StringComparison.Ordinal);

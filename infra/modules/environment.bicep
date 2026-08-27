@@ -28,7 +28,9 @@ var staticWebAppName = 'swa-${prefix}'
 var generalWorkerName = 'func-${prefix}-general'
 var extractionWorkerName = 'func-${prefix}-extract'
 var keyVaultName = take('kv-${prefix}', 24)
-var sqlServerName = take('sql-${prefix}', 63)
+// Azure SQL logical servers cannot move regions. Including the region also avoids reusing a
+// transiently reserved name after a failed regional provisioning attempt.
+var sqlServerName = take('sql-${prefix}-${sqlLocation}', 63)
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${prefix}'
