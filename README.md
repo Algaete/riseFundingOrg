@@ -9,15 +9,16 @@ Chile y español, con diseño para Latinoamérica, internacionalización e intel
 El repositorio completó la **implementación local de FASE 11**: catálogo de planes, entitlements por
 organización, checkout/webhooks/reconciliación de Mercado Pago exclusivamente sandbox, pantalla de
 suscripción y consola administrativa de billing. `Billing:Enabled=false` y los planes pagados salen
-no comprables: no se definieron precios comerciales, no hubo cobros ni se crearon recursos Azure.
+no comprables: no se definieron precios comerciales, no hubo cobros ni se habilitó billing.
 El cierre aditivo `028` reemplaza los últimos placeholders visibles: el resumen del usuario presenta
 datos reales de proyectos, postulaciones, calendario y alertas; la consola administrativa incorpora
 organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
 requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Las migraciones `019` a `028`, junto con sus smokes, permanecen como artefactos locales: por
-instrucción del propietario **no se aplicaron ni validaron contra Azure SQL ni contra otro entorno de
-base de datos**. El último estado observado de `res` continúa siendo 18/18, correspondiente a 8A.
+Las migraciones `019` a `028` aún no están aplicadas. El 2026-08-27 la cadena completa `001`→`028`
+pasó `--validate` contra la base Azure SQL dev vacía: 28 migraciones/348 lotes ejecutados dentro de
+una transacción y revertidos. Los 28 smokes, `--apply`, Full-Text, principals runtime y bootstrap
+siguen pendientes. La base compartida histórica `res` continúa en 18/18, correspondiente a 8A.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -38,7 +39,7 @@ base de datos**. El último estado observado de `res` continúa siendo 18/18, co
 | 10A | Código completado; activación DB/email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | Código completado; activación DB pendiente | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | Código completado; precio/sandbox/DB pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Preparación local completada; Azure no creado | Dev separado, API Container Apps 1→0, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 12A | Base Azure dev creada; activación DB y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -54,13 +55,40 @@ Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo 
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
 de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
 `027` de preparación runtime para 12A y `028` de cierre de organizaciones/errores administrativos no
-forman parte de ese resultado: permanecen
-como artefactos locales pendientes de un despliegue posterior autorizado y deben aplicarse en ese
-orden. El código
+forman parte de ese resultado. Ya compilan transaccionalmente en Azure SQL dev, pero permanecen
+pendientes de aplicación y deben desplegarse en ese orden. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
 Defender.
+
+### Validación Azure dev — 2026-08-27
+
+La validación real detectó y corrigió límites de tipos SQL, filtros de índices sobre columnas
+calculadas, fronteras de compilación entre lotes, una referencia de fingerprint y un alias reservado.
+El resultado final fue `Validación correcta: 28 migración(es), 348 lote(s)` con rollback completo y
+eliminación comprobada de la regla temporal de firewall. No se ejecutaron `--apply`, `--test`,
+`--provision-full-text`, aprovisionamiento de identidades ni bootstrap de SuperAdmin.
+
+Huellas vigentes de los artefactos corregidos:
+
+- migración `019` (1188 líneas/14 lotes):
+  `6d6e9a0a86a3ea7ff31c5ae43f31b4528aaa16d9ad14cd9a9f1cbecdbad3ebcd`;
+- smoke `019` (905 líneas/un lote):
+  `eb346bf26c9226df80a93eb7bdd3f2900254f437e252ffaf94548254b4a8fbeb`;
+- migración `021` (3995 líneas/47 lotes):
+  `e7f10a5b9fa50969c69abaefac9f56c8b23022886f39ccd93f2c7546c4127993`;
+- migración `022` (789 líneas/10 lotes):
+  `a804657adabb4906da96fa2024025630782b4b0149c631f720513e401696a585`;
+- migración `023` (2164 líneas/25 lotes):
+  `4566bcacf528ed355033dbb80f0751ebb8e8a94cb5d6207126b426cf7a947ede`;
+- migración `025` (717 líneas/10 lotes):
+  `06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`.
+
+El gate local posterior pasó build Release sin advertencias, 418 pruebas unitarias, 178 de
+integración, lint frontend, 30 archivos/119 pruebas Vitest y build de producción. Las huellas y
+afirmaciones de “sin validación DB” incluidas más abajo se conservan como snapshots históricos de los
+cierres locales del 2026-08-24/25; este bloque registra el estado actual.
 
 ## Stack objetivo
 
@@ -1190,9 +1218,9 @@ El orden de ejecución es:
   aplicación `025` pendiente de un despliegue autorizado;
 - FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
-- FASE 12A — IaC de dev, API Container Apps/ACR, presupuesto, Managed Identities, roles SQL runtime
-  de mínimo privilegio e infraestructura manual OIDC/what-if completados localmente; no se creó
-  ningún recurso ni usuario Entra/SQL;
+- FASE 12A — infraestructura base dev creada mediante OIDC/Bicep, con ACR, presupuesto, Managed
+  Identities, Storage, Key Vault, observabilidad y SQL serverless; aplicación DB, principals SQL,
+  compute y paquetes aún pendientes;
 - FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente

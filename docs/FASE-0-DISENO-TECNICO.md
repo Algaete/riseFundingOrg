@@ -1,6 +1,6 @@
 # FundingPlatform — FASE 0: diseño técnico del MVP
 
-**Estado:** baseline técnico aprobado; FASE 8A completada con gate SQL aplicado hasta `018` y
+**Estado histórico al 2026-08-25:** baseline técnico aprobado; FASE 8A completada con gate SQL aplicado hasta `018` y
 Full-Text provisionado; FASE 8B completada en código local, con `019` preparada pero no aplicada ni
 validada contra un entorno de base de datos; FASE 9A completada en código local y `020` preparada,
 sin aplicación ni prueba contra una base de datos; FASE 9B-A completada en código local y `021`
@@ -10,6 +10,12 @@ networking opt-in y Connect moderado mediante `025`, todos todavía sin aplicaci
 una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
+
+**Actualización operativa 2026-08-27:** la infraestructura base Azure dev ya existe y la cadena
+`001`→`028` pasó validación transaccional real en Azure SQL (28 migraciones/348 lotes, rollback
+completo). Las migraciones, smokes, Full-Text, principals runtime y paquetes de aplicación todavía
+no están aplicados en dev. Las afirmaciones históricas de “sin conexión/validación DB” incluidas en
+los cierres por fase describen su fecha original y quedan supersedidas por esta actualización.
 
 **Ampliación vigente:** la revisión de visión del 17 de agosto de 2026 incorpora proyectos,
 funders, networking e ingesta gobernada. En alcance funcional, matching y roadmap prevalece
@@ -3154,6 +3160,19 @@ Functions Flex. Quedan para 12B publicación de Functions/frontend, DNS/dominio 
 usuarios SQL mediante aprovisionamiento idempotente, aplicación `001`→`028` en la base dev vacía,
 E2E, restore y decisión de piloto. `027` deja versionados los roles mínimos de API, worker general y
 extracción, pero no crea principals ni membresías y no fue aplicado a ninguna base.
+
+**Actualización FASE 12A (2026-08-27):** la infraestructura base de dev fue creada y Azure SQL quedó
+disponible en `sql-rf-dev-ag26rf01-centralus/risefunding-dev`. Antes de aplicar, la cadena
+`001`→`028` ejecutó correctamente `--validate`: 28 migraciones/348 lotes bajo una sola transacción y
+rollback completo. La base dev continúa sin historial aplicado. Los intentos intermedios permitieron
+corregir portabilidad/compilación en `019`, `021`, `022`, `023` y `025`; sus huellas vigentes son,
+respectivamente, `6d6e9a0a86a3ea7ff31c5ae43f31b4528aaa16d9ad14cd9a9f1cbecdbad3ebcd`,
+`e7f10a5b9fa50969c69abaefac9f56c8b23022886f39ccd93f2c7546c4127993`,
+`a804657adabb4906da96fa2024025630782b4b0149c631f720513e401696a585`,
+`4566bcacf528ed355033dbb80f0751ebb8e8a94cb5d6207126b426cf7a947ede` y
+`06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`. El smoke `019` vigente es
+`eb346bf26c9226df80a93eb7bdd3f2900254f437e252ffaf94548254b4a8fbeb`. `--apply`, los 28 smokes,
+Full-Text, principals runtime, paquetes de aplicación, E2E y restore continúan pendientes.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;

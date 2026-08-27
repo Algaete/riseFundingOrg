@@ -1,7 +1,8 @@
 # Registro de despliegues de base de datos
 
 Este registro contiene únicamente metadatos operativos no sensibles de los cambios
-`FundingPlatform_*` aplicados a la base compartida `res`.
+`FundingPlatform_*` aplicados a la base compartida `res` y, desde el 2026-08-27, de validaciones
+transaccionales autorizadas contra Azure SQL dev.
 
 ## Preflight FASE 2 — 2026-08-12T03:06:48Z
 
@@ -507,3 +508,38 @@ commit de Azure SQL.
   147 permisos directos. No agrega DML ni permisos a los workers.
 - ScriptDom parseó los cinco lotes y el smoke transaccional. No se abrió conexión SQL/Azure y no se
   ejecutaron `validate`, `apply`, `test` o `status`; `res` continúa observado en 18/18.
+
+## Validación transaccional Azure dev y errata de artefactos (2026-08-27)
+
+- Destino autorizado: `sql-rf-dev-ag26rf01-centralus/risefunding-dev`. El preflight confirmó
+  conexión con Entra/Azure CLI, base vacía, historial ausente, 0 migraciones registradas, 28 locales
+  y 0 objetos `FundingPlatform_*`.
+- Los intentos de `--validate` fueron transaccionales y revirtieron todos sus cambios al detectar:
+  `NVARCHAR(5000)` inválido en `019`; filtros de índices sobre `ActiveSlot` calculado en `021`/`023`;
+  columnas creadas y referidas en el mismo lote en `022`; una referencia errónea a
+  `ConfigurationFingerprint` en `023`; y el alias reservado `Exists` en `025`.
+- La validación final terminó correctamente con 28 migraciones/348 lotes y rollback completo. El
+  provisioning Full-Text permaneció sin mutación porque `018` sigue pendiente. Todas las reglas
+  temporales de firewall creadas para las sesiones fueron eliminadas.
+- No se ejecutaron `--apply`, `--test`, `--provision-full-text`, reapply/status, aprovisionamiento de
+  identities runtime o bootstrap de SuperAdmin. Por ello no se declara una migración aplicada, un
+  smoke real exitoso ni un estado final distinto de base dev vacía.
+- Huellas vigentes después de las correcciones:
+  - `019_project_marketplace_applications_calendar.sql`: SHA-256
+    `6d6e9a0a86a3ea7ff31c5ae43f31b4528aaa16d9ad14cd9a9f1cbecdbad3ebcd`, 1188 líneas/14 lotes;
+  - `019_project_marketplace_applications_calendar_smoke.sql`: SHA-256
+    `eb346bf26c9226df80a93eb7bdd3f2900254f437e252ffaf94548254b4a8fbeb`, 905 líneas/un lote;
+  - `021_shadow_semantic_evaluation.sql`: SHA-256
+    `e7f10a5b9fa50969c69abaefac9f56c8b23022886f39ccd93f2c7546c4127993`, 3995 líneas/47 lotes;
+  - `022_governed_openai_provider.sql`: SHA-256
+    `a804657adabb4906da96fa2024025630782b4b0149c631f720513e401696a585`, 789 líneas/10 lotes;
+  - `023_shadow_structured_explanations.sql`: SHA-256
+    `4566bcacf528ed355033dbb80f0751ebb8e8a94cb5d6207126b426cf7a947ede`, 2164 líneas/25 lotes;
+  - `025_organization_networking.sql`: SHA-256
+    `06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`, 717 líneas/10 lotes.
+- El conteo usa `GoBatchSplitter`: el segmento vacío después de un `GO` final no es un lote. Las
+  entradas de preparación del 2026-08-24/25 se conservan sin modificación como evidencia del
+  contenido previo; sus conteos nominales `GO + 1` y hashes quedan supersedidos por esta errata.
+- El gate local posterior pasó build Release con 0 warnings/0 errores, 418/418 pruebas unitarias,
+  178/178 de integración, lint frontend, 30 archivos/119 pruebas Vitest y build de producción. No
+  hubo llamadas a OpenAI, envío de correos, cobros ni datos reales.

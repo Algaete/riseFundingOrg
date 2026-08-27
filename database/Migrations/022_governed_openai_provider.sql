@@ -110,6 +110,7 @@ ALTER TABLE dbo.FundingPlatform_SemanticConfigurations
 ADD ProviderGovernancePolicyId BIGINT NULL,
     ProviderCapability TINYINT NOT NULL
         CONSTRAINT FundingPlatform_DF_SemanticConfigurations_ProviderCapability DEFAULT (0);
+GO
 
 ALTER TABLE dbo.FundingPlatform_SemanticConfigurations
 ADD CONSTRAINT FundingPlatform_CK_SemanticConfigurations_GovernedProvider CHECK

@@ -210,7 +210,7 @@ BEGIN
     WHERE organizations.PublicId = @OrganizationPublicId AND organizations.IsActive = 1;
     IF @OrganizationId IS NULL THROW 54603, N'Networking workspace not found.', 1;
 
-    SELECT CONVERT(BIT, CASE WHEN preferences.OrganizationId IS NULL THEN 0 ELSE 1 END) AS Exists,
+    SELECT CONVERT(BIT, CASE WHEN preferences.OrganizationId IS NULL THEN 0 ELSE 1 END) AS [Exists],
            COALESCE(preferences.IsDiscoverable, CONVERT(BIT, 0)) AS IsDiscoverable,
            COALESCE(preferences.AllowRequests, CONVERT(BIT, 0)) AS AllowRequests,
            preferences.CreatedAtUtc, preferences.UpdatedAtUtc, preferences.RowVersion

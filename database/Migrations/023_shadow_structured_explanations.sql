@@ -180,7 +180,7 @@ CREATE TABLE dbo.FundingPlatform_AiExplanationRuns
 
 CREATE UNIQUE INDEX FundingPlatform_UQ_AiExplanationRuns_Active
     ON dbo.FundingPlatform_AiExplanationRuns (ActiveSlot)
-    WHERE ActiveSlot = 1;
+    WHERE Status = 0;
 
 CREATE TABLE dbo.FundingPlatform_AiExplanationRunRequests
 (
@@ -1226,7 +1226,7 @@ BEGIN
                 ON sourceConfigurations.Id = sourceRuns.SemanticConfigurationId
                AND sourceConfigurations.Version = sourceRuns.SemanticConfigurationVersion
                AND sourceConfigurations.ConfigurationFingerprint =
-                   sourceRuns.ConfigurationFingerprint
+                   sourceRuns.SemanticConfigurationFingerprint
                AND sourceConfigurations.IsLocalFake = 0
             WHERE sourceRuns.PublicId = @SourceSemanticEvaluationRunPublicId
               AND sourceRuns.Status = 2;

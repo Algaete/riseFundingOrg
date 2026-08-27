@@ -18,7 +18,7 @@ CREATE TABLE dbo.FundingPlatform_FundingApplications
     OwnerUserId BIGINT NOT NULL,
     Status TINYINT NOT NULL
         CONSTRAINT FundingPlatform_DF_FundingApplications_Status DEFAULT (0),
-    Notes NVARCHAR(5000) NULL,
+    Notes NVARCHAR(MAX) NULL,
     ApplicationDate DATE NULL,
     RequestedAmount DECIMAL(19,4) NULL,
     Currency CHAR(3) NULL,
@@ -51,6 +51,8 @@ CREATE TABLE dbo.FundingPlatform_FundingApplications
         FOREIGN KEY (Currency) REFERENCES dbo.FundingPlatform_Currencies (Code),
     /* 0 Interested, 1 Applying, 2 Submitted, 3 Won, 4 Rejected, 5 Discarded. */
     CONSTRAINT FundingPlatform_CK_FundingApplications_Status CHECK (Status BETWEEN 0 AND 5),
+    CONSTRAINT FundingPlatform_CK_FundingApplications_NotesLength CHECK
+        (Notes IS NULL OR DATALENGTH(Notes) <= 10000),
     CONSTRAINT FundingPlatform_CK_FundingApplications_RequestedAmount CHECK
         ((RequestedAmount IS NULL AND Currency IS NULL)
          OR (RequestedAmount IS NOT NULL AND RequestedAmount > 0 AND Currency IS NOT NULL)),
@@ -660,7 +662,7 @@ CREATE OR ALTER PROCEDURE dbo.FundingPlatform_usp_FundingApplication_Create
     @OrganizationPublicId UNIQUEIDENTIFIER,
     @ProjectPublicId UNIQUEIDENTIFIER,
     @FundingOpportunityPublicId UNIQUEIDENTIFIER,
-    @Notes NVARCHAR(5000) = NULL,
+    @Notes NVARCHAR(MAX) = NULL,
     @ApplicationDate DATE = NULL,
     @RequestedAmount DECIMAL(19,4) = NULL,
     @Currency CHAR(3) = NULL,
@@ -676,7 +678,7 @@ BEGIN
     DECLARE @ApplicationPublicId UNIQUEIDENTIFIER, @OwnerUserPublicId UNIQUEIDENTIFIER;
     DECLARE @ResultRowVersion BINARY(8), @StoredRequestHash BINARY(32);
     DECLARE @CreatedAtUtc DATETIME2(3), @UpdatedAtUtc DATETIME2(3);
-    DECLARE @NormalizedNotes NVARCHAR(5000) = NULLIF(LTRIM(RTRIM(@Notes)), N'');
+    DECLARE @NormalizedNotes NVARCHAR(MAX) = NULLIF(LTRIM(RTRIM(@Notes)), N'');
     DECLARE @NormalizedCurrency CHAR(3) =
         CASE WHEN NULLIF(LTRIM(RTRIM(@Currency)), '') IS NULL THEN NULL
              ELSE UPPER(LTRIM(RTRIM(@Currency))) END;
@@ -734,7 +736,8 @@ BEGIN
                     SET @Code = N'idempotency-conflict';
                 END
             END
-            ELSE IF (@NormalizedCurrency IS NOT NULL AND
+            ELSE IF DATALENGTH(@NormalizedNotes) > 10000
+                 OR (@NormalizedCurrency IS NOT NULL AND
                      (LEN(@NormalizedCurrency) <> 3
                       OR @NormalizedCurrency LIKE '%[^A-Z]%'))
                  OR (@RequestedAmount IS NULL AND @NormalizedCurrency IS NOT NULL)
@@ -843,7 +846,7 @@ CREATE OR ALTER PROCEDURE dbo.FundingPlatform_usp_FundingApplication_Update
     @FundingApplicationPublicId UNIQUEIDENTIFIER,
     @ExpectedRowVersion BINARY(8),
     @Status TINYINT,
-    @Notes NVARCHAR(5000) = NULL,
+    @Notes NVARCHAR(MAX) = NULL,
     @ApplicationDate DATE = NULL,
     @RequestedAmount DECIMAL(19,4) = NULL,
     @Currency CHAR(3) = NULL,
@@ -857,7 +860,7 @@ BEGIN
     DECLARE @OwnerUserPublicId UNIQUEIDENTIFIER, @CurrentStatus TINYINT;
     DECLARE @CurrentRowVersion BINARY(8), @ResultRowVersion BINARY(8);
     DECLARE @CreatedAtUtc DATETIME2(3), @UpdatedAtUtc DATETIME2(3);
-    DECLARE @NormalizedNotes NVARCHAR(5000) = NULLIF(LTRIM(RTRIM(@Notes)), N'');
+    DECLARE @NormalizedNotes NVARCHAR(MAX) = NULLIF(LTRIM(RTRIM(@Notes)), N'');
     DECLARE @NormalizedCurrency CHAR(3) =
         CASE WHEN NULLIF(LTRIM(RTRIM(@Currency)), '') IS NULL THEN NULL
              ELSE UPPER(LTRIM(RTRIM(@Currency))) END;
@@ -897,6 +900,7 @@ BEGIN
         IF @ApplicationId IS NULL OR (@OwnerUserId <> @UserId AND @MembershipRole <> 1)
             SET @Code = N'not-found';
         ELSE IF @ExpectedRowVersion IS NULL OR @Status IS NULL OR @Status NOT BETWEEN 0 AND 5
+             OR DATALENGTH(@NormalizedNotes) > 10000
              OR (@NormalizedCurrency IS NOT NULL AND
                  (LEN(@NormalizedCurrency) <> 3 OR @NormalizedCurrency LIKE '%[^A-Z]%'))
              OR (@RequestedAmount IS NULL AND @NormalizedCurrency IS NOT NULL)

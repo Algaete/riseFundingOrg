@@ -482,6 +482,39 @@ BEGIN TRY
     IF @ClosedApplicationPublicId IS NULL
         THROW 53916, N'Closed public-ready opportunity could not be backfilled.', 1;
 
+    /* The database boundary preserves the public 5,000-character notes contract. */
+    DECLARE @MaximumNotes NVARCHAR(MAX) =
+        REPLICATE(CONVERT(NVARCHAR(MAX), N'x'), 5000);
+    DELETE FROM @Mutations;
+    INSERT INTO @Mutations
+    EXEC dbo.FundingPlatform_usp_FundingApplication_Update
+        @UserPublicId = @AdminPublicId, @OrganizationPublicId = @OrgPublicId,
+        @FundingApplicationPublicId = @MainApplicationPublicId,
+        @ExpectedRowVersion = @MainRowVersion, @Status = 1,
+        @Notes = @MaximumNotes, @ApplicationDate = @MainApplicationDate,
+        @RequestedAmount = 250, @Currency = 'USD',
+        @ResultDate = @MainResultDate;
+    DECLARE @MaximumNotesRowVersion BINARY(8) =
+        (SELECT RowVersion FROM @Mutations WHERE Succeeded = 1 AND Code = N'updated');
+    IF @MaximumNotesRowVersion IS NULL
+        THROW 53943, N'Maximum-length application notes were rejected.', 1;
+    SET @MainRowVersion = @MaximumNotesRowVersion;
+
+    DECLARE @OversizedNotes NVARCHAR(MAX) =
+        REPLICATE(CONVERT(NVARCHAR(MAX), N'x'), 5001);
+    DELETE FROM @Mutations;
+    INSERT INTO @Mutations
+    EXEC dbo.FundingPlatform_usp_FundingApplication_Update
+        @UserPublicId = @AdminPublicId, @OrganizationPublicId = @OrgPublicId,
+        @FundingApplicationPublicId = @MainApplicationPublicId,
+        @ExpectedRowVersion = @MainRowVersion, @Status = 1,
+        @Notes = @OversizedNotes, @ApplicationDate = @MainApplicationDate,
+        @RequestedAmount = 250, @Currency = 'USD',
+        @ResultDate = @MainResultDate;
+    IF NOT EXISTS
+       (SELECT 1 FROM @Mutations WHERE Succeeded = 0 AND Code = N'invalid-input')
+        THROW 53944, N'Oversized application notes were accepted.', 1;
+
     /* A non-owner regular member sees the resource as not found. */
     DELETE FROM @Mutations;
     INSERT INTO @Mutations
@@ -558,7 +591,7 @@ BEGIN TRY
     DECLARE @ApplicationRows TABLE
     (
         FundingApplicationPublicId UNIQUEIDENTIFIER, Status TINYINT,
-        Notes NVARCHAR(5000), ApplicationDate DATE, RequestedAmount DECIMAL(19,4),
+        Notes NVARCHAR(MAX), ApplicationDate DATE, RequestedAmount DECIMAL(19,4),
         Currency CHAR(3), ResultDate DATE, OwnerUserPublicId UNIQUEIDENTIFIER,
         CanEdit BIT, ProjectPublicId UNIQUEIDENTIFIER, ProjectSlug NVARCHAR(180),
         ProjectTitle NVARCHAR(250), FundingOpportunityPublicId UNIQUEIDENTIFIER,
@@ -674,6 +707,18 @@ BEGIN TRY
     SET XACT_ABORT ON;
     IF @ConstraintError <> 547 OR XACT_STATE() <> 1
         THROW 53932, N'Owner/membership composite FK did not reject cross-tenant write.', 1;
+
+    SET @ConstraintError = 0;
+    SET XACT_ABORT OFF;
+    BEGIN TRY
+        UPDATE dbo.FundingPlatform_FundingApplications
+        SET Notes = @OversizedNotes
+        WHERE PublicId = @MainApplicationPublicId;
+    END TRY
+    BEGIN CATCH SET @ConstraintError = ERROR_NUMBER(); END CATCH;
+    SET XACT_ABORT ON;
+    IF @ConstraintError <> 547 OR XACT_STATE() <> 1
+        THROW 53945, N'Notes length constraint did not reject an oversized direct write.', 1;
 
     /* Calendar favorite deadlines deduplicate active applications and reappear
        when the only application for that opportunity is discarded. */

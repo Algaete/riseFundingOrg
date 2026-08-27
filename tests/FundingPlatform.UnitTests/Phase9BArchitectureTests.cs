@@ -5,6 +5,58 @@ namespace FundingPlatform.UnitTests;
 public sealed class Phase9BArchitectureTests
 {
     [Fact]
+    public void Governed_provider_columns_exist_before_constraints_are_compiled()
+    {
+        var migration = Read(
+            "database", "Migrations", "022_governed_openai_provider.sql");
+
+        Assert.Contains(
+            "FundingPlatform_DF_SemanticConfigurations_ProviderCapability DEFAULT (0);\nGO\n\n" +
+            "ALTER TABLE dbo.FundingPlatform_SemanticConfigurations\n" +
+            "ADD CONSTRAINT FundingPlatform_CK_SemanticConfigurations_GovernedProvider",
+            migration,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Singleton_indexes_filter_on_physical_status_not_computed_columns()
+    {
+        var semantic = Read(
+            "database", "Migrations", "021_shadow_semantic_evaluation.sql");
+        var explanations = Read(
+            "database", "Migrations", "023_shadow_structured_explanations.sql");
+
+        Assert.Contains(
+            "(ActiveSlot)\n    WHERE Status IN (0, 1, 3);",
+            semantic,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "(ActiveSlot)\n    WHERE Status = 0;",
+            explanations,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "(ActiveSlot)\n    WHERE ActiveSlot = 1;",
+            semantic + explanations,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Structured_explanation_uses_the_semantic_run_fingerprint_column()
+    {
+        var explanations = Read(
+            "database", "Migrations", "023_shadow_structured_explanations.sql");
+
+        Assert.Contains(
+            "sourceRuns.SemanticConfigurationFingerprint",
+            explanations,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "sourceRuns.ConfigurationFingerprint",
+            explanations,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Admin_boundary_is_mfa_only_shadow_only_idempotent_and_not_client_configurable()
     {
         var endpoints = Read(

@@ -1,10 +1,45 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
 
 namespace FundingPlatform.UnitTests;
 
 public sealed class MigrationInfrastructureTests
 {
+    [Fact]
+    public void Sql_scripts_do_not_declare_fixed_widths_beyond_engine_limits()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var databaseRoot = Path.Combine(root, "database");
+        var declaration = new Regex(
+            @"\b(?<type>nvarchar|nchar|varchar|char|varbinary|binary)\s*\(\s*(?<size>\d+)\s*\)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        foreach (var path in Directory.EnumerateFiles(
+                     databaseRoot,
+                     "*.sql",
+                     SearchOption.AllDirectories))
+        {
+            var script = File.ReadAllText(path);
+            foreach (Match match in declaration.Matches(script))
+            {
+                var type = match.Groups["type"].Value;
+                var size = int.Parse(
+                    match.Groups["size"].Value,
+                    System.Globalization.CultureInfo.InvariantCulture);
+                var maximum = type.StartsWith("n", StringComparison.OrdinalIgnoreCase)
+                    ? 4000
+                    : 8000;
+                var line = script[..match.Index].Count(character => character == '\n') + 1;
+
+                Assert.True(
+                    size <= maximum,
+                    $"{Path.GetRelativePath(root, path)}:{line} declares {type}({size}); " +
+                    $"use {type}(max) with an explicit bounded constraint above {maximum}.");
+            }
+        }
+    }
+
     [Fact]
     public void Go_splitter_splits_only_a_standalone_line()
     {

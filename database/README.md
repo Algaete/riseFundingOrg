@@ -3,6 +3,34 @@
 Esta carpeta contiene los artefactos SQL versionados de FundingPlatform. El baseline
 ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
+## Estado Azure dev — 2026-08-27
+
+La cadena completa `001`→`028` pasó `DatabaseMigrator --validate` contra
+`sql-rf-dev-ag26rf01-centralus/risefunding-dev`: 28 migraciones/348 lotes dentro de una única
+transacción, seguidos de rollback completo. La base dev continúa sin historial ni migraciones
+aplicadas. No se ejecutaron `--apply`, los 28 smokes mediante `--test`, Full-Text, reapply/status,
+principals runtime o bootstrap de SuperAdmin.
+
+Artefactos corregidos; las migraciones de esta lista quedaron validadas:
+
+- `019_project_marketplace_applications_calendar.sql`: 1188 líneas/14 lotes, SHA-256
+  `6d6e9a0a86a3ea7ff31c5ae43f31b4528aaa16d9ad14cd9a9f1cbecdbad3ebcd`;
+- `019_project_marketplace_applications_calendar_smoke.sql` (corregido, todavía no ejecutado):
+  905 líneas/un lote, SHA-256
+  `eb346bf26c9226df80a93eb7bdd3f2900254f437e252ffaf94548254b4a8fbeb`;
+- `021_shadow_semantic_evaluation.sql`: 3995 líneas/47 lotes, SHA-256
+  `e7f10a5b9fa50969c69abaefac9f56c8b23022886f39ccd93f2c7546c4127993`;
+- `022_governed_openai_provider.sql`: 789 líneas/10 lotes, SHA-256
+  `a804657adabb4906da96fa2024025630782b4b0149c631f720513e401696a585`;
+- `023_shadow_structured_explanations.sql`: 2164 líneas/25 lotes, SHA-256
+  `4566bcacf528ed355033dbb80f0751ebb8e8a94cb5d6207126b426cf7a947ede`;
+- `025_organization_networking.sql`: 717 líneas/10 lotes, SHA-256
+  `06bf9e4351bb2054cb335a1e16cb9a4a6ec02c724dea1aafb005162eb801c6e4`.
+
+Las secciones de preparación por fase preservan el estado y las huellas de sus cierres locales
+originales. Este bloque los supersede únicamente respecto de la validación transaccional actual; no
+declara aplicación, smokes exitosos ni estado final de la base dev.
+
 ## Estado de FASE 2
 
 La migración `001_initial_schema.sql`, con SHA-256
@@ -531,10 +559,9 @@ Professional y Organization se publican sin precio y no comprables; Free es el f
 persisten cuerpos de webhook, tarjetas, tokens ni secretos. La configuración sale apagada y exige
 Mercado Pago sandbox para habilitarse.
 
-El gate local pasó build .NET 0 warnings/errores, Unit 373/373, Integration 156/156, lint,
-25 archivos/111 pruebas frontend y build. `026` no fue validada ni aplicada en SQL/Azure; `res`
-continúa observado en 18/18 y un despliegue futuro debe aplicar `019`→`026` en orden y ejecutar los
-26 smokes con rollback.
+El gate del cierre local pasó build .NET 0 warnings/errores, Unit 373/373, Integration 156/156,
+lint, 25 archivos/111 pruebas frontend y build. El 2026-08-27 `026` quedó validada como parte de
+`001`→`028`, pero no aplicada ni ejecutada por `--test`; `res` continúa observado en 18/18.
 
 ## Preparación runtime 027 — FASE 12A
 
@@ -551,8 +578,8 @@ crean usuarios Entra ni membresías desde la migración.
 `WITHOUT LOGIN` dentro de una transacción, verifica permisos efectivos y aislamiento entre hosts y
 revierte todo. Tras `028`, el mismo smoke congela el contrato acumulado de API en 119 procedimientos
 y 147 permisos directos; la migración `027` conserva su allowlist original. ScriptDom parseó ambos
-lotes y los tests focales pasaron. No se abrió conexión SQL/Azure ni se ejecutó
-`validate/apply/test/status`; `res` sigue observado en 18/18. Una base dev nueva debe aplicar
+lotes y los tests focales pasaron. El 2026-08-27 `027` quedó validada dentro de la cadena completa,
+pero no aplicada ni ejecutada por `--test`; `res` sigue observado en 18/18. La base dev debe aplicar
 `001`→`028`, ejecutar los 28 smokes con rollback y aprovisionar fuera del historial sólo los tres
 principals runtime autorizados por nombre y `clientId` convertido a SID.
 
@@ -573,8 +600,8 @@ tokens ni mensajes crudos de proveedores. El frontend reemplaza además el resum
 métricas derivadas de proyectos, postulaciones, calendario y alertas existentes.
 
 ScriptDom T-SQL 170 y los tests focales de arquitectura, HTTP y frontend quedaron verdes. El gate
-completo se registra en el log de despliegue. No se conectó SQL/Azure ni se ejecutó
-`validate/apply/test/status`; `028` debe desplegarse sólo después de `027`.
+completo se registra en el log de despliegue. El 2026-08-27 `028` quedó validada dentro de la cadena
+completa, pero no aplicada ni ejecutada por `--test`; debe desplegarse sólo después de `027`.
 
 ## Carpetas
 

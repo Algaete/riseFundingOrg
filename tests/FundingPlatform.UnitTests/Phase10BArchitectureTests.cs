@@ -12,6 +12,8 @@ public sealed class Phase10BArchitectureTests
 
         Assert.Contains("IsDiscoverable", migration, StringComparison.Ordinal);
         Assert.Contains("AllowRequests", migration, StringComparison.Ordinal);
+        Assert.Contains("END) AS [Exists],", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("END) AS Exists,", migration, StringComparison.Ordinal);
         Assert.Contains("FundingPlatform_ifn_OrganizationMarketplaceReady()", directory, StringComparison.Ordinal);
         Assert.Contains("FundingPlatform_ifn_ProjectMarketplaceReady()", directory, StringComparison.Ordinal);
         Assert.Contains("blocked.Status = 4", directory, StringComparison.Ordinal);

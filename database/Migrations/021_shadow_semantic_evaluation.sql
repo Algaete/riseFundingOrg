@@ -598,7 +598,7 @@ CREATE TABLE dbo.FundingPlatform_SemanticEvaluationRuns
 CREATE UNIQUE INDEX FundingPlatform_UQ_SemanticEvaluationRuns_Active
     ON dbo.FundingPlatform_SemanticEvaluationRuns
        (ActiveSlot)
-    WHERE ActiveSlot = 1;
+    WHERE Status IN (0, 1, 3);
 
 CREATE INDEX FundingPlatform_IX_SemanticEvaluationRuns_List
     ON dbo.FundingPlatform_SemanticEvaluationRuns (CreatedAtUtc DESC, Id DESC)

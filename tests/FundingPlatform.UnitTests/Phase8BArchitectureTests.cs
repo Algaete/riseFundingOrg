@@ -25,6 +25,14 @@ public sealed class Phase8BArchitectureTests
             StringComparison.Ordinal);
         Assert.Contains("IdempotencyKeyHash BINARY(32) NOT NULL", migration, StringComparison.Ordinal);
         Assert.Contains("RequestHash BINARY(32) NOT NULL", migration, StringComparison.Ordinal);
+        Assert.Contains("Notes NVARCHAR(MAX) NULL", migration, StringComparison.Ordinal);
+        Assert.Contains("DATALENGTH(Notes) <= 10000", migration, StringComparison.Ordinal);
+        Assert.Equal(
+            2,
+            migration.Split(
+                "DATALENGTH(@NormalizedNotes) > 10000",
+                StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("NVARCHAR(5000)", migration, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WITH (UPDLOCK, HOLDLOCK)", migration, StringComparison.Ordinal);
         Assert.Contains(
             "@NormalizedSort = N'funding-gap-desc' AND @NormalizedCurrency IS NULL",
