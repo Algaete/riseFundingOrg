@@ -90,9 +90,12 @@ if [[ "$sql_admin_count" != "1" ]]; then
   echo "Expected exactly one Microsoft Entra administrator on the Azure SQL server" >&2
   exit 3
 fi
-sql_admin_row="$(az sql server ad-admin list --resource-group "$resource_group" \
-  --server-name "$sql_server" --query '[0].[sid, login, tenantId]' --output tsv)"
-IFS=$'\t' read -r sql_admin_sid sql_admin_login sql_admin_tenant <<<"$sql_admin_row"
+sql_admin_sid="$(az sql server ad-admin list --resource-group "$resource_group" \
+  --server-name "$sql_server" --query '[0].sid' --output tsv)"
+sql_admin_login="$(az sql server ad-admin list --resource-group "$resource_group" \
+  --server-name "$sql_server" --query '[0].login' --output tsv)"
+sql_admin_tenant="$(az sql server ad-admin list --resource-group "$resource_group" \
+  --server-name "$sql_server" --query '[0].tenantId' --output tsv)"
 if [[ "$sql_admin_sid" != "$RF_DEV_SQL_ADMIN_GROUP_OBJECT_ID" ||
       "$sql_admin_login" != "$RF_DEV_SQL_ADMIN_GROUP_NAME" ||
       "$sql_admin_tenant" != "$AZURE_TENANT_ID" ]]; then

@@ -212,6 +212,10 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("No publicar todavía Functions", checklist, StringComparison.Ordinal);
         Assert.Contains("bash infra/scripts/prepare-key-vault-dev.sh", checklist, StringComparison.Ordinal);
         Assert.Contains("bash infra/scripts/prepare-database-dev.sh", checklist, StringComparison.Ordinal);
+        Assert.Contains("--query '[0].sid'", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("--query '[0].login'", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("--query '[0].tenantId'", databasePreparation, StringComparison.Ordinal);
+        Assert.DoesNotContain("[0].[sid, login, tenantId]", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("expected_release_sha=$RF_DEV_RELEASE_SHA", checklist, StringComparison.Ordinal);
         Assert.Contains("RF_DEV_DEPLOYER_CLIENT_ID", checklist, StringComparison.Ordinal);
         Assert.Contains("RF_DEV_SUBSCRIPTION_ID", checklist, StringComparison.Ordinal);
