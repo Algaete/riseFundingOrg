@@ -56,6 +56,12 @@ if [[ "$actual_subscription" != "$AZURE_SUBSCRIPTION_ID" || "$actual_tenant" != 
   echo "Azure CLI is authenticated to a different subscription or tenant" >&2
   exit 3
 fi
+if ! sql_token_expires_on="$(az account get-access-token \
+  --resource https://database.windows.net/ --query expiresOn --output tsv 2>/dev/null)" ||
+   [[ -z "$sql_token_expires_on" ]]; then
+  echo "Azure CLI could not acquire an access token for Azure SQL" >&2
+  exit 3
+fi
 
 operator_object_id="$(az ad signed-in-user show --query id --output tsv)"
 admin_group_shape="$(az ad group show --group "$RF_DEV_SQL_ADMIN_GROUP_OBJECT_ID" \
@@ -146,6 +152,7 @@ firewall_created=true
 echo "Temporary SQL firewall rule created for this session; automatic cleanup is armed."
 
 export DOTNET_ENVIRONMENT=Staging
+export AZURE_TOKEN_CREDENTIALS=AzureCliCredential
 export MIGRATION_EXPECTED_DATABASE_NAME=risefunding-dev
 export MIGRATION_EXPECTED_SERVER_FQDN="$sql_server_fqdn"
 export AZURE_SQL_CONNECTION_STRING="Server=tcp:${sql_server_fqdn},1433;Initial Catalog=risefunding-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"

@@ -216,6 +216,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("--query '[0].login'", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("--query '[0].tenantId'", databasePreparation, StringComparison.Ordinal);
         Assert.DoesNotContain("[0].[sid, login, tenantId]", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("get-access-token", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("https://database.windows.net/", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("AZURE_TOKEN_CREDENTIALS=AzureCliCredential", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("expected_release_sha=$RF_DEV_RELEASE_SHA", checklist, StringComparison.Ordinal);
         Assert.Contains("RF_DEV_DEPLOYER_CLIENT_ID", checklist, StringComparison.Ordinal);
         Assert.Contains("RF_DEV_SUBSCRIPTION_ID", checklist, StringComparison.Ordinal);
