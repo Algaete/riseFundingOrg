@@ -10,9 +10,18 @@ on:
         options: [validate, what-if, apply-base, apply, scale-api, pause-api, resume-api, rollback-api]
         default: what-if
       confirmation:
-        description: Type the operation-specific phrase documented in the dev checklist
-        required: false
-        type: string
+        description: Select the phrase that matches the requested mutation
+        required: true
+        type: choice
+        options:
+          - NO-CONFIRMATION
+          - DEPLOY-DEV-BASE
+          - DEPLOY-DEV
+          - SCALE-DEV-API
+          - PAUSE-DEV-API
+          - RESUME-DEV-API
+          - ROLLBACK-DEV-API
+        default: NO-CONFIRMATION
       api_min_replicas:
         description: Keep one API replica warm, or allow scale-to-zero
         required: true

@@ -110,6 +110,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.DoesNotContain("azure/login@v", workflow, StringComparison.Ordinal);
         Assert.Contains("package-ecosystem: github-actions", Read(".github", "dependabot.yml"), StringComparison.Ordinal);
         Assert.DoesNotContain("push:", workflow, StringComparison.Ordinal);
+        Assert.Contains("confirmation:\n        description: Select the phrase", workflow, StringComparison.Ordinal);
+        Assert.Contains("- NO-CONFIRMATION", workflow, StringComparison.Ordinal);
+        Assert.Contains("- DEPLOY-DEV-BASE", workflow, StringComparison.Ordinal);
         Assert.Contains("DEPLOY-DEV", workflow, StringComparison.Ordinal);
         Assert.Contains("list-flexconsumption-runtimes", script, StringComparison.Ordinal);
         Assert.Contains("sku.functionAppConfigProperties.runtime.version=='10.0'", script, StringComparison.Ordinal);
