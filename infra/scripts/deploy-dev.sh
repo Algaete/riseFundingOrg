@@ -116,6 +116,7 @@ fi
 az deployment sub what-if --name "$deployment_name" --location "$AZURE_LOCATION" \
   --template-file infra/main.bicep --parameters "${validation_parameters[@]}" \
   --validation-level Provider --result-format FullResourcePayloads --no-prompt true \
+  --no-pretty-print \
   --only-show-errors --output json |
   jq --arg budgetEmail "$AZURE_BUDGET_EMAIL" \
      --arg adminLogin "$AZURE_SQL_ADMIN_LOGIN" \

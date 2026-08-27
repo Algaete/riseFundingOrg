@@ -123,6 +123,7 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("AZURE_API_MIN_REPLICAS", script, StringComparison.Ordinal);
         Assert.Contains("deployment sub what-if", script, StringComparison.Ordinal);
         Assert.Contains("FullResourcePayloads", script, StringComparison.Ordinal);
+        Assert.Contains("--no-pretty-print", script, StringComparison.Ordinal);
         Assert.Contains("redacted-budget-contact", script, StringComparison.Ordinal);
         Assert.Contains("redacted-sql-admin", script, StringComparison.Ordinal);
         Assert.Contains("AZURE_UNIQUE_SUFFIX is immutable", script, StringComparison.Ordinal);
