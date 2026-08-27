@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter } from 'react-router-dom'
 
 import { createAppQueryClient } from '@/api/query-client'
@@ -129,14 +129,16 @@ describe('panel de control administrativo', () => {
     render(<App router={router} queryClient={createAppQueryClient()} />)
 
     expect(await screen.findByRole('heading', { name: 'Panel de control' })).toBeInTheDocument()
-    expect(await screen.findByTestId('metric-Proyectos pendientes')).toHaveTextContent('2')
-    expect(screen.getByTestId('metric-Usuarios')).toHaveTextContent('12')
-    expect(screen.getByTestId('metric-Organizaciones')).toHaveTextContent('6')
-    expect(screen.getByTestId('metric-Errores')).toHaveTextContent('4')
-    expect(screen.getByTestId('metric-Fondos')).toHaveTextContent('21')
-    expect(screen.getByTestId('metric-Fondos pendientes')).toHaveTextContent('3')
-    expect(screen.getByTestId('metric-Financiadores')).toHaveTextContent('8')
-    expect(screen.getByTestId('metric-Importaciones')).toHaveTextContent('1')
+    await waitFor(() => {
+      expect(screen.getByTestId('metric-Proyectos pendientes')).toHaveTextContent('2')
+      expect(screen.getByTestId('metric-Usuarios')).toHaveTextContent('12')
+      expect(screen.getByTestId('metric-Organizaciones')).toHaveTextContent('6')
+      expect(screen.getByTestId('metric-Errores')).toHaveTextContent('4')
+      expect(screen.getByTestId('metric-Fondos')).toHaveTextContent('21')
+      expect(screen.getByTestId('metric-Fondos pendientes')).toHaveTextContent('3')
+      expect(screen.getByTestId('metric-Financiadores')).toHaveTextContent('8')
+      expect(screen.getByTestId('metric-Importaciones')).toHaveTextContent('1')
+    })
     expect(screen.getByText('Agua rural')).toBeInTheDocument()
     expect(screen.getByText('Grants.gov')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Crear fondo/ })).toHaveAttribute('href', '/admin/funding/new')
