@@ -15,12 +15,12 @@ datos reales de proyectos, postulaciones, calendario y alertas; la consola admin
 organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
 requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Azure SQL dev tiene aplicadas `001`→`028`. La corrección forward-only
-`029_sql_hyphen_allowlist_compatibility.sql` está versionada localmente pero continúa pendiente de
-aplicación. El preflight conjunto final pasó: ejecutó `029` en siete lotes, completó los 29 smokes y
-revirtió íntegramente la transacción. La cadena local suma 29 migraciones/355 lotes, mientras Azure
-conserva sólo las 28 registradas. Full-Text, principals runtime y bootstrap SuperAdmin también
-siguen pendientes. La base compartida histórica `res` continúa en 18/18, correspondiente a 8A.
+Azure SQL dev tiene aplicadas `001`→`029`: la preparación completó los 29 smokes SQL, confirmó
+reapply sin cambios y dejó Full-Text listo. El aprovisionamiento posterior de identidades runtime
+falló con SQL 102 y su transacción fue revertida, por lo que no quedaron usuarios ni membresías
+parciales. La corrección se incluye en este release pero aún no se ha verificado en Azure;
+principals runtime, bootstrap SuperAdmin y compute siguen pendientes. La base compartida histórica
+`res` continúa en 18/18, correspondiente a 8A.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|

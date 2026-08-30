@@ -561,3 +561,19 @@ commit de Azure SQL.
   pendiente antes de continuar con los gates posteriores.
 - Full-Text, reapply/status final, principals runtime, bootstrap SuperAdmin y compute permanecen
   pendientes. No se declara la base lista para la aplicación.
+
+## Aplicación 029 y Full-Text Azure dev; identities revertidas (observado 2026-08-29)
+
+- Destino autorizado: `sql-rf-dev-ag26rf01-centralus/risefunding-dev`.
+- La preparación aplicó `029_sql_hyphen_allowlist_compatibility.sql` en siete lotes. El historial
+  quedó en 29 migraciones registradas (`001`→`029`).
+- Los 29 smokes SQL completaron correctamente con rollback. El provisioning Full-Text pasó por
+  estado poblando y alcanzó listo; el reapply posterior confirmó 0 migraciones/0 lotes y la suite
+  volvió a completar 29/29.
+- El paso `--provision-runtime-identities` falló después con SQL 102 al construir la sentencia
+  dinámica `ALTER ROLE`. El aprovisionamiento estaba dentro de una transacción y fue revertido: no
+  se declara ningún usuario runtime ni membresía parcial.
+- La corrección de `RuntimeDatabaseIdentityProvisioner` se incluye en este release, pero aún no fue
+  ejecutada contra Azure. Hasta repetir el wrapper desde el SHA aprobado permanecen
+  pendientes los tres principals runtime, su verificación idempotente, el bootstrap SuperAdmin y el
+  despliegue de compute.

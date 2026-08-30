@@ -27,8 +27,9 @@ public sealed class RuntimeDatabaseIdentityProvisioner
         IF @QuotedRoleName IS NULL OR @QuotedUserName IS NULL
             THROW 54901, N'Runtime database role membership identifier is invalid.', 1;
 
-        EXEC sys.sp_executesql
+        DECLARE @AlterRoleSql nvarchar(max) =
             N'ALTER ROLE ' + @QuotedRoleName + N' ADD MEMBER ' + @QuotedUserName + N';';
+        EXEC sys.sp_executesql @AlterRoleSql;
         """;
 
     private readonly ISqlConnectionFactory connectionFactory;

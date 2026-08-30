@@ -1,6 +1,7 @@
 using FundingPlatform.Infrastructure.Persistence.Migrations;
 using FundingPlatform.Infrastructure.Persistence.Sql;
 using Microsoft.Data.SqlClient;
+using Microsoft.SqlServer.TransactSql.ScriptDom;
 
 namespace FundingPlatform.UnitTests;
 
@@ -96,6 +97,15 @@ public sealed class RuntimeDatabaseIdentityProvisioningTests
         Assert.Contains("QUOTENAME(@RoleName)",
             RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql,
             StringComparison.Ordinal);
+        Assert.Contains("DECLARE @AlterRoleSql nvarchar(max)",
+            RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql,
+            StringComparison.Ordinal);
+        Assert.Contains("EXEC sys.sp_executesql @AlterRoleSql",
+            RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("EXEC sys.sp_executesql\n    N'ALTER ROLE '",
+            RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql,
+            StringComparison.Ordinal);
 
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
         var source = File.ReadAllText(Path.Combine(
@@ -117,6 +127,42 @@ public sealed class RuntimeDatabaseIdentityProvisioningTests
         Assert.Contains("roleMembers.Length != 1", source, StringComparison.Ordinal);
         Assert.Contains("runtime_identity_role_has_unexpected_members", source,
             StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(RuntimeIdentityProvisioningBatches))]
+    public void Runtime_identity_provisioning_batches_parse_as_azure_sql(
+        string batchName,
+        string sql)
+    {
+        AssertValidAzureSql(batchName, sql);
+    }
+
+    [Theory]
+    [InlineData(
+        "create-user",
+        "CREATE USER [id-rf-dev-demo-api] WITH SID = " +
+        "0x33221100554477668899AABBCCDDEEFF, TYPE = E;")]
+    [InlineData(
+        "alter-role",
+        "ALTER ROLE [FundingPlatform_ApiRuntimeRole] " +
+        "ADD MEMBER [id-rf-dev-demo-api];")]
+    public void Runtime_identity_generated_ddl_parses_as_azure_sql(
+        string statementName,
+        string sql)
+    {
+        AssertValidAzureSql(statementName, sql);
+    }
+
+    [Fact]
+    public void Azure_sql_gate_rejects_inline_sp_executesql_concatenation()
+    {
+        const string legacyInvalidSql = """
+            EXEC sys.sp_executesql
+                N'ALTER ROLE ' + @QuotedRoleName + N' ADD MEMBER ' + @QuotedUserName + N';';
+            """;
+
+        Assert.NotEmpty(ParseAzureSql(legacyInvalidSql));
     }
 
     [Fact]
@@ -189,6 +235,41 @@ public sealed class RuntimeDatabaseIdentityProvisioningTests
             "id-rf-dev-demo-extract-consume", ConsumerClientId,
             "id-func-rf-dev-demo-extract-host", ExtractionHostClientId,
             "id-rf-dev-demo-extract-send", SenderClientId);
+
+    public static TheoryData<string, string> RuntimeIdentityProvisioningBatches =>
+        new()
+        {
+            {
+                nameof(RuntimeDatabaseIdentityProvisioner.CreateUserSql),
+                RuntimeDatabaseIdentityProvisioner.CreateUserSql
+            },
+            {
+                nameof(RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql),
+                RuntimeDatabaseIdentityProvisioner.AddRoleMemberSql
+            }
+        };
+
+    private static void AssertValidAzureSql(string statementName, string sql)
+    {
+        var errors = ParseAzureSql(sql);
+
+        Assert.True(
+            errors.Count == 0,
+            $"{statementName} is not valid Azure SQL: " +
+            string.Join(
+                "; ",
+                errors.Select(error =>
+                    $"SQL{error.Number} line {error.Line}, column {error.Column}: " +
+                    error.Message)));
+    }
+
+    private static IList<ParseError> ParseAzureSql(string sql)
+    {
+        var parser = new TSql170Parser(true, SqlEngineType.SqlAzure);
+        using var reader = new StringReader(sql);
+        _ = parser.Parse(reader, out var errors);
+        return errors;
+    }
 
     private sealed class UnusedConnectionFactory : ISqlConnectionFactory
     {

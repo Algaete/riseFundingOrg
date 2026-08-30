@@ -3,11 +3,11 @@
 Este checklist prepara una sesión de despliegue reproducible. No contiene secretos y ningún push a
 `main` crea recursos: las operaciones con costo son manuales desde el environment GitHub `dev`.
 
-**Estado actual (2026-08-27):** la infraestructura base existe y Azure SQL dev tiene aplicadas
-`001`→`028`. El preflight final validó la cadena local de 29 migraciones/355 lotes y los 29 smokes
-con rollback total; `029` no fue aplicada. Full-Text, principals runtime y bootstrap SuperAdmin
-permanecen pendientes. No continuar al apply de compute hasta preparar y aprobar un nuevo SHA,
-aplicar `029` desde ese SHA y completar los gates posteriores.
+**Estado actual (2026-08-29):** la infraestructura base existe y Azure SQL dev tiene aplicadas
+`001`→`029`; los 29 smokes pasaron, el reapply fue idempotente y Full-Text quedó listo. El
+aprovisionamiento de identities runtime falló con SQL 102 y fue revertido transaccionalmente, sin
+usuarios ni membresías parciales. No continuar al apply de compute hasta aprobar el SHA con la
+corrección, repetir la preparación y completar principals runtime y bootstrap SuperAdmin.
 
 ## 1. Datos que deben estar decididos
 
