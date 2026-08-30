@@ -11,11 +11,11 @@ una base de datos o proveedor real
 
 **Fecha de referencia:** 25 de agosto de 2026
 
-**Actualización operativa 2026-08-27:** la infraestructura base Azure dev ya existe y Azure SQL
-tiene aplicadas `001`→`028`. El preflight conjunto de la cadena local pasó con 29
-migraciones/355 lotes y 29/29 smokes bajo rollback total. La corrección forward-only `029` permanece
-pendiente de aplicación; Full-Text, principals runtime, bootstrap SuperAdmin y paquetes de
-aplicación siguen pendientes. Las afirmaciones
+**Actualización operativa 2026-08-29:** la infraestructura base Azure dev ya existe y Azure SQL
+tiene aplicadas `001`→`029`. Los 29 smokes SQL pasaron con rollback, el reapply fue idempotente y
+Full-Text quedó listo. El provisioning de principals runtime falló después con SQL 102 y su
+transacción fue revertida; la corrección se incluye en este release pero aún no fue ejecutada contra
+Azure. Principals runtime, bootstrap SuperAdmin y paquetes de aplicación siguen pendientes. Las afirmaciones
 históricas de “sin conexión/validación DB” incluidas en los cierres por fase describen su fecha
 original y quedan supersedidas por esta actualización.
 
@@ -3182,6 +3182,13 @@ lotes, completó los 29 smokes y revirtió todos los cambios; la cadena local va
 migraciones/355 lotes. `029` no modificó los checksums ya registrados y continúa pendiente de
 aplicación, por lo que Azure conserva 28 migraciones en su historial. Full-Text, principals runtime,
 bootstrap SuperAdmin, paquetes de aplicación, E2E y restore continúan pendientes.
+
+**Actualización operativa FASE 12A (2026-08-29):** `029` fue aplicada en siete lotes y Azure SQL
+dev registra `001`→`029`. Los 29 smokes pasaron, Full-Text alcanzó estado listo y el reapply
+confirmó 0 migraciones/0 lotes. El paso de principals runtime falló con SQL 102 y fue revertido
+transaccionalmente, sin usuarios ni membresías parciales; su corrección se incluye en este release y
+sigue pendiente de ejecución en Azure. Principals runtime, bootstrap SuperAdmin, paquetes de
+aplicación, E2E y restore continúan pendientes.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;

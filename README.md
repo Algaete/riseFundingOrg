@@ -41,7 +41,7 @@ principals runtime, bootstrap SuperAdmin y compute siguen pendientes. La base co
 | 10A | DB dev y preflight SQL validados; email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Base Azure y `001`→`028` creadas; preflight 29/29 validado; `029` y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 12A | Base Azure y `001`→`029` aplicadas; 29/29 smokes y Full-Text listos; identities runtime, SuperAdmin y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -57,9 +57,8 @@ Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo 
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
 de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
 `027` de preparación runtime para 12A y `028` de cierre de organizaciones/errores administrativos no
-forman parte de ese resultado histórico de `res`. En Azure SQL dev, `019`→`028` ya están aplicadas;
-el preflight de la cadena local y sus 29 smokes pasó con rollback, pero la migración correctiva
-`029` permanece pendiente de aplicación. El código
+forman parte de ese resultado histórico de `res`. En Azure SQL dev, `019`→`029` ya están aplicadas;
+los 29 smokes pasaron, el reapply fue idempotente y Full-Text quedó listo. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -93,14 +92,15 @@ integración, lint frontend, 30 archivos/119 pruebas Vitest y build de producci�
 afirmaciones de “sin validación DB” incluidas más abajo se conservan como snapshots históricos de los
 cierres locales del 2026-08-24/25.
 
-### Estado posterior de Azure dev — 2026-08-27
+### Estado actual de Azure dev — 2026-08-29
 
-La aplicación de `001`→`028` terminó correctamente y dejó 28 migraciones registradas en
-`risefunding-dev`. El preflight posterior ejecutó transaccionalmente `029` en siete lotes, completó
-29/29 smokes y revirtió todos los cambios. La cadena local quedó validada con 29 migraciones/355
-lotes; `029` corrige de forma forward-only las allowlists SQL de guiones sin alterar los checksums ya
-aplicados, pero no fue aplicada y el historial Azure permanece en 28. Full-Text, principals runtime,
-bootstrap SuperAdmin y despliegue de compute continúan pendientes.
+La base `risefunding-dev` registra `001`→`029`. La aplicación de `029` completó sus siete lotes;
+los 29 smokes SQL pasaron con rollback, Full-Text alcanzó estado listo y el reapply posterior informó
+0 migraciones/0 lotes. El gate de principals runtime falló después con SQL 102 al construir el
+`ALTER ROLE`; el migrador revirtió esa transacción, de modo que no existe un aprovisionamiento
+parcial. La corrección de `RuntimeDatabaseIdentityProvisioner` se incluye en este release y aún debe
+ejecutarse contra Azure. Hasta entonces siguen pendientes los tres principals runtime, el bootstrap
+SuperAdmin y el despliegue de compute.
 
 ## Stack objetivo
 
@@ -1216,23 +1216,22 @@ El orden de ejecución es:
 - FASE 7B — extracción PDF aislada, recepción Defender/Event Grid fail-closed, RSS gobernado,
   retención y deduplicación humana;
 - FASE 8A — catálogo organizacional, búsqueda, detalle completo y favoritos privados;
-- FASE 8B — marketplace, postulaciones y calendario básico completados en código; activación de
-  `019` pendiente de un despliegue autorizado;
-- FASE 9A — compatibilidad determinística, versionada y explicable por proyecto, completada en
-  código local; activación de `020` pendiente de un despliegue autorizado;
-- FASE 9B-A — embeddings project-first y evaluación corpus-level sólo en sombra, completados en
-  código local; activación de `021` pendiente;
-- FASE 9B-B — adapters reales, gobierno/DPA/ZDR/precios y explicaciones shadow completados en código
-  local; aplicación `022`/`023`, eval real, extracción generativa y decisión de promoción pendientes;
-- FASE 10A — búsquedas guardadas y alertas email completadas en código local; aplicación `024` y
-  activación del proveedor pendientes;
-- FASE 10B — networking opt-in y solicitudes Connect moderadas completados en código local;
-  aplicación `025` pendiente de un despliegue autorizado;
-- FASE 11 — suscripciones y billing sandbox completados en código local; `026`, precio comercial,
+- FASE 8B — marketplace, postulaciones y calendario básico completados; `019` aplicada en Azure SQL
+  dev;
+- FASE 9A — compatibilidad determinística, versionada y explicable por proyecto; `020` aplicada en
+  Azure SQL dev;
+- FASE 9B-A — embeddings project-first y evaluación corpus-level sólo en sombra; `021` aplicada en
+  Azure SQL dev;
+- FASE 9B-B — adapters reales, gobierno/DPA/ZDR/precios y explicaciones shadow con `022`/`023`
+  aplicadas en Azure SQL dev; eval real, extracción generativa y decisión de promoción pendientes;
+- FASE 10A — búsquedas guardadas y alertas email con `024` aplicada en Azure SQL dev; activación del
+  proveedor pendiente;
+- FASE 10B — networking opt-in y solicitudes Connect moderadas con `025` aplicada en Azure SQL dev;
+- FASE 11 — suscripciones y billing sandbox con `026` aplicada en Azure SQL dev; precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
 - FASE 12A — infraestructura base dev creada mediante OIDC/Bicep, con ACR, presupuesto, Managed
-  Identities, Storage, Key Vault, observabilidad y SQL serverless; aplicación DB, principals SQL,
-  compute y paquetes aún pendientes;
+  Identities, Storage, Key Vault, observabilidad, SQL serverless, `001`→`029` y Full-Text; principals
+  SQL, bootstrap SuperAdmin, compute y paquetes aún pendientes;
 - FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente

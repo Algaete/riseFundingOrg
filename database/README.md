@@ -3,13 +3,14 @@
 Esta carpeta contiene los artefactos SQL versionados de FundingPlatform. El baseline
 ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
-## Estado Azure dev — 2026-08-27
+## Estado Azure dev — 2026-08-29
 
-Azure SQL dev tiene registradas y aplicadas `001`→`028`. La migración forward-only
-`029_sql_hyphen_allowlist_compatibility.sql` permanece pendiente de aplicación. El preflight final
-la ejecutó en siete lotes, completó 29/29 smokes y revirtió íntegramente la transacción: la cadena
-local de 29 migraciones/355 lotes quedó validada sin agregar `029` al historial Azure. Full-Text,
-reapply/status final, principals runtime y bootstrap SuperAdmin también están pendientes.
+Azure SQL dev tiene registradas y aplicadas `001`→`029`. La última preparación aplicó los siete
+lotes de `029_sql_hyphen_allowlist_compatibility.sql`, completó 29/29 smokes SQL con rollback,
+confirmó reapply con 0 migraciones/0 lotes y dejó Full-Text listo. El aprovisionamiento de
+principals runtime falló después con SQL 102 y fue revertido transaccionalmente, sin usuarios ni
+membresías parciales. La corrección se incluye en este release y aún debe ejecutarse en Azure;
+principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 
 ### Snapshot anterior al primer apply
 
@@ -646,15 +647,15 @@ outbox. FASE 6 ya incorporó evidence editorial y el límite seguro de documento
 FASE 7A incorporó contenido bruto de Grants.gov y runs de importación. FASE 7B incorporó extracción
 PDF, recepción Defender/Event Grid fail-closed, RSS gobernado y deduplicación humana. FASE 8A
 incorporó búsqueda/detalle organizacional, favoritos privados y Full-Text con fallback literal.
-FASE 8B prepara en código local marketplace de proyectos, postulaciones privadas y calendario
-derivado; su migración `019` sigue pendiente de aplicación autorizada. FASE 9A incorporó en código
-local la compatibilidad determinística project-first y su migración `020`, con gate local cerrado pero
-aplicación DB pendiente. FASE 9B-A prepara embeddings project-first y su evaluación corpus-level sólo
-en sombra mediante `021`, también sin aplicar. FASE 9B-B prepara adapters externos gobernados y
-explicaciones administrativas shadow mediante `022`/`023`, igualmente apagados y sin aplicar;
-FASE 10A prepara búsquedas guardadas y alertas diarias mediante `024`, apagadas y sin aplicar;
-FASE 10B prepara networking opt-in moderado mediante `025`, también sin aplicar. Extracción
-generativa, promoción y billing conservan fases o gates posteriores. Las sesiones
+FASE 8B incorporó marketplace de proyectos, postulaciones privadas y calendario derivado mediante
+`019`; FASE 9A agregó la compatibilidad determinística project-first mediante `020`; FASE 9B-A agregó
+embeddings project-first y evaluación corpus-level sólo en sombra mediante `021`; y FASE 9B-B agregó
+adapters externos gobernados y explicaciones administrativas shadow mediante `022`/`023`, apagados
+por defecto. FASE 10A agregó búsquedas guardadas y alertas diarias mediante `024`; FASE 10B agregó
+networking opt-in moderado mediante `025`; FASE 11 agregó billing sandbox mediante `026`; y FASE
+12A completó roles runtime y operaciones administrativas mediante `027`/`028`, más la corrección
+forward-only `029`. Todas `001`→`029` están aplicadas en Azure SQL dev. Extracción generativa,
+promoción, email y billing real conservan gates posteriores. Las sesiones
 y MFA se incorporaron de forma aditiva en FASE 3 mediante
 las migraciones 002/003/004.
 

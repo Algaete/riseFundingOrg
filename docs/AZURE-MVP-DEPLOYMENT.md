@@ -1,9 +1,10 @@
 # Despliegue del MVP en Azure
 
-Estado 2026-08-27: la infraestructura base de FASE 12A está creada en Azure dev y la base
-`risefunding-dev` tiene aplicadas `001`→`028`. El preflight de la cadena local pasó con 29
-migraciones/355 lotes y 29/29 smokes, todos bajo rollback; `029` permanece sin aplicar. Full-Text,
-principals runtime, bootstrap SuperAdmin y compute siguen pendientes. Producción no está habilitada.
+Estado 2026-08-29: la infraestructura base de FASE 12A está creada en Azure dev y la base
+`risefunding-dev` tiene aplicadas `001`→`029`. Los 29 smokes SQL pasaron, el reapply fue idempotente
+y Full-Text quedó listo. El provisioning de principals runtime falló con SQL 102 y fue revertido
+transaccionalmente; la corrección se incluye en este release pero aún no se ejecutó en Azure.
+Principals runtime, bootstrap SuperAdmin y compute siguen pendientes. Producción no está habilitada.
 
 ## 1. Arquitectura del MVP
 
@@ -252,8 +253,8 @@ bash infra/scripts/prepare-database-dev.sh
 
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
 interactiva para la contraseña del SuperAdmin. La autenticación del operador queda fijada a la
-sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, aplica `029`
-sobre las 28 migraciones registradas y luego ejecuta los 29 smokes con rollback, espera
+sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, confirma las 29
+migraciones registradas sin pendientes y luego ejecuta los 29 smokes con rollback, verifica
 `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y vincula las tres UAMI SQL por
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en
 [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).

@@ -108,12 +108,13 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
-## Estado operativo de la base dev — 2026-08-27
+## Estado operativo de la base dev — 2026-08-29
 
-La base `risefunding-dev` tiene aplicadas `001`→`028`. El preflight conjunto validó la cadena local
-de 29 migraciones/355 lotes y los 29 smokes con rollback total; la corrección `029` todavía no fue
-aplicada. Full-Text, principals runtime y bootstrap SuperAdmin siguen pendientes; por eso todavía no
-corresponde ejecutar el apply de compute.
+La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL pasaron, el reapply fue
+idempotente y Full-Text quedó listo. El aprovisionamiento de principals runtime falló con SQL 102 y
+fue revertido transaccionalmente, sin usuarios ni membresías parciales. La corrección se incluye en
+este release, pero aún debe probarse en Azure. Principals runtime y bootstrap SuperAdmin siguen
+pendientes; por eso todavía no corresponde ejecutar el apply de compute.
 
 ## Condiciones antes del primer `apply`
 
@@ -125,8 +126,8 @@ corresponde ejecutar el apply de compute.
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
-   `--preflight`, aplica la pendiente `029` sobre `001`→`028`, corre los 29 smokes, estabiliza
-   Full-Text, aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
+   `--preflight`, confirma `001`→`029` sin pendientes, corre los 29 smokes, verifica Full-Text listo,
+   aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
    SuperAdmin. No usa Graph para crear principals SQL.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y
    reducir los permisos amplios JIT en la misma sesión. Email continúa apagado y la aplicación falla
