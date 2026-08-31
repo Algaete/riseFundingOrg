@@ -1,8 +1,8 @@
 # Infraestructura Azure — FASE 12A
 
-Este directorio prepara un ambiente `dev` separado mediante Bicep. Ninguna plantilla se ejecuta al
-hacer push: `infra-dev.yml` sólo se inicia manualmente, usa OIDC y exige escribir `DEPLOY-DEV` para
-la operación `apply`.
+Este directorio prepara un ambiente `dev` separado mediante Bicep. Ninguna plantilla ni publicación
+se ejecuta al hacer push: `infra-dev.yml` y `frontend-dev.yml` sólo se inician manualmente, usan OIDC
+y exigen una confirmación explícita para cada mutación.
 
 ## Topología preparada
 
@@ -40,6 +40,24 @@ Los probes de plataforma usan `/health`, que no consulta SQL. `/health/ready` ex
 Development/Testing y no se publica en Azure; el verificador usa una lectura pública limitada para
 probar conexión y permisos SQL sin dejar un endpoint de readiness que mantenga despierta la base.
 
+## Publicación del frontend dev
+
+`frontend-dev.yml` publica el React ya compilado en la Static Web App existente. Primero resuelve y
+valida en Azure el hostname real de SWA, el FQDN del API y su CORS; después compila, ejecuta lint y
+tests en un job sin credenciales Azure. El job final descarga ese artefacto inmutable, obtiene el
+deployment token de SWA mediante la identidad OIDC, lo enmascara sin persistirlo en GitHub y publica
+con `skip_app_build`. El smoke posterior comprueba el SHA expuesto en `deploy-meta.json`, raíz, ruta
+SPA profunda, headers de seguridad, catálogo público y CORS del API.
+
+El token original es una credencial persistente del recurso Azure, no un token efímero; el workflow
+sólo evita copiarlo a configuración permanente de GitHub y limpia su copia del runner tras publicar.
+
+La ejecución manual exige `expected_release_sha` igual al SHA de `main` y confirmación
+`DEPLOY-DEV-FRONTEND`. Esta primera URL es un **preview técnico**: los dominios predeterminados de SWA
+y Container Apps son cross-site, por lo que el refresh cookie `SameSite=Lax` requiere todavía
+`app.<dominio>`/`api.<dominio>` bajo el mismo sitio registrable. La carga directa de PDF también queda
+pendiente hasta versionar CORS de Blob y publicar/validar Functions y Defender/Event Grid.
+
 ## Escala y costo
 
 El workflow pregunta `api_min_replicas`:
@@ -76,8 +94,9 @@ Después de crear recursos, la verificación read-only usa solamente metadata y 
 secretos:
 
 ```bash
-AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_UNIQUE_SUFFIX=<sufijo8> bash infra/scripts/verify-dev.sh base
-AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 bash infra/scripts/verify-dev.sh api
+AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> bash infra/scripts/verify-dev.sh base
+AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 bash infra/scripts/verify-dev.sh api
+AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 EXPECTED_FRONTEND_RELEASE_SHA=<sha40> bash infra/scripts/verify-dev.sh frontend
 ```
 
 El workflow `Infrastructure validation` compila con Bicep `0.46.1` sin iniciar sesión en Azure y
@@ -108,13 +127,14 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
-## Estado operativo de la base dev — 2026-08-29
+## Estado operativo de Azure dev — 2026-08-31
 
-La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL pasaron, el reapply fue
-idempotente y Full-Text quedó listo. El aprovisionamiento de principals runtime falló con SQL 102 y
-fue revertido transaccionalmente, sin usuarios ni membresías parciales. La corrección se incluye en
-este release, pero aún debe probarse en Azure. Principals runtime y bootstrap SuperAdmin siguen
-pendientes; por eso todavía no corresponde ejecutar el apply de compute.
+La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL, el reapply idempotente y
+Full-Text pasaron. Los principals runtime y el bootstrap SuperAdmin quedaron verificados. La imagen
+de API fue publicada por digest OCI, Container Apps quedó saludable con una réplica mínima y el
+verificador confirmó `/health`, conexión SQL y catálogo público. La Static Web App existe, pero su
+contenido React se publica por primera vez mediante `frontend-dev.yml`; Functions, importación PDF,
+correo y dominios propios siguen pendientes.
 
 ## Condiciones antes del primer `apply`
 
@@ -132,14 +152,16 @@ pendientes; por eso todavía no corresponde ejecutar el apply de compute.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y
    reducir los permisos amplios JIT en la misma sesión. Email continúa apagado y la aplicación falla
    cerrada si falta una dependencia.
-8. Configurar `app.<dominio>`/`api.<dominio>` antes de probar refresh cookies. Los hosts predeterminados
+8. Ejecutar `frontend-dev.yml` para ese mismo SHA con confirmación `DEPLOY-DEV-FRONTEND`; su smoke
+   prueba solamente el preview técnico público.
+9. Configurar `app.<dominio>`/`api.<dominio>` antes de probar refresh cookies. Los hosts predeterminados
    de SWA y Container Apps sirven para smoke técnico, no para la topología final de sesión.
 
 La secuencia operativa completa y los campos que prepararemos en la sesión de despliegue están en
 [`DEV-DEPLOYMENT-CHECKLIST.md`](DEV-DEPLOYMENT-CHECKLIST.md).
 
-Por diseño, este cierre no aprovisiona Azure, no aplica SQL, no configura DNS y no habilita Defender,
-RSS, email, OpenAI ni billing.
+El workflow de frontend no configura DNS ni habilita Functions, Defender, RSS, email, OpenAI o
+billing.
 
 ## Evidencia del snapshot
 

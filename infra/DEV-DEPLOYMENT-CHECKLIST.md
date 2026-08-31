@@ -3,11 +3,10 @@
 Este checklist prepara una sesión de despliegue reproducible. No contiene secretos y ningún push a
 `main` crea recursos: las operaciones con costo son manuales desde el environment GitHub `dev`.
 
-**Estado actual (2026-08-29):** la infraestructura base existe y Azure SQL dev tiene aplicadas
-`001`→`029`; los 29 smokes pasaron, el reapply fue idempotente y Full-Text quedó listo. El
-aprovisionamiento de identities runtime falló con SQL 102 y fue revertido transaccionalmente, sin
-usuarios ni membresías parciales. No continuar al apply de compute hasta aprobar el SHA con la
-corrección, repetir la preparación y completar principals runtime y bootstrap SuperAdmin.
+**Estado actual (2026-08-31):** infraestructura base, Azure SQL `001`→`029`, 29 smokes, Full-Text,
+principals runtime, bootstrap SuperAdmin y API por digest OCI están verificados en Azure dev. La
+Static Web App existe y el siguiente paso es publicar el frontend mediante el workflow manual
+`Azure dev frontend`. Functions, importación PDF, correo y dominios propios siguen pendientes.
 
 ## 1. Datos que deben estar decididos
 
@@ -32,7 +31,7 @@ No usar la base histórica `res`: Bicep crea `risefunding-dev` dentro del Resour
    - environment `dev`;
    - audience `api://AzureADTokenExchange`.
 3. Durante el bootstrap, otorgarle temporalmente `Contributor` y
-   `Role Based Access Control Administrator` sobre la suscripción elegida. El paso 13 los reduce y
+   `Role Based Access Control Administrator` sobre la suscripción elegida. El paso 14 los reduce y
    verifica antes de cerrar la sesión.
 4. No crear client secret, publish profile ni credenciales de ACR.
 
@@ -190,10 +189,19 @@ done
     en ACR y despliega el API por digest OCI.
 11. Ejecutar
     `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 bash infra/scripts/verify-dev.sh api`.
-12. No publicar todavía Functions: el host general está diseñado para fallar cerrado mientras
-    Defender/Event Grid permanezca deshabilitado. Frontend, dominios y publicación de Functions son
-    el siguiente gate de FASE 12B.
-13. Antes de cerrar la sesión, reducir obligatoriamente el principal OIDC: conservar `Contributor`
+12. Ejecutar el workflow `Azure dev frontend` desde `main` con:
+    - `confirmation`: `DEPLOY-DEV-FRONTEND`;
+    - `expected_release_sha`: el SHA completo de `main` mostrado por `git rev-parse HEAD`.
+
+    El workflow resuelve los hosts directamente desde Azure, ejecuta lint/tests/build sin
+    credenciales, obtiene y enmascara el deployment token sólo durante el job final y verifica el
+    SHA publicado, fallback SPA, headers y CORS GET/preflight. No crear un secreto de deployment
+    token en GitHub.
+13. No publicar todavía Functions: el host general está diseñado para fallar cerrado mientras
+    Defender/Event Grid permanezca deshabilitado. La carga PDF tampoco es E2E hasta versionar CORS
+    de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
+    navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
+14. Antes de cerrar la sesión, reducir obligatoriamente el principal OIDC: conservar `Contributor`
     sólo en `rg-rf-dev-<sufijo8>`, `Container Registry Tasks Contributor` + `AcrPull` sólo en el ACR y
     quitar `Contributor`/`Role Based Access Control Administrator` de la suscripción. Un futuro
     `validate`/`what-if`/`apply` completo requiere elevación JIT aprobada y revocada en la misma
@@ -220,8 +228,7 @@ done
 
 En 12A `Email__Enabled=false`: la API arranca sin Azure Communication Services, pero registro,
 reenvío de verificación y recuperación de contraseña responden `503` antes de escribir en SQL. El
-smoke de mañana es técnico (`/health` y bootstrap administrativo); email, SSO, navegador y sesiones
-cross-site esperan ACS y dominios de 12B.
+smoke de frontend es técnico; email, SSO y las sesiones persistentes esperan ACS y dominios de 12B.
 
 ## 6. Evidencia y recuperación
 

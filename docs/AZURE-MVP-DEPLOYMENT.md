@@ -1,10 +1,11 @@
 # Despliegue del MVP en Azure
 
-Estado 2026-08-29: la infraestructura base de FASE 12A está creada en Azure dev y la base
-`risefunding-dev` tiene aplicadas `001`→`029`. Los 29 smokes SQL pasaron, el reapply fue idempotente
-y Full-Text quedó listo. El provisioning de principals runtime falló con SQL 102 y fue revertido
-transaccionalmente; la corrección se incluye en este release pero aún no se ejecutó en Azure.
-Principals runtime, bootstrap SuperAdmin y compute siguen pendientes. Producción no está habilitada.
+Estado 2026-08-31: la infraestructura base de FASE 12A está creada en Azure dev; la base
+`risefunding-dev` tiene `001`→`029`, 29 smokes, reapply idempotente, Full-Text, principals runtime y
+bootstrap SuperAdmin verificados. La API está publicada por digest OCI en Container Apps y pasó
+salud, SQL y catálogo público. La Static Web App existe y su publicación React se automatiza en este
+release como preview técnico manual. Functions, carga PDF E2E, correo, dominios propios y producción
+siguen pendientes.
 
 ## 1. Arquitectura del MVP
 
@@ -51,7 +52,9 @@ host-only y `SameSite=Lax`; una Static Web App bajo `azurestaticapps.net` y una 
 
 El workflow `.github/workflows/ci.yml` compila y prueba. `infra-validate.yml` compila Bicep sin
 credenciales. `infra-dev.yml` es exclusivamente manual, usa OIDC y exige confirmación literal para
-`apply`; por defecto sólo ejecuta `what-if`.
+`apply`; por defecto sólo ejecuta `what-if`. `frontend-dev.yml` también es manual: exige el SHA
+exacto de `main`, compila sin credenciales Azure y publica el artefacto prevalidado en SWA usando un
+deployment token leído y enmascarado justo a tiempo mediante OIDC.
 
 ## 4. Crear la base de recursos
 
@@ -259,25 +262,35 @@ migraciones registradas sin pendientes y luego ejecuta los 29 smokes con rollbac
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en
 [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).
 
-## 11. Configurar el frontend
+## 11. Configurar y publicar el frontend
 
-En Azure Static Web Apps:
+El workflow manual `frontend-dev.yml` ejecuta el build por separado y entrega a Static Web Apps un
+artefacto precompilado con este contrato:
 
 ```text
-app_location: frontend/funding-platform-web
+app_location: frontend-dist
 api_location: (vacío)
-output_location: dist
+output_location: (vacío)
+skip_app_build: true
+skip_api_build: true
 ```
 
-Variables de build, que son públicas por definición:
+Resuelve desde Azure y fija durante el build estas variables, públicas por definición:
 
 ```text
-VITE_API_BASE_URL=https://api.<dominio>/api/v1
-VITE_EXTERNAL_AUTH_BASE_URL=https://api.<dominio>/api/v1
+VITE_API_BASE_URL=https://<api-fqdn>.azurecontainerapps.io/api/v1
+VITE_EXTERNAL_AUTH_BASE_URL=https://<api-fqdn>.azurecontainerapps.io/api/v1
 ```
 
 `public/staticwebapp.config.json` incluye fallback SPA y cabeceras básicas; Vite lo copia a `dist`.
-No colocar tokens, claves ni connection strings en variables `VITE_*`.
+No colocar tokens, claves ni connection strings en variables `VITE_*`. Para publicar desde `main`,
+seleccionar `DEPLOY-DEV-FRONTEND` e ingresar el SHA completo aprobado. El deployment token se lee de
+SWA con la identidad OIDC y se enmascara; sólo su copia en el runner vive durante ese job y no se
+almacena en GitHub. La credencial original sigue siendo persistente en Azure hasta que se rote.
+
+El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API. Esto no valida aún
+refresh/login persistente entre hosts cross-site ni PUT directo a Blob; esas pruebas esperan dominios
+same-site y CORS/Functions/Defender para importación.
 
 ## 12. Despliegue continuo
 
@@ -286,13 +299,16 @@ No colocar tokens, claves ni connection strings en variables `VITE_*`.
    esta última operación crea ACR/entorno pero todavía no crea la API.
 3. Cargar secretos, crear usuarios/roles SQL y ejecutar `apply`; recién entonces ACR Build publica la
    imagen y Container Apps la consume por digest OCI.
-4. Publicar cada Function App desde un workflow posterior indicando el `.csproj` correcto.
-5. Crear/publicar la Static Web App desde el repositorio con las rutas del punto anterior.
+4. Ejecutar `frontend-dev.yml` con el mismo SHA aprobado; el workflow publica y verifica el preview
+   técnico de Static Web Apps.
+5. Publicar cada Function App desde un workflow posterior indicando el `.csproj` correcto y sólo
+   después de habilitar las dependencias gobernadas correspondientes.
 6. Exigir aprobación del entorno GitHub `production` y no reutilizar UAMI runtime en Actions.
 
-FASE 12A deja preparado el build remoto y despliegue por digest de la **API** dentro del apply manual.
-La publicación de Functions/frontend sigue en 12B, después de observar outputs, dominios e
-identidades reales. No se aceptan publish profiles ni secretos de service principal o de ACR.
+FASE 12A deja preparado el build remoto y despliegue por digest de la **API** dentro del apply manual,
+y la publicación precompilada del frontend como preview técnico. Functions y la topología final con
+dominios siguen en 12B. No se aceptan publish profiles ni secretos de service principal, ACR o SWA
+persistidos en GitHub.
 
 ## 13. Dominios, TLS y comprobación final
 
@@ -319,10 +335,11 @@ identidades reales. No se aceptan publish profiles ni secretos de service princi
 
 ## 14. Qué puede habilitarse en el primer staging
 
-El primer gate 12A comprueba `/health`, base/migraciones, bootstrap SuperAdmin y arranque fail-closed.
+El primer gate 12A comprueba `/health`, base/migraciones, bootstrap SuperAdmin, preview del frontend y
+arranque fail-closed.
 Con `Email__Enabled=false`, registro, reenvío de verificación y recuperación responden `503` antes de
-persistir. Registro/login de clientes, navegador, SSO, refresh cross-site y MFA E2E esperan ACS,
-frontend y dominios en 12B. Mantener además deshabilitados hasta su propia validación:
+persistir. Registro/login de clientes, SSO, refresh cross-site y MFA E2E esperan ACS y dominios en
+12B. Mantener además deshabilitados hasta su propia validación:
 
 - pagos y suscripciones reales;
 - Defender/Event Grid si no están completos los permisos y la prueba E2E;

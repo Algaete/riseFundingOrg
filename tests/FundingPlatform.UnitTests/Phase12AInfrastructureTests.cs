@@ -180,6 +180,48 @@ public sealed class Phase12AInfrastructureTests
     }
 
     [Fact]
+    public void Frontend_deployment_is_manual_prebuilt_pinned_and_post_verified()
+    {
+        var workflow = Read(".github", "workflows", "frontend-dev.yml");
+        var verifier = Read("infra", "scripts", "verify-dev.sh");
+        var staticWebAppConfig = Read("frontend", "funding-platform-web", "public", "staticwebapp.config.json");
+
+        Assert.Contains("workflow_dispatch:", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n  push:", workflow, StringComparison.Ordinal);
+        Assert.Contains("github.ref != 'refs/heads/main'", workflow, StringComparison.Ordinal);
+        Assert.Contains("EXPECTED_RELEASE_SHA", workflow, StringComparison.Ordinal);
+        Assert.Contains("test \"$EXPECTED_RELEASE_SHA\" = \"$GITHUB_SHA\"", workflow, StringComparison.Ordinal);
+        Assert.Contains("DEPLOY-DEV-FRONTEND", workflow, StringComparison.Ordinal);
+        Assert.Contains("environment: dev", workflow, StringComparison.Ordinal);
+        Assert.Equal(2, workflow.Split("id-token: write", StringSplitOptions.None).Length - 1);
+        Assert.Contains("Build and test without Azure credentials", workflow, StringComparison.Ordinal);
+        Assert.Contains("npm ci", workflow, StringComparison.Ordinal);
+        Assert.Contains("npm run lint", workflow, StringComparison.Ordinal);
+        Assert.Contains("npm test", workflow, StringComparison.Ordinal);
+        Assert.Contains("VITE_API_BASE_URL", workflow, StringComparison.Ordinal);
+        Assert.Contains("VITE_EXTERNAL_AUTH_BASE_URL", workflow, StringComparison.Ordinal);
+        Assert.Contains("deploy-meta.json", workflow, StringComparison.Ordinal);
+        Assert.Contains("az staticwebapp secrets list", workflow, StringComparison.Ordinal);
+        Assert.Contains("::add-mask::", workflow, StringComparison.Ordinal);
+        Assert.Contains("Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1", workflow, StringComparison.Ordinal);
+        Assert.Contains("app_location: frontend-dist", workflow, StringComparison.Ordinal);
+        Assert.Contains("output_location: ''", workflow, StringComparison.Ordinal);
+        Assert.Contains("skip_app_build: true", workflow, StringComparison.Ordinal);
+        Assert.Contains("skip_api_build: true", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("repo_token:", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("publish-profile", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("verify-dev.sh frontend", workflow, StringComparison.Ordinal);
+        Assert.Contains("stage must be base, api or frontend", verifier, StringComparison.Ordinal);
+        Assert.Contains("EXPECTED_FRONTEND_RELEASE_SHA", verifier, StringComparison.Ordinal);
+        Assert.Contains("deploy-meta.json", verifier, StringComparison.Ordinal);
+        Assert.Contains("Access-Control-Allow-Origin", verifier, StringComparison.Ordinal);
+        Assert.Contains("Access-Control-Request-Method", verifier, StringComparison.Ordinal);
+        Assert.Contains("authorization,content-type", verifier, StringComparison.Ordinal);
+        Assert.Contains("X-Frame-Options", verifier, StringComparison.Ordinal);
+        Assert.Contains("\"rewrite\": \"/index.html\"", staticWebAppConfig, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Post_deploy_verifier_is_read_only_digest_aware_and_cost_bounded()
     {
         var verifier = Read("infra", "scripts", "verify-dev.sh");
@@ -187,7 +229,7 @@ public sealed class Phase12AInfrastructureTests
         var databasePreparation = Read("infra", "scripts", "prepare-database-dev.sh");
         var keyVaultPreparation = Read("infra", "scripts", "prepare-key-vault-dev.sh");
 
-        Assert.Contains("stage must be base or api", verifier, StringComparison.Ordinal);
+        Assert.Contains("stage must be base, api or frontend", verifier, StringComparison.Ordinal);
         Assert.Contains("GP_S_Gen5_1|1|60|0.5", verifier, StringComparison.Ordinal);
         Assert.Contains("7|12", verifier, StringComparison.Ordinal);
         Assert.Contains("maximumInstanceCount", verifier, StringComparison.Ordinal);
