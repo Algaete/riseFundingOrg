@@ -188,8 +188,9 @@ fi
 if [[ "$stage" == "frontend" ]]; then
   command -v jq >/dev/null
 
-  swa_shape="$(az staticwebapp show --name "$swa_name" --resource-group "$resource_group" \
-    --query "join('|', [defaultHostname, sku.name, deploymentAuthPolicy, stagingEnvironmentPolicy, to_string(allowConfigFileUpdates), publicNetworkAccess])" \
+  swa_shape="$(az resource show --name "$swa_name" --resource-group "$resource_group" \
+    --resource-type Microsoft.Web/staticSites --api-version 2025-03-01 \
+    --query "join('|', [properties.defaultHostname, sku.name, properties.deploymentAuthPolicy, properties.stagingEnvironmentPolicy, to_string(properties.allowConfigFileUpdates), properties.publicNetworkAccess])" \
     --output tsv)"
   IFS='|' read -r swa_hostname swa_sku deployment_auth_policy staging_policy config_updates public_network <<<"$swa_shape"
   if [[ ! "$swa_hostname" =~ ^[a-z0-9-]+(\.[a-z0-9-]+)*\.azurestaticapps\.net$ ]] ||

@@ -210,6 +210,12 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("skip_api_build: true", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("repo_token:", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("publish-profile", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("az staticwebapp show", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("az staticwebapp show", verifier, StringComparison.Ordinal);
+        Assert.Contains("--resource-type Microsoft.Web/staticSites", workflow, StringComparison.Ordinal);
+        Assert.Contains("--resource-type Microsoft.Web/staticSites", verifier, StringComparison.Ordinal);
+        Assert.Contains("properties.deploymentAuthPolicy", workflow, StringComparison.Ordinal);
+        Assert.Contains("properties.deploymentAuthPolicy", verifier, StringComparison.Ordinal);
         Assert.Contains("verify-dev.sh frontend", workflow, StringComparison.Ordinal);
         Assert.Contains("stage must be base, api or frontend", verifier, StringComparison.Ordinal);
         Assert.Contains("EXPECTED_FRONTEND_RELEASE_SHA", verifier, StringComparison.Ordinal);

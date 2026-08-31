@@ -89,15 +89,15 @@ jobs:
             api_name="ca-rf-dev-${AZURE_UNIQUE_SUFFIX}-api"
             test "$(az group show --name "$resource_group" --query properties.provisioningState --output tsv --only-show-errors)" = "Succeeded"
 
-            swa="$(az staticwebapp show --resource-group "$resource_group" --name "$swa_name" --output json --only-show-errors)"
-            swa_hostname="$(jq -er '.defaultHostname | select(type == "string" and length > 0)' <<<"$swa")"
+            swa="$(az resource show --resource-group "$resource_group" --resource-type Microsoft.Web/staticSites --name "$swa_name" --api-version 2025-03-01 --output json --only-show-errors)"
+            swa_hostname="$(jq -er '.properties.defaultHostname | select(type == "string" and length > 0)' <<<"$swa")"
             [[ "$swa_hostname" =~ ^[a-z0-9-]+(\.[a-z0-9-]+)*\.azurestaticapps\.net$ ]]
             jq -e '
               .sku.name == "Free" and
-              .deploymentAuthPolicy == "DeploymentToken" and
-              .stagingEnvironmentPolicy == "Disabled" and
-              .allowConfigFileUpdates == true and
-              .publicNetworkAccess == "Enabled"
+              .properties.deploymentAuthPolicy == "DeploymentToken" and
+              .properties.stagingEnvironmentPolicy == "Disabled" and
+              .properties.allowConfigFileUpdates == true and
+              .properties.publicNetworkAccess == "Enabled"
             ' <<<"$swa" >/dev/null
 
             api="$(az resource show --resource-group "$resource_group" --resource-type Microsoft.App/containerApps --name "$api_name" --api-version 2025-01-01 --output json --only-show-errors)"
@@ -248,7 +248,7 @@ jobs:
             resource_group="rg-rf-dev-${AZURE_UNIQUE_SUFFIX}"
             swa_name="swa-rf-dev-${AZURE_UNIQUE_SUFFIX}"
             api_name="ca-rf-dev-${AZURE_UNIQUE_SUFFIX}-api"
-            swa_hostname="$(az staticwebapp show --resource-group "$resource_group" --name "$swa_name" --query defaultHostname --output tsv --only-show-errors)"
+            swa_hostname="$(az resource show --resource-group "$resource_group" --resource-type Microsoft.Web/staticSites --name "$swa_name" --api-version 2025-03-01 --query properties.defaultHostname --output tsv --only-show-errors)"
             api_fqdn="$(az resource show --resource-group "$resource_group" --resource-type Microsoft.App/containerApps --name "$api_name" --api-version 2025-01-01 --query properties.configuration.ingress.fqdn --output tsv --only-show-errors)"
             test "https://${swa_hostname}" = "$EXPECTED_FRONTEND_ORIGIN"
             test "https://${api_fqdn}/api/v1" = "$EXPECTED_API_BASE_URL"
