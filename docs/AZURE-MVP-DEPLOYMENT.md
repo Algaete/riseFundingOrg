@@ -1,11 +1,17 @@
 # Despliegue del MVP en Azure
 
-Estado 2026-08-31: la infraestructura base de FASE 12A está creada en Azure dev; la base
+Estado 2026-09-01: la infraestructura base de FASE 12A está creada en Azure dev; la base
 `risefunding-dev` tiene `001`→`029`, 29 smokes, reapply idempotente, Full-Text, principals runtime y
-bootstrap SuperAdmin verificados. La API está publicada por digest OCI en Container Apps y pasó
-salud, SQL y catálogo público. La Static Web App existe y su publicación React se automatiza en este
-release como preview técnico manual. Functions, carga PDF E2E, correo, dominios propios y producción
-siguen pendientes.
+bootstrap SuperAdmin verificados. La API está publicada por digest OCI en
+`https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io` y pasó salud, SQL y
+catálogo público. El frontend técnico del commit
+`c348071360d1bdf7fdd32cffb280eeaf0a93c901` está publicado y verificado en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Las Function Apps Flex existen sin paquetes;
+carga PDF E2E, correo, dominios propios, APM/alertas, restore y producción siguen pendientes. SSO
+Entra está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev. Este
+release prepara E2E público Playwright/axe y paquetes Functions offline verificables. No publica
+workers: el cambio local de IaC define las 16 Functions como deshabilitadas, pero aún no fue aplicado;
+las Function Apps desplegadas no tienen paquetes y por eso no poseen triggers ejecutables.
 
 ## 1. Arquitectura del MVP
 
@@ -230,7 +236,7 @@ completo ni dejar placeholders en Production.
 1. Crear App Registration de tipo Web.
 2. Permitir cuentas organizacionales y cuentas personales Microsoft si ese sigue siendo el alcance.
 3. Agregar redirect URI exacta:
-   `https://api.<dominio>/api/v1/auth/external/microsoft/callback`.
+   `https://api.<dominio>/api/v1/auth/external/entra/callback`.
 4. Configurar `ENTRA_SSO_ENABLED=true`, tenant `common`, client ID y el client secret desde Key Vault.
 5. No agregar cada cliente como invitado al tenant; el alta ocurre en FundingPlatform después del
    callback validado.
@@ -294,6 +300,9 @@ same-site y CORS/Functions/Defender para importación.
 
 ## 12. Despliegue continuo
 
+En Azure dev, los pasos 1–4 ya se completaron para el preview actual; permanecen como runbook para
+futuros releases. El paso 5 continúa bloqueado hasta cerrar los gates gobernados de Functions.
+
 1. Ejecutar primero el workflow `CI` del repositorio.
 2. Ejecutar `infra-dev.yml` con `validate`, después `what-if` y finalmente `apply-base` confirmado;
    esta última operación crea ACR/entorno pero todavía no crea la API.
@@ -305,10 +314,16 @@ same-site y CORS/Functions/Defender para importación.
    después de habilitar las dependencias gobernadas correspondientes.
 6. Exigir aprobación del entorno GitHub `production` y no reutilizar UAMI runtime en Actions.
 
-FASE 12A deja preparado el build remoto y despliegue por digest de la **API** dentro del apply manual,
-y la publicación precompilada del frontend como preview técnico. Functions y la topología final con
-dominios siguen en 12B. No se aceptan publish profiles ni secretos de service principal, ACR o SWA
+FASE 12A dejó desplegadas la **API** por digest y la publicación precompilada del frontend como
+preview técnico. Los recursos base de Functions existen sin paquetes y la topología final con
+dominios sigue en 12B. No se aceptan publish profiles ni secretos de service principal, ACR o SWA
 persistidos en GitHub.
+
+El job .NET de CI construye ambos ZIP Functions sin Azure, rechaza configuración local y patrones
+conocidos de archivos sensibles, y publica temporalmente un artifact con manifiestos y SHA-256.
+Esta validación estructural no sustituye un escaneo de secretos por contenido. El job público
+posterior al frontend usa Playwright contra la URL resuelta, pero recibe únicamente `contents: read`;
+no hereda OIDC, token de Static Web Apps ni credenciales de usuario.
 
 ## 13. Dominios, TLS y comprobación final
 
@@ -316,7 +331,7 @@ persistidos en GitHub.
 2. Asociar `app.<dominio>` a Static Web Apps y `api.<dominio>` a Container Apps.
 3. Habilitar certificados administrados y HTTPS-only.
 4. Actualizar CORS, frontend URL, issuer y redirect URI con valores finales exactos.
-5. En 12B, cuando existan dominios, frontend, ACS y SSO, validar:
+5. En 12B, cuando estén configurados y habilitados dominios, ACS y SSO, validar:
    - `GET https://api.<dominio>/health`
    - una lectura limitada del catálogo público para comprobar conexión/permisos SQL;
    - frontend y navegación profunda recargable
@@ -336,10 +351,11 @@ persistidos en GitHub.
 ## 14. Qué puede habilitarse en el primer staging
 
 El primer gate 12A comprueba `/health`, base/migraciones, bootstrap SuperAdmin, preview del frontend y
-arranque fail-closed.
-Con `Email__Enabled=false`, registro, reenvío de verificación y recuperación responden `503` antes de
-persistir. Registro/login de clientes, SSO, refresh cross-site y MFA E2E esperan ACS y dominios en
-12B. Mantener además deshabilitados hasta su propia validación:
+arranque fail-closed. Una cuenta local ya aprovisionada puede probar el login manual en dev.
+Con `Email__Enabled=false`, alta autoservicio, reenvío de verificación y recuperación responden `503`
+antes de persistir. SSO Entra sigue sin configurar ni habilitar; el E2E de altas/MFA espera ACS y la
+validación de refresh cross-site espera dominios same-site en 12B. Mantener además deshabilitados
+hasta su propia validación:
 
 - pagos y suscripciones reales;
 - Defender/Event Grid si no están completos los permisos y la prueba E2E;

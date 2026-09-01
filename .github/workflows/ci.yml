@@ -47,10 +47,31 @@ jobs:
           dotnet test tests/FundingPlatform.IntegrationTests/FundingPlatform.IntegrationTests.csproj
           --configuration Release --no-build --no-restore
 
+      - name: Publish and validate worker packages without Azure credentials
+        run: >-
+          python3 infra/scripts/package-workers.py build
+          --output-directory artifacts/workers
+          --source-revision "${{ github.sha }}"
+
+      - name: Independently verify worker package manifests and checksums
+        run: >-
+          python3 infra/scripts/package-workers.py verify
+          --artifact-directory artifacts/workers
+          --source-revision "${{ github.sha }}"
+
+      - name: Upload immutable worker packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: worker-packages-${{ github.sha }}
+          path: artifacts/workers
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+
   frontend:
-    name: Frontend lint, tests and build
+    name: Frontend lint, unit tests, build and public E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: frontend/funding-platform-web
@@ -76,3 +97,22 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Type-check browser tests
+        run: npm run typecheck:e2e
+
+      - name: Install the Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Public browser and accessibility tests
+        run: npm run test:e2e:public
+
+      - name: Upload the public Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: public-playwright-report-${{ github.sha }}
+          path: frontend/funding-platform-web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 3
+          include-hidden-files: false

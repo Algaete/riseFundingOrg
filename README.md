@@ -15,12 +15,23 @@ datos reales de proyectos, postulaciones, calendario y alertas; la consola admin
 organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
 requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Azure SQL dev tiene aplicadas `001`→`029`: la preparación completó los 29 smokes SQL, confirmó
-reapply sin cambios y dejó Full-Text listo. El aprovisionamiento posterior de identidades runtime
-falló con SQL 102 y su transacción fue revertida, por lo que no quedaron usuarios ni membresías
-parciales. La corrección se incluye en este release pero aún no se ha verificado en Azure;
-principals runtime, bootstrap SuperAdmin y compute siguen pendientes. La base compartida histórica
-`res` continúa en 18/18, correspondiente a 8A.
+Azure SQL dev tiene aplicadas `001`→`029`: los 29 smokes SQL, el reapply idempotente, Full-Text,
+los tres principals runtime y el bootstrap SuperAdmin quedaron verificados. La API está publicada
+por digest OCI y saludable en
+`https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io`; el frontend
+técnico del commit
+`c348071360d1bdf7fdd32cffb280eeaf0a93c901` está publicado y verificado en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex de Functions existen,
+pero no tienen paquetes publicados. SSO Entra está implementado en código, pero permanece sin
+configurar y deshabilitado en Azure dev; correo, Defender/Event Grid, PDF E2E, dominios propios y
+servicios externos también continúan apagados. La base compartida histórica `res` permanece en
+18/18, correspondiente a 8A.
+
+La entrega 12B en preparación agrega E2E público reproducible con Playwright/axe, verificación
+post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
+workers. El cambio local de IaC define las 16 Functions como deshabilitadas, pero aún no se aplicó a
+Azure; actualmente las Function Apps no tienen paquetes, por lo que no existen triggers ejecutables.
+Preparar y verificar un ZIP no publica ni ejecuta Functions.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -41,8 +52,8 @@ principals runtime, bootstrap SuperAdmin y compute siguen pendientes. La base co
 | 10A | DB dev y preflight SQL validados; email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Base Azure y `001`→`029` aplicadas; 29/29 smokes y Full-Text listos; identities runtime, SuperAdmin y compute pendientes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
-| 12B | Pendiente | Despliegue de paquetes, dominios, migraciones, observabilidad, E2E y restore del piloto |
+| 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 12B | En curso: preview desplegado; E2E público y pipeline de empaquetado offline validados localmente; deploy Functions, autenticación E2E, dominios, APM/alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
@@ -50,8 +61,8 @@ la ampliación project-first está en
 La documentación para usuarios finales está disponible en formato
 [Word](docs/user-guide/Manual-de-Usuario-FundingPlatform.docx) y
 [PDF](docs/user-guide/Manual-de-Usuario-FundingPlatform.pdf). Incluye guías visuales basadas en la
-interfaz; las capturas reales del ambiente dev se incorporarán después del despliegue con datos
-ficticios y sin información personal.
+interfaz; su actualización con capturas reales del ambiente dev, datos ficticios y ninguna
+información personal sigue pendiente aunque el preview técnico ya esté desplegado.
 Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo de 8A confirmó
 18/18 migraciones, 18/18 smokes con rollback, 1267 objetos propios, una segunda aplicación con
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
@@ -1230,9 +1241,13 @@ El orden de ejecución es:
 - FASE 11 — suscripciones y billing sandbox con `026` aplicada en Azure SQL dev; precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
 - FASE 12A — infraestructura base dev creada mediante OIDC/Bicep, con ACR, presupuesto, Managed
-  Identities, Storage, Key Vault, observabilidad, SQL serverless, `001`→`029` y Full-Text; principals
-  SQL, bootstrap SuperAdmin, compute y paquetes aún pendientes;
-- FASE 12B — hardening, publicación de paquetes, migraciones, dominios, E2E, restore y piloto.
+  Identities, Storage, Key Vault, observabilidad, SQL serverless, `001`→`029`, Full-Text, principals
+  SQL, bootstrap SuperAdmin, API por digest y frontend técnico publicados y verificados; los recursos
+  Flex existen sin paquetes de aplicación;
+- FASE 12B — en curso: Playwright/axe público y pipeline de empaquetado Functions offline validados
+  localmente; el cambio local de IaC mantiene los triggers inertes, pero aún no fue aplicado;
+  publicación gobernada de Functions, autenticación E2E, dominios, APM/alertas, restore y decisión
+  de piloto continúan pendientes.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente
 web requiere revisión de términos, `robots.txt`, rate limits, allowlist y kill switch. La beta de

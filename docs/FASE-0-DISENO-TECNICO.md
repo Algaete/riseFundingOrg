@@ -3190,6 +3190,27 @@ transaccionalmente, sin usuarios ni membresías parciales; su corrección se inc
 sigue pendiente de ejecución en Azure. Principals runtime, bootstrap SuperAdmin, paquetes de
 aplicación, E2E y restore continúan pendientes.
 
+**Actualización operativa FASE 12A (2026-09-01):** la corrección de principals se ejecutó y verificó
+en Azure SQL dev junto con el bootstrap SuperAdmin. La API quedó publicada por digest OCI y saludable
+en `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io`; pasaron salud,
+SQL y catálogo público. El workflow manual de frontend publicó y verificó el commit
+`c348071360d1bdf7fdd32cffb280eeaf0a93c901` en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`, incluyendo metadata de release, fallback
+SPA, headers y CORS. Las dos Function Apps Flex y sus identidades/storage existen, pero no tienen
+paquetes publicados. Functions, carga PDF E2E, correo, dominios propios, APM/alertas, E2E funcional
+completo y restore continúan pendientes; SSO Entra está implementado en código, pero permanece sin
+configurar y deshabilitado en Azure dev. Defender/Event Grid, RSS, OpenAI y billing siguen
+deshabilitados.
+
+**Preparación FASE 12B (2026-09-01):** se agregó E2E público determinista con Playwright/axe y un job
+post-publicación sin credenciales Azure ni de usuarios que valida React, navegación SPA, guards, SHA y reglas axe
+etiquetadas WCAG 2.0/2.1 A/AA; no constituye una certificación de conformidad. CI también produce ZIP
+offline reproducibles de los dos workers con manifiestos/SHA-256 y rechazo de configuración local y
+patrones conocidos de archivos sensibles; no inspecciona contenido como un secret scanner. El cambio
+local de IaC define las 16 Functions como deshabilitadas por nombre, pero aún no se aplicó a Azure.
+Las Function Apps actuales no tienen paquetes ni triggers ejecutables. La automatización autenticada
+continúa bloqueada hasta disponer de una cuenta técnica efímera protegida y dominios same-site.
+
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;
 - staging y smoke tests de Azure.

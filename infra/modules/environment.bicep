@@ -363,6 +363,23 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
     sqlDatabaseName: database.name
     tags: tags
     appSettings: {
+      // Worker packages may be published before their dependencies and operational
+      // controls are approved. Keep every trigger disabled at the Functions host
+      // boundary so publishing code alone cannot start timers, queues or webhooks.
+      'AzureWebJobs.HealthFunction.Disabled': 'true'
+      'AzureWebJobs.ImportSchedulerFunction.Disabled': 'true'
+      'AzureWebJobs.ImportOutboxDispatcherFunction.Disabled': 'true'
+      'AzureWebJobs.ImportQueueFunction.Disabled': 'true'
+      'AzureWebJobs.DefenderEventGridFunction.Disabled': 'true'
+      'AzureWebJobs.DefenderScanWatchdogFunction.Disabled': 'true'
+      'AzureWebJobs.ContentRetentionFunction.Disabled': 'true'
+      'AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled': 'true'
+      'AzureWebJobs.SemanticProcessingFunction.Disabled': 'true'
+      'AzureWebJobs.AiExplanationProcessingFunction.Disabled': 'true'
+      'AzureWebJobs.AlertScheduleFunction.Disabled': 'true'
+      'AzureWebJobs.AlertDeliveryFunction.Disabled': 'true'
+      'AzureWebJobs.BillingWebhookProcessingFunction.Disabled': 'true'
+      'AzureWebJobs.BillingReconciliationFunction.Disabled': 'true'
       AZURE_STORAGE_BLOB_SERVICE_URI: documentsBlobUri
       DocumentExtractionQueueStorage__queueServiceUri: dataQueueUri
       DocumentExtractionQueueStorage__credential: 'managedidentity'
@@ -394,6 +411,10 @@ module extractionWorker './flex-function.bicep' = if (deployCompute) {
     sqlIdentityClientId: extractionConsumerIdentity.properties.clientId
     tags: tags
     appSettings: {
+      // Extraction remains inert after package publication until each trigger is
+      // deliberately enabled through a reviewed infrastructure change.
+      'AzureWebJobs.SourceDocumentExtractionQueueFunction.Disabled': 'true'
+      'AzureWebJobs.SourceDocumentExtractionWatchdogFunction.Disabled': 'true'
       AZURE_STORAGE_BLOB_SERVICE_URI: documentsBlobUri
       SOURCE_DOCUMENT_TRUSTED_CONTAINER: 'fp-source-trusted'
       DocumentExtractionQueueStorage__queueServiceUri: dataQueueUri

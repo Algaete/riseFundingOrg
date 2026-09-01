@@ -279,19 +279,19 @@ export function FundingCard({
           {opportunity.summary ?? 'La fuente no publicó un resumen.'}
         </p>
         <dl className="mt-auto grid gap-3 text-sm">
-          <div className="flex items-start gap-3">
-            <CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" />
-            <div>
-              <dt className="font-semibold">Cierre</dt>
-              <dd className="text-muted-foreground">{formatDate(opportunity.closeDate)}</dd>
-            </div>
+          <div>
+            <dt className="flex items-start gap-3 font-semibold">
+              <CalendarDays aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+              Cierre
+            </dt>
+            <dd className="ml-7 text-muted-foreground">{formatDate(opportunity.closeDate)}</dd>
           </div>
-          <div className="flex items-start gap-3">
-            <CircleDollarSign className="mt-0.5 size-4 shrink-0 text-primary" />
-            <div>
-              <dt className="font-semibold">Financiamiento</dt>
-              <dd className="text-muted-foreground">{formatAmount(opportunity)}</dd>
-            </div>
+          <div>
+            <dt className="flex items-start gap-3 font-semibold">
+              <CircleDollarSign aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+              Financiamiento
+            </dt>
+            <dd className="ml-7 text-muted-foreground">{formatAmount(opportunity)}</dd>
           </div>
         </dl>
         <div className="grid gap-2 sm:grid-cols-2">

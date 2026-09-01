@@ -231,6 +231,39 @@ public sealed class Phase12AInfrastructureTests
     }
 
     [Fact]
+    public void Worker_delivery_is_offline_reproducible_and_rejects_local_configuration()
+    {
+        var workflow = Read(".github", "workflows", "ci.yml");
+        var packager = Read("infra", "scripts", "package-workers.py");
+        var generalProject = Read(
+            "src", "FundingPlatform.Workers", "FundingPlatform.Workers.csproj");
+        var extractionProject = Read(
+            "src", "FundingPlatform.ExtractionWorkers",
+            "FundingPlatform.ExtractionWorkers.csproj");
+
+        Assert.Contains("package-workers.py build", workflow, StringComparison.Ordinal);
+        Assert.Contains("package-workers.py verify", workflow, StringComparison.Ordinal);
+        Assert.Contains("worker-packages-${{ github.sha }}", workflow, StringComparison.Ordinal);
+        Assert.Contains("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+            workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("azure/login", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("zipfile.ZIP_STORED", packager, StringComparison.Ordinal);
+        Assert.Contains("FIXED_ZIP_TIMESTAMP", packager, StringComparison.Ordinal);
+        Assert.Contains("SHA256SUMS", packager, StringComparison.Ordinal);
+        Assert.Contains("functions.metadata", packager, StringComparison.Ordinal);
+        Assert.Contains("local.settings.json", packager, StringComparison.Ordinal);
+        Assert.Contains("--no-restore", packager, StringComparison.Ordinal);
+        Assert.Contains("UseAppHost=false", packager, StringComparison.Ordinal);
+        Assert.All(new[] { generalProject, extractionProject }, project =>
+        {
+            Assert.Contains("<None Update=\"local.settings.json\">", project,
+                StringComparison.Ordinal);
+            Assert.Contains("<CopyToPublishDirectory>Never</CopyToPublishDirectory>", project,
+                StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public void Post_deploy_verifier_is_read_only_digest_aware_and_cost_bounded()
     {
         var verifier = Read("infra", "scripts", "verify-dev.sh");

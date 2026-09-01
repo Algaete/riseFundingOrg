@@ -36,6 +36,7 @@ packages/
 **/.eslintcache
 **/playwright-report/
 **/test-results/
+**/playwright/.auth/
 
 # Local configuration and secrets
 # Ignore every local dotenv variant at the root or in a nested project. Only the
