@@ -222,6 +222,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("deploy-meta.json", verifier, StringComparison.Ordinal);
         Assert.Contains("Access-Control-Allow-Origin", verifier, StringComparison.Ordinal);
         Assert.Contains("Access-Control-Request-Method", verifier, StringComparison.Ordinal);
+        Assert.DoesNotContain("awk", verifier, StringComparison.Ordinal);
+        Assert.DoesNotContain("| tr ", verifier, StringComparison.Ordinal);
+        Assert.Contains("while IFS= read -r line", verifier, StringComparison.Ordinal);
         Assert.Contains("authorization,content-type", verifier, StringComparison.Ordinal);
         Assert.Contains("X-Frame-Options", verifier, StringComparison.Ordinal);
         Assert.Contains("\"rewrite\": \"/index.html\"", staticWebAppConfig, StringComparison.Ordinal);

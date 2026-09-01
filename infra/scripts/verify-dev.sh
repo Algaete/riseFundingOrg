@@ -256,18 +256,64 @@ if [[ "$stage" == "frontend" ]]; then
     exit 3
   fi
 
+  equals_case_insensitive() {
+    local left="$1"
+    local right="$2"
+    local restore_nocasematch="false"
+    if ! shopt -q nocasematch; then
+      shopt -s nocasematch
+      restore_nocasematch="true"
+    fi
+
+    local matches="false"
+    if [[ "$left" == "$right" ]]; then
+      matches="true"
+    fi
+
+    if [[ "$restore_nocasematch" == "true" ]]; then
+      shopt -u nocasematch
+    fi
+    if [[ "$matches" == "true" ]]; then
+      return 0
+    fi
+    return 1
+  }
+
   response_header_value() {
     local header_file="$1"
     local header_name="$2"
-    awk -v name="$header_name" '
-      index($0, ":") > 0 && tolower(substr($0, 1, index($0, ":") - 1)) == tolower(name) {
-        value = substr($0, index($0, ":") + 1)
-        sub(/^[[:space:]]*/, "", value)
-        sub(/\r$/, "", value)
-        print value
-        exit
-      }
-    ' "$header_file"
+    local line
+    local field_name
+    local value
+    local matched_value=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%$'\r'}"
+      [[ "$line" == *:* ]] || continue
+      field_name="${line%%:*}"
+      if equals_case_insensitive "$field_name" "$header_name"; then
+        value="${line#*:}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+        matched_value="$value"
+      fi
+    done < "$header_file"
+    printf '%s\n' "$matched_value"
+    return 0
+  }
+
+  csv_contains_case_insensitive() {
+    local csv="$1"
+    local expected_value="$2"
+    local item
+    local IFS=','
+    for item in $csv; do
+      item="${item#"${item%%[![:space:]]*}"}"
+      item="${item%"${item##*[![:space:]]}"}"
+      if equals_case_insensitive "$item" "$expected_value"; then
+        return 0
+      fi
+    done
+    return 1
   }
 
   require_exact_header() {
@@ -303,11 +349,11 @@ if [[ "$stage" == "frontend" ]]; then
     --output /dev/null
   require_exact_header "$preflight_headers" "Access-Control-Allow-Origin" "$frontend_origin"
   require_exact_header "$preflight_headers" "Access-Control-Allow-Credentials" "true"
-  allowed_methods="$(response_header_value "$preflight_headers" "Access-Control-Allow-Methods" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-  allowed_headers="$(response_header_value "$preflight_headers" "Access-Control-Allow-Headers" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-  if [[ ",${allowed_methods}," != *",get,"* ||
-        ",${allowed_headers}," != *",authorization,"* ||
-        ",${allowed_headers}," != *",content-type,"* ]]; then
+  allowed_methods="$(response_header_value "$preflight_headers" "Access-Control-Allow-Methods")"
+  allowed_headers="$(response_header_value "$preflight_headers" "Access-Control-Allow-Headers")"
+  if ! csv_contains_case_insensitive "$allowed_methods" "GET" ||
+     ! csv_contains_case_insensitive "$allowed_headers" "authorization" ||
+     ! csv_contains_case_insensitive "$allowed_headers" "content-type"; then
     echo "The API CORS preflight did not allow the required method and headers" >&2
     exit 3
   fi
