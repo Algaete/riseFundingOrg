@@ -25,7 +25,7 @@ jobs:
           bash -n infra/scripts/rollback-api-dev.sh
           bash -n infra/scripts/verify-dev.sh
       - name: Compile Bicep without Azure credentials
-        uses: azure/CLI@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
+        uses: azure/CLI@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3.0.0
         with:
           azcliversion: 2.88.0
           inlineScript: |
