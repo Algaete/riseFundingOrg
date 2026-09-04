@@ -127,7 +127,58 @@ for function_name in "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" "func-rf-dev-$
     echo "${function_name} must remain capped at one on-demand instance in dev" >&2
     exit 3
   fi
+
+  for publishing_endpoint in scm ftp; do
+    basic_auth_allowed="$(az rest --method get \
+      --url "https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${resource_group}/providers/Microsoft.Web/sites/${function_name}/basicPublishingCredentialsPolicies/${publishing_endpoint}?api-version=2024-04-01" \
+      --query properties.allow --output tsv)"
+    if [[ "$basic_auth_allowed" != "false" ]]; then
+      echo "${function_name} ${publishing_endpoint} basic publishing credentials must be disabled" >&2
+      exit 3
+    fi
+  done
 done
+
+verify_disabled_function_settings() {
+  local function_app_name="$1"
+  shift
+  local expected_settings
+  local actual_settings
+
+  expected_settings="$(printf '%s\n' "$@" | LC_ALL=C sort)"
+  actual_settings="$(az functionapp config appsettings list \
+    --resource-group "$resource_group" \
+    --name "$function_app_name" \
+    --query "[?ends_with(name, '.Disabled')].[name, value]" \
+    --output tsv | while IFS=$'\t' read -r name value; do
+      [[ -n "$name" ]] && printf '%s=%s\n' "$name" "$value"
+    done | LC_ALL=C sort)"
+
+  if [[ "$actual_settings" != "$expected_settings" ]]; then
+    echo "${function_app_name} does not have the exact reviewed trigger-disable settings" >&2
+    exit 3
+  fi
+}
+
+verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
+  'AzureWebJobs.AiExplanationProcessingFunction.Disabled=true' \
+  'AzureWebJobs.AlertDeliveryFunction.Disabled=true' \
+  'AzureWebJobs.AlertScheduleFunction.Disabled=true' \
+  'AzureWebJobs.BillingReconciliationFunction.Disabled=true' \
+  'AzureWebJobs.BillingWebhookProcessingFunction.Disabled=true' \
+  'AzureWebJobs.ContentRetentionFunction.Disabled=true' \
+  'AzureWebJobs.DefenderEventGridFunction.Disabled=true' \
+  'AzureWebJobs.DefenderScanWatchdogFunction.Disabled=true' \
+  'AzureWebJobs.HealthFunction.Disabled=true' \
+  'AzureWebJobs.ImportOutboxDispatcherFunction.Disabled=true' \
+  'AzureWebJobs.ImportQueueFunction.Disabled=true' \
+  'AzureWebJobs.ImportSchedulerFunction.Disabled=true' \
+  'AzureWebJobs.SemanticProcessingFunction.Disabled=true' \
+  'AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled=true'
+
+verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-extract" \
+  'AzureWebJobs.SourceDocumentExtractionQueueFunction.Disabled=true' \
+  'AzureWebJobs.SourceDocumentExtractionWatchdogFunction.Disabled=true'
 
 if [[ "$stage" == "api" || "$stage" == "frontend" ]]; then
   require_count Microsoft.App/containerApps 1

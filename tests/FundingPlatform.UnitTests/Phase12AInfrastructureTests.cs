@@ -43,6 +43,11 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("var additionalAppSettings = [for setting in items(appSettings)", functions, StringComparison.Ordinal);
         Assert.Contains("appSettings: concat(additionalAppSettings", functions, StringComparison.Ordinal);
         Assert.Contains("runtime: { name: 'dotnet-isolated', version: runtimeVersion }", functions, StringComparison.Ordinal);
+        Assert.Equal(2, functions.Split("Microsoft.Web/sites/basicPublishingCredentialsPolicies@2024-04-01",
+            StringSplitOptions.None).Length - 1);
+        Assert.Contains("name: 'scm'", functions, StringComparison.Ordinal);
+        Assert.Contains("name: 'ftp'", functions, StringComparison.Ordinal);
+        Assert.Equal(2, functions.Split("allow: false", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("FUNCTIONS_WORKER_RUNTIME", functions + environment, StringComparison.Ordinal);
         Assert.DoesNotContain("resource settings 'config'", functions, StringComparison.Ordinal);
         Assert.Contains("module hostRbac './flex-function-rbac.bicep'", functions, StringComparison.Ordinal);
@@ -146,6 +151,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("AZURE_APPLY_CONFIRMATION", script, StringComparison.Ordinal);
         Assert.Contains("github.ref != 'refs/heads/main'", workflow, StringComparison.Ordinal);
         Assert.Contains("inputs.expected_release_sha != github.sha", workflow, StringComparison.Ordinal);
+        Assert.Contains("inputs.operation == 'apply-base' || inputs.operation == 'apply'", workflow,
+            StringComparison.Ordinal);
+        Assert.Contains("verify-dev.sh base", workflow, StringComparison.Ordinal);
         Assert.Contains("secrets.AZURE_BUDGET_EMAIL", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("vars.AZURE_BUDGET_EMAIL", workflow, StringComparison.Ordinal);
         Assert.Contains("scale-api", workflow, StringComparison.Ordinal);
@@ -275,6 +283,14 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("GP_S_Gen5_1|1|60|0.5", verifier, StringComparison.Ordinal);
         Assert.Contains("7|12", verifier, StringComparison.Ordinal);
         Assert.Contains("maximumInstanceCount", verifier, StringComparison.Ordinal);
+        Assert.Contains("basicPublishingCredentialsPolicies/${publishing_endpoint}", verifier,
+            StringComparison.Ordinal);
+        Assert.Contains("basic publishing credentials must be disabled", verifier,
+            StringComparison.Ordinal);
+        Assert.Contains("verify_disabled_function_settings", verifier, StringComparison.Ordinal);
+        Assert.Contains("[?ends_with(name, '.Disabled')].[name, value]", verifier,
+            StringComparison.Ordinal);
+        Assert.Equal(16, verifier.Split(".Disabled=true'", StringSplitOptions.None).Length - 1);
         Assert.Contains("${registry_server}/rise-funding-api@", verifier, StringComparison.Ordinal);
         Assert.Contains("^sha256:[0-9a-f]{64}$", verifier, StringComparison.Ordinal);
         Assert.Contains("/health", verifier, StringComparison.Ordinal);
