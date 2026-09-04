@@ -135,6 +135,24 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
   ]
 }
 
+// Flex uses identity-based One Deploy. Keep legacy publishing credentials closed so
+// a leaked or regenerated publish profile cannot bypass the governed OIDC workflow.
+resource scmBasicPublishingCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2024-04-01' = {
+  parent: app
+  name: 'scm'
+  properties: {
+    allow: false
+  }
+}
+
+resource ftpBasicPublishingCredentials 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2024-04-01' = {
+  parent: app
+  name: 'ftp'
+  properties: {
+    allow: false
+  }
+}
+
 output appName string = app.name
 output hostStorageName string = hostStorage.name
 output hostIdentityResourceId string = hostIdentity.id

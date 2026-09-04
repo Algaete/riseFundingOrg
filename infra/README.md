@@ -99,7 +99,9 @@ AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZU
 AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> AZURE_API_MIN_REPLICAS=1 EXPECTED_FRONTEND_RELEASE_SHA=<sha40> bash infra/scripts/verify-dev.sh frontend
 ```
 
-El workflow `Infrastructure validation` compila con Bicep `0.46.1` sin iniciar sesión en Azure y
+La verificación `base` exige además las 16 Functions deshabilitadas por nombre y autenticación básica
+de publicación SCM/FTP cerrada en ambos hosts. El workflow `Infrastructure validation` compila con
+Bicep `0.46.1` sin iniciar sesión en Azure y
 construye la imagen sin publicarla. El workflow manual comprueba Container Apps, ACR, Static Web Apps,
 Functions Flex y `dotnet-isolated` 10.0 en la región antes de `validate`, `what-if` o `apply`.
 
@@ -164,7 +166,8 @@ para un release posterior; no describe trabajo pendiente del ambiente ya publica
 2. Ejecutar primero `validate` y `what-if`; guardar la salida para revisión.
 3. Confirmar que los providers requeridos estén registrados. El script no los registra solo.
 4. Verificar el grupo administrador SQL y la membresía del operador **antes** de `apply-base`.
-5. Ejecutar `apply-base`; luego usar `prepare-key-vault-dev.sh` para crear las tres claves sin
+5. Ejecutar `apply-base` indicando `expected_release_sha` igual al SHA aprobado; el workflow verifica
+   después las 16 barreras de trigger y SCM/FTP. Luego usar `prepare-key-vault-dev.sh` para crear las tres claves sin
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero

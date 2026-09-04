@@ -33,7 +33,7 @@ on:
         required: false
         type: string
       expected_release_sha:
-        description: Approved 40-character main commit; required by apply
+        description: Approved 40-character main commit; required by apply-base and apply
         required: false
         type: string
 
@@ -55,8 +55,10 @@ jobs:
       - name: Require main branch
         if: github.ref != 'refs/heads/main'
         run: exit 1
-      - name: Require the approved release commit for API apply
-        if: inputs.operation == 'apply' && inputs.expected_release_sha != github.sha
+      - name: Require the approved release commit for infrastructure apply
+        if: >-
+          (inputs.operation == 'apply-base' || inputs.operation == 'apply') &&
+          inputs.expected_release_sha != github.sha
         run: exit 1
       - name: Require explicit apply confirmation
         if: >-
@@ -108,4 +110,7 @@ jobs:
               az bicep install --version v0.46.1
               az bicep version
               bash infra/scripts/deploy-dev.sh "$RF_INFRA_OPERATION"
+              if [[ "$RF_INFRA_OPERATION" == "apply-base" ]]; then
+                bash infra/scripts/verify-dev.sh base
+              fi
             fi

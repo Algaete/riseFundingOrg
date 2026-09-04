@@ -122,7 +122,9 @@ done
    ```
 3. Ejecutar `infra-dev.yml` con `validate`.
 4. Ejecutar `what-if`, guardar la salida y revisar tipos, región, nombres y presupuesto.
-5. Ejecutar `apply-base`, confirmación `DEPLOY-DEV-BASE`, réplica `1`.
+5. Ejecutar `apply-base`, confirmación `DEPLOY-DEV-BASE`, réplica `1` y
+   `expected_release_sha=$RF_DEV_RELEASE_SHA`. El workflow rechaza otro commit y, al terminar, exige
+   en Azure las 16 Functions deshabilitadas por nombre y SCM/FTP basic auth cerrado en ambos hosts.
 6. Ejecutar localmente
    `AZURE_SUBSCRIPTION_ID=<id> AZURE_TENANT_ID=<id> AZURE_SQL_LOCATION=centralus AZURE_UNIQUE_SUFFIX=<sufijo8> bash infra/scripts/verify-dev.sh base`.
 7. Obtener el Object ID del principal OIDC y darle `AcrPull` sobre el ACR dev. `Contributor` permite
