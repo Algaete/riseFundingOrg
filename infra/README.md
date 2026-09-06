@@ -129,7 +129,7 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
-## Estado operativo de Azure dev — 2026-09-01
+## Estado operativo de Azure dev — 2026-09-04
 
 La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL, el reapply idempotente y
 Full-Text pasaron. Los principals runtime y el bootstrap SuperAdmin quedaron verificados. La imagen
@@ -138,19 +138,20 @@ de API fue publicada por digest OCI y Container Apps quedó saludable en
 confirmó `/health`, conexión SQL y catálogo público.
 
 El workflow `Azure dev frontend` publicó y verificó el commit
-`c348071360d1bdf7fdd32cffb280eeaf0a93c901` en
+`82782e9a6f687d97a847fde3c47a19223ce03dc9` en
 `https://salmon-glacier-0721afc0f.7.azurestaticapps.net`: pasaron `deploy-meta.json`, raíz,
 `/funding`, fallback SPA, headers y CORS GET/preflight. Las dos Function Apps Flex, sus planes, host
 Storage e identidades existen, pero aún no tienen paquetes publicados. Functions, importación PDF
 E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra está implementado
 en código, pero permanece sin configurar y deshabilitado en Azure dev.
 
-CI ya puede publicar **offline** ambos proyectos Functions en ZIP deterministas, inventariados y con
+CI ya puede preparar **offline** ambos proyectos Functions en ZIP deterministas, inventariados y con
 SHA-256. Ese artifact dura siete días y rechaza configuración local y patrones conocidos de archivos
-sensibles; esta validación estructural no sustituye un escaneo de secretos por contenido. El cambio
-local de IaC define las 16 Functions como deshabilitadas por nombre, pero aún no se aplicó a Azure.
-Las Function Apps actuales no tienen paquetes ni triggers ejecutables; esta preparación no autoriza
-subir esos ZIP a Azure.
+sensibles; esta validación estructural no sustituye un escaneo de secretos por contenido. El release
+`680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó y verificó las 16 Functions deshabilitadas por
+nombre y SCM/FTP basic auth cerrado en ambos hosts. Las Function Apps actuales no tienen paquetes ni
+triggers ejecutables; esta preparación no autoriza subir esos ZIP a Azure. La API conservó su digest
+y revisión, y el principal OIDC quedó sin roles de suscripción y limitado al Resource Group/ACR.
 
 El frontend incorpora una suite Playwright/axe pública. CI la ejecuta contra un preview aislado y
 `frontend-dev.yml` la repite después de publicar, sin OIDC ni credenciales Azure o de usuarios,

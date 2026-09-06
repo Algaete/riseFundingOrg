@@ -3211,6 +3211,16 @@ local de IaC define las 16 Functions como deshabilitadas por nombre, pero aún n
 Las Function Apps actuales no tienen paquetes ni triggers ejecutables. La automatización autenticada
 continúa bloqueada hasta disponer de una cuenta técnica efímera protegida y dominios same-site.
 
+**Aplicación FASE 12B (2026-09-04):** el PR `#6` fue validado y fusionado como
+`680c96bc0b97b5b2c67594c0f997d99aa1370880`. El workflow manual `apply-base` volvió a ejecutar
+validate/what-if, aplicó las 14+2 barreras `AzureWebJobs.<Function>.Disabled=true` y deshabilitó
+SCM/FTP basic auth en ambos hosts. La verificación del workflow y una segunda ejecución read-only
+pasaron; Azure continúa con cero Functions publicadas. La API conservó exactamente el digest
+`sha256:8f7f03ea78cf1569b6ec86d0c2d02ac203c8242cecba46beecaa86a10d882ed3` y la revisión
+`ca-rf-dev-ag26rf01-api--xk5s810`. Al cerrar la ventana JIT, el principal OIDC quedó con
+`Contributor` sólo en el Resource Group y `Container Registry Tasks Contributor` + `AcrPull` sólo
+en ACR, sin roles a nivel suscripción. No se publicaron paquetes ni se habilitó integración alguna.
+
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;
 - staging y smoke tests de Azure.

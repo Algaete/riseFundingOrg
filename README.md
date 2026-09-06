@@ -20,17 +20,21 @@ los tres principals runtime y el bootstrap SuperAdmin quedaron verificados. La A
 por digest OCI y saludable en
 `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io`; el frontend
 técnico del commit
-`c348071360d1bdf7fdd32cffb280eeaf0a93c901` está publicado y verificado en
+`82782e9a6f687d97a847fde3c47a19223ce03dc9` está publicado y verificado en
 `https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex de Functions existen,
-pero no tienen paquetes publicados. SSO Entra está implementado en código, pero permanece sin
+pero no tienen paquetes publicados. El release de infraestructura
+`680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó y verificó las 16 barreras de trigger y cerró
+SCM/FTP basic auth en ambos hosts sin cambiar la imagen ni la revisión de la API. El principal OIDC
+quedó reducido a `Contributor` en el Resource Group y roles de build/pull sólo en ACR. SSO Entra
+está implementado en código, pero permanece sin
 configurar y deshabilitado en Azure dev; correo, Defender/Event Grid, PDF E2E, dominios propios y
 servicios externos también continúan apagados. La base compartida histórica `res` permanece en
 18/18, correspondiente a 8A.
 
-La entrega 12B en preparación agrega E2E público reproducible con Playwright/axe, verificación
+La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
-workers. El cambio local de IaC define las 16 Functions como deshabilitadas, pero aún no se aplicó a
-Azure; actualmente las Function Apps no tienen paquetes, por lo que no existen triggers ejecutables.
+workers. Azure ya conserva las 16 Functions deshabilitadas por nombre y los dos hosts sin basic auth
+de publicación; las Function Apps no tienen paquetes, por lo que no existen triggers ejecutables.
 Preparar y verificar un ZIP no publica ni ejecuta Functions.
 
 | Fase | Estado | Resultado esperado |
@@ -53,7 +57,7 @@ Preparar y verificar un ZIP no publica ni ejecuta Functions.
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
 | 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
-| 12B | En curso: preview desplegado; E2E público y pipeline de empaquetado offline validados localmente; deploy Functions, autenticación E2E, dominios, APM/alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
+| 12B | En curso: preview desplegado; E2E público, empaquetado offline y barrera inerte 14+2 verificados; publicación Functions, autenticación E2E, dominios, APM/alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
@@ -1244,8 +1248,8 @@ El orden de ejecución es:
   Identities, Storage, Key Vault, observabilidad, SQL serverless, `001`→`029`, Full-Text, principals
   SQL, bootstrap SuperAdmin, API por digest y frontend técnico publicados y verificados; los recursos
   Flex existen sin paquetes de aplicación;
-- FASE 12B — en curso: Playwright/axe público y pipeline de empaquetado Functions offline validados
-  localmente; el cambio local de IaC mantiene los triggers inertes, pero aún no fue aplicado;
+- FASE 12B — en curso: Playwright/axe público y pipeline de empaquetado Functions offline validados;
+  la barrera inerte 14+2 y el cierre de SCM/FTP basic auth están aplicados y verificados en Azure;
   publicación gobernada de Functions, autenticación E2E, dominios, APM/alertas, restore y decisión
   de piloto continúan pendientes.
 

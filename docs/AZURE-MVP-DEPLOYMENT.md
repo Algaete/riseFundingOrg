@@ -1,17 +1,19 @@
 # Despliegue del MVP en Azure
 
-Estado 2026-09-01: la infraestructura base de FASE 12A está creada en Azure dev; la base
+Estado 2026-09-04: la infraestructura base de FASE 12A está creada en Azure dev; la base
 `risefunding-dev` tiene `001`→`029`, 29 smokes, reapply idempotente, Full-Text, principals runtime y
 bootstrap SuperAdmin verificados. La API está publicada por digest OCI en
 `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io` y pasó salud, SQL y
 catálogo público. El frontend técnico del commit
-`c348071360d1bdf7fdd32cffb280eeaf0a93c901` está publicado y verificado en
+`82782e9a6f687d97a847fde3c47a19223ce03dc9` está publicado y verificado en
 `https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Las Function Apps Flex existen sin paquetes;
 carga PDF E2E, correo, dominios propios, APM/alertas, restore y producción siguen pendientes. SSO
 Entra está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev. Este
-release prepara E2E público Playwright/axe y paquetes Functions offline verificables. No publica
-workers: el cambio local de IaC define las 16 Functions como deshabilitadas, pero aún no fue aplicado;
-las Function Apps desplegadas no tienen paquetes y por eso no poseen triggers ejecutables.
+release prepara E2E público Playwright/axe y paquetes Functions offline verificables. El release IaC
+`680c96bc0b97b5b2c67594c0f997d99aa1370880` dejó las 16 Functions deshabilitadas por nombre y cerró
+SCM/FTP basic auth en ambos hosts. No publicó workers: las Function Apps desplegadas no tienen
+paquetes y por eso no poseen triggers ejecutables. La API conservó su digest y revisión saludables,
+y el principal OIDC volvió a permisos mínimos de Resource Group/ACR al cerrar la sesión JIT.
 
 ## 1. Arquitectura del MVP
 
