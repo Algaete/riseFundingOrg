@@ -20,7 +20,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: rise-funding-azure-dev-frontend
+  # Frontend verification requires a stable ready API revision. Serialize with
+  # API/infra releases so it cannot observe the middle of a revision transition.
+  group: rise-funding-azure-dev-infrastructure
   cancel-in-progress: false
 
 jobs:
