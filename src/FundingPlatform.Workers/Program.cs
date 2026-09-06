@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Net;
 using Azure.Communication.Email;
 using Azure.Core;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
@@ -28,26 +30,71 @@ using FundingPlatform.Infrastructure.Semantics;
 using FundingPlatform.Infrastructure.Notifications;
 using FundingPlatform.Infrastructure.Identity.Configuration;
 using FundingPlatform.Workers.Configuration;
+using FundingPlatform.Infrastructure.Observability;
 using FundingPlatform.Workers.Security;
 using FundingPlatform.Workers.Queue;
+using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Trace;
 using Serilog;
 
 LocalEnvironmentLoader.TryLoad();
+Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+Activity.ForceDefaultIdFormat = true;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddFundingPlatformAliases();
+
+var applicationInsightsConnectionString =
+    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.Trim();
+var hasApplicationInsightsClientId = Guid.TryParse(
+    builder.Configuration["APPLICATIONINSIGHTS_CLIENT_ID"],
+    out var applicationInsightsClientId);
+if (!builder.Environment.IsDevelopment() &&
+    (string.IsNullOrWhiteSpace(applicationInsightsConnectionString) ||
+     !hasApplicationInsightsClientId))
+{
+    throw new InvalidOperationException(
+        "Application Insights must use an explicit worker-host managed identity outside development.");
+}
+
+if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+{
+    RequireQueryStringRedaction(builder.Configuration);
+    var telemetryCredential = AzureRuntimeCredentialFactory.Create(
+        hasApplicationInsightsClientId ? applicationInsightsClientId : null,
+        builder.Environment.EnvironmentName);
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing.AddProcessor<TelemetryPrivacyProcessor>())
+        .WithLogging(logging => logging.AddProcessor<TelemetryLogPrivacyProcessor>())
+        .UseFunctionsWorkerDefaults()
+        .UseAzureMonitorExporter(options =>
+        {
+            options.ConnectionString = applicationInsightsConnectionString;
+            options.Credential = telemetryCredential;
+            options.EnableLiveMetrics = false;
+            options.TracesPerSecond = 1.0;
+        });
+    builder.Services.PostConfigure<OpenTelemetryLoggerOptions>(options =>
+    {
+        options.IncludeScopes = false;
+        options.IncludeFormattedMessage = false;
+    });
+}
 
 builder.Services.AddSerilog((_, loggerConfiguration) =>
     loggerConfiguration
         .MinimumLevel.Information()
         .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "FundingPlatform.Workers")
-        .WriteTo.Console());
+        .Enrich.WithProperty("Application", "FundingPlatform.Workers"),
+    preserveStaticLogger: false,
+    writeToProviders: true);
 
 builder.Services.AddOptions<ImportWorkerOptions>()
     .Bind(builder.Configuration.GetSection(ImportWorkerOptions.SectionName))
@@ -65,8 +112,12 @@ builder.Services.AddOptions<DefenderEventGridOptions>()
         options => DefenderEventGridOptions.IsValid(
             options,
             builder.Environment.EnvironmentName,
-            builder.Configuration["SourceDocuments:BlobServiceUri"]),
-        "DefenderEventGrid configuration must be complete outside local development.")
+            builder.Configuration["SourceDocuments:BlobServiceUri"],
+            builder.Configuration[DefenderEventGridOptions.EventGridFunctionDisabledSetting],
+            builder.Configuration[DefenderEventGridOptions.ScanWatchdogFunctionDisabledSetting]),
+        "DefenderEventGrid configuration must be complete when enabled; when disabled " +
+        "outside local development, both Defender functions must be explicitly disabled " +
+        "with the exact value 'true'.")
     .ValidateOnStart();
 builder.Services.AddOptions<OfficialRssOptions>()
     .Bind(builder.Configuration.GetSection(OfficialRssOptions.SectionName))
@@ -414,3 +465,19 @@ builder.Services.AddScoped(serviceProvider =>
 });
 
 builder.Build().Run();
+
+static void RequireQueryStringRedaction(IConfiguration configuration)
+{
+    foreach (var setting in new[]
+    {
+        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
+        "OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION"
+    })
+    {
+        if (!string.Equals(configuration[setting], "false", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"{setting} must be false so query-string secrets cannot enter telemetry.");
+        }
+    }
+}

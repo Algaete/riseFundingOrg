@@ -42,6 +42,9 @@ param budgetStartDate string
 @description('Create compute resources. False omits them from a new incremental deployment; it does not pause or delete existing resources.')
 param deployCompute bool = true
 
+@description('Create active operational probes, alert rules and their email action group. False by default and does not delete previously created alerts.')
+param deployOperationalAlerts bool = false
+
 @description('Create the API Container App. The first apply keeps this false until its private image exists.')
 param deployApiContainer bool = false
 
@@ -101,6 +104,8 @@ module environment './modules/environment.bicep' = {
     sqlEntraAdminObjectId: sqlEntraAdminObjectId
     sqlDatabaseName: sqlDatabaseName
     deployCompute: deployCompute
+    deployOperationalAlerts: deployOperationalAlerts
+    operationalAlertContactEmail: budgetContactEmail
     deployApiContainer: deployApiContainer
     apiContainerImageReference: apiContainerImageReference
     apiMinReplicas: apiMinReplicas

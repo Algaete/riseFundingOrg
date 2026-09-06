@@ -8,6 +8,9 @@ param sqlEntraAdminLogin string
 param sqlEntraAdminObjectId string
 param sqlDatabaseName string
 param deployCompute bool
+param deployOperationalAlerts bool
+@secure()
+param operationalAlertContactEmail string
 param deployApiContainer bool
 param apiContainerImageReference string
 
@@ -323,6 +326,11 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       SOURCE_DOCUMENT_TRUSTED_CONTAINER: 'fp-source-trusted'
       APPLICATIONINSIGHTS_CONNECTION_STRING: insights.properties.ConnectionString
       APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'ClientId=${apiIdentity.properties.clientId};Authorization=AAD'
+      OTEL_SERVICE_NAME: 'FundingPlatform.Api'
+      // The Azure Monitor distro otherwise permits raw query values. Never export OAuth codes,
+      // unsubscribe tokens, SAS values or other query-bound credentials.
+      OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION: 'false'
+      OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION: 'false'
       FRONTEND_BASE_URL: frontendDefaultOrigin
       ALLOWED_CORS_ORIGINS: frontendDefaultOrigin
       Authentication__Jwt__Issuer: apiDefaultOrigin
@@ -345,6 +353,20 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
   dependsOn: [
     environmentRbac
   ]
+}
+
+module operationalAlerts './operational-alerts.bicep' = if (deployOperationalAlerts && deployCompute) {
+  name: 'operational-alerts'
+  params: {
+    location: location
+    environmentName: environmentName
+    resourcePrefix: prefix
+    apiBaseUrl: apiDefaultOrigin
+    applicationInsightsResourceId: insights.id
+    logAnalyticsWorkspaceResourceId: logs.id
+    contactEmail: operationalAlertContactEmail
+    tags: tags
+  }
 }
 
 var documentsBlobUri = documents.properties.primaryEndpoints.blob

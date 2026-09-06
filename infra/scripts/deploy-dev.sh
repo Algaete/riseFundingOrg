@@ -28,6 +28,10 @@ api_min_replicas="${AZURE_API_MIN_REPLICAS:-0}"
 if [[ "$api_min_replicas" != "0" && "$api_min_replicas" != "1" ]]; then
   echo "AZURE_API_MIN_REPLICAS must be 0 or 1" >&2; exit 2
 fi
+deploy_operational_alerts="${AZURE_DEPLOY_OPERATIONAL_ALERTS:-false}"
+if [[ "$deploy_operational_alerts" != "true" && "$deploy_operational_alerts" != "false" ]]; then
+  echo "AZURE_DEPLOY_OPERATIONAL_ALERTS must be true or false" >&2; exit 2
+fi
 api_image_tag="${AZURE_API_CONTAINER_IMAGE_TAG:-${GITHUB_SHA:-preview}}"
 if [[ "$operation" == "apply" && "$api_image_tag" == "preview" ]]; then
   api_image_tag="manual-$(date -u +%Y%m%d%H%M%S)"
@@ -104,6 +108,7 @@ common_parameters=(
   budgetStartDate="$AZURE_BUDGET_START_DATE"
   monthlyBudgetAmount="$AZURE_MONTHLY_BUDGET_AMOUNT"
   deployCompute="${AZURE_DEPLOY_COMPUTE:-true}"
+  deployOperationalAlerts="$deploy_operational_alerts"
   apiMinReplicas="$api_min_replicas"
 )
 deployment_name="rise-funding-dev-${GITHUB_RUN_ID:-manual}"

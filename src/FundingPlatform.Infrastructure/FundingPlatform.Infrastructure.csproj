@@ -26,6 +26,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <PackageReference Include="OpenTelemetry" />
   </ItemGroup>
 
 </Project>

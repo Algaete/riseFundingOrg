@@ -1,29 +1,77 @@
+using System.Diagnostics;
 using Azure.Core;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Azure.Storage.Blobs;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.ExtractionWorkers.Extraction;
 using FundingPlatform.Infrastructure.Configuration;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
+using FundingPlatform.Infrastructure.Observability;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
 using FundingPlatform.Infrastructure.SourceDocuments.Extraction;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.OpenTelemetry;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Trace;
 using Serilog;
 
 LocalEnvironmentLoader.TryLoad();
+Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+Activity.ForceDefaultIdFormat = true;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddFundingPlatformAliases();
+
+var applicationInsightsConnectionString =
+    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.Trim();
+var hasApplicationInsightsClientId = Guid.TryParse(
+    builder.Configuration["APPLICATIONINSIGHTS_CLIENT_ID"],
+    out var applicationInsightsClientId);
+if (!builder.Environment.IsDevelopment() &&
+    (string.IsNullOrWhiteSpace(applicationInsightsConnectionString) ||
+     !hasApplicationInsightsClientId))
+{
+    throw new InvalidOperationException(
+        "Application Insights must use an explicit worker-host managed identity outside development.");
+}
+
+if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+{
+    RequireQueryStringRedaction(builder.Configuration);
+    var telemetryCredential = AzureRuntimeCredentialFactory.Create(
+        hasApplicationInsightsClientId ? applicationInsightsClientId : null,
+        builder.Environment.EnvironmentName);
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing.AddProcessor<TelemetryPrivacyProcessor>())
+        .WithLogging(logging => logging.AddProcessor<TelemetryLogPrivacyProcessor>())
+        .UseFunctionsWorkerDefaults()
+        .UseAzureMonitorExporter(options =>
+        {
+            options.ConnectionString = applicationInsightsConnectionString;
+            options.Credential = telemetryCredential;
+            options.EnableLiveMetrics = false;
+            options.TracesPerSecond = 1.0;
+        });
+    builder.Services.PostConfigure<OpenTelemetryLoggerOptions>(options =>
+    {
+        options.IncludeScopes = false;
+        options.IncludeFormattedMessage = false;
+    });
+}
 
 builder.Services.AddSerilog((_, loggerConfiguration) =>
     loggerConfiguration
         .MinimumLevel.Information()
         .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "FundingPlatform.ExtractionWorkers")
-        .WriteTo.Console());
+        .Enrich.WithProperty("Application", "FundingPlatform.ExtractionWorkers"),
+    preserveStaticLogger: false,
+    writeToProviders: true);
 
 builder.Services.AddOptions<SourceDocumentExtractionOptions>()
     .Bind(builder.Configuration.GetSection(SourceDocumentExtractionOptions.SectionName))
@@ -94,4 +142,20 @@ static Uri ReadBlobServiceUri(string? value)
     }
 
     return uri;
+}
+
+static void RequireQueryStringRedaction(IConfiguration configuration)
+{
+    foreach (var setting in new[]
+    {
+        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
+        "OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION"
+    })
+    {
+        if (!string.Equals(configuration[setting], "false", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"{setting} must be false so query-string secrets cannot enter telemetry.");
+        }
+    }
 }

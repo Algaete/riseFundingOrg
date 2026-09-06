@@ -53,28 +53,65 @@ public sealed class Phase12BFrontendE2ETests
     }
 
     [Fact]
-    public void Optional_authenticated_suite_is_fail_closed_and_does_not_capture_sessions()
+    public void Authenticated_suite_is_opt_in_fail_closed_and_does_not_capture_sessions()
     {
         var suite = Read("frontend", "funding-platform-web", "e2e", "authenticated.spec.ts");
+        var config = Read("frontend", "funding-platform-web", "e2e", "authenticated-config.ts");
+        var playwright = Read("frontend", "funding-platform-web", "playwright.config.ts");
+        var workflow = Read(".github", "workflows", "authenticated-e2e-dev.yml");
         var ignore = Read(".gitignore");
 
-        Assert.Contains("E2E_USER_EMAIL", suite, StringComparison.Ordinal);
-        Assert.Contains("E2E_USER_PASSWORD", suite, StringComparison.Ordinal);
-        Assert.Contains("E2E_ALLOWED_ORIGINS", suite, StringComparison.Ordinal);
-        Assert.Contains("E2E_ALLOWED_API_ORIGINS", suite, StringComparison.Ordinal);
-        Assert.Contains("target.protocol !== 'https:'", suite, StringComparison.Ordinal);
-        Assert.Contains("target.origin !== value", suite, StringComparison.Ordinal);
-        Assert.Contains("target.username", suite, StringComparison.Ordinal);
-        Assert.Contains("request.method() !== 'POST'", suite, StringComparison.Ordinal);
-        Assert.Contains("/api/v1/auth/login", suite, StringComparison.Ordinal);
+        Assert.Contains("E2E_REQUIRE_AUTHENTICATED", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_USER_EMAIL", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_USER_PASSWORD", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_ALLOWED_ORIGINS", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_ALLOWED_API_ORIGINS", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_EXPECTED_RELEASE_SHA", config, StringComparison.Ordinal);
+        Assert.Contains("E2E_COOKIE_SITE", config, StringComparison.Ordinal);
+        Assert.Contains("target.protocol === 'https:'", config, StringComparison.Ordinal);
+        Assert.Contains("target.origin !== value", config, StringComparison.Ordinal);
+        Assert.Contains("target.username", config, StringComparison.Ordinal);
+        Assert.Contains("frontendOrigins.length !== 1", config, StringComparison.Ordinal);
+        Assert.Contains("apiOrigins.length !== 1", config, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/auth/login", config, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/auth/refresh", config, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/auth/logout", config, StringComparison.Ordinal);
+        Assert.Contains("deploy-meta.json", suite, StringComparison.Ordinal);
+        Assert.Contains("page.reload", suite, StringComparison.Ordinal);
+        Assert.Contains("context.request.post", suite, StringComparison.Ordinal);
+        Assert.Contains("context.clearCookies", suite, StringComparison.Ordinal);
         Assert.Contains("route.abort('blockedbyclient')", suite, StringComparison.Ordinal);
-        Assert.Contains("screenshot: 'off', trace: 'off', video: 'off'", suite,
+        Assert.Contains("routeWebSocket", suite, StringComparison.Ordinal);
+        Assert.Contains("redirect: 'error'", suite, StringComparison.Ordinal);
+        Assert.Contains("screenshot: 'off'", suite, StringComparison.Ordinal);
+        Assert.Contains("trace: 'off'", suite, StringComparison.Ordinal);
+        Assert.Contains("video: 'off'", suite, StringComparison.Ordinal);
+        Assert.Contains("retries: 0", suite, StringComparison.Ordinal);
+        Assert.Contains("authenticatedRunRequested", playwright, StringComparison.Ordinal);
+        Assert.Contains("preserveOutput: authenticatedRunRequested ? 'never'", playwright,
             StringComparison.Ordinal);
-        Assert.Contains("test.skip(!email || !password", suite, StringComparison.Ordinal);
         Assert.DoesNotContain("storageState", suite, StringComparison.Ordinal);
         Assert.DoesNotContain("@gmail", suite, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("SuperAdmin", suite, StringComparison.Ordinal);
         Assert.Contains("**/playwright/.auth/", ignore, StringComparison.Ordinal);
+
+        Assert.Contains("workflow_dispatch:", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n  push:", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull_request", workflow, StringComparison.Ordinal);
+        Assert.Contains("RUN-DEV-AUTH-E2E", workflow, StringComparison.Ordinal);
+        Assert.Contains("expected_release_sha", workflow, StringComparison.Ordinal);
+        Assert.Contains("test \"$EXPECTED_RELEASE_SHA\" = \"$GITHUB_SHA\"", workflow,
+            StringComparison.Ordinal);
+        Assert.Contains("environment: dev-auth-e2e", workflow, StringComparison.Ordinal);
+        Assert.Contains("secrets.AUTH_E2E_USER_EMAIL", workflow, StringComparison.Ordinal);
+        Assert.Contains("secrets.AUTH_E2E_USER_PASSWORD", workflow, StringComparison.Ordinal);
+        Assert.Contains("E2E_REQUIRE_AUTHENTICATED: \"true\"", workflow,
+            StringComparison.Ordinal);
+        Assert.Contains("--reporter=line --workers=1 --retries=0", workflow,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("upload-artifact", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("id-token: write", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("azure/login", workflow, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Read(params string[] parts)

@@ -3,13 +3,19 @@
 Este checklist prepara una sesión de despliegue reproducible. No debe contener secretos y ningún push a
 `main` crea recursos: las operaciones con costo son manuales desde el environment GitHub `dev`.
 
-**Estado actual (2026-09-01):** infraestructura base, Azure SQL `001`→`029`, 29 smokes, Full-Text,
+**Estado actual (2026-09-04):** infraestructura base, Azure SQL `001`→`029`, 29 smokes, Full-Text,
 principals runtime, bootstrap SuperAdmin y API por digest OCI están verificados en Azure dev. El
 workflow `Azure dev frontend` publicó y verificó el commit
-`c348071360d1bdf7fdd32cffb280eeaf0a93c901` en
-`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex existen, pero sus paquetes,
-la importación PDF E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra
+`82782e9a6f687d97a847fde3c47a19223ce03dc9` en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex existen, pero sus paquetes
+no están publicados. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó las 16 barreras
+de trigger y cerró SCM/FTP basic auth; la API quedó intacta y el OIDC fue reducido nuevamente a
+Resource Group/ACR. La importación PDF E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra
 está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev.
+
+El incremento local del 2026-09-06 prepara OpenTelemetry por identidad, alertas opt-in desactivadas,
+E2E autenticado y restore a una base temporal; su despliegue y validación real siguen pendientes.
+Los runbooks están en [`docs/runbooks`](../docs/runbooks).
 
 ## 1. Datos que deben estar decididos
 
@@ -203,19 +209,21 @@ done
     SHA publicado, fallback SPA, headers y CORS GET/preflight. No crear un secreto de deployment
     token en GitHub.
 
-    > Evidencia del ambiente actual (2026-09-01): este paso terminó correctamente para
-    > `c348071360d1bdf7fdd32cffb280eeaf0a93c901`; el frontend, `deploy-meta.json`, `/funding`, fallback
+    > Evidencia del ambiente actual (2026-09-04): este paso terminó correctamente para
+    > `82782e9a6f687d97a847fde3c47a19223ce03dc9`; el frontend, `deploy-meta.json`, `/funding`, fallback
     > SPA, headers, catálogo y CORS GET/preflight quedaron verificados. La secuencia se conserva para
     > futuros releases y no debe sustituirse por `Re-run jobs` de un SHA anterior.
-13. No publicar todavía Functions: el host general está diseñado para fallar cerrado mientras
-    Defender/Event Grid permanezca deshabilitado. La carga PDF tampoco es E2E hasta versionar CORS
+13. No publicar todavía Functions: su publicación requiere un gate independiente. El código local permite arrancar
+    con Defender desactivado sólo si ambos triggers Defender están explícitamente deshabilitados
+    con el valor exacto `true`. La carga PDF tampoco es E2E hasta versionar CORS
     de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
     navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
 
     CI prepara ZIP offline reproducibles de ambos workers y verifica sus manifiestos/SHA-256, pero
-    no recibe credenciales Azure. El cambio local de IaC fija las 16 Functions como deshabilitadas
-    por nombre, pero aún no se aplicó a Azure; las Function Apps actuales no tienen paquetes ni
-    triggers ejecutables. Un artifact exitoso no equivale a autorizar ni ejecutar su despliegue.
+    no recibe credenciales Azure. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880`
+    aplicó y verificó las 16 Functions deshabilitadas por nombre y SCM/FTP basic auth cerrado; las
+    Function Apps actuales no tienen paquetes ni triggers ejecutables. Un artifact exitoso no
+    equivale a autorizar ni ejecutar su despliegue.
 14. Antes de cerrar la sesión, reducir obligatoriamente el principal OIDC: conservar `Contributor`
     sólo en `rg-rf-dev-<sufijo8>`, `Container Registry Tasks Contributor` + `AcrPull` sólo en el ACR y
     quitar `Contributor`/`Role Based Access Control Administrator` de la suscripción. Un futuro
