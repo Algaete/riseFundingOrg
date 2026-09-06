@@ -74,4 +74,12 @@ jobs:
           AZURE_SQL_LOCATION: ${{ vars.AZURE_SQL_LOCATION }}
         with:
           azcliversion: 2.88.0
-          inlineScript: bash infra/scripts/deploy-api-dev.sh
+          inlineScript: |
+            set -euo pipefail
+            # The official Azure Linux CLI image includes jq but not Git.
+            # Install it only in this ephemeral runner container so the release
+            # keeps its exact-commit and clean-checkout verification intact.
+            if ! command -v git >/dev/null; then
+              tdnf install -y git
+            fi
+            bash infra/scripts/deploy-api-dev.sh

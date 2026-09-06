@@ -21,6 +21,86 @@ public sealed class ApiReleaseWorkflowTests
     private const string IdentityId = $"{ResourceGroupId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{IdentityName}";
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_Azure_CLI_bootstrap_makes_git_available_before_invoking_the_release(
+        bool gitInitiallyPresent)
+    {
+        if (OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("The API release workflow requires Bash.");
+
+        var sourceRoot = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var workflow = File.ReadAllLines(Path.Combine(sourceRoot, ".github", "workflows", "api-dev.yml"));
+        var marker = Array.FindIndex(workflow, line => line.Trim() == "inlineScript: |");
+        Assert.True(marker >= 0, "The Azure CLI release step must expose its bootstrap script.");
+        var markerIndent = workflow[marker].TakeWhile(char.IsWhiteSpace).Count();
+        var body = workflow.Skip(marker + 1)
+            .TakeWhile(line => string.IsNullOrWhiteSpace(line) ||
+                line.TakeWhile(char.IsWhiteSpace).Count() > markerIndent).ToArray();
+        var bodyIndent = body.Where(line => !string.IsNullOrWhiteSpace(line))
+            .Min(line => line.TakeWhile(char.IsWhiteSpace).Count());
+        var inlineScript = string.Join('\n', body.Select(line =>
+            string.IsNullOrWhiteSpace(line) ? "" : line[bodyIndent..]));
+
+        var stubRoot = Path.Combine(Path.GetTempPath(), $"funding-api-bootstrap-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(stubRoot);
+        try
+        {
+            var bin = Directory.CreateDirectory(Path.Combine(stubRoot, "bin")).FullName;
+            var scripts = Directory.CreateDirectory(Path.Combine(stubRoot, "infra", "scripts")).FullName;
+            File.CreateSymbolicLink(Path.Combine(bin, "bash"), "/bin/bash");
+            if (gitInitiallyPresent)
+                WriteExecutable(Path.Combine(bin, "git"), "#!/bin/bash\nexit 0\n");
+            WriteExecutable(Path.Combine(bin, "tdnf"), """
+                #!/bin/bash
+                set -euo pipefail
+                printf '%s\n' "$*" >> "$STUB_REPO_ROOT/events"
+                printf '#!/bin/bash\nexit 0\n' > "$STUB_REPO_ROOT/bin/git"
+                /bin/chmod u+x "$STUB_REPO_ROOT/bin/git"
+                """);
+            WriteExecutable(Path.Combine(scripts, "deploy-api-dev.sh"), """
+                #!/bin/bash
+                set -euo pipefail
+                command -v git >/dev/null
+                printf 'deploy\n' >> "$STUB_REPO_ROOT/events"
+                """);
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash", WorkingDirectory = stubRoot,
+                RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false
+            };
+            startInfo.ArgumentList.Add("-c");
+            startInfo.ArgumentList.Add(inlineScript);
+            // The isolated PATH intentionally models the Azure CLI image without
+            // Git. Its package-manager double cannot install or contact anything.
+            startInfo.Environment["PATH"] = bin;
+            startInfo.Environment["STUB_REPO_ROOT"] = stubRoot;
+            using var process = Process.Start(startInfo) ??
+                throw new InvalidOperationException("Could not start the isolated release bootstrap.");
+            var stdout = process.StandardOutput.ReadToEndAsync();
+            var stderr = process.StandardError.ReadToEndAsync();
+            try
+            {
+                await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException)
+            {
+                process.Kill(entireProcessTree: true);
+                throw new TimeoutException("The isolated release bootstrap exceeded five seconds.");
+            }
+
+            Assert.True(process.ExitCode == 0, await stderr);
+            await stdout;
+            Assert.Equal(gitInitiallyPresent ? ["deploy"] : new[] { "install -y git", "deploy" },
+                File.ReadAllLines(Path.Combine(stubRoot, "events")));
+        }
+        finally
+        {
+            Directory.Delete(stubRoot, recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData("AZURE_API_DEPLOY_CONFIRMATION", "")]
     [InlineData("GITHUB_SHA", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")]
     [InlineData("EXPECTED_RELEASE_SHA", "main")]
