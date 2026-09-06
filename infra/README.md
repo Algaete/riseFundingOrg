@@ -129,7 +129,7 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
-## Estado operativo de Azure dev — 2026-09-04
+## Estado operativo de Azure dev — 2026-09-06
 
 La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL, el reapply idempotente y
 Full-Text pasaron. Los principals runtime y el bootstrap SuperAdmin quedaron verificados. La imagen
@@ -138,11 +138,13 @@ de API fue publicada por digest OCI y Container Apps quedó saludable en
 confirmó `/health`, conexión SQL y catálogo público.
 
 El workflow `Azure dev frontend` publicó y verificó el commit
-`82782e9a6f687d97a847fde3c47a19223ce03dc9` en
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2` en
 `https://salmon-glacier-0721afc0f.7.azurestaticapps.net`: pasaron `deploy-meta.json`, raíz,
 `/funding`, fallback SPA, headers y CORS GET/preflight. Las dos Function Apps Flex, sus planes, host
 Storage e identidades existen, pero aún no tienen paquetes publicados. Functions, importación PDF
-E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra está implementado
+E2E, correo, dominios propios, telemetría alojada de Functions, alertas y restore siguen pendientes.
+La API ya exporta APM con identidad administrada y pasó el canary de correlación/privacidad.
+SSO Entra está implementado
 en código, pero permanece sin configurar y deshabilitado en Azure dev.
 
 CI ya puede preparar **offline** ambos proyectos Functions en ZIP deterministas, inventariados y con
@@ -158,11 +160,15 @@ El frontend incorpora una suite Playwright/axe pública. CI la ejecuta contra un
 comprobando además el SHA inmutable. Login autenticado, refresh cross-site y journeys mutantes
 siguen siendo gates separados.
 
-El incremento local del 2026-09-06 incorpora OpenTelemetry por UAMI, el interlock de arranque inerte
+El incremento del 2026-09-06 incorpora OpenTelemetry por UAMI, el interlock de arranque inerte
 de Defender y alertas opt-in con `deployOperationalAlerts=false`. También prepara el workflow manual
-de sesión autenticada y el simulacro PITR a una base nueva. Este código todavía no está desplegado;
-ni el E2E autenticado remoto ni el restore fueron ejecutados.
+de sesión autenticada y el simulacro PITR a una base nueva. La API del SHA
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2` fue publicada por el workflow acotado, sin ampliar permisos,
+conservando escala 1/1. El canary confirmó `FundingPlatform.Api`, plantillas de ruta y ausencia de
+query/slug sintéticos y texto SQL en la telemetría de sus dos solicitudes. Los workers y sus nuevas
+variables de host no se publicaron/aplicaron; ni el E2E autenticado remoto ni el restore se ejecutaron.
 
+- [Evidencia del release, canary APM, rollback y pendientes](../docs/runbooks/phase12b-release-2026-09-06.md).
 - [Observabilidad: despliegue, privacidad y verificación](../docs/runbooks/observability.md).
 - [Alertas dev: activación, costo y pausa de sondas](../docs/runbooks/operational-alerts-dev.md).
 - [Restauración SQL: validación read-only y destino temporal](../docs/runbooks/database-restore.md).

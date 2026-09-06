@@ -2,11 +2,12 @@
 
 ## Alcance y código aprobado
 
-Release de API y frontend: `da6d960e1f8a15b03c1c40f3ecf565c6e12805c0`.
+Release final de API y frontend: `0e8d816b686beec5d7259150b9d484bc1a0c87c2`.
 La instrumentación y los gates de FASE 12B se fusionaron en el [PR #7](https://github.com/Algaete/riseFundingOrg/pull/7).
 El [PR #8](https://github.com/Algaete/riseFundingOrg/pull/8) agregó la publicación acotada de API
 y el [PR #9](https://github.com/Algaete/riseFundingOrg/pull/9) preparó Git en el ejecutor temporal.
-Los tres se fusionaron después de pasar CI.
+El [PR #10](https://github.com/Algaete/riseFundingOrg/pull/10) corrigió la identidad APM con evidencia
+real y serializó los releases de frontend/API. Todos se fusionaron después de pasar CI.
 
 El release conserva `Contributor` sólo sobre el Resource Group y los roles existentes de tareas/pull
 sobre ACR. No requiere asignaciones nuevas ni permisos a nivel de suscripción. Sus únicas
@@ -15,7 +16,7 @@ escala, ingress y Functions quedan fuera de ese cambio.
 
 ## Validaciones previas
 
-- Build Release local sin errores ni advertencias; 499 pruebas unitarias aprobadas.
+- Build Release local sin errores ni advertencias; 501 pruebas unitarias y 178 de integración aprobadas.
 - CI: build/tests .NET, integración, paquetes Functions offline, frontend y E2E público aprobados.
 - Validación Bicep y construcción del contenedor aprobadas en CI.
 - Pruebas aisladas del release: rechazo de SHA/rama/confirmación/checkout incorrectos, límites de
@@ -24,6 +25,32 @@ escala, ingress y Functions quedan fuera de ese cambio.
   de 32 GiB y cómputo serverless acotado. No se ejecutó la restauración ni se creó esa base.
 
 ## Ejecuciones y estado
+
+El release final de API pasó en el
+[run 34015067993](https://github.com/Algaete/riseFundingOrg/actions/runs/34015067993), conservando
+configuración y escala 1/1, con salud, SQL y catálogo aprobados. Imagen por digest:
+`sha256:ef3fdd8e186d86a686662adf7340fdff486aa33ce85022a31f1303978d294ee6`.
+Revisión preparada: `ca-rf-dev-ag26rf01-api--0000002`.
+
+El frontend del mismo SHA pasó en el primer intento del
+[run 34015108191](https://github.com/Algaete/riseFundingOrg/actions/runs/34015108191): metadata,
+raíz/fallback SPA, headers, CORS y E2E público de navegador aprobados. Esperó a que terminara la
+API mediante la concurrencia compartida.
+
+El canary final a las `05:57 UTC` confirmó:
+
+- Dos `AppRequests`: 400 y 404, con plantillas de ruta, `AppRoleName=FundingPlatform.Api` y los
+  trace IDs W3C esperados tanto en ProblemDetails como en la correlación HTTP.
+- Dos `AppTraces` y una dependencia SQL correlacionada con el mismo nombre de servicio.
+- Cero marcadores de query/slug exportados, cero campos de query/HTTP target y cero texto SQL
+  en atributos o datos de la dependencia, mediante consultas agregadas acotadas al canary.
+
+La identidad APM y la privacidad de estas solicitudes de API quedaron verificadas. Esto no prueba
+excepciones ni el pipeline independiente del host de Functions.
+
+## Historial de los intentos previos
+
+El primer release conjunto fue `da6d960e1f8a15b03c1c40f3ecf565c6e12805c0`:
 
 - [API — run 34014384048](https://github.com/Algaete/riseFundingOrg/actions/runs/34014384048): aprobado,
   incluyendo preservación de configuración, salud, SQL y catálogo.
@@ -35,7 +62,7 @@ escala, ingress y Functions quedan fuera de ese cambio.
   durante los prerrequisitos, antes de construir/actualizar. La API conservó su revisión saludable.
   Se corrigió la disponibilidad de Git en el contenedor Azure CLI y se agregó una regresión.
 
-Digest anterior para rollback:
+Digest anterior al inicio de esta ventana:
 `sha256:8f7f03ea78cf1569b6ec86d0c2d02ac203c8242cecba46beecaa86a10d882ed3`.
 Revisión anterior: `ca-rf-dev-ag26rf01-api--xk5s810`; escala previa: mínimo 1, máximo 1.
 
@@ -51,8 +78,12 @@ no quedó en la muestra; los siguientes canaries separan solicitudes bajo el mue
 
 El primer canary detectó `AppRoleName=ca-rf-dev-ag26rf01-api`, porque el detector Azure prevalece
 sobre el nombre de servicio de entorno. El código fija ahora la identidad de recurso de API después
-de registrar el distro, conservando el ID de instancia; requiere volver a verificar ingesta como
-`FundingPlatform.Api` antes de aprobar este gate o activar las alertas que filtran ese nombre.
+de registrar el distro, conservando el ID de instancia. El canary final descrito arriba verificó
+la corrección; las alertas todavía no se activaron.
+
+Para volver al release inmediatamente anterior al ajuste de identidad, el workflow final registró
+el digest `sha256:287bf96c46c9e1dae7da1ee6bf8cdfc9c7c46a38521631a3683b99473a356497` y la revisión
+`ca-rf-dev-ag26rf01-api--0000001`. Usar el rollback gobernado y repetir el smoke.
 
 ## Gates que este release no cierra
 

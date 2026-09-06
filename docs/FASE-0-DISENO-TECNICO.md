@@ -3226,9 +3226,17 @@ de query incorporados a API y workers; las alertas operacionales se crean sólo 
 explícito, apagado por defecto. El interlock de Defender permite arrancar inerte fuera de desarrollo
 sólo con sus dos triggers deshabilitados literalmente con `true`. El workflow manual de E2E
 autenticado exige SHA publicado, orígenes exactos, dominios same-site y cuenta técnica protegida;
-el script PITR valida el entorno y sólo restaura a una base temporal nueva. Este incremento todavía
-no está desplegado. La autenticación remota, el restore real y la activación/verificación de alertas
+el script PITR valida el entorno y sólo restaura a una base temporal nueva. La autenticación remota,
+el restore real y la activación/verificación de alertas
 continúan pendientes; los procedimientos están en `docs/runbooks/`.
+
+**Publicación parcial FASE 12B (2026-09-06):** API y frontend publicados desde
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2`, con salud/SQL/catálogo y publicación web verificados.
+El canary de API confirmó dos requests, dos logs y una dependencia SQL correlacionados, con nombre
+estable y sin los marcadores sintéticos ni texto SQL exportados. El release usa exclusivamente los
+permisos existentes de RG/ACR; conserva escala y deja ambos hosts Functions sin paquetes, con las
+16 barreras activas. No se aplicaron las nuevas variables de host ni se activaron alertas o restore.
+La evidencia y los gates restantes están en `docs/runbooks/phase12b-release-2026-09-06.md`.
 
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;
