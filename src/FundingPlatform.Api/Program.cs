@@ -135,7 +135,10 @@ if (!builder.Environment.IsEnvironment("Testing"))
                 options.Credential = azureCredential;
                 options.EnableLiveMetrics = false;
                 options.TracesPerSecond = 1.0;
-            });
+            })
+            // Azure's Container Apps detector overrides OTEL_SERVICE_NAME with the app
+            // resource name. Apply our alert/query identity last for all three signals.
+            .ConfigureResource(TelemetryResourceIdentity.ConfigureApi);
         builder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>
         {
             options.RecordException = false;

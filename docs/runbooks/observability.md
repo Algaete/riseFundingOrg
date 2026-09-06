@@ -50,6 +50,9 @@ Referencias de implementación:
   alineados con el worker. Una decisión heredada del padre puede prevalecer; no es un techo global
   de la aplicación ni un límite de gasto o volumen de logs/métricas.
 - Live Metrics desactivado.
+- La API fija `service.name=FundingPlatform.Api` después del detector de recursos de Azure,
+  preservando `service.instance.id`; así coincide con las consultas y alertas revisadas. Dev deja
+  `service.namespace` sin definir, pues Azure lo incorporaría como prefijo de `AppRoleName`.
 - Log Analytics conserva 30 días y la API/workers mantienen sus límites de escala de dev.
 - Salud se excluye del APM de entrada; una prueba externa de disponibilidad debe tener frecuencia
   baja y no incluir query strings.

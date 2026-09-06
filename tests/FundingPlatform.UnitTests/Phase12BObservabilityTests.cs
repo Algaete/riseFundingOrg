@@ -25,6 +25,11 @@ public sealed class Phase12BObservabilityTests
             apiProject,
             StringComparison.Ordinal);
         Assert.Contains(".UseAzureMonitor(options =>", apiProgram, StringComparison.Ordinal);
+        var azureMonitorRegistration = apiProgram.IndexOf(".UseAzureMonitor(options =>", StringComparison.Ordinal);
+        var stableIdentityRegistration = apiProgram.IndexOf(
+            ".ConfigureResource(TelemetryResourceIdentity.ConfigureApi)", StringComparison.Ordinal);
+        Assert.True(stableIdentityRegistration > azureMonitorRegistration,
+            "The stable API role must be configured after Azure Monitor registers its resource detector.");
         Assert.Contains("AddProcessor<TelemetryPrivacyProcessor>()", apiProgram,
             StringComparison.Ordinal);
         Assert.Contains("AddProcessor<TelemetryLogPrivacyProcessor>()", apiProgram,

@@ -20,6 +20,18 @@ public sealed class ApiReleaseWorkflowTests
     private const string IdentityName = "id-rf-dev-abcdefgh-api";
     private const string IdentityId = $"{ResourceGroupId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{IdentityName}";
 
+    [Fact]
+    public void Frontend_verification_is_serialized_with_API_and_infrastructure_changes()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        foreach (var workflow in new[] { "api-dev.yml", "frontend-dev.yml", "infra-dev.yml" })
+        {
+            var concurrencyGroup = File.ReadLines(Path.Combine(root, ".github", "workflows", workflow))
+                .Single(line => line.TrimStart().StartsWith("group:", StringComparison.Ordinal)).Trim();
+            Assert.Equal("group: rise-funding-azure-dev-infrastructure", concurrencyGroup);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
