@@ -187,12 +187,6 @@ public sealed class TelemetryLogPrivacyProcessor : BaseProcessor<LogRecord>
             return true;
         }
 
-        if (key.EndsWith("Id", StringComparison.OrdinalIgnoreCase) && IsOpaqueIdentifier(text))
-        {
-            safeValue = text;
-            return true;
-        }
-
         return false;
     }
 
@@ -262,22 +256,6 @@ public sealed class TelemetryLogPrivacyProcessor : BaseProcessor<LogRecord>
         {
             if (!(char.IsAsciiLetterOrDigit(character) ||
                   character is '.' or '_' or '-' or ':' or '+' or '`'))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool IsOpaqueIdentifier(string value)
-    {
-        if (Guid.TryParse(value, out _)) return true;
-        if (value.Length is < 8 or > 128) return false;
-
-        foreach (var character in value)
-        {
-            if (!(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.' or ':'))
             {
                 return false;
             }

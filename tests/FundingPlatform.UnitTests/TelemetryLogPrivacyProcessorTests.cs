@@ -96,6 +96,23 @@ public sealed class TelemetryLogPrivacyProcessorTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Unreviewed_string_identifiers_are_not_exported_by_suffix_alone()
+    {
+        var exporter = new CapturingLogExporter();
+        using var loggerFactory = CreateLoggerFactory(exporter);
+        var logger = loggerFactory.CreateLogger("FundingPlatform.Tests");
+
+        logger.LogInformation("Customer {CustomerId}: count={Count}.",
+            "person-private-identifier", 3);
+
+        var record = Assert.Single(exporter.Records);
+        Assert.DoesNotContain(record.Attributes, item => item.Key == "CustomerId");
+        Assert.Contains(record.Attributes, item => item.Key == "Count" && Equals(item.Value, 3));
+        Assert.DoesNotContain("person-private-identifier", record.AllText,
+            StringComparison.Ordinal);
+    }
+
     private static ILoggerFactory CreateLoggerFactory(CapturingLogExporter exporter) =>
         LoggerFactory.Create(logging =>
         {
