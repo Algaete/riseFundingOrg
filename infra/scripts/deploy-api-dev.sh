@@ -21,7 +21,12 @@ if [[ "${AZURE_API_DEPLOY_CONFIRMATION:-}" != "DEPLOY-DEV-API" ]]; then
   echo "AZURE_API_DEPLOY_CONFIRMATION=DEPLOY-DEV-API is required" >&2
   exit 4
 fi
-for dependency in az jq git; do command -v "$dependency" >/dev/null; done
+for dependency in az jq git; do
+  if ! command -v "$dependency" >/dev/null; then
+    echo "Required release dependency is missing: ${dependency}" >&2
+    exit 2
+  fi
+done
 # azure/CLI runs in a container with a different UID from checkout. Trust only
 # this exact working directory for these read-only git commands, not globally.
 repository_root="$(git -c safe.directory="$PWD" rev-parse --show-toplevel)"
@@ -31,9 +36,12 @@ if [[ "$(git -c safe.directory="$repository_root" rev-parse HEAD)" != "$EXPECTED
   echo "Build context must be a clean checkout of the approved release commit" >&2
   exit 2
 fi
-test -f src/FundingPlatform.Api/Dockerfile
-test -f .dockerignore
-test -f infra/scripts/verify-dev.sh
+for required_file in src/FundingPlatform.Api/Dockerfile .dockerignore infra/scripts/verify-dev.sh; do
+  if [[ ! -f "$required_file" ]]; then
+    echo "Required release file is missing: ${required_file}" >&2
+    exit 2
+  fi
+done
 # Use the pinned CLI's built-in commands, without installing extensions at runtime.
 export AZURE_EXTENSION_USE_DYNAMIC_INSTALL=no
 
