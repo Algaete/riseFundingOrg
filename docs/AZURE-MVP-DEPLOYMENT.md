@@ -71,6 +71,11 @@ credenciales. `infra-dev.yml` es exclusivamente manual, usa OIDC y exige confirm
 exacto de `main`, compila sin credenciales Azure y publica el artefacto prevalidado en SWA usando un
 deployment token leído y enmascarado justo a tiempo mediante OIDC.
 
+`api-dev.yml` publica únicamente la API existente: exige `DEPLOY-DEV-API` y el SHA completo de
+`main`, usa los roles actuales de Resource Group/ACR, construye por SHA y despliega por digest con
+las tres variables OTel de API. Verifica la revisión, el digest, la escala y salud/SQL. No necesita
+ampliar privilegios a nivel de suscripción ni modifica SQL, identidades o hosts Functions.
+
 ## 4. Crear la base de recursos
 
 La plantilla de FASE 12A crea esta base de forma reproducible. Antes de ejecutarla, seguir

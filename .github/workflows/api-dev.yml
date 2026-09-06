@@ -1,0 +1,77 @@
+name: Azure dev API release
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Build and release only the existing dev API image and telemetry settings
+        required: true
+        type: choice
+        options:
+          - NO-CONFIRMATION
+          - DEPLOY-DEV-API
+        default: NO-CONFIRMATION
+      expected_release_sha:
+        description: Approved 40-character main commit to build and deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize against infrastructure, scale, ingress and rollback operations too.
+concurrency:
+  group: rise-funding-azure-dev-infrastructure
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Validate the manual API release request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require main, exact SHA and explicit API confirmation
+        env:
+          EXPECTED_RELEASE_SHA: ${{ inputs.expected_release_sha }}
+          AZURE_API_DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          [[ "$EXPECTED_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$EXPECTED_RELEASE_SHA" = "$GITHUB_SHA"
+          test "$AZURE_API_DEPLOY_CONFIRMATION" = 'DEPLOY-DEV-API'
+
+  deploy:
+    name: Build, release and verify the existing dev API
+    needs: gate
+    environment: dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout the approved release without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Azure login via OIDC
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy only the API image and required telemetry settings
+        uses: azure/CLI@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3.0.0
+        env:
+          EXPECTED_RELEASE_SHA: ${{ inputs.expected_release_sha }}
+          AZURE_API_DEPLOY_CONFIRMATION: ${{ inputs.confirmation }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_UNIQUE_SUFFIX: ${{ vars.AZURE_UNIQUE_SUFFIX }}
+          AZURE_SQL_LOCATION: ${{ vars.AZURE_SQL_LOCATION }}
+        with:
+          azcliversion: 2.88.0
+          inlineScript: bash infra/scripts/deploy-api-dev.sh

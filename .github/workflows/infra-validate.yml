@@ -18,6 +18,7 @@ jobs:
       - name: Validate deployment shell scripts
         run: |
           bash -n infra/scripts/deploy-dev.sh
+          bash -n infra/scripts/deploy-api-dev.sh
           bash -n infra/scripts/prepare-key-vault-dev.sh
           bash -n infra/scripts/prepare-database-dev.sh
           bash -n infra/scripts/restore-database-dev.sh
