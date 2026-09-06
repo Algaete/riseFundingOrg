@@ -60,14 +60,18 @@ de expiración y costo estimado. La alerta presupuestaria no detiene la ingesta.
 ## Secuencia de despliegue
 
 1. Fusionar únicamente un SHA con build, tests, validación Bicep y auditoría de dependencias verdes.
-2. Ejecutar primero `apply-base` con ese SHA. Verificar las variables de redacción y los client IDs
-   de telemetría de Functions, y que sus 16 barreras siguen en `true`. Este modo omite la API;
-   sus variables nuevas todavía no se aplican.
-3. Ejecutar el despliegue completo `apply` desde el mismo SHA para publicar la API por digest y
-   aplicar sus variables de redacción junto con la imagen. Validar `/health`, SQL, catálogo público
-   y que la revisión anterior continúe disponible para rollback.
+2. Para una API ya aprovisionada, ejecutar `api-dev.yml` con `DEPLOY-DEV-API` y ese SHA exacto.
+   Usa los permisos existentes de Resource Group/ACR, construye la imagen y actualiza únicamente
+   su digest y las tres variables OTel declaradas en Bicep. No requiere roles de suscripción.
+3. El workflow comprueba el digest y ejecuta `verify-dev.sh api`, conservando el mínimo de réplicas
+   anterior. Registrar además la revisión previa para rollback y verificar la ingesta APM real.
 4. Confirmar trazas de API antes de crear alertas. No publicar Functions hasta completar Defender,
    Event Grid, Storage/CORS y el gate operativo específico de cada trigger.
+
+Cuando se necesite aplicar infraestructura adicional, `infra-dev.yml` sigue siendo una operación
+separada con `validate`/`what-if` y los permisos correspondientes. `apply-base` omite la API; puede
+aplicar las variables del host de Functions, pero no las de API. El release acotado de API no
+aplica las variables nuevas de los hosts ni publica sus paquetes.
 
 ## Verificación sin datos sensibles
 
@@ -89,7 +93,7 @@ union AppTraces, AppExceptions
 Comprobar en una solicitud controlada:
 
 1. `OperationId` coincide con el `traceId` W3C expuesto en `ProblemDetails` cuando hay error.
-2. La URL no contiene valores de query reales; sólo nombres con valores redactados.
+2. La URL no contiene query; las entradas usan plantillas de ruta y las salidas sólo el origen.
 3. No aparecen `Authorization`, cookies, refresh tokens, contenido documental ni datos personales.
 4. Las trazas de `/health` no dominan el volumen.
 5. `AppRoleName` distingue API, worker general y worker de extracción en las tablas del workspace.

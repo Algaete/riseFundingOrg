@@ -170,8 +170,14 @@ ni el E2E autenticado remoto ni el restore fueron ejecutados.
 
 ## Runbook reproducible para futuros `apply`
 
+Para actualizar sólo una API existente, usar el workflow manual `api-dev.yml` con el SHA exacto de
+`main` y `DEPLOY-DEV-API`. El script `deploy-api-dev.sh` usa los permisos actuales del Resource Group
+y ACR; construye por SHA, publica por digest y aplica las tres variables de telemetría de la API.
+Conserva su escala y verifica salud/SQL. No reaplica presupuesto, SQL, identidades ni Functions.
+El procedimiento completo siguiente se reserva para cambios adicionales de infraestructura.
+
 La secuencia siguiente conserva el procedimiento aprobado del primer despliegue y debe repetirse
-para un release posterior; no describe trabajo pendiente del ambiente ya publicado.
+para un cambio completo de infraestructura; no describe trabajo pendiente del ambiente ya publicado.
 
 1. Revisar el costo con Azure Pricing Calculator. El presupuesto sólo alerta: no detiene recursos.
 2. Ejecutar primero `validate` y `what-if`; guardar la salida para revisión.
