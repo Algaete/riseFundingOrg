@@ -37,6 +37,13 @@ workers. Azure ya conserva las 16 Functions deshabilitadas por nombre y los dos 
 de publicación; las Function Apps no tienen paquetes, por lo que no existen triggers ejecutables.
 Preparar y verificar un ZIP no publica ni ejecuta Functions.
 
+Este incremento 12B está implementado, pero todavía no está desplegado:
+OpenTelemetry exporta con las UAMI existentes, limita el muestreo y mantiene redacción de query;
+las alertas operacionales son opt-in y nacen apagadas; el E2E autenticado es fail-closed y exige
+dominios same-site, una cuenta técnica y un environment protegido; y el runbook de PITR valida el
+origen/destino antes de permitir una restauración a una base temporal nueva. No se ejecutó un PITR,
+no se activaron alertas, no se publicó una imagen API nueva ni se subieron paquetes Functions.
+
 | Fase | Estado | Resultado esperado |
 |---|---|---|
 | 0 | Completada | Diseño técnico, alcance MVP/V2, modelo lógico, API, riesgos y roadmap |
@@ -57,7 +64,7 @@ Preparar y verificar un ZIP no publica ni ejecuta Functions.
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
 | 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
-| 12B | En curso: preview desplegado; E2E público, empaquetado offline y barrera inerte 14+2 verificados; publicación Functions, autenticación E2E, dominios, APM/alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
+| 12B | En curso: preview, E2E público y barrera inerte 14+2 verificados; auth E2E, APM, alertas opt-in y restore temporal preparados localmente, aún sin activar/ejecutar | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
@@ -1250,8 +1257,9 @@ El orden de ejecución es:
   Flex existen sin paquetes de aplicación;
 - FASE 12B — en curso: Playwright/axe público y pipeline de empaquetado Functions offline validados;
   la barrera inerte 14+2 y el cierre de SCM/FTP basic auth están aplicados y verificados en Azure;
-  publicación gobernada de Functions, autenticación E2E, dominios, APM/alertas, restore y decisión
-  de piloto continúan pendientes.
+  el harness auth fail-closed, la instrumentación APM por identidad, las alertas opt-in apagadas y
+  el runbook de restore a base temporal están preparados localmente. Su despliegue/ejecución real,
+  los dominios, la publicación gobernada de Functions y la decisión de piloto continúan pendientes.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente
 web requiere revisión de términos, `robots.txt`, rate limits, allowlist y kill switch. La beta de

@@ -28,6 +28,11 @@ on:
         type: choice
         options: ['1', '0']
         default: '0'
+      deploy_operational_alerts:
+        description: Create active /health probes and email alerts (apply operations only)
+        required: true
+        type: boolean
+        default: false
       api_rollback_digest:
         description: Existing rise-funding-api sha256 digest; used only by rollback-api
         required: false
@@ -89,6 +94,7 @@ jobs:
           AZURE_BUDGET_START_DATE: ${{ vars.AZURE_BUDGET_START_DATE }}
           AZURE_MONTHLY_BUDGET_AMOUNT: ${{ vars.AZURE_MONTHLY_BUDGET_AMOUNT }}
           AZURE_DEPLOY_COMPUTE: ${{ vars.AZURE_DEPLOY_COMPUTE }}
+          AZURE_DEPLOY_OPERATIONAL_ALERTS: ${{ inputs.deploy_operational_alerts }}
           AZURE_API_MIN_REPLICAS: ${{ inputs.api_min_replicas }}
           AZURE_APPLY_CONFIRMATION: ${{ inputs.confirmation }}
           AZURE_API_SCALE_CONFIRMATION: ${{ inputs.confirmation }}

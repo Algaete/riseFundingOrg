@@ -7,11 +7,15 @@ Este checklist prepara una sesión de despliegue reproducible. No debe contener 
 principals runtime, bootstrap SuperAdmin y API por digest OCI están verificados en Azure dev. El
 workflow `Azure dev frontend` publicó y verificó el commit
 `82782e9a6f687d97a847fde3c47a19223ce03dc9` en
-`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex existen, pero sus paquetes,
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex existen, pero sus paquetes
 no están publicados. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó las 16 barreras
 de trigger y cerró SCM/FTP basic auth; la API quedó intacta y el OIDC fue reducido nuevamente a
 Resource Group/ACR. La importación PDF E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra
 está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev.
+
+El incremento local del 2026-09-06 prepara OpenTelemetry por identidad, alertas opt-in desactivadas,
+E2E autenticado y restore a una base temporal; su despliegue y validación real siguen pendientes.
+Los runbooks están en [`docs/runbooks`](../docs/runbooks).
 
 ## 1. Datos que deben estar decididos
 
@@ -209,8 +213,9 @@ done
     > `82782e9a6f687d97a847fde3c47a19223ce03dc9`; el frontend, `deploy-meta.json`, `/funding`, fallback
     > SPA, headers, catálogo y CORS GET/preflight quedaron verificados. La secuencia se conserva para
     > futuros releases y no debe sustituirse por `Re-run jobs` de un SHA anterior.
-13. No publicar todavía Functions: el host general está diseñado para fallar cerrado mientras
-    Defender/Event Grid permanezca deshabilitado. La carga PDF tampoco es E2E hasta versionar CORS
+13. No publicar todavía Functions: su publicación requiere un gate independiente. El código local permite arrancar
+    con Defender desactivado sólo si ambos triggers Defender están explícitamente deshabilitados
+    con el valor exacto `true`. La carga PDF tampoco es E2E hasta versionar CORS
     de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
     navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
 

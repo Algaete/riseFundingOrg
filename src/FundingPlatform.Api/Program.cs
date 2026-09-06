@@ -1,11 +1,14 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Azure.Communication.Email;
 using Azure.Core;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Azure.Storage.Blobs;
 using FundingPlatform.Api.Configuration;
 using FundingPlatform.Api.Authorization;
+using FundingPlatform.Infrastructure.Observability;
 using FundingPlatform.Api.Endpoints;
 using FundingPlatform.Api.Health;
 using FundingPlatform.Api.Middleware;
@@ -61,11 +64,21 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Instrumentation.AspNetCore;
+using OpenTelemetry.Instrumentation.Http;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Trace;
 using Serilog;
+using Serilog.Formatting.Json;
 
 LocalEnvironmentLoader.TryLoad();
+Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
+// Use one application-log destination: Azure Monitor when configured, otherwise local JSON.
+// Container Apps also ingests console output, so forwarding to both would duplicate ingestion.
+builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1024 * 1024);
 builder.Configuration.AddFundingPlatformAliases();
@@ -99,20 +112,69 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Configuration.AddFundingPlatformAliases();
 }
 
+var applicationInsightsConnectionString =
+    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.Trim();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    if (!builder.Environment.IsDevelopment() &&
+        string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+    {
+        throw new InvalidOperationException(
+            "APPLICATIONINSIGHTS_CONNECTION_STRING es obligatoria fuera de desarrollo.");
+    }
+
+    if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+    {
+        RequireQueryStringRedaction(builder.Configuration);
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing.AddProcessor<TelemetryPrivacyProcessor>())
+            .WithLogging(logging => logging.AddProcessor<TelemetryLogPrivacyProcessor>())
+            .UseAzureMonitor(options =>
+            {
+                options.ConnectionString = applicationInsightsConnectionString;
+                options.Credential = azureCredential;
+                options.EnableLiveMetrics = false;
+                options.TracesPerSecond = 1.0;
+            });
+        builder.Services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>
+        {
+            options.RecordException = false;
+            options.Filter = context =>
+                !context.Request.Path.StartsWithSegments("/health");
+        });
+        builder.Services.Configure<HttpClientTraceInstrumentationOptions>(options =>
+            options.RecordException = false);
+        builder.Services.PostConfigure<OpenTelemetryLoggerOptions>(options =>
+        {
+            options.IncludeScopes = false;
+            options.IncludeFormattedMessage = false;
+        });
+    }
+}
+
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
     loggerConfiguration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "FundingPlatform.Api")
-        .WriteTo.Console());
+        .Enrich.WithProperty("Application", "FundingPlatform.Api");
+    if (string.IsNullOrWhiteSpace(applicationInsightsConnectionString) ||
+        context.HostingEnvironment.IsEnvironment("Testing"))
+    {
+        loggerConfiguration.WriteTo.Console(new JsonFormatter());
+    }
+},
+    preserveStaticLogger: false,
+    writeToProviders: true);
 
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
     {
         context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier;
-        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+        context.ProblemDetails.Extensions["traceId"] =
+            Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
     };
 });
 builder.Services.AddEndpointsApiExplorer();
@@ -620,7 +682,14 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
         diagnosticContext.Set("CorrelationId", httpContext.TraceIdentifier);
+        if (Activity.Current is { } activity)
+        {
+            diagnosticContext.Set("TraceId", activity.TraceId.ToString());
+            diagnosticContext.Set("SpanId", activity.SpanId.ToString());
+        }
+    };
 });
 app.UseExceptionHandler();
 app.UseStatusCodePages();
@@ -703,5 +772,21 @@ static string GetRateLimitPartition(HttpContext context)
 }
 
 app.Run();
+
+static void RequireQueryStringRedaction(IConfiguration configuration)
+{
+    foreach (var setting in new[]
+    {
+        "OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION",
+        "OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION"
+    })
+    {
+        if (!string.Equals(configuration[setting], "false", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"{setting} debe ser false para impedir que secretos de query string lleguen a telemetría.");
+        }
+    }
+}
 
 public partial class Program;

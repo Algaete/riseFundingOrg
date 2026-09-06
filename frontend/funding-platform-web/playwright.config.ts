@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test'
 
 const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, '')
 const localBaseUrl = 'http://127.0.0.1:4173'
+const authenticatedRunRequested =
+  process.env.E2E_REQUIRE_AUTHENTICATED === 'true'
 
 export default defineConfig({
   testDir: './e2e',
@@ -10,9 +12,12 @@ export default defineConfig({
   failOnFlakyTests: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI
-    ? [['line'], ['html', { open: 'never' }]]
-    : 'list',
+  reporter: authenticatedRunRequested
+    ? 'line'
+    : process.env.CI
+      ? [['line'], ['html', { open: 'never' }]]
+      : 'list',
+  preserveOutput: authenticatedRunRequested ? 'never' : 'always',
   use: {
     baseURL: externalBaseUrl ?? localBaseUrl,
     screenshot: 'only-on-failure',

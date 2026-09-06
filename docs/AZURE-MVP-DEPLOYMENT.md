@@ -15,6 +15,13 @@ SCM/FTP basic auth en ambos hosts. No publicó workers: las Function Apps desple
 paquetes y por eso no poseen triggers ejecutables. La API conservó su digest y revisión saludables,
 y el principal OIDC volvió a permisos mínimos de Resource Group/ACR al cerrar la sesión JIT.
 
+Preparación local adicional (2026-09-06): instrumentación OpenTelemetry por identidad con muestreo
+acotado y redacción de query, alertas operacionales opt-in desactivadas, harness E2E autenticado con
+allowlist exacta y runbook de restauración SQL a base temporal. Este incremento aún no se desplegó;
+el E2E real espera dominios same-site y una cuenta técnica protegida, y el simulacro PITR no se ha
+ejecutado. Ver los runbooks de [observabilidad](runbooks/observability.md),
+[alertas dev](runbooks/operational-alerts-dev.md) y [restauración](runbooks/database-restore.md).
+
 ## 1. Arquitectura del MVP
 
 El despliegue usa componentes separados:
@@ -27,7 +34,7 @@ El despliegue usa componentes separados:
 - Storage GPv2 para host de Functions, colas y documentos privados.
 - Key Vault para secretos y claves de Data Protection.
 - Log Analytics para logs de sistema/consola y Application Insights compartido con Functions; la
-  instrumentación APM del API se completa en 12B.
+  instrumentación APM por identidad está preparada localmente y espera despliegue/verificación real.
 - Azure Communication Services Email para correo transaccional, diferido a 12B.
 
 Defender for Storage, Event Grid y `official-rss` permanecen deshabilitados hasta completar sus

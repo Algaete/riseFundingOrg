@@ -3221,6 +3221,15 @@ pasaron; Azure continúa con cero Functions publicadas. La API conservó exactam
 `Contributor` sólo en el Resource Group y `Container Registry Tasks Contributor` + `AcrPull` sólo
 en ACR, sin roles a nivel suscripción. No se publicaron paquetes ni se habilitó integración alguna.
 
+**Preparación local FASE 12B (2026-09-06):** OpenTelemetry por UAMI, muestreo acotado y redacción
+de query incorporados a API y workers; las alertas operacionales se crean sólo mediante opt-in
+explícito, apagado por defecto. El interlock de Defender permite arrancar inerte fuera de desarrollo
+sólo con sus dos triggers deshabilitados literalmente con `true`. El workflow manual de E2E
+autenticado exige SHA publicado, orígenes exactos, dominios same-site y cuenta técnica protegida;
+el script PITR valida el entorno y sólo restaura a una base temporal nueva. Este incremento todavía
+no está desplegado. La autenticación remota, el restore real y la activación/verificación de alertas
+continúan pendientes; los procedimientos están en `docs/runbooks/`.
+
 - E2E, auditoría/revalidación de MFA administrativa, carga, accesibilidad y chaos/fallback acotado;
 - IaC, CI/CD, Key Vault, App Insights, backups, restore y runbooks;
 - staging y smoke tests de Azure.

@@ -1,0 +1,95 @@
+name: Azure dev authenticated E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Confirm use of the ephemeral dev browser-test account
+        required: true
+        type: choice
+        options:
+          - NO-CONFIRMATION
+          - RUN-DEV-AUTH-E2E
+        default: NO-CONFIRMATION
+      expected_release_sha:
+        description: Approved 40-character main commit already published to dev
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rise-funding-dev-authenticated-e2e
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Validate the manual request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require main, exact SHA and explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          EXPECTED_RELEASE_SHA: ${{ inputs.expected_release_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "$CONFIRMATION" = 'RUN-DEV-AUTH-E2E'
+          [[ "$EXPECTED_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$EXPECTED_RELEASE_SHA" = "$GITHUB_SHA"
+
+  authenticated_e2e:
+    name: Verify the ephemeral authenticated session
+    needs: gate
+    environment: dev-auth-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend/funding-platform-web
+    steps:
+      - name: Checkout the approved release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/funding-platform-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check browser tests
+        run: npm run typecheck:e2e
+
+      - name: Install the Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the fail-closed authenticated journey
+        env:
+          E2E_ALLOWED_API_ORIGINS: ${{ vars.AUTH_E2E_API_ORIGIN }}
+          E2E_ALLOWED_ORIGINS: ${{ vars.AUTH_E2E_FRONTEND_ORIGIN }}
+          E2E_COOKIE_SITE: ${{ vars.AUTH_E2E_COOKIE_SITE }}
+          E2E_EXPECTED_RELEASE_SHA: ${{ github.sha }}
+          E2E_REQUIRE_AUTHENTICATED: "true"
+          E2E_USER_EMAIL: ${{ secrets.AUTH_E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.AUTH_E2E_USER_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ vars.AUTH_E2E_FRONTEND_ORIGIN }}
+        run: |
+          set -euo pipefail
+          test -n "$PLAYWRIGHT_BASE_URL"
+          test -n "$E2E_ALLOWED_API_ORIGINS"
+          test -n "$E2E_COOKIE_SITE"
+          test -n "$E2E_USER_EMAIL"
+          test -n "$E2E_USER_PASSWORD"
+          npm run test:e2e:authenticated -- --reporter=line --workers=1 --retries=0
+
+      - name: Remove local browser-test output
+        if: always()
+        run: rm -rf playwright-report test-results

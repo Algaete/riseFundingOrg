@@ -26,6 +26,10 @@ public sealed class ContentRetentionOptionsValidator : IValidateOptions<ContentR
 public sealed class DefenderEventGridOptions
 {
     public const string SectionName = "DefenderEventGrid";
+    public const string EventGridFunctionDisabledSetting =
+        "AzureWebJobs.DefenderEventGridFunction.Disabled";
+    public const string ScanWatchdogFunctionDisabledSetting =
+        "AzureWebJobs.DefenderScanWatchdogFunction.Disabled";
 
     public bool Enabled { get; set; }
     public string TenantId { get; set; } = string.Empty;
@@ -41,12 +45,16 @@ public sealed class DefenderEventGridOptions
     public static bool IsValid(
         DefenderEventGridOptions options,
         string environmentName,
-        string? blobServiceUri = null)
+        string? blobServiceUri = null,
+        string? eventGridFunctionDisabled = null,
+        string? scanWatchdogFunctionDisabled = null)
     {
         if (!options.Enabled)
         {
             return string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+                   string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase) ||
+                   (IsExplicitlyDisabled(eventGridFunctionDisabled) &&
+                    IsExplicitlyDisabled(scanWatchdogFunctionDisabled));
         }
 
         return Guid.TryParse(options.TenantId, out var tenant) && tenant != Guid.Empty &&
@@ -78,6 +86,11 @@ public sealed class DefenderEventGridOptions
                options.WatchdogBatchSize is >= 1 and <= 100 &&
                MatchesStorageAccount(options.StorageAccountResourceId, blobServiceUri);
     }
+
+    // Keep this stricter than Boolean.TryParse: hosted inert mode is an explicit
+    // deployment interlock, not a general-purpose boolean configuration value.
+    private static bool IsExplicitlyDisabled(string? value) =>
+        string.Equals(value, "true", StringComparison.Ordinal);
 
     private static bool SafeValue(string value) =>
         !value.Any(char.IsControl) &&

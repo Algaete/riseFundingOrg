@@ -111,6 +111,12 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'AzureWebJobsStorage__clientId', value: hostIdentity.properties.clientId }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsightsConnectionString }
         { name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', value: 'ClientId=${hostIdentity.properties.clientId};Authorization=AAD' }
+        { name: 'APPLICATIONINSIGHTS_CLIENT_ID', value: hostIdentity.properties.clientId }
+        { name: 'OTEL_SERVICE_NAME', value: appName }
+        { name: 'OTEL_TRACES_SAMPLER', value: 'microsoft.rate_limited' }
+        { name: 'OTEL_TRACES_SAMPLER_ARG', value: '1.0' }
+        { name: 'OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION', value: 'false' }
+        { name: 'OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION', value: 'false' }
         { name: 'AZURE_SQL_CONNECTION_STRING', value: 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Encrypt=True;TrustServerCertificate=False;Authentication=Active Directory Managed Identity;User Id=${effectiveSqlIdentityClientId};' }
       ])
     }

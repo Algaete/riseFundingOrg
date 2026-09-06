@@ -20,6 +20,7 @@ jobs:
           bash -n infra/scripts/deploy-dev.sh
           bash -n infra/scripts/prepare-key-vault-dev.sh
           bash -n infra/scripts/prepare-database-dev.sh
+          bash -n infra/scripts/restore-database-dev.sh
           bash -n infra/scripts/scale-api-dev.sh
           bash -n infra/scripts/set-api-access-dev.sh
           bash -n infra/scripts/rollback-api-dev.sh

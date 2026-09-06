@@ -158,6 +158,16 @@ El frontend incorpora una suite Playwright/axe pública. CI la ejecuta contra un
 comprobando además el SHA inmutable. Login autenticado, refresh cross-site y journeys mutantes
 siguen siendo gates separados.
 
+El incremento local del 2026-09-06 incorpora OpenTelemetry por UAMI, el interlock de arranque inerte
+de Defender y alertas opt-in con `deployOperationalAlerts=false`. También prepara el workflow manual
+de sesión autenticada y el simulacro PITR a una base nueva. Este código todavía no está desplegado;
+ni el E2E autenticado remoto ni el restore fueron ejecutados.
+
+- [Observabilidad: despliegue, privacidad y verificación](../docs/runbooks/observability.md).
+- [Alertas dev: activación, costo y pausa de sondas](../docs/runbooks/operational-alerts-dev.md).
+- [Restauración SQL: validación read-only y destino temporal](../docs/runbooks/database-restore.md).
+- [E2E autenticado: cuenta, dominios y environment protegido](../frontend/funding-platform-web/README.md).
+
 ## Runbook reproducible para futuros `apply`
 
 La secuencia siguiente conserva el procedimiento aprobado del primer despliegue y debe repetirse
