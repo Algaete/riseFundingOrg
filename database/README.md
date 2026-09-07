@@ -3,7 +3,16 @@
 Esta carpeta contiene los artefactos SQL versionados de FundingPlatform. El baseline
 ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
-## Estado Azure dev — 2026-08-29
+## Estado Azure dev — 2026-09-07
+
+Azure SQL dev tiene registradas y aplicadas `001`→`030`. La migración forward-only
+`030_external_stage_target_organizations_bounds.sql` conserva la elegibilidad externa completa y
+acota a 2000 caracteres sólo su proyección en `TargetOrganizationsDescription`. El preflight, la
+aplicación y los 30/30 smokes SQL pasaron; todos los smokes fueron revertidos y la regla temporal de
+firewall fue eliminada. Un canary posterior del worker importó 25/25 elementos sin fallos y los dejó
+como borradores editoriales.
+
+### Snapshot operativo anterior — 2026-08-29
 
 Azure SQL dev tiene registradas y aplicadas `001`→`029`. La última preparación aplicó los siete
 lotes de `029_sql_hyphen_allowlist_compatibility.sql`, completó 29/29 smokes SQL con rollback,
@@ -654,7 +663,8 @@ adapters externos gobernados y explicaciones administrativas shadow mediante `02
 por defecto. FASE 10A agregó búsquedas guardadas y alertas diarias mediante `024`; FASE 10B agregó
 networking opt-in moderado mediante `025`; FASE 11 agregó billing sandbox mediante `026`; y FASE
 12A completó roles runtime y operaciones administrativas mediante `027`/`028`, más la corrección
-forward-only `029`. Todas `001`→`029` están aplicadas en Azure SQL dev. Extracción generativa,
+forward-only `029`; `030` agrega el límite defensivo de la proyección editorial externa. Todas
+`001`→`030` están aplicadas en Azure SQL dev. Extracción generativa,
 promoción, email y billing real conservan gates posteriores. Las sesiones
 y MFA se incorporaron de forma aditiva en FASE 3 mediante
 las migraciones 002/003/004.

@@ -3,18 +3,20 @@
 Este checklist prepara una sesión de despliegue reproducible. No debe contener secretos y ningún push a
 `main` crea recursos: las operaciones con costo son manuales desde el environment GitHub `dev`.
 
-**Estado actual (2026-09-04):** infraestructura base, Azure SQL `001`→`029`, 29 smokes, Full-Text,
+**Estado actual (2026-09-07):** infraestructura base, Azure SQL `001`→`030`, 30 smokes, Full-Text,
 principals runtime, bootstrap SuperAdmin y API por digest OCI están verificados en Azure dev. El
 workflow `Azure dev frontend` publicó y verificó el commit
-`82782e9a6f687d97a847fde3c47a19223ce03dc9` en
-`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex existen, pero sus paquetes
-no están publicados. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó las 16 barreras
-de trigger y cerró SCM/FTP basic auth; la API quedó intacta y el OIDC fue reducido nuevamente a
-Resource Group/ACR. La importación PDF E2E, correo, dominios propios, APM/alertas y restore siguen pendientes. SSO Entra
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2` en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. El worker general está publicado desde el
+commit local `93ad3574f5ba76347833608f100adfe9f58a8f35` con sólo sus tres triggers de importación
+habilitados; el worker de extracción continúa sin paquete. El release
+`680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó las 16 barreras iniciales y cerró SCM/FTP basic
+auth; la API quedó intacta y el OIDC fue reducido nuevamente a
+Resource Group/ACR. La importación PDF E2E, correo, dominios propios, alertas y restore siguen pendientes. SSO Entra
 está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev.
 
-El incremento local del 2026-09-06 prepara OpenTelemetry por identidad, alertas opt-in desactivadas,
-E2E autenticado y restore a una base temporal; su despliegue y validación real siguen pendientes.
+El incremento iniciado el 2026-09-06 incorporó OpenTelemetry por identidad a API y worker general;
+alertas opt-in, E2E autenticado y restore a una base temporal siguen pendientes de ejecución real.
 Los runbooks están en [`docs/runbooks`](../docs/runbooks).
 
 ## 1. Datos que deben estar decididos
@@ -183,8 +185,8 @@ done
    El script hace `git fetch`, exige `main` limpio e idéntico a `origin/main`, valida grupo/miembro y
    el administrador efectivo del servidor SQL, obtiene el token SQL y fija `AzureCliCredential`,
    deriva la conexión dev, registra PITR, abre una regla
-   firewall única con cleanup verificado, ejecuta `--preflight`, confirma `001`→`029` sin
-   pendientes, ejecuta los 29 smokes, verifica Full-Text listo y prueba reapply/provisioning
+   firewall única con cleanup verificado, ejecuta `--preflight`, confirma `001`→`030` sin
+   pendientes, ejecuta los 30 smokes, verifica Full-Text listo y prueba reapply/provisioning
    idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.
@@ -210,20 +212,21 @@ done
     token en GitHub.
 
     > Evidencia del ambiente actual (2026-09-04): este paso terminó correctamente para
-    > `82782e9a6f687d97a847fde3c47a19223ce03dc9`; el frontend, `deploy-meta.json`, `/funding`, fallback
+    > `0e8d816b686beec5d7259150b9d484bc1a0c87c2`; el frontend, `deploy-meta.json`, `/funding`, fallback
     > SPA, headers, catálogo y CORS GET/preflight quedaron verificados. La secuencia se conserva para
     > futuros releases y no debe sustituirse por `Re-run jobs` de un SHA anterior.
-13. No publicar todavía Functions: su publicación requiere un gate independiente. El código local permite arrancar
-    con Defender desactivado sólo si ambos triggers Defender están explícitamente deshabilitados
-    con el valor exacto `true`. La carga PDF tampoco es E2E hasta versionar CORS
+13. Mantener la publicación Functions bajo un gate independiente. El worker general ya está
+    publicado y sólo `ImportOutboxDispatcherFunction`, `ImportQueueFunction` e
+    `ImportSchedulerFunction` tienen su barrera en `false`; los otros once triggers generales y los
+    dos de extracción deben permanecer en `true`. La carga PDF tampoco es E2E hasta versionar CORS
     de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
     navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
 
     CI prepara ZIP offline reproducibles de ambos workers y verifica sus manifiestos/SHA-256, pero
     no recibe credenciales Azure. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880`
-    aplicó y verificó las 16 Functions deshabilitadas por nombre y SCM/FTP basic auth cerrado; las
-    Function Apps actuales no tienen paquetes ni triggers ejecutables. Un artifact exitoso no
-    equivale a autorizar ni ejecutar su despliegue.
+    aplicó y verificó las 16 barreras iniciales y SCM/FTP basic auth cerrado. La publicación del
+    worker general se realizó después mediante One Deploy, con inventario exacto de 14 funciones,
+    once deshabilitadas y tres de importación activas. La app de extracción continúa inerte.
 14. Antes de cerrar la sesión, reducir obligatoriamente el principal OIDC: conservar `Contributor`
     sólo en `rg-rf-dev-<sufijo8>`, `Container Registry Tasks Contributor` + `AcrPull` sólo en el ACR y
     quitar `Contributor`/`Role Based Access Control Administrator` de la suscripción. Un futuro

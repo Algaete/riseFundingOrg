@@ -1,25 +1,28 @@
 # Despliegue del MVP en Azure
 
-Estado 2026-09-04: la infraestructura base de FASE 12A está creada en Azure dev; la base
-`risefunding-dev` tiene `001`→`029`, 29 smokes, reapply idempotente, Full-Text, principals runtime y
+Estado 2026-09-07: la infraestructura base de FASE 12A está creada en Azure dev; la base
+`risefunding-dev` tiene `001`→`030`, 30 smokes, reapply idempotente, Full-Text, principals runtime y
 bootstrap SuperAdmin verificados. La API está publicada por digest OCI en
 `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io` y pasó salud, SQL y
 catálogo público. El frontend técnico del commit
-`82782e9a6f687d97a847fde3c47a19223ce03dc9` está publicado y verificado en
-`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Las Function Apps Flex existen sin paquetes;
-carga PDF E2E, correo, dominios propios, APM/alertas, restore y producción siguen pendientes. SSO
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2` está publicado y verificado en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. El worker general Flex está publicado y
+mantiene únicamente sus tres triggers de importación activos; su canary Grants.gov completó 25/25
+elementos como borradores. El worker de extracción continúa sin paquete; carga PDF E2E, correo,
+dominios propios, alertas, restore y producción siguen pendientes. SSO
 Entra está implementado en código, pero permanece sin configurar y deshabilitado en Azure dev. Este
 release prepara E2E público Playwright/axe y paquetes Functions offline verificables. El release IaC
 `680c96bc0b97b5b2c67594c0f997d99aa1370880` dejó las 16 Functions deshabilitadas por nombre y cerró
-SCM/FTP basic auth en ambos hosts. No publicó workers: las Function Apps desplegadas no tienen
-paquetes y por eso no poseen triggers ejecutables. La API conservó su digest y revisión saludables,
-y el principal OIDC volvió a permisos mínimos de Resource Group/ACR al cerrar la sesión JIT.
+SCM/FTP basic auth en ambos hosts. La publicación posterior del worker general usó One Deploy con
+un blob privado temporal y conservó once de sus catorce triggers deshabilitados. La API mantuvo su
+digest y revisión saludables, y el principal OIDC volvió a permisos mínimos de Resource Group/ACR
+al cerrar la sesión JIT.
 
-Preparación local adicional (2026-09-06): instrumentación OpenTelemetry por identidad con muestreo
+Incremento iniciado el 2026-09-06: instrumentación OpenTelemetry por identidad con muestreo
 acotado y redacción de query, alertas operacionales opt-in desactivadas, harness E2E autenticado con
-allowlist exacta y runbook de restauración SQL a base temporal. Este incremento aún no se desplegó;
-el E2E real espera dominios same-site y una cuenta técnica protegida, y el simulacro PITR no se ha
-ejecutado. Ver los runbooks de [observabilidad](runbooks/observability.md),
+allowlist exacta y runbook de restauración SQL a base temporal. La instrumentación está desplegada
+en API y worker general; el E2E real espera dominios same-site y una cuenta técnica protegida, y el
+simulacro PITR no se ha ejecutado. Ver los runbooks de [observabilidad](runbooks/observability.md),
 [alertas dev](runbooks/operational-alerts-dev.md) y [restauración](runbooks/database-restore.md).
 
 ## 1. Arquitectura del MVP
@@ -33,8 +36,8 @@ El despliegue usa componentes separados:
 - Azure SQL Database para datos y procedimientos almacenados.
 - Storage GPv2 para host de Functions, colas y documentos privados.
 - Key Vault para secretos y claves de Data Protection.
-- Log Analytics para logs de sistema/consola y Application Insights compartido con Functions; la
-  instrumentación APM por identidad está preparada localmente y espera despliegue/verificación real.
+- Log Analytics para logs de sistema/consola y Application Insights compartido con Functions; el
+  host general exporta telemetría por identidad y su arranque se verificó en el workspace.
 - Azure Communication Services Email para correo transaccional, diferido a 12B.
 
 Defender for Storage, Event Grid y `official-rss` permanecen deshabilitados hasta completar sus
@@ -276,8 +279,8 @@ bash infra/scripts/prepare-database-dev.sh
 
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
 interactiva para la contraseña del SuperAdmin. La autenticación del operador queda fijada a la
-sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, confirma las 29
-migraciones registradas sin pendientes y luego ejecuta los 29 smokes con rollback, verifica
+sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, confirma las 30
+migraciones registradas sin pendientes y luego ejecuta los 30 smokes con rollback, verifica
 `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y vincula las tres UAMI SQL por
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en
 [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).
@@ -329,9 +332,10 @@ futuros releases. El paso 5 continúa bloqueado hasta cerrar los gates gobernado
 6. Exigir aprobación del entorno GitHub `production` y no reutilizar UAMI runtime en Actions.
 
 FASE 12A dejó desplegadas la **API** por digest y la publicación precompilada del frontend como
-preview técnico. Los recursos base de Functions existen sin paquetes y la topología final con
-dominios sigue en 12B. No se aceptan publish profiles ni secretos de service principal, ACR o SWA
-persistidos en GitHub.
+preview técnico. En 12B se publicó el worker general y se habilitaron exclusivamente sus tres
+triggers de importación; el worker de extracción y la topología final con dominios siguen
+pendientes. No se aceptan publish profiles ni secretos de service principal, ACR o SWA persistidos
+en GitHub.
 
 El job .NET de CI construye ambos ZIP Functions sin Azure, rechaza configuración local y patrones
 conocidos de archivos sensibles, y publica temporalmente un artifact con manifiestos y SHA-256.

@@ -19,6 +19,14 @@ Azure. Principals runtime, bootstrap SuperAdmin y paquetes de aplicación siguen
 históricas de “sin conexión/validación DB” incluidas en los cierres por fase describen su fecha
 original y quedan supersedidas por esta actualización.
 
+**Actualización operativa 2026-09-07:** Azure SQL dev registra `001`→`030` y pasó 30/30 smokes con
+rollback. `030` acota a 2000 caracteres únicamente la proyección editorial de organizaciones
+objetivo, sin truncar la elegibilidad completa ni el snapshot externo. El worker general fue
+publicado con sólo dispatcher, cola y scheduler de importación activos; el canary Grants.gov
+recuperó 25 elementos, creó 24 borradores y reconoció uno sin cambios, con cero fallos. Los 25
+permanecen como borradores: revisión y publicación continúan siendo acciones humanas. El worker de
+extracción y sus dos triggers siguen inertes.
+
 **Ampliación vigente:** la revisión de visión del 17 de agosto de 2026 incorpora proyectos,
 funders, networking e ingesta gobernada. En alcance funcional, matching y roadmap prevalece
 [REVISION-VISION-FUNDRAISING-GLOBAL.md](REVISION-VISION-FUNDRAISING-GLOBAL.md).

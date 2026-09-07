@@ -129,9 +129,9 @@ Los roles amplios de bootstrap son JIT: al terminar se retiran de la suscripció
 conserva `Contributor` sólo en el Resource Group dev y los dos roles ACR sólo en el registry. Un apply
 completo posterior exige elevación temporal aprobada; `scale-api` no la necesita.
 
-## Estado operativo de Azure dev — 2026-09-06
+## Estado operativo de Azure dev — 2026-09-07
 
-La base `risefunding-dev` tiene aplicadas `001`→`029`; los 29 smokes SQL, el reapply idempotente y
+La base `risefunding-dev` tiene aplicadas `001`→`030`; los 30 smokes SQL, el reapply idempotente y
 Full-Text pasaron. Los principals runtime y el bootstrap SuperAdmin quedaron verificados. La imagen
 de API fue publicada por digest OCI y Container Apps quedó saludable en
 `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io`; el verificador
@@ -140,9 +140,11 @@ confirmó `/health`, conexión SQL y catálogo público.
 El workflow `Azure dev frontend` publicó y verificó el commit
 `0e8d816b686beec5d7259150b9d484bc1a0c87c2` en
 `https://salmon-glacier-0721afc0f.7.azurestaticapps.net`: pasaron `deploy-meta.json`, raíz,
-`/funding`, fallback SPA, headers y CORS GET/preflight. Las dos Function Apps Flex, sus planes, host
-Storage e identidades existen, pero aún no tienen paquetes publicados. Functions, importación PDF
-E2E, correo, dominios propios, telemetría alojada de Functions, alertas y restore siguen pendientes.
+`/funding`, fallback SPA, headers y CORS GET/preflight. La Function App general tiene publicado el
+paquete del commit local `93ad3574f5ba76347833608f100adfe9f58a8f35`; únicamente sus tres
+triggers de importación están habilitados. La app de extracción conserva sus dos triggers
+deshabilitados y continúa sin paquete. Importación PDF E2E, correo, dominios propios, alertas y
+restore siguen pendientes.
 La API ya exporta APM con identidad administrada y pasó el canary de correlación/privacidad.
 SSO Entra está implementado
 en código, pero permanece sin configurar y deshabilitado en Azure dev.
@@ -150,10 +152,11 @@ en código, pero permanece sin configurar y deshabilitado en Azure dev.
 CI ya puede preparar **offline** ambos proyectos Functions en ZIP deterministas, inventariados y con
 SHA-256. Ese artifact dura siete días y rechaza configuración local y patrones conocidos de archivos
 sensibles; esta validación estructural no sustituye un escaneo de secretos por contenido. El release
-`680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó y verificó las 16 Functions deshabilitadas por
-nombre y SCM/FTP basic auth cerrado en ambos hosts. Las Function Apps actuales no tienen paquetes ni
-triggers ejecutables; esta preparación no autoriza subir esos ZIP a Azure. La API conservó su digest
-y revisión, y el principal OIDC quedó sin roles de suscripción y limitado al Resource Group/ACR.
+`680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó y verificó las 16 barreras iniciales y SCM/FTP
+basic auth cerrado en ambos hosts. La publicación posterior del worker general conservó once
+triggers deshabilitados y activó sólo dispatcher, cola y scheduler de importación. La API conservó
+su digest y revisión, y el principal OIDC quedó sin roles de suscripción y limitado al Resource
+Group/ACR.
 
 El frontend incorpora una suite Playwright/axe pública. CI la ejecuta contra un preview aislado y
 `frontend-dev.yml` la repite después de publicar, sin OIDC ni credenciales Azure o de usuarios,
@@ -165,10 +168,12 @@ de Defender y alertas opt-in con `deployOperationalAlerts=false`. También prepa
 de sesión autenticada y el simulacro PITR a una base nueva. La API del SHA
 `0e8d816b686beec5d7259150b9d484bc1a0c87c2` fue publicada por el workflow acotado, sin ampliar permisos,
 conservando escala 1/1. El canary confirmó `FundingPlatform.Api`, plantillas de ruta y ausencia de
-query/slug sintéticos y texto SQL en la telemetría de sus dos solicitudes. Los workers y sus nuevas
-variables de host no se publicaron/aplicaron; ni el E2E autenticado remoto ni el restore se ejecutaron.
+query/slug sintéticos y texto SQL en la telemetría de sus dos solicitudes. El worker general y sus
+variables de host fueron publicados después; su canary importó 25/25 elementos de Grants.gov como
+borradores. Ni el E2E autenticado remoto ni el restore se ejecutaron.
 
 - [Evidencia del release, canary APM, rollback y pendientes](../docs/runbooks/phase12b-release-2026-09-06.md).
+- [Activación del importador, correcciones, canary y rollback](../docs/runbooks/import-worker-dev-2026-09-07.md).
 - [Observabilidad: despliegue, privacidad y verificación](../docs/runbooks/observability.md).
 - [Alertas dev: activación, costo y pausa de sondas](../docs/runbooks/operational-alerts-dev.md).
 - [Restauración SQL: validación read-only y destino temporal](../docs/runbooks/database-restore.md).
@@ -194,7 +199,7 @@ para un cambio completo de infraestructura; no describe trabajo pendiente del am
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
-   `--preflight`, confirma `001`→`029` sin pendientes, corre los 29 smokes, verifica Full-Text listo,
+   `--preflight`, confirma `001`→`030` sin pendientes, corre los 30 smokes, verifica Full-Text listo,
    aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
    SuperAdmin. No usa Graph para crear principals SQL.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y

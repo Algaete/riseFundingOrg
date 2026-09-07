@@ -577,3 +577,25 @@ commit de Azure SQL.
   ejecutada contra Azure. Hasta repetir el wrapper desde el SHA aprobado permanecen
   pendientes los tres principals runtime, su verificación idempotente, el bootstrap SuperAdmin y el
   despliegue de compute.
+
+## Aplicación 030 y canary de importación Azure dev (2026-09-07)
+
+- Destino autorizado: `sql-rf-dev-ag26rf01-centralus/risefunding-dev`. El preflight ejecutó una
+  migración/un lote pendiente y 30 smokes con rollback antes del apply.
+- `030_external_stage_target_organizations_bounds.sql`: SHA-256
+  `f3b2b0bde8761ec0bd8134d57576ca6d858fcd350342083a7cdd78ad645dd233`, 92 líneas/un lote.
+- `030_external_stage_target_organizations_bounds_smoke.sql`: SHA-256
+  `d1d62563d8064ffc38a0935f1b24a76091eb7550e4678ad3260915eb14e695c5`, 35 líneas/un lote.
+- La migración se aplicó después de comprobar la ventana PITR. El historial quedó en 30 migraciones
+  (`001`→`030`) y la ejecución posterior de los 30 smokes volvió a pasar con rollback. Todas las
+  reglas temporales de firewall fueron eliminadas y su ausencia se verificó.
+- El cambio acota a 2000 caracteres sólo `TargetOrganizationsDescription` en el staging externo;
+  conserva completos `EligibilityDescription`, `Requirements` y el snapshot original.
+- El paquete general del commit local `93ad3574f5ba76347833608f100adfe9f58a8f35`, SHA-256
+  `31625c15c5008699eed33e7b173c72ad7e694d215663fdca3c639eed5e529cb2`, fue publicado por One
+  Deploy. El host registró 14 funciones y arrancó; sólo dispatcher, cola y scheduler de importación
+  quedaron habilitados. El contenedor privado temporal y su rol exacto fueron eliminados.
+- El canary `8e813fce-6eaa-f111-a6a7-3833c5d78f35` terminó al primer intento: 25 recuperados, 24
+  borradores creados, uno sin cambios y cero fallos. No quedaron runs, outbox ni items pendientes.
+  El catálogo contiene 25 borradores, cero en revisión y cero publicados; la API pública confirmó
+  `totalCount=0`, por lo que no hubo autopublicación.

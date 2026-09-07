@@ -15,14 +15,16 @@ datos reales de proyectos, postulaciones, calendario y alertas; la consola admin
 organizaciones con ficha segura y errores operacionales sanitizados. Las vistas administrativas
 requieren rol global y MFA reciente, y no exponen RUT, payloads, secretos ni trazas internas.
 
-Azure SQL dev tiene aplicadas `001`→`029`: los 29 smokes SQL, el reapply idempotente, Full-Text,
+Azure SQL dev tiene aplicadas `001`→`030`: los 30 smokes SQL, el reapply idempotente, Full-Text,
 los tres principals runtime y el bootstrap SuperAdmin quedaron verificados. La API está publicada
 por digest OCI y saludable en
 `https://ca-rf-dev-ag26rf01-api.gentlesea-402d2db7.eastus2.azurecontainerapps.io`; el frontend
 técnico del commit
-`82782e9a6f687d97a847fde3c47a19223ce03dc9` está publicado y verificado en
-`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. Los recursos Flex de Functions existen,
-pero no tienen paquetes publicados. El release de infraestructura
+`0e8d816b686beec5d7259150b9d484bc1a0c87c2` está publicado y verificado en
+`https://salmon-glacier-0721afc0f.7.azurestaticapps.net`. El worker general de Functions está
+publicado desde el commit local `93ad3574f5ba76347833608f100adfe9f58a8f35`: sólo dispatcher,
+cola y scheduler de importación están habilitados; sus otros once triggers permanecen apagados y
+el worker de extracción continúa sin paquete. El release de infraestructura
 `680c96bc0b97b5b2c67594c0f997d99aa1370880` aplicó y verificó las 16 barreras de trigger y cerró
 SCM/FTP basic auth en ambos hosts sin cambiar la imagen ni la revisión de la API. El principal OIDC
 quedó reducido a `Contributor` en el Resource Group y roles de build/pull sólo en ACR. SSO Entra
@@ -33,16 +35,15 @@ servicios externos también continúan apagados. La base compartida histórica `
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
-workers. Azure ya conserva las 16 Functions deshabilitadas por nombre y los dos hosts sin basic auth
-de publicación; las Function Apps no tienen paquetes, por lo que no existen triggers ejecutables.
-Preparar y verificar un ZIP no publica ni ejecuta Functions.
+workers. El worker general ya fue publicado mediante One Deploy y su canary Grants.gov completó
+25/25 elementos: 24 borradores creados y uno idempotentemente sin cambios. No existe
+autopublicación: el catálogo público continúa en cero hasta la revisión editorial humana.
 
-Este incremento 12B está implementado, pero todavía no está desplegado:
 OpenTelemetry exporta con las UAMI existentes, limita el muestreo y mantiene redacción de query;
 las alertas operacionales son opt-in y nacen apagadas; el E2E autenticado es fail-closed y exige
 dominios same-site, una cuenta técnica y un environment protegido; y el runbook de PITR valida el
 origen/destino antes de permitir una restauración a una base temporal nueva. No se ejecutó un PITR,
-no se activaron alertas, no se publicó una imagen API nueva ni se subieron paquetes Functions.
+no se activaron alertas y no se publicó el paquete del worker de extracción.
 
 | Fase | Estado | Resultado esperado |
 |---|---|---|
@@ -64,7 +65,7 @@ no se activaron alertas, no se publicó una imagen API nueva ni se subieron paqu
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
 | 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
-| 12B | En curso: preview, E2E público y barrera inerte 14+2 verificados; auth E2E, APM, alertas opt-in y restore temporal preparados localmente, aún sin activar/ejecutar | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
+| 12B | En curso: API/frontend y worker general publicados; importación Grants.gov 25/25 verificada sin autopublicación; extracción, dominios, auth E2E, alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
 la ampliación project-first está en
@@ -79,8 +80,8 @@ Las migraciones `001` a `018` están aplicadas en `res`. El gate SQL definitivo 
 0 migraciones/0 lotes y el Full-Text de 8A listo después de dos provisiones idempotentes. Las `019`
 de 8B, `020` de 9A, `021` de 9B-A, `022`/`023` de 9B-B, `024` de 10A, `025` de 10B, `026` de 11 y
 `027` de preparación runtime para 12A y `028` de cierre de organizaciones/errores administrativos no
-forman parte de ese resultado histórico de `res`. En Azure SQL dev, `019`→`029` ya están aplicadas;
-los 29 smokes pasaron, el reapply fue idempotente y Full-Text quedó listo. El código
+forman parte de ese resultado histórico de `res`. En Azure SQL dev, `019`→`030` ya están aplicadas;
+los 30 smokes pasaron, el reapply fue idempotente y Full-Text quedó listo. El código
 del receptor Defender/Event Grid está listo, pero esa integración y
 la fuente RSS permanecen deshabilitadas en producción hasta que el operador configure los recursos,
 permisos y políticas aprobadas. Este cierre no activó servicios pagados ni ejecutó un E2E real de
@@ -1252,14 +1253,12 @@ El orden de ejecución es:
 - FASE 11 — suscripciones y billing sandbox con `026` aplicada en Azure SQL dev; precio comercial,
   credenciales de prueba y E2E del proveedor siguen pendientes;
 - FASE 12A — infraestructura base dev creada mediante OIDC/Bicep, con ACR, presupuesto, Managed
-  Identities, Storage, Key Vault, observabilidad, SQL serverless, `001`→`029`, Full-Text, principals
-  SQL, bootstrap SuperAdmin, API por digest y frontend técnico publicados y verificados; los recursos
-  Flex existen sin paquetes de aplicación;
-- FASE 12B — en curso: Playwright/axe público y pipeline de empaquetado Functions offline validados;
-  la barrera inerte 14+2 y el cierre de SCM/FTP basic auth están aplicados y verificados en Azure;
-  el harness auth fail-closed, la instrumentación APM por identidad, las alertas opt-in apagadas y
-  el runbook de restore a base temporal están preparados localmente. Su despliegue/ejecución real,
-  los dominios, la publicación gobernada de Functions y la decisión de piloto continúan pendientes.
+  Identities, Storage, Key Vault, observabilidad, SQL serverless, Full-Text, principals SQL,
+  bootstrap SuperAdmin, API por digest y frontend técnico publicados y verificados;
+- FASE 12B — en curso: `001`→`030` y 30/30 smokes validados; Playwright/axe público, empaquetado
+  Functions, APM por identidad y worker general publicados. Sólo los tres triggers de importación
+  están activos y el canary Grants.gov completó 25/25 como borradores. Extracción, dominios,
+  autenticación E2E, alertas, restore y la decisión de piloto continúan pendientes.
 
 La API no aloja un crawler ni trabajos largos: Azure Functions procesa timers/colas y cada fuente
 web requiere revisión de términos, `robots.txt`, rate limits, allowlist y kill switch. La beta de
