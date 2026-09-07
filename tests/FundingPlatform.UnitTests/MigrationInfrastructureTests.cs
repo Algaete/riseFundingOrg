@@ -237,6 +237,45 @@ public sealed class MigrationInfrastructureTests
     }
 
     [Fact]
+    public void External_stage_bounds_target_organizations_without_truncating_full_eligibility()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var migration = SqlScriptCatalog.DiscoverMigrations(root)
+            .Single(script => script.Sequence == 30);
+        var smoke = SqlScriptCatalog.DiscoverTests(root)
+            .Single(script => script.Sequence == 30);
+        var migrationSql = File.ReadAllText(Path.Combine(
+            root, "database", "Migrations", migration.FileName));
+        var smokeSql = File.ReadAllText(Path.Combine(
+            root, "database", "Tests", smoke.FileName));
+
+        Assert.Equal("external_stage_target_organizations_bounds", migration.Name);
+        Assert.Equal("external_stage_target_organizations_bounds_smoke", smoke.Name);
+        Assert.Single(migration.Batches);
+        Assert.Single(smoke.Batches);
+        Assert.Contains(
+            "TargetOrganizationsDescription = LEFT(@EligibilityDescription, 2000)",
+            migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "LEFT(@EligibilityDescription, 2000), @RequiresCofunding",
+            migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "FundingPlatform_usp_FundingOpportunity_StageExternal_Pre016",
+            migrationSql,
+            StringComparison.Ordinal);
+        Assert.Contains("<> @ProcedureObjectId", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("@OldInsertCount <> 0", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("@OldUpdateCount <> 0", migrationSql, StringComparison.Ordinal);
+        Assert.Contains("max_length = 4000", smokeSql, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "EligibilityDescription = LEFT(@EligibilityDescription, 2000)",
+            migrationSql,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Migration_preflight_executes_pending_schema_then_smokes_before_rollback()
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);

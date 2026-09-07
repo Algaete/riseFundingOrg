@@ -356,8 +356,8 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("--provision-runtime-identities", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("--verify-runtime-identities", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("Full-Text 8A: listo", databasePreparation, StringComparison.Ordinal);
-        Assert.Contains("Migraciones registradas: 29", databasePreparation, StringComparison.Ordinal);
-        Assert.Contains("Migraciones locales: 29", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("Migraciones registradas: 30", databasePreparation, StringComparison.Ordinal);
+        Assert.Contains("Migraciones locales: 30", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("bootstrap-superadmin", databasePreparation, StringComparison.Ordinal);
         Assert.Contains("refusing to overwrite", keyVaultPreparation, StringComparison.Ordinal);
         Assert.Contains("openssl rand 64", keyVaultPreparation, StringComparison.Ordinal);

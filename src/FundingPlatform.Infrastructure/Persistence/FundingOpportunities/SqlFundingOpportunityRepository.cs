@@ -215,7 +215,9 @@ public sealed class SqlFundingOpportunityRepository(
             DeadlinePrecision = opportunity.CloseDate.HasValue ? (byte)1 : (byte)0,
             opportunity.EligibilityDescription,
             Objectives = opportunity.FundingCategoriesDescription,
-            opportunity.RequiresCofunding,
+            RequiresCofunding = NormalizeImportedCofundingRequirement(
+                opportunity.RequiresCofunding,
+                cofundingPercentage: null),
             CofundingPercentage = (decimal?)null,
             DataQualityScore = CalculateQualityScore(opportunity, hasAmount),
             SnapshotJson = snapshot,
@@ -274,6 +276,19 @@ public sealed class SqlFundingOpportunityRepository(
         qualityScore += opportunity.CloseDate is null ? 0 : 10;
         qualityScore += hasAmount ? 10 : 0;
         return qualityScore;
+    }
+
+    internal static bool? NormalizeImportedCofundingRequirement(
+        bool? requiresCofunding,
+        decimal? cofundingPercentage)
+    {
+        // External providers may assert that matching funds are required without
+        // publishing a percentage. The editorial model cannot represent true
+        // without that percentage, so preserve the assertion in SnapshotJson and
+        // leave the canonical pair unknown until an editor verifies the amount.
+        return requiresCofunding == true && !cofundingPercentage.HasValue
+            ? null
+            : requiresCofunding;
     }
 
     private static string NormalizeStageError(string code) => code switch
