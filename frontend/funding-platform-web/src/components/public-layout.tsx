@@ -19,7 +19,12 @@ export function PublicLayout() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <BrandMark />
+          <div className="hidden sm:block">
+            <BrandMark />
+          </div>
+          <div className="sm:hidden">
+            <BrandMark compact />
+          </div>
           <nav className="hidden items-center gap-1 sm:flex" aria-label="Principal">
             <Button variant="ghost" asChild>
               <Link to="/funding">Oportunidades</Link>

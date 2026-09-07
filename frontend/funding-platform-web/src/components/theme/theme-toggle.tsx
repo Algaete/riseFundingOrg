@@ -1,42 +1,30 @@
-import { Laptop, Moon, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
+import type { ThemePreference } from '@/components/theme/theme-context'
 import { useTheme } from '@/hooks/use-theme'
 
-const nextTheme = {
-  system: 'light',
-  light: 'dark',
-  dark: 'system',
-} as const
-
-const icons = {
-  system: Laptop,
-  light: Sun,
-  dark: Moon,
-} as const
-
-const labels = {
-  system: 'Sistema',
-  light: 'Claro',
-  dark: 'Oscuro',
-} as const
+const options: Array<{ label: string; value: ThemePreference }> = [
+  { label: 'Sistema', value: 'system' },
+  { label: 'Claro', value: 'light' },
+  { label: 'Oscuro', value: 'dark' },
+]
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const { t } = useTranslation()
-  const Icon = icons[theme]
 
   return (
-    <Button
-      type="button"
-      size="icon"
-      variant="ghost"
-      onClick={() => setTheme(nextTheme[theme])}
-      aria-label={t('actions.changeTheme') + ': ' + labels[theme]}
-      title={labels[theme]}
+    <select
+      aria-label={t('actions.changeTheme')}
+      className="h-10 cursor-pointer rounded-lg border bg-card px-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent"
+      onChange={(event) => setTheme(event.target.value as ThemePreference)}
+      value={theme}
     >
-      <Icon className="size-4" aria-hidden="true" />
-    </Button>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   )
 }

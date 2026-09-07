@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter } from 'react-router-dom'
 
@@ -115,21 +115,39 @@ describe('aplicación', () => {
     ).toBeInTheDocument()
   })
 
-  it('permite alternar el tema desde el shell', async () => {
+  it('permite elegir y conservar el tema desde el shell', async () => {
     const user = userEvent.setup()
     authenticate()
     renderRoute('/dashboard')
 
     await screen.findByRole('heading', { name: 'Resumen', level: 1 })
-    await user.click(
-      screen.getByRole('button', { name: /Cambiar tema: Sistema/i }),
-    )
-    await user.click(
-      screen.getByRole('button', { name: /Cambiar tema: Claro/i }),
-    )
+    const selector = screen.getByRole('combobox', { name: 'Cambiar tema' })
+    expect(selector).toHaveValue('system')
+    expect(within(selector).getAllByRole('option')).toHaveLength(3)
+
+    await user.selectOptions(selector, 'dark')
 
     expect(document.documentElement).toHaveClass('dark')
     expect(localStorage.getItem('funding-platform-theme')).toBe('dark')
+
+    await user.selectOptions(selector, 'light')
+
+    expect(document.documentElement).not.toHaveClass('dark')
+    expect(localStorage.getItem('funding-platform-theme')).toBe('light')
+
+    await user.selectOptions(selector, 'system')
+
+    expect(selector).toHaveValue('system')
+    expect(localStorage.getItem('funding-platform-theme')).toBe('system')
+  })
+
+  it('restaura la preferencia de tema guardada', async () => {
+    localStorage.setItem('funding-platform-theme', 'dark')
+    authenticate()
+    renderRoute('/dashboard')
+
+    expect(await screen.findByRole('combobox', { name: 'Cambiar tema' })).toHaveValue('dark')
+    await waitFor(() => expect(document.documentElement).toHaveClass('dark'))
   })
 
   it.each([
