@@ -309,7 +309,11 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("exactamente 8 caracteres `[a-z0-9]`", checklist, StringComparison.Ordinal);
         Assert.Contains("conservar exactamente el mismo", checklist, StringComparison.Ordinal);
         Assert.Contains("No cambiar el sufijo ni borrar recursos", checklist, StringComparison.Ordinal);
-        Assert.Contains("No publicar todavía Functions", checklist, StringComparison.Ordinal);
+        Assert.Contains("Mantener la publicación Functions bajo un gate independiente", checklist,
+            StringComparison.Ordinal);
+        Assert.Contains("ImportOutboxDispatcherFunction", checklist, StringComparison.Ordinal);
+        Assert.Contains("once triggers generales", checklist, StringComparison.Ordinal);
+        Assert.Contains("dos de extracción deben permanecer en `true`", checklist, StringComparison.Ordinal);
         Assert.Contains("bash infra/scripts/prepare-key-vault-dev.sh", checklist, StringComparison.Ordinal);
         Assert.Contains("bash infra/scripts/prepare-database-dev.sh", checklist, StringComparison.Ordinal);
         Assert.Contains("--query '[0].sid'", databasePreparation, StringComparison.Ordinal);
