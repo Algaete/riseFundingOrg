@@ -23,6 +23,7 @@ public sealed record ProjectReviewQueueItemResponse(
     string Title,
     string? Summary,
     byte ProjectStatus,
+    byte? ProjectStage,
     byte PublicationStatus,
     Guid OrganizationPublicId,
     string OrganizationName,
@@ -38,6 +39,7 @@ public sealed record ProjectAdminReviewDetailResponse(
     string? Summary,
     string? Description,
     byte ProjectStatus,
+    byte? ProjectStage,
     byte PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -55,7 +57,8 @@ public sealed record ProjectAdminReviewDetailResponse(
     IReadOnlyList<PublicProjectRegionResponse> Regions,
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes);
+    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
 
 public sealed record PublicProjectResponse(
     Guid ProjectId,
@@ -64,6 +67,7 @@ public sealed record PublicProjectResponse(
     string? Summary,
     string? Description,
     byte ProjectStatus,
+    byte? ProjectStage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,
@@ -76,7 +80,8 @@ public sealed record PublicProjectResponse(
     IReadOnlyList<PublicProjectRegionResponse> Regions,
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes);
+    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
 
 public sealed record PublicProjectOrganizationResponse(
     Guid PublicId,

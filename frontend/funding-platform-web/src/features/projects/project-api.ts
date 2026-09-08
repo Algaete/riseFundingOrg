@@ -6,6 +6,7 @@ export interface ProjectSummary {
   title: string
   summary: string | null
   status: number
+  projectStage: number | null
   publicationStatus: number
   startDate: string | null
   endDate: string | null
@@ -29,6 +30,7 @@ export interface ProjectDetails extends ProjectSummary {
   categoryIds: number[]
   beneficiaryTypeIds: number[]
   projectTypeIds: number[]
+  sustainableDevelopmentGoalIds: number[]
 }
 
 export interface ProjectWriteInput {
@@ -36,6 +38,7 @@ export interface ProjectWriteInput {
   summary: string | null
   description: string | null
   status: number
+  projectStage: number | null
   startDate: string | null
   endDate: string | null
   budgetTotal: number | null
@@ -46,6 +49,7 @@ export interface ProjectWriteInput {
   categoryIds: number[]
   beneficiaryTypeIds: number[]
   projectTypeIds: number[]
+  sustainableDevelopmentGoalIds: number[]
 }
 
 export interface PersistedProject {
@@ -68,6 +72,7 @@ export interface ProjectReviewQueueItem {
   title: string
   summary: string | null
   projectStatus: number
+  projectStage: number | null
   publicationStatus: number
   organizationPublicId: string
   organizationName: string
@@ -107,6 +112,7 @@ export interface PublicProject {
   summary: string | null
   description: string | null
   projectStatus: number
+  projectStage: number | null
   startDate: string | null
   endDate: string | null
   budgetTotal: number | null
@@ -120,6 +126,7 @@ export interface PublicProject {
   categories: PublicProjectCatalogItem[]
   beneficiaryTypes: PublicProjectCatalogItem[]
   projectTypes: PublicProjectCatalogItem[]
+  sustainableDevelopmentGoals: PublicProjectCatalogItem[]
 }
 
 export interface ProjectReviewDetails extends Omit<PublicProject, 'publishedAtUtc'> {

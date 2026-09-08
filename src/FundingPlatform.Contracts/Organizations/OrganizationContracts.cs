@@ -20,7 +20,8 @@ public sealed record OrganizationCatalogsResponse(
     IReadOnlyList<CatalogOptionResponse<int>> BeneficiaryTypes,
     IReadOnlyList<CatalogOptionResponse<int>> ProjectTypes,
     IReadOnlyList<CatalogOptionResponse<long>> Tags,
-    IReadOnlyList<CatalogOptionResponse<short>> Languages);
+    IReadOnlyList<CatalogOptionResponse<short>> Languages,
+    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals);
 
 public sealed record CreateOrganizationRequest(
     string Name,

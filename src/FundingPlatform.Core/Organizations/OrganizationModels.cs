@@ -20,7 +20,8 @@ public sealed record OrganizationCatalogs(
     IReadOnlyList<CatalogOption<int>> BeneficiaryTypes,
     IReadOnlyList<CatalogOption<int>> ProjectTypes,
     IReadOnlyList<CatalogOption<long>> Tags,
-    IReadOnlyList<CatalogOption<short>> Languages);
+    IReadOnlyList<CatalogOption<short>> Languages,
+    IReadOnlyList<CatalogOption<int>> SustainableDevelopmentGoals);
 
 public sealed record OrganizationSummary(
     Guid PublicId,

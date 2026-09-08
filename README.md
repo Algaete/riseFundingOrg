@@ -33,11 +33,13 @@ configurar y deshabilitado en Azure dev; correo, Defender/Event Grid, PDF E2E, d
 servicios externos también continúan apagados. La base compartida histórica `res` permanece en
 18/18, correspondiente a 8A.
 
-El incremento de estabilización del perfil organizacional está preparado localmente mediante
-`031_organization_profile_catalog_expansion.sql` y `032_matching_other_neutrality.sql`. Amplía los
-catálogos solicitados, conserva referencias históricas y evita que “Otros” genere coincidencias
-automáticas. Estas dos migraciones y la interfaz asociada todavía no se han aplicado ni publicado
-en Azure dev; por eso el estado observado del ambiente continúa siendo `001`→`030`.
+Los incrementos de feedback del MVP están preparados localmente mediante
+`031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql` y
+`033_project_impact_profile.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere
+coincidencias automáticas y agregan al proyecto una etapa independiente junto con los 17 ODS
+oficiales, de selección múltiple. Estas tres migraciones y sus interfaces todavía no se han
+aplicado ni publicado en Azure dev; por eso el estado observado del ambiente continúa siendo
+`001`→`030`.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos

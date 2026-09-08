@@ -26,6 +26,7 @@ export interface MarketplaceProjectItem {
   title: string
   summary: string | null
   status: number
+  projectStage: number | null
   startDate: string | null
   endDate: string | null
   budgetTotal: number | null
@@ -48,6 +49,7 @@ export interface MarketplaceProjectDetails extends MarketplaceProjectItem {
   categories: PublicProjectCatalogItem[]
   beneficiaryTypes: PublicProjectCatalogItem[]
   projectTypes: PublicProjectCatalogItem[]
+  sustainableDevelopmentGoals: PublicProjectCatalogItem[]
 }
 
 export interface MarketplaceProjectListResponse {
@@ -61,6 +63,7 @@ export interface MarketplaceCatalogs {
   countries: PublicProjectCatalogItem[]
   fundingCategories: PublicProjectCatalogItem[]
   projectTypes: PublicProjectCatalogItem[]
+  sustainableDevelopmentGoals: PublicProjectCatalogItem[]
   currencies: Array<{ code: string; name: string; minorUnits: number }>
 }
 
@@ -125,6 +128,7 @@ export const marketplaceApi = {
       summary: project.summary,
       description: project.description,
       projectStatus: project.status,
+      projectStage: project.projectStage,
       startDate: project.startDate,
       endDate: project.endDate,
       budgetTotal: project.budgetTotal,
@@ -138,6 +142,7 @@ export const marketplaceApi = {
       categories: project.categories,
       beneficiaryTypes: project.beneficiaryTypes,
       projectTypes: project.projectTypes,
+      sustainableDevelopmentGoals: project.sustainableDevelopmentGoals ?? [],
     }))
   },
 

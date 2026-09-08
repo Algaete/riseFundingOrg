@@ -21,9 +21,10 @@ principals runtime falló después con SQL 102 y fue revertido transaccionalment
 membresías parciales. La corrección se incluye en este release y aún debe ejecutarse en Azure;
 principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 
-La cadena local agrega `031_organization_profile_catalog_expansion.sql` y
-`032_matching_other_neutrality.sql`, con sus smokes transaccionales. Ambos artefactos están
-preparados para el siguiente release y todavía no forman parte del estado Azure descrito arriba.
+La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
+`032_matching_other_neutrality.sql` y `033_project_impact_profile.sql`, con sus smokes
+transaccionales. Los tres incrementos están preparados para el siguiente release y todavía no
+forman parte del estado Azure descrito arriba.
 Huellas locales del incremento:
 
 - migración `031` (354 líneas/un lote):
@@ -33,7 +34,11 @@ Huellas locales del incremento:
 - migración `032` (388 líneas/un lote):
   `e7b35a144ebaa0598b906e021c6a664fc9524a4a1e850841c96fde050e5eae6d`;
 - smoke `032` (327 líneas/un lote):
-  `6af60b2956d8ae72aaf16b164fcacb3dfaede851fe37010ad2bc1e6f3de63f79`.
+  `6af60b2956d8ae72aaf16b164fcacb3dfaede851fe37010ad2bc1e6f3de63f79`;
+- migración `033` (967 líneas/12 lotes):
+  `e8b7f7382abf82dc9647ca7446250c9744234c188badb7afb33740f821bfaf9f`;
+- smoke `033` (240 líneas/un lote):
+  `f3c1d2e041e923f5a09700b2af4d897d505bdeb360bac6468d53306a41a6bf7f`.
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

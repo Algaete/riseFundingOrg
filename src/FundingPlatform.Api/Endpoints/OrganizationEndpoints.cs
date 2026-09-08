@@ -165,7 +165,8 @@ public static class OrganizationEndpoints
         catalogs.BeneficiaryTypes.Select(Map).ToArray(),
         catalogs.ProjectTypes.Select(Map).ToArray(),
         catalogs.Tags.Select(Map).ToArray(),
-        catalogs.Languages.Select(Map).ToArray());
+        catalogs.Languages.Select(Map).ToArray(),
+        catalogs.SustainableDevelopmentGoals.Select(Map).ToArray());
 
     private static CatalogOptionResponse<T> Map<T>(CatalogOption<T> item) => new(item.Id, item.Code, item.Name);
 

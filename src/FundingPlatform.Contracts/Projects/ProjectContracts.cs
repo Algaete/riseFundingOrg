@@ -6,6 +6,7 @@ public sealed record ProjectSummaryResponse(
     string Title,
     string? Summary,
     byte Status,
+    byte? ProjectStage,
     byte PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -23,6 +24,7 @@ public sealed record ProjectResponse(
     string? Summary,
     string? Description,
     byte Status,
+    byte? ProjectStage,
     byte PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -38,6 +40,7 @@ public sealed record ProjectResponse(
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
+    IReadOnlyList<int> SustainableDevelopmentGoalIds,
     DateTimeOffset? SubmittedAtUtc,
     DateTimeOffset? ReviewedAtUtc,
     string? RejectionReason,
@@ -57,6 +60,8 @@ public sealed record ProjectWriteRequest(
     IReadOnlyList<int>? RegionIds,
     IReadOnlyList<int>? CategoryIds,
     IReadOnlyList<int>? BeneficiaryTypeIds,
-    IReadOnlyList<int>? ProjectTypeIds);
+    IReadOnlyList<int>? ProjectTypeIds,
+    IReadOnlyList<int>? SustainableDevelopmentGoalIds = null,
+    byte? ProjectStage = null);
 
 public sealed record ProjectCreatedResponse(Guid PublicId, int ProjectVersion, string ETag);

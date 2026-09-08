@@ -15,17 +15,25 @@ public sealed class ProjectServiceTests
         {
             Title = "  Agua segura  ",
             Currency = " clp ",
+            Status = ProjectStatus.Idea,
             CountryIds = [152, 152],
-            CategoryIds = [2, 1, 2]
+            CategoryIds = [2, 1, 2],
+            SustainableDevelopmentGoalIds = [13, 1, 13]
         }, CancellationToken.None);
 
         Assert.Equal(ProjectWriteOutcome.Success, result.Outcome);
         Assert.Equal("Agua segura", repository.WrittenProject!.Title);
         Assert.Equal("CLP", repository.WrittenProject.Currency);
+        Assert.Equal(ProjectStatus.SeekingFunding, repository.WrittenProject.Status);
+        Assert.Equal(ProjectStage.Pilot, repository.WrittenProject.Stage);
         Assert.Equal([152], repository.WrittenProject.CountryIds);
         Assert.Equal([1, 2], repository.WrittenProject.CategoryIds);
+        Assert.Equal([1, 13], repository.WrittenProject.SustainableDevelopmentGoalIds);
         Assert.StartsWith("agua-segura-", repository.Slug, StringComparison.Ordinal);
         Assert.Contains("\"title\":\"Agua segura\"", repository.SnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"projectStage\":1", repository.SnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"sustainableDevelopmentGoalIds\":[1,13]", repository.SnapshotJson,
+            StringComparison.Ordinal);
         Assert.Equal(32, repository.ContentHash!.Length);
     }
 
@@ -74,6 +82,18 @@ public sealed class ProjectServiceTests
     }
 
     [Fact]
+    public async Task Update_maps_legacy_impact_guard_to_conflict()
+    {
+        var repository = new StubRepository { ErrorNumber = 51411 };
+        var service = new ProjectService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new byte[8], ValidProject(), CancellationToken.None);
+
+        Assert.Equal(ProjectWriteOutcome.Conflict, result.Outcome);
+    }
+
+    [Fact]
     public async Task Update_maps_unknown_region_to_sanitized_validation_error()
     {
         var repository = new StubRepository { ErrorNumber = 51409 };
@@ -89,10 +109,31 @@ public sealed class ProjectServiceTests
             Assert.Single(result.Errors!["project"]));
     }
 
+    [Fact]
+    public async Task Update_rejects_invalid_stage_and_sdg_without_writing()
+    {
+        var repository = new StubRepository();
+        var service = new ProjectService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            ValidProject() with
+            {
+                Stage = (ProjectStage)6,
+                SustainableDevelopmentGoalIds = [18]
+            }, CancellationToken.None);
+
+        Assert.Equal(ProjectWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("projectStage", result.Errors!.Keys);
+        Assert.Contains("sustainableDevelopmentGoalIds", result.Errors.Keys);
+        Assert.Null(repository.WrittenProject);
+    }
+
     private static ProjectData ValidProject() => new(
         "Agua segura", "Resumen", "Descripción", ProjectStatus.SeekingFunding,
+        ProjectStage.Pilot,
         new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31),
-        100_000, 25_000, "CLP", [152], [7], [1], [1], [1]);
+        100_000, 25_000, "CLP", [152], [7], [1], [1], [1], [1, 13]);
 
     private sealed class StubRepository : IProjectRepository
     {

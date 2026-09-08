@@ -38,8 +38,20 @@ const projectStatusNames = [
   'Financiado parcialmente',
   'Financiado',
   'En ejecución',
-  'Completado',
+  'Finalizado',
 ]
+const projectStageNames = [
+  'Idea / diseño',
+  'Piloto',
+  'Implementación',
+  'Escalamiento',
+  'Consolidación',
+  'Evaluación',
+]
+
+function projectStageName(stage: number | null) {
+  return stage === null ? 'Sin definir' : projectStageNames[stage] ?? 'Sin definir'
+}
 
 function errorMessage(error: unknown) {
   return error instanceof ApiError
@@ -79,8 +91,9 @@ function ReviewCard({ item }: { item: ProjectReviewQueueItem }) {
     </CardHeader>
     <CardContent className="space-y-4">
       <p className="text-sm leading-6 text-muted-foreground">{item.summary ?? 'El proyecto no tiene resumen.'}</p>
-      <dl className="grid gap-3 text-sm sm:grid-cols-3">
+      <dl className="grid gap-3 text-sm sm:grid-cols-4">
         <div><dt className="text-muted-foreground">Estado</dt><dd className="font-semibold">{projectStatusNames[item.projectStatus] ?? 'Sin clasificar'}</dd></div>
+        <div><dt className="text-muted-foreground">Etapa</dt><dd className="font-semibold">{projectStageName(item.projectStage)}</dd></div>
         <div><dt className="text-muted-foreground">Enviado</dt><dd className="font-semibold">{formatDate(item.submittedAtUtc)}</dd></div>
         <div><dt className="text-muted-foreground">Actualizado</dt><dd className="font-semibold">{formatDate(item.updatedAtUtc)}</dd></div>
       </dl>
@@ -165,8 +178,8 @@ export function AdminProjectReviewDetailPage() {
     <Button asChild variant="ghost"><Link to="/admin/projects"><ArrowLeft className="size-4" />Volver a la cola</Link></Button>
     <div><div className="flex flex-wrap items-center gap-3"><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Revisión de {data.organization.name}</p><span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold">{data.completeness}% completo</span></div><h1 className="mt-2 text-3xl font-bold">{data.title}</h1><p className="mt-3 max-w-4xl text-lg leading-8 text-muted-foreground">{data.summary}</p></div>
     <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-      <div className="space-y-6"><Card><CardHeader><CardTitle>Descripción presentada</CardTitle></CardHeader><CardContent><p className="whitespace-pre-line leading-7 text-muted-foreground">{data.description}</p></CardContent></Card><Card><CardHeader><CardTitle>Alcance declarado</CardTitle></CardHeader><CardContent className="space-y-5"><TaxonomyList title="Territorios" values={[...data.countries, ...data.regions]} /><TaxonomyList title="Áreas de impacto" values={data.categories} /><TaxonomyList title="Poblaciones beneficiarias" values={data.beneficiaryTypes} /><TaxonomyList title="Tipos de proyecto" values={data.projectTypes} /></CardContent></Card></div>
-      <aside className="space-y-4"><Card><CardHeader><CardTitle>Financiamiento</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p className="flex justify-between gap-3"><span className="text-muted-foreground">Presupuesto</span><strong>{formatMoney(data.budgetTotal, data.currency)}</strong></p><p className="flex justify-between gap-3"><span className="text-muted-foreground">Confirmado</span><strong>{formatMoney(data.confirmedFunding, data.currency)}</strong></p><p className="flex justify-between gap-3 border-t pt-3"><span className="text-muted-foreground">Brecha</span><strong className="text-primary">{formatMoney(data.fundingGap, data.currency)}</strong></p></CardContent></Card><Card><CardContent className="space-y-3 p-5 text-sm"><p><span className="text-muted-foreground">Estado: </span><strong>{projectStatusNames[data.projectStatus]}</strong></p><p><span className="text-muted-foreground">Enviado: </span><strong>{data.submittedAtUtc ? formatDate(data.submittedAtUtc) : 'Sin fecha'}</strong></p><p><span className="text-muted-foreground">Actualizado: </span><strong>{formatDate(data.updatedAtUtc)}</strong></p></CardContent></Card></aside>
+      <div className="space-y-6"><Card><CardHeader><CardTitle>Descripción presentada</CardTitle></CardHeader><CardContent><p className="whitespace-pre-line leading-7 text-muted-foreground">{data.description}</p></CardContent></Card><Card><CardHeader><CardTitle>Alcance declarado</CardTitle></CardHeader><CardContent className="space-y-5"><TaxonomyList title="Territorios" values={[...data.countries, ...data.regions]} /><TaxonomyList title="Áreas de impacto" values={data.categories} /><TaxonomyList title="Poblaciones beneficiarias" values={data.beneficiaryTypes} /><TaxonomyList title="Tipos de proyecto" values={data.projectTypes} /><TaxonomyList title="ODS relacionados" values={data.sustainableDevelopmentGoals ?? []} /></CardContent></Card></div>
+      <aside className="space-y-4"><Card><CardHeader><CardTitle>Financiamiento</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p className="flex justify-between gap-3"><span className="text-muted-foreground">Presupuesto</span><strong>{formatMoney(data.budgetTotal, data.currency)}</strong></p><p className="flex justify-between gap-3"><span className="text-muted-foreground">Confirmado</span><strong>{formatMoney(data.confirmedFunding, data.currency)}</strong></p><p className="flex justify-between gap-3 border-t pt-3"><span className="text-muted-foreground">Brecha</span><strong className="text-primary">{formatMoney(data.fundingGap, data.currency)}</strong></p></CardContent></Card><Card><CardContent className="space-y-3 p-5 text-sm"><p><span className="text-muted-foreground">Estado: </span><strong>{projectStatusNames[data.projectStatus]}</strong></p><p><span className="text-muted-foreground">Etapa: </span><strong>{projectStageName(data.projectStage)}</strong></p><p><span className="text-muted-foreground">Enviado: </span><strong>{data.submittedAtUtc ? formatDate(data.submittedAtUtc) : 'Sin fecha'}</strong></p><p><span className="text-muted-foreground">Actualizado: </span><strong>{formatDate(data.updatedAtUtc)}</strong></p></CardContent></Card></aside>
     </div>
     <ReviewDecisionActions project={data} />
   </div>
@@ -214,11 +227,11 @@ export function PublicProjectView({
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_19rem]">
       <div className="space-y-9">
         <section><h2 className="text-2xl font-bold">Acerca del proyecto</h2><p className="mt-4 whitespace-pre-line text-base leading-8 text-muted-foreground">{data.description ?? data.summary ?? 'La organización aún no publicó una descripción extendida.'}</p></section>
-        <section className="space-y-5"><TaxonomyList title="Territorios" values={[...data.countries, ...data.regions]} /><TaxonomyList title="Áreas de impacto" values={data.categories} /><TaxonomyList title="Poblaciones beneficiarias" values={data.beneficiaryTypes} /><TaxonomyList title="Tipos de proyecto" values={data.projectTypes} /></section>
+        <section className="space-y-5"><TaxonomyList title="Territorios" values={[...data.countries, ...data.regions]} /><TaxonomyList title="Áreas de impacto" values={data.categories} /><TaxonomyList title="Poblaciones beneficiarias" values={data.beneficiaryTypes} /><TaxonomyList title="Tipos de proyecto" values={data.projectTypes} /><TaxonomyList title="ODS relacionados" values={data.sustainableDevelopmentGoals ?? []} /></section>
       </div>
       <aside className="space-y-4">
         <Card><CardHeader><CardTitle>Necesidad financiera</CardTitle></CardHeader><CardContent className="space-y-4"><div><p className="text-sm text-muted-foreground">Brecha por financiar</p><p className="mt-1 text-2xl font-bold text-primary">{formatMoney(data.fundingGap, data.currency)}</p></div><div className="grid gap-3 border-t pt-4 text-sm"><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Presupuesto</span><strong>{formatMoney(data.budgetTotal, data.currency)}</strong></p><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Confirmado</span><strong>{formatMoney(data.confirmedFunding, data.currency)}</strong></p></div><p className="text-xs leading-5 text-muted-foreground">FundingPlatform informa la necesidad declarada; no procesa donaciones ni garantiza resultados.</p></CardContent></Card>
-        <Card><CardContent className="space-y-3 p-5"><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><strong>{projectStatusNames[data.projectStatus] ?? 'Proyecto activo'}</strong></p>{(data.startDate || data.endDate) && <p className="flex items-start gap-2 text-sm"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" /><span>{data.startDate ? formatDateOnly(data.startDate) : 'Sin inicio definido'} — {data.endDate ? formatDateOnly(data.endDate) : 'Sin término definido'}</span></p>}<p className="flex items-center gap-2 text-sm"><MapPin className="size-4 text-primary" />{data.countries.map(country => country.name).join(', ') || 'Cobertura por confirmar'}</p><p className="flex items-center gap-2 text-sm"><Globe2 className="size-4 text-primary" />Contenido moderado antes de publicarse</p><p className="flex items-center gap-2 text-sm"><WalletCards className="size-4 text-primary" />Montos sin conversión de moneda</p></CardContent></Card>
+        <Card><CardContent className="space-y-3 p-5"><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><strong>{projectStatusNames[data.projectStatus] ?? 'Proyecto activo'}</strong></p><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><span>Etapa: <strong>{projectStageName(data.projectStage)}</strong></span></p>{(data.startDate || data.endDate) && <p className="flex items-start gap-2 text-sm"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" /><span>{data.startDate ? formatDateOnly(data.startDate) : 'Sin inicio definido'} — {data.endDate ? formatDateOnly(data.endDate) : 'Sin término definido'}</span></p>}<p className="flex items-center gap-2 text-sm"><MapPin className="size-4 text-primary" />{data.countries.map(country => country.name).join(', ') || 'Cobertura por confirmar'}</p><p className="flex items-center gap-2 text-sm"><Globe2 className="size-4 text-primary" />Contenido moderado antes de publicarse</p><p className="flex items-center gap-2 text-sm"><WalletCards className="size-4 text-primary" />Montos sin conversión de moneda</p></CardContent></Card>
       </aside>
     </div>
   </article>

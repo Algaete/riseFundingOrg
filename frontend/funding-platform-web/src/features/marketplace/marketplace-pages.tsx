@@ -36,7 +36,7 @@ const projectStatusNames = [
   'Financiado parcialmente',
   'Financiado',
   'En ejecución',
-  'Completado',
+  'Finalizado',
 ]
 const defaultPageSize = 12
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'

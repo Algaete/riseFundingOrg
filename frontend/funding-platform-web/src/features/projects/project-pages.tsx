@@ -31,11 +31,19 @@ import {
 
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
 const textareaClass = 'min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm'
-const statusNames = ['Idea', 'Diseño', 'Buscando financiamiento', 'Financiado parcialmente', 'Financiado', 'En ejecución', 'Completado']
+const statusNames = ['Idea', 'Diseño', 'Buscando financiamiento', 'Financiado parcialmente', 'Financiado', 'En ejecución', 'Finalizado']
+const stageNames = ['Idea / diseño', 'Piloto', 'Implementación', 'Escalamiento', 'Consolidación', 'Evaluación']
 const publicationNames = ['Borrador', 'Pendiente de revisión', 'Publicado', 'Rechazado', 'Archivado']
 
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-  return <label className="grid gap-1.5 text-sm font-semibold"><span>{label}</span>{children}{error && <span className="text-xs font-normal text-destructive" role="alert">{error}</span>}</label>
+function editableStatusOptions(currentStatus?: number) {
+  const options = statusNames.map((name, value) => ({ name, value })).filter(option => option.value >= 2)
+  return currentStatus !== undefined && currentStatus < 2
+    ? [{ name: `${statusNames[currentStatus]} (estado anterior)`, value: currentStatus }, ...options]
+    : options
+}
+
+function Field({ label, hint, required = false, error, children }: { label: string; hint?: string; required?: boolean; error?: string; children: ReactNode }) {
+  return <label className="grid gap-1.5 text-sm font-semibold"><span>{label}{required && <><span aria-hidden="true" className="text-destructive"> *</span><span className="sr-only"> (obligatorio)</span></>}</span>{children}{hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}{error && <span className="text-xs font-normal text-destructive" role="alert">{error}</span>}</label>
 }
 
 function errorMessage(error: unknown) {
@@ -61,7 +69,7 @@ function MultiChoice({ label, items, selected, onChange }: {
   selected: number[]
   onChange: (value: number[]) => void
 }) {
-  return <fieldset className="space-y-2"><legend className="text-sm font-semibold">{label}</legend>
+  return <fieldset className="space-y-2"><legend className="text-sm font-semibold">{label} <span className="text-xs font-normal text-muted-foreground">· Opcional</span></legend>
     <div className="grid gap-2 sm:grid-cols-2">
       {items.map(item => <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
         <input checked={selected.includes(item.id)} onChange={() => onChange(selected.includes(item.id) ? selected.filter(id => id !== item.id) : [...selected, item.id])} type="checkbox" />
@@ -73,20 +81,24 @@ function MultiChoice({ label, items, selected, onChange }: {
 
 function emptyProject(): ProjectWriteInput {
   return {
-    title: '', summary: null, description: null, status: 0, startDate: null, endDate: null,
+    title: '', summary: null, description: null, status: 2, projectStage: null,
+    startDate: null, endDate: null,
     budgetTotal: null, confirmedFunding: null, currency: null, countryIds: [], regionIds: [],
     categoryIds: [], beneficiaryTypeIds: [], projectTypeIds: [],
+    sustainableDevelopmentGoalIds: [],
   }
 }
 
 function toInput(project: ProjectDetails): ProjectWriteInput {
   return {
     title: project.title, summary: project.summary, description: project.description,
-    status: project.status, startDate: project.startDate, endDate: project.endDate,
+    status: project.status, projectStage: project.projectStage ?? null,
+    startDate: project.startDate, endDate: project.endDate,
     budgetTotal: project.budgetTotal, confirmedFunding: project.confirmedFunding,
     currency: project.currency, countryIds: project.countryIds, regionIds: project.regionIds,
     categoryIds: project.categoryIds, beneficiaryTypeIds: project.beneficiaryTypeIds,
     projectTypeIds: project.projectTypeIds,
+    sustainableDevelopmentGoalIds: project.sustainableDevelopmentGoalIds ?? [],
   }
 }
 
@@ -115,8 +127,20 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
     },
     onError: error => {
       if (!(error instanceof ApiError)) return
-      const endDateError = error.problem.errors?.endDate?.[0]
-      if (endDateError) setError('endDate', { type: 'server', message: endDateError })
+      const serverErrors = error.problem.errors
+      const applyServerError = (field: 'title' | 'summary' | 'description' | 'projectStage' | 'endDate' | 'budgetTotal' | 'confirmedFunding' | 'currency' | 'sustainableDevelopmentGoalIds') => {
+        const message = serverErrors?.[field]?.[0]
+        if (message) setError(field, { type: 'server', message })
+      }
+      applyServerError('title')
+      applyServerError('summary')
+      applyServerError('description')
+      applyServerError('projectStage')
+      applyServerError('endDate')
+      applyServerError('budgetTotal')
+      applyServerError('confirmedFunding')
+      applyServerError('currency')
+      applyServerError('sustainableDevelopmentGoalIds')
     },
   })
   const countries = watch('countryIds') ?? []
@@ -124,11 +148,17 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
   const categories = watch('categoryIds') ?? []
   const beneficiaries = watch('beneficiaryTypeIds') ?? []
   const projectTypes = watch('projectTypeIds') ?? []
+  const sustainableDevelopmentGoals = watch('sustainableDevelopmentGoalIds') ?? []
+  const budgetTotal = watch('budgetTotal')
+  const confirmedFunding = watch('confirmedFunding')
+  const currency = watch('currency')
+  const budgetRequired = (typeof confirmedFunding === 'number' && Number.isFinite(confirmedFunding)) || Boolean(currency)
+  const currencyRequired = typeof budgetTotal === 'number' && Number.isFinite(budgetTotal)
   const visibleRegions = catalogs.regions.filter(region => countries.includes(region.countryId))
-  const optionalNumber = { setValueAs: (value: string) => value === '' ? null : Number(value) }
+  const optionalNumber = { setValueAs: (value: string | null | undefined) => value == null || value === '' ? null : Number(value) }
   const contentLocked = Boolean(project && [1, 2, 4].includes(project.publicationStatus))
 
-  return <form className="space-y-5" onSubmit={handleSubmit(input => {
+  return <form className="space-y-5" noValidate onSubmit={handleSubmit(input => {
     clearErrors('endDate')
     if (input.startDate && input.endDate && input.endDate < input.startDate) {
       setError('endDate', { type: 'validate', message: 'La fecha de término no puede ser anterior al inicio.' }, { shouldFocus: true })
@@ -136,20 +166,23 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
     }
     save.mutate(input)
   })}>
-    <Card><CardHeader><CardTitle>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</CardTitle></CardHeader>
+    <Card><CardHeader><CardTitle>{project ? 'Editar proyecto' : 'Nuevo proyecto'}</CardTitle><p className="text-sm text-muted-foreground"><span aria-hidden="true" className="font-semibold text-destructive">*</span> indica un campo obligatorio. Puedes completar el resto mientras preparas el borrador.</p></CardHeader>
       <CardContent><fieldset className="grid gap-5 disabled:opacity-70" disabled={contentLocked}>
-        <Field label="Título"><Input {...register('title', { required: true, minLength: 3, maxLength: 250 })} placeholder="Ej. Agua segura para comunidades rurales" /></Field>
-        <Field label="Resumen"><textarea className={textareaClass} {...register('summary')} placeholder="Describe el objetivo en pocas líneas" /></Field>
-        <Field label="Descripción"><textarea className={textareaClass} {...register('description')} placeholder="Problema, solución, resultados e impacto esperado" /></Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Estado"><select className={selectClass} {...register('status', { valueAsNumber: true })}>{statusNames.map((name, value) => <option key={name} value={value}>{name}</option>)}</select></Field>
+        <Field error={formState.errors.title?.message} label="Título" required><Input aria-invalid={Boolean(formState.errors.title)} aria-required="true" required {...register('title', { required: 'Ingresa el título del proyecto.', minLength: { value: 3, message: 'El título debe tener al menos 3 caracteres.' }, maxLength: { value: 250, message: 'El título admite hasta 250 caracteres.' } })} placeholder="Ej. Agua segura para comunidades rurales" /></Field>
+        <Field error={formState.errors.summary?.message} label="Resumen"><textarea aria-invalid={Boolean(formState.errors.summary)} className={textareaClass} {...register('summary', { maxLength: { value: 1000, message: 'El resumen admite hasta 1000 caracteres.' } })} placeholder="Describe el objetivo en pocas líneas" /></Field>
+        <Field error={formState.errors.description?.message} label="Descripción"><textarea aria-invalid={Boolean(formState.errors.description)} className={textareaClass} {...register('description', { maxLength: { value: 5000, message: 'La descripción admite hasta 5000 caracteres.' } })} placeholder="Problema, solución, resultados e impacto esperado" /></Field>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {project
+            ? <Field label="Estado del proyecto" required><select aria-required="true" className={selectClass} required {...register('status', { valueAsNumber: true })}>{editableStatusOptions(project.status).map(option => <option key={option.value} value={option.value}>{option.name}</option>)}</select></Field>
+            : <input type="hidden" {...register('status', { valueAsNumber: true })} />}
+          <Field error={formState.errors.projectStage?.message} label="Etapa del proyecto"><select aria-invalid={Boolean(formState.errors.projectStage)} className={selectClass} {...register('projectStage', { setValueAs: value => value === '' ? null : Number(value) })}><option value="">Sin definir</option>{stageNames.map((name, value) => <option key={name} value={value}>{name}</option>)}</select></Field>
           <Field label="Inicio"><Input type="date" {...register('startDate', { setValueAs: value => value || null })} /></Field>
           <Field error={formState.errors.endDate?.message} label="Término"><Input aria-invalid={Boolean(formState.errors.endDate)} type="date" {...register('endDate', { setValueAs: value => value || null })} /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Presupuesto total"><Input min="0" step="0.01" type="number" {...register('budgetTotal', optionalNumber)} /></Field>
-          <Field label="Financiamiento confirmado"><Input min="0" step="0.01" type="number" {...register('confirmedFunding', optionalNumber)} /></Field>
-          <Field label="Moneda"><select className={selectClass} {...register('currency', { setValueAs: value => value || null })}><option value="">Sin presupuesto</option>{catalogs.currencies.map(item => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select></Field>
+          <Field error={formState.errors.budgetTotal?.message} hint="Es obligatorio si informas moneda o financiamiento confirmado." label="Presupuesto total" required={budgetRequired}><Input aria-invalid={Boolean(formState.errors.budgetTotal)} aria-required={budgetRequired} min="0" required={budgetRequired} step="0.01" type="number" {...register('budgetTotal', { ...optionalNumber, validate: value => !budgetRequired || value !== null || 'Indica el presupuesto total.' })} /></Field>
+          <Field error={formState.errors.confirmedFunding?.message} label="Financiamiento confirmado"><Input aria-invalid={Boolean(formState.errors.confirmedFunding)} min="0" step="0.01" type="number" {...register('confirmedFunding', optionalNumber)} /></Field>
+          <Field error={formState.errors.currency?.message} hint="Es obligatoria cuando informas un presupuesto total." label="Moneda" required={currencyRequired}><select aria-invalid={Boolean(formState.errors.currency)} aria-required={currencyRequired} className={selectClass} required={currencyRequired} {...register('currency', { setValueAs: value => value || null, validate: value => !currencyRequired || Boolean(value) || 'Selecciona la moneda del presupuesto.' })}><option value="">Sin definir</option>{catalogs.currencies.map(item => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select></Field>
         </div>
         <MultiChoice label="Países" items={catalogs.countries} selected={countries} onChange={value => {
           setValue('countryIds', value, { shouldDirty: true })
@@ -160,6 +193,8 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
         <MultiChoice label="Áreas de impacto" items={catalogs.fundingCategories} selected={categories} onChange={value => setValue('categoryIds', value, { shouldDirty: true })} />
         <MultiChoice label="Población beneficiaria" items={catalogs.beneficiaryTypes} selected={beneficiaries} onChange={value => setValue('beneficiaryTypeIds', value, { shouldDirty: true })} />
         <MultiChoice label="Tipo de proyecto" items={catalogs.projectTypes} selected={projectTypes} onChange={value => setValue('projectTypeIds', value, { shouldDirty: true })} />
+        <MultiChoice label="ODS relacionados" items={(catalogs.sustainableDevelopmentGoals ?? []).map(item => ({ ...item, name: `ODS ${item.id} · ${item.name}` }))} selected={sustainableDevelopmentGoals} onChange={value => setValue('sustainableDevelopmentGoalIds', value, { shouldDirty: true, shouldValidate: true })} />
+        {formState.errors.sustainableDevelopmentGoalIds?.message && <p className="text-xs text-destructive" role="alert">{formState.errors.sustainableDevelopmentGoalIds.message}</p>}
         {contentLocked && <p className="rounded-lg bg-muted p-3 text-sm">El contenido está bloqueado mientras el proyecto está {publicationNames[project!.publicationStatus].toLowerCase()}. Así la versión revisada no puede cambiar silenciosamente.</p>}
         {save.isError && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{errorMessage(save.error)}</p>}
         {save.isSuccess && project && <p className="rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground">Proyecto guardado y versionado.</p>}
@@ -265,7 +300,7 @@ export function ProjectsPage() {
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">FASE 5</p><h1 className="mt-1 text-3xl font-bold">Proyectos de {organization.name}</h1><p className="mt-2 text-muted-foreground">Cada proyecto conserva su propia necesidad de financiamiento y su historial.</p></div><Button onClick={() => setCreating(value => !value)}><Plus className="size-4" />{creating ? 'Cerrar formulario' : 'Nuevo proyecto'}</Button></div>
     {creating && catalogs.data && <ProjectForm catalogs={catalogs.data} organizationId={organization.publicId} />}
     {!projects.data?.length && !creating && <Card><CardContent className="p-8 text-center"><Target className="mx-auto size-10 text-primary" /><h2 className="mt-3 text-xl font-bold">Aún no hay proyectos</h2><p className="mt-2 text-muted-foreground">Crea el primero para preparar el matching de fondos.</p></CardContent></Card>}
-    <div className="grid gap-4 lg:grid-cols-2">{projects.data?.map(project => <Card key={project.publicId}><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{statusNames[project.status]}</p><h2 className="mt-1 text-xl font-bold">{project.title}</h2></div><div className="flex flex-col items-end gap-1"><span className="rounded-full bg-muted px-2.5 py-1 text-xs">{publicationNames[project.publicationStatus]}</span><span className="text-xs text-muted-foreground">v{project.projectVersion}</span></div></div><p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{project.summary ?? 'Sin resumen todavía.'}</p><div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm">Brecha: <strong>{project.fundingGap === null ? 'Sin definir' : `${new Intl.NumberFormat('es-CL').format(project.fundingGap)} ${project.currency}`}</strong></p><Button asChild size="sm" variant="outline"><Link to={`/projects/${project.publicId}`}>{[1, 2, 4].includes(project.publicationStatus) ? 'Ver' : 'Editar'}</Link></Button></div></CardContent></Card>)}</div>
+    <div className="grid gap-4 lg:grid-cols-2">{projects.data?.map(project => <Card key={project.publicId}><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{statusNames[project.status]}</p>{project.projectStage != null && <p className="mt-1 text-xs text-muted-foreground">Etapa: {stageNames[project.projectStage]}</p>}<h2 className="mt-1 text-xl font-bold">{project.title}</h2></div><div className="flex flex-col items-end gap-1"><span className="rounded-full bg-muted px-2.5 py-1 text-xs">{publicationNames[project.publicationStatus]}</span><span className="text-xs text-muted-foreground">v{project.projectVersion}</span></div></div><p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{project.summary ?? 'Sin resumen todavía.'}</p><div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm">Brecha: <strong>{project.fundingGap === null ? 'Sin definir' : `${new Intl.NumberFormat('es-CL').format(project.fundingGap)} ${project.currency}`}</strong></p><Button asChild size="sm" variant="outline"><Link to={`/projects/${project.publicId}`}>{[1, 2, 4].includes(project.publicationStatus) ? 'Ver' : 'Editar'}</Link></Button></div></CardContent></Card>)}</div>
   </div>
 }
 

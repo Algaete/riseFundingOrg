@@ -7,7 +7,8 @@ public sealed record MarketplaceCatalogsResponse(
     IReadOnlyList<CatalogOptionResponse<short>> Countries,
     IReadOnlyList<CurrencyOptionResponse> Currencies,
     IReadOnlyList<CatalogOptionResponse<int>> FundingCategories,
-    IReadOnlyList<CatalogOptionResponse<int>> ProjectTypes);
+    IReadOnlyList<CatalogOptionResponse<int>> ProjectTypes,
+    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals);
 
 public sealed record MarketplaceProjectOrganizationResponse(
     Guid PublicId,
@@ -20,6 +21,7 @@ public sealed record MarketplaceProjectSummaryResponse(
     string Title,
     string? Summary,
     byte Status,
+    byte? ProjectStage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,
@@ -42,6 +44,7 @@ public sealed record MarketplaceProjectDetailsResponse(
     string? Summary,
     string? Description,
     byte Status,
+    byte? ProjectStage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,
@@ -54,7 +57,8 @@ public sealed record MarketplaceProjectDetailsResponse(
     IReadOnlyList<PublicProjectRegionResponse> Regions,
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes);
+    IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
 
 public sealed record MarketplaceOrganizationProfileResponse(
     Guid PublicId,

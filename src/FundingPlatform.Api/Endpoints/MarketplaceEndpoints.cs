@@ -68,7 +68,8 @@ public static class MarketplaceEndpoints
             catalogs.Currencies.Select(item => new CurrencyOptionResponse(
                 item.Code, item.Name, item.MinorUnits)).ToArray(),
             catalogs.FundingCategories.Select(Map).ToArray(),
-            catalogs.ProjectTypes.Select(Map).ToArray()));
+            catalogs.ProjectTypes.Select(Map).ToArray(),
+            catalogs.SustainableDevelopmentGoals.Select(Map).ToArray()));
     }
 
     private static async Task<IResult> SearchProjectsAsync(
@@ -263,6 +264,7 @@ public static class MarketplaceEndpoints
             project.Title,
             project.Summary,
             (byte)project.Status,
+            project.Stage.HasValue ? (byte?)project.Stage.Value : null,
             project.StartDate,
             project.EndDate,
             project.BudgetTotal,
@@ -283,6 +285,7 @@ public static class MarketplaceEndpoints
             project.Summary,
             project.Description,
             (byte)project.Status,
+            project.Stage.HasValue ? (byte?)project.Stage.Value : null,
             project.StartDate,
             project.EndDate,
             project.BudgetTotal,
@@ -298,7 +301,8 @@ public static class MarketplaceEndpoints
             project.Regions.Select(Map).ToArray(),
             project.Categories.Select(Map).ToArray(),
             project.BeneficiaryTypes.Select(Map).ToArray(),
-            project.ProjectTypes.Select(Map).ToArray());
+            project.ProjectTypes.Select(Map).ToArray(),
+            project.SustainableDevelopmentGoals.Select(Map).ToArray());
 
     private static MarketplaceOrganizationProfileResponse Map(
         MarketplaceOrganizationProfile organization) =>

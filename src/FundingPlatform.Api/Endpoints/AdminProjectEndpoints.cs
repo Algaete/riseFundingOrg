@@ -142,6 +142,7 @@ public static class AdminProjectEndpoints
         item.Title,
         item.Summary,
         (byte)item.Status,
+        item.Stage.HasValue ? (byte?)item.Stage.Value : null,
         (byte)item.PublicationStatus,
         item.OrganizationPublicId,
         item.OrganizationName,
@@ -157,6 +158,7 @@ public static class AdminProjectEndpoints
         project.Summary,
         project.Description,
         (byte)project.Status,
+        project.Stage.HasValue ? (byte?)project.Stage.Value : null,
         (byte)project.PublicationStatus,
         project.StartDate,
         project.EndDate,
@@ -177,7 +179,8 @@ public static class AdminProjectEndpoints
         project.Regions.Select(Map).ToArray(),
         project.Categories.Select(Map).ToArray(),
         project.BeneficiaryTypes.Select(Map).ToArray(),
-        project.ProjectTypes.Select(Map).ToArray());
+        project.ProjectTypes.Select(Map).ToArray(),
+        project.SustainableDevelopmentGoals.Select(Map).ToArray());
 
     private static PublicProjectTaxonomyResponse Map(PublicProjectTaxonomyItem item) =>
         new(item.Id, item.Code, item.Name);

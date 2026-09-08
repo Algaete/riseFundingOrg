@@ -199,7 +199,7 @@ para un cambio completo de infraestructura; no describe trabajo pendiente del am
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
-   `--preflight`, aplica las pendientes, confirma `001`→`032` sin pendientes, corre los 32 smokes,
+   `--preflight`, aplica las pendientes, confirma `001`→`033` sin pendientes, corre los 33 smokes,
    verifica Full-Text listo,
    aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
    SuperAdmin. No usa Graph para crear principals SQL.

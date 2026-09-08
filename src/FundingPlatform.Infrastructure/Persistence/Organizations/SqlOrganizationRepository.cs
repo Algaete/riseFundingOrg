@@ -38,10 +38,13 @@ public sealed class SqlOrganizationRepository(
             var tags = (await reader.ReadAsync<LongCatalogRow>())
                 .Select(row => new CatalogOption<long>(row.Id, row.Code, row.Name)).ToArray();
             var languages = (await reader.ReadAsync<ShortCatalogRow>()).Select(MapShort).ToArray();
+            var sustainableDevelopmentGoals = (await reader.ReadAsync<IntCatalogRow>())
+                .Select(MapInt).ToArray();
 
             return new OrganizationCatalogs(
                 countries, regions, currencies, categories, fundingTypes, organizationTypes,
-                legalEntityTypes, organizationSizes, beneficiaries, projectTypes, tags, languages);
+                legalEntityTypes, organizationSizes, beneficiaries, projectTypes, tags, languages,
+                sustainableDevelopmentGoals);
         }
         catch (SqlException exception)
         {

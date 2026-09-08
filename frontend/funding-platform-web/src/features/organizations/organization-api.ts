@@ -33,6 +33,7 @@ export interface OrganizationCatalogs {
   projectTypes: CatalogOption<number>[]
   tags: CatalogOption<number>[]
   languages: CatalogOption<number>[]
+  sustainableDevelopmentGoals: CatalogOption<number>[]
 }
 
 export interface OrganizationSummary {

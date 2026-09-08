@@ -48,7 +48,8 @@ public sealed class ProjectService(IProjectRepository repository)
         Guid organizationPublicId,
         ProjectData input,
         CancellationToken cancellationToken) =>
-        WriteAsync(userPublicId, organizationPublicId, null, null, input, cancellationToken);
+        WriteAsync(userPublicId, organizationPublicId, null, null,
+            input with { Status = ProjectStatus.SeekingFunding }, cancellationToken);
 
     public Task<ProjectWriteResult> UpdateAsync(
         Guid userPublicId,
@@ -86,7 +87,7 @@ public sealed class ProjectService(IProjectRepository repository)
                     snapshot.Json, snapshot.Hash, cancellationToken);
             return new ProjectWriteResult(ProjectWriteOutcome.Success, persisted);
         }
-        catch (ProjectDataException exception) when (exception.DatabaseErrorNumber == 51407)
+        catch (ProjectDataException exception) when (exception.DatabaseErrorNumber is 51407 or 51411)
         {
             return new ProjectWriteResult(ProjectWriteOutcome.Conflict);
         }
@@ -98,7 +99,7 @@ public sealed class ProjectService(IProjectRepository repository)
         {
             return new ProjectWriteResult(ProjectWriteOutcome.NotFound);
         }
-        catch (ProjectDataException exception) when (exception.DatabaseErrorNumber is 51403 or 51404 or 51409 or 547 or 2601 or 2627)
+        catch (ProjectDataException exception) when (exception.DatabaseErrorNumber is 51403 or 51404 or 51409 or 51410 or 547 or 2601 or 2627)
         {
             return new ProjectWriteResult(ProjectWriteOutcome.ValidationFailed, Errors:
                 new Dictionary<string, string[]> { ["project"] = ["El proyecto contiene relaciones o datos inválidos."] });
@@ -115,7 +116,9 @@ public sealed class ProjectService(IProjectRepository repository)
         RegionIds = project.RegionIds.Distinct().Order().ToArray(),
         CategoryIds = project.CategoryIds.Distinct().Order().ToArray(),
         BeneficiaryTypeIds = project.BeneficiaryTypeIds.Distinct().Order().ToArray(),
-        ProjectTypeIds = project.ProjectTypeIds.Distinct().Order().ToArray()
+        ProjectTypeIds = project.ProjectTypeIds.Distinct().Order().ToArray(),
+        SustainableDevelopmentGoalIds = project.SustainableDevelopmentGoalIds
+            .Distinct().Order().ToArray()
     };
 
     private static Dictionary<string, string[]> Validate(ProjectData project)
@@ -127,10 +130,19 @@ public sealed class ProjectService(IProjectRepository repository)
         ValidateLength(project.Description, 5000, "description", errors);
         if ((byte)project.Status > (byte)ProjectStatus.Completed)
             errors["status"] = ["El estado de proyecto no es válido."];
+        if (project.Stage.HasValue &&
+            (byte)project.Stage.Value > (byte)ProjectStage.Evaluation)
+            errors["projectStage"] = ["La etapa del proyecto no es válida."];
+        if (project.SustainableDevelopmentGoalIds.Count > 17 ||
+            project.SustainableDevelopmentGoalIds.Any(id => id is < 1 or > 17))
+            errors["sustainableDevelopmentGoalIds"] =
+                ["Selecciona únicamente objetivos ODS válidos, del 1 al 17."];
         if (project.StartDate.HasValue && project.EndDate.HasValue && project.EndDate < project.StartDate)
             errors["endDate"] = ["La fecha de término no puede ser anterior al inicio."];
-        if (project.BudgetTotal is < 0 || project.ConfirmedFunding is < 0)
+        if (project.BudgetTotal is < 0)
             errors["budgetTotal"] = ["Los montos no pueden ser negativos."];
+        if (project.ConfirmedFunding is < 0)
+            errors["confirmedFunding"] = ["Los montos no pueden ser negativos."];
         if (!project.BudgetTotal.HasValue && (project.ConfirmedFunding.HasValue || project.Currency is not null))
             errors["budgetTotal"] = ["Indica un presupuesto total antes de agregar moneda o financiamiento confirmado."];
         if (project.BudgetTotal.HasValue && (project.Currency?.Length != 3 ||
