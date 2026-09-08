@@ -38,6 +38,7 @@ import {
   adminFundersApi,
   adminFundingOpportunitiesApi,
   adminFundingSourcesApi,
+  type AdminFunderDetail,
   type AdminFundingOpportunityDetail,
   type AmountStatus,
   type DeadlinePrecision,
@@ -474,18 +475,25 @@ function FundingPartnerChoices({
             const association = selected.find((value) => value.funderId === funder.funderId)
             return (
               <div className="rounded-lg border bg-background px-3 py-2" key={funder.funderId}>
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    checked={Boolean(association)}
-                    onChange={() => {
-                      if (association) onChange(selected.filter((value) => value.funderId !== funder.funderId))
-                      else onChange([...selected, { funderId: funder.funderId, role: selected.length === 0 ? 1 : 2 }])
-                    }}
-                    type="checkbox"
-                  />
-                  <span className="font-medium">{funder.name}</span>
-                  {funder.publicationStatus !== undefined && <PublicationStatusBadge status={funder.publicationStatus} />}
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      checked={Boolean(association)}
+                      onChange={() => {
+                        if (association) onChange(selected.filter((value) => value.funderId !== funder.funderId))
+                        else onChange([...selected, { funderId: funder.funderId, role: selected.length === 0 ? 1 : 2 }])
+                      }}
+                      type="checkbox"
+                    />
+                    <span className="font-medium">{funder.name}</span>
+                    {funder.publicationStatus !== undefined && <PublicationStatusBadge status={funder.publicationStatus} />}
+                  </label>
+                  {association && (
+                    <Button asChild size="sm" variant="ghost">
+                      <Link aria-label={`Gestionar financiador ${funder.name}`} to={`/admin/funders/${funder.funderId}`}>Gestionar</Link>
+                    </Button>
+                  )}
+                </div>
                 {association && (
                   <label className="mt-2 grid gap-1 pl-6 text-xs font-semibold">
                     Rol
@@ -797,7 +805,7 @@ function AdminOpportunityForm({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="scroll-mt-6" id="financiadores-alcance">
           <CardHeader><CardTitle>Financiadores y alcance</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <FundingPartnerChoices
@@ -908,19 +916,68 @@ function Building2Icon() {
   return <span aria-hidden="true" className="text-base leading-none">◎</span>
 }
 
-function ReadinessChecks({ item }: { item: AdminFundingOpportunityDetail }) {
+function ReadinessChecks({
+  item,
+  primaryFunder,
+  primaryFunderLoading,
+}: {
+  item: AdminFundingOpportunityDetail
+  primaryFunder?: AdminFunderDetail
+  primaryFunderLoading: boolean
+}) {
+  const primaryFunderLink = item.funders.find((funder) => funder.role === 1)
+  const matchingPrimaryFunder = primaryFunder?.funderId === primaryFunderLink?.funderId
+    ? primaryFunder
+    : undefined
+  const primaryFunderReady = matchingPrimaryFunder?.publicationStatus === 2 &&
+    matchingPrimaryFunder.isActive
+  const primaryFunderState = !primaryFunderLink
+    ? 'Sin asignar'
+    : primaryFunderLoading
+      ? 'Verificando…'
+      : matchingPrimaryFunder
+        ? matchingPrimaryFunder.isActive
+          ? publicationStatusLabels[matchingPrimaryFunder.publicationStatus]
+          : 'Desactivado'
+        : 'Estado no disponible'
   const geographyReady = item.geographicScope === 2
     ? item.countryIds.length === 0 && item.regionIds.length === 0
     : item.geographicScope === 1 && item.countryIds.length > 0
   const checks = [
     { label: 'Resumen y descripción', ready: Boolean(item.summary?.trim() && item.description?.trim()) },
-    { label: 'Financiador principal', ready: item.funders.some((funder) => funder.role === 1) },
+    {
+      detail: primaryFunderState,
+      href: primaryFunderLink ? `/admin/funders/${primaryFunderLink.funderId}` : undefined,
+      label: 'Financiador principal publicado',
+      ready: primaryFunderReady,
+    },
     { label: 'Alcance geográfico', ready: geographyReady },
     { label: 'Categoría', ready: item.categoryIds.length > 0 },
     { label: 'Fuente y URL oficial', ready: item.fundingSourceId > 0 && Boolean(item.sourceUrl?.trim()) },
     { label: 'Última verificación', ready: Boolean(item.lastVerifiedAtUtc) },
   ]
-  return <Card><CardHeader><CardTitle>Preparación para publicar</CardTitle></CardHeader><CardContent><ul className="grid gap-2 sm:grid-cols-2">{checks.map((check) => <li className="flex items-start gap-2 text-sm" key={check.label}>{check.ready ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}{check.label}</li>)}</ul></CardContent></Card>
+  return (
+    <Card>
+      <CardHeader><CardTitle>Preparación para publicar</CardTitle></CardHeader>
+      <CardContent>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {checks.map((check) => (
+            <li className="flex items-start gap-2 text-sm" key={check.label}>
+              {check.ready
+                ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                : <CircleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
+              <span>
+                {check.href
+                  ? <Link className="font-medium text-primary underline" to={check.href}>{check.label}</Link>
+                  : check.label}
+                {check.detail && <span className="ml-2 text-xs text-muted-foreground">{check.detail}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )
 }
 
 function publicVisibilityIssues(item: AdminFundingOpportunityDetail) {
@@ -974,11 +1031,19 @@ export function AdminFundingDetailPage() {
   const [dirty, setDirty] = useState(false)
   const queryClient = useQueryClient()
   const opportunity = useQuery({ queryKey: ['admin-funding-opportunity', id], queryFn: ({ signal }) => adminFundingOpportunitiesApi.get(id, signal), enabled: Boolean(id) && !creating, retry: false })
+  const primaryFunderId = opportunity.data?.funders.find((funder) => funder.role === 1)?.funderId ?? ''
+  const primaryFunder = useQuery({
+    queryKey: ['admin-funder', primaryFunderId],
+    queryFn: ({ signal }) => adminFundersApi.get(primaryFunderId, signal),
+    enabled: Boolean(primaryFunderId),
+    retry: false,
+    staleTime: 30_000,
+  })
 
   if (!creating && opportunity.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando oportunidad…</p>
   if (!creating && (opportunity.isError || !opportunity.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">No pudimos abrir la oportunidad</h1><p className="text-destructive">{adminErrorMessage(opportunity.error)}</p><Button asChild variant="outline"><Link to="/admin/funding">Volver</Link></Button></CardContent></Card>
 
   const data = opportunity.data
   const visibilityIssues = data ? publicVisibilityIssues(data) : []
-  return <div className="space-y-6"><Button asChild variant="ghost"><Link to="/admin/funding"><ArrowLeft className="size-4" /> Volver a oportunidades</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Administración</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? 'Crear oportunidad' : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>Versión {data.contentVersion}</span><span>Actualizado {formatAdminDate(data.updatedAtUtc)}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>Ver público <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>Este fondo está pendiente de revisión.</strong> Revisa sus datos y apruébalo para publicarlo.</p><Button asChild size="sm"><a href="#flujo-editorial">Ir a revisar y publicar</a></Button></div>}{data && <><ReadinessChecks item={data} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel commands={adminFundingOpportunitiesApi} disabledReason={dirty ? 'Guarda o descarta los cambios del formulario antes de ejecutar una acción editorial.' : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName="la oportunidad" onChanged={async () => { await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
+  return <div className="space-y-6"><Button asChild variant="ghost"><Link to="/admin/funding"><ArrowLeft className="size-4" /> Volver a oportunidades</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Administración</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? 'Crear oportunidad' : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>Versión {data.contentVersion}</span><span>Actualizado {formatAdminDate(data.updatedAtUtc)}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>Ver público <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>Este fondo está pendiente de revisión.</strong> Revisa sus datos y apruébalo para publicarlo.</p><Button asChild size="sm"><a href="#flujo-editorial">Ir a revisar y publicar</a></Button></div>}{data && <><ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel commands={adminFundingOpportunitiesApi} disabledReason={dirty ? 'Guarda o descarta los cambios del formulario antes de ejecutar una acción editorial.' : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName="la oportunidad" notReadyAction={{ href: '#financiadores-alcance', label: 'Corregir financiador y alcance' }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
 }

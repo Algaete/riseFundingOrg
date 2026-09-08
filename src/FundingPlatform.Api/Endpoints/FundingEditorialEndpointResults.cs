@@ -39,7 +39,7 @@ internal static class FundingEditorialEndpointResults
                     : "funding-editorial-validation",
                 result.Errors),
             FundingEditorialOutcome.NotReady => ProjectEndpointResults.Validation(
-                422, $"{entityName} no está listo para revisión",
+                422, NotReadyTitle(entityName),
                 result.Code is "funder-not-ready" or "opportunity-not-ready"
                     ? result.Code
                     : "funding-editorial-not-ready",
@@ -73,6 +73,13 @@ internal static class FundingEditorialEndpointResults
                 "funding-editorial-operation-failed")
         };
     }
+
+    private static string NotReadyTitle(string entityName) => entityName switch
+    {
+        "Oportunidad" => "Faltan datos para enviar la oportunidad a revisión",
+        "Funder" or "Financiador" => "Faltan datos para enviar el financiador a revisión",
+        _ => "Faltan datos para enviar el contenido a revisión"
+    };
 
     internal static IResult MapCreated(
         FundingEditorialCommandResult result,

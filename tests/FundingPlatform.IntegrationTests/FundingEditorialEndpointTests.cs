@@ -264,6 +264,14 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
             false,
             [
                 new FundingReadinessIssue(
+                    "primaryFunder",
+                    "funderLinks",
+                    "A published primary funder is required."),
+                new FundingReadinessIssue(
+                    "geographicScope",
+                    "geographicScope",
+                    "Unknown geographic scope cannot be published."),
+                new FundingReadinessIssue(
                     "country-required",
                     "/countryIds",
                     "Selecciona al menos un país elegible."),
@@ -285,12 +293,58 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
+            "Faltan datos para enviar la oportunidad a revisión",
+            problem.RootElement.GetProperty("title").GetString());
+        Assert.Equal(
             "https://fundingplatform.local/problems/opportunity-not-ready",
             problem.RootElement.GetProperty("type").GetString());
         Assert.Equal(
+            "Publica el financiador principal antes de enviar la oportunidad a revisión.",
+            problem.RootElement.GetProperty("errors").GetProperty("funderLinks")[0].GetString());
+        Assert.Equal(
+            "Define el alcance geográfico como específico o global.",
+            problem.RootElement.GetProperty("errors").GetProperty("geographicScope")[0].GetString());
+        Assert.Equal(
             "Selecciona al menos un país elegible.",
             problem.RootElement.GetProperty("errors").GetProperty("/countryIds")[0].GetString());
+        Assert.DoesNotContain("published primary funder", problem.RootElement.GetRawText(),
+            StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("connection", problem.RootElement.GetRawText(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Funder_readiness_uses_an_actionable_spanish_title_and_errors()
+    {
+        funders.RequestPublicationResult = new FundingEditorialMutation(
+            false,
+            "funder-not-ready",
+            FunderId,
+            FundingPublicationStatus.Draft,
+            1,
+            Convert.FromHexString("0102030405060708"),
+            false,
+            [new FundingReadinessIssue(
+                "websiteUrl", "websiteUrl", "An official website is required.")]);
+        using var request = AuthenticatedRequest(
+            HttpMethod.Post,
+            $"/api/v1/admin/funders/{FunderId:D}/submit-review",
+            PlatformRoles.Admin,
+            true);
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", "funder-review-ready-0001");
+
+        using var response = await client.SendAsync(request);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(
+            "Faltan datos para enviar el financiador a revisión",
+            problem.RootElement.GetProperty("title").GetString());
+        Assert.Equal(
+            "Agrega el sitio web oficial del financiador.",
+            problem.RootElement.GetProperty("errors").GetProperty("websiteUrl")[0].GetString());
+        Assert.DoesNotContain("official website", problem.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
     }
 
@@ -622,6 +676,8 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
         public Guid LastAdminUserId { get; private set; }
         public string? LastCorrectionReason { get; private set; }
         public FundingEditorialMutation UpdateResult { get; set; } = Mutation(true, "updated");
+        public FundingEditorialMutation RequestPublicationResult { get; set; } =
+            Mutation(true, "review-requested");
         public FundingEditorialMutation CorrectionResult { get; set; } = new(
             true, "correction-started", FunderId, FundingPublicationStatus.Draft, 2,
             Convert.FromHexString("A1A2A3A4A5A6A7A8"), false, []);
@@ -671,7 +727,7 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
             Guid adminUserPublicId, Guid funderPublicId, byte[] expectedRowVersion,
             byte[] idempotencyKeyHash, byte[] requestHash,
             CancellationToken cancellationToken) =>
-            Task.FromResult(Mutation(true, "review-requested"));
+            Task.FromResult(RequestPublicationResult);
 
         public Task<FundingEditorialMutation> ReviewAsync(
             Guid adminUserPublicId, Guid funderPublicId, FundingReviewDecision decision,

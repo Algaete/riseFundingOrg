@@ -39,6 +39,33 @@ const statusStyles: Record<PublicationStatus, string> = {
   4: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
 }
 
+const readinessMessageTranslations: Record<string, string> = {
+  'name is required': 'Ingresa el nombre del financiador.',
+  'a stable public slug is required': 'El financiador no tiene un identificador público válido. Contacta a soporte para corregirlo.',
+  'an official website is required': 'Agrega el sitio web oficial del financiador.',
+  'a primary alias is required': 'Agrega un nombre principal al financiador.',
+  'title is required': 'Ingresa el título de la oportunidad.',
+  'a published primary funder is required': 'Publica el financiador principal antes de enviar la oportunidad a revisión.',
+  'an enabled primary source url is required': 'Selecciona una fuente principal habilitada con una URL oficial.',
+  'unknown geographic scope cannot be published': 'Define el alcance geográfico como específico o global.',
+  'explicit geographic scope requires at least one eligible country': 'Selecciona al menos un país elegible para el alcance geográfico específico.',
+  'global geographic scope cannot contain country or region restrictions': 'Elimina los países y regiones cuando el alcance geográfico sea global.',
+  'at least one category is required': 'Selecciona al menos una categoría de financiamiento.',
+  'every catalog reference must be active and geography must remain consistent': 'Revisa la moneda, el tipo de financiamiento, el alcance, las categorías y el financiador principal. Alguna selección está inactiva o no es coherente.',
+  'every critical field requires selected evidence or an explicit unknown value': 'Completa la evidencia del título, la descripción, la elegibilidad y el cierre, o marca expresamente el dato como desconocido.',
+}
+
+function problemHasCode(error: unknown, code: string) {
+  if (!(error instanceof ApiError)) return false
+  const type = error.problem.type?.replace(/\/$/, '')
+  return type === code || type?.endsWith(`/${code}`) === true
+}
+
+function localizeReadinessMessage(message: string) {
+  const key = message.trim().replace(/\s+/g, ' ').replace(/\.$/, '').toLowerCase()
+  return readinessMessageTranslations[key] ?? message
+}
+
 export function PublicationStatusBadge({ status }: { status: PublicationStatus }) {
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}>
@@ -48,14 +75,23 @@ export function PublicationStatusBadge({ status }: { status: PublicationStatus }
 }
 
 export function adminErrorMessage(error: unknown) {
-  return error instanceof ApiError
-    ? error.problem.detail ?? error.problem.title
-    : 'No fue posible completar la operación. Intenta nuevamente.'
+  if (!(error instanceof ApiError)) {
+    return 'No fue posible completar la operación. Intenta nuevamente.'
+  }
+  if (problemHasCode(error, 'opportunity-not-ready')) {
+    return 'Faltan datos para enviar esta oportunidad a revisión.'
+  }
+  if (problemHasCode(error, 'funder-not-ready')) {
+    return 'Faltan datos para enviar este financiador a revisión.'
+  }
+  return localizeReadinessMessage(error.problem.detail ?? error.problem.title)
 }
 
 export function adminValidationMessages(error: unknown) {
   if (!(error instanceof ApiError) || !error.problem.errors) return []
-  return Array.from(new Set(Object.values(error.problem.errors).flat()))
+  return Array.from(new Set(
+    Object.values(error.problem.errors).flat().map(localizeReadinessMessage),
+  ))
 }
 
 export function isConcurrencyConflict(error: unknown) {
@@ -106,6 +142,7 @@ export function EditorialWorkflowPanel({
   eTag,
   entityId,
   entityName,
+  notReadyAction,
   onChanged,
   publicVisibilityIssues = [],
   publicationStatus,
@@ -116,6 +153,7 @@ export function EditorialWorkflowPanel({
   eTag: string
   entityId: string
   entityName: string
+  notReadyAction?: { href: string; label: string }
   onChanged: () => Promise<unknown>
   publicVisibilityIssues?: string[]
   publicationStatus: PublicationStatus
@@ -155,6 +193,8 @@ export function EditorialWorkflowPanel({
   })
   const validationMessages = adminValidationMessages(command.error)
   const conflict = isConcurrencyConflict(command.error)
+  const notReady = problemHasCode(command.error, 'opportunity-not-ready') ||
+    problemHasCode(command.error, 'funder-not-ready')
 
   useEffect(() => {
     if (!confirmCorrection || command.isPending) return
@@ -253,6 +293,11 @@ export function EditorialWorkflowPanel({
               <ul className="mt-2 list-disc space-y-1 pl-7">
                 {validationMessages.map((message) => <li key={message}>{message}</li>)}
               </ul>
+            )}
+            {notReady && notReadyAction && (
+              <Button asChild className="mt-3" size="sm" variant="outline">
+                <a href={notReadyAction.href}>{notReadyAction.label}</a>
+              </Button>
             )}
             {conflict && (
               <Button className="mt-3" onClick={() => void onChanged()} size="sm" type="button" variant="outline">

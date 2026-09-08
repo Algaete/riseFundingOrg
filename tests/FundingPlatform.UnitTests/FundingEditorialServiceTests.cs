@@ -194,6 +194,78 @@ public sealed class FundingEditorialServiceTests
         Assert.Equal("funder-not-ready", result.Code);
     }
 
+    public static TheoryData<string, string> StableReadinessTranslations => new()
+    {
+        { "name", "Ingresa el nombre del financiador." },
+        {
+            "slug",
+            "El financiador no tiene un identificador público válido. Contacta a soporte para corregirlo."
+        },
+        { "websiteUrl", "Agrega el sitio web oficial del financiador." },
+        { "primaryAlias", "Agrega un nombre principal al financiador." },
+        { "title", "Ingresa el título de la oportunidad." },
+        {
+            "primaryFunder",
+            "Publica el financiador principal antes de enviar la oportunidad a revisión."
+        },
+        {
+            "officialSource",
+            "Selecciona una fuente principal habilitada con una URL oficial."
+        },
+        {
+            "geographicScope",
+            "Define el alcance geográfico como específico o global."
+        },
+        {
+            "countries",
+            "Selecciona al menos un país elegible para el alcance geográfico específico."
+        },
+        {
+            "globalGeography",
+            "Elimina los países y regiones cuando el alcance geográfico sea global."
+        },
+        { "categories", "Selecciona al menos una categoría de financiamiento." },
+        {
+            "inactiveCatalogReference",
+            "Revisa la moneda, el tipo de financiamiento, el alcance, las categorías y el financiador principal. Alguna selección está inactiva o no es coherente."
+        },
+        {
+            "criticalEvidence",
+            "Completa la evidencia del título, la descripción, la elegibilidad y el cierre, o marca expresamente el dato como desconocido."
+        }
+    };
+
+    [Theory]
+    [MemberData(nameof(StableReadinessTranslations))]
+    public async Task Stable_readiness_codes_translate_database_messages_to_actionable_spanish(
+        string issueCode,
+        string expectedMessage)
+    {
+        var repository = new FakeOpportunityEditorialRepository
+        {
+            RequestResult = new FundingEditorialMutation(
+                false,
+                "opportunity-not-ready",
+                EntityId,
+                FundingPublicationStatus.Draft,
+                2,
+                CurrentRowVersion,
+                false,
+                [new FundingReadinessIssue(
+                    issueCode, "readinessField", "Database-only English diagnostic.")])
+        };
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+
+        var result = await service.RequestPublicationAsync(
+            AdminId, EntityId, CurrentRowVersion,
+            "opportunity-submit-key-01", CancellationToken.None);
+
+        Assert.Equal(FundingEditorialOutcome.NotReady, result.Outcome);
+        Assert.Equal(expectedMessage, result.Errors!["readinessField"].Single());
+        Assert.DoesNotContain("Database-only", result.Errors["readinessField"].Single(),
+            StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("source-disabled", FundingEditorialOutcome.ValidationFailed)]
     [InlineData("source-link-conflict", FundingEditorialOutcome.Conflict)]
@@ -365,6 +437,7 @@ public sealed class FundingEditorialServiceTests
         public string? LastSnapshotJson { get; private set; }
         public byte[]? LastContentHash { get; private set; }
         public FundingEditorialMutation? CreateResult { get; init; }
+        public FundingEditorialMutation? RequestResult { get; init; }
         public FundingEditorialMutation? CorrectionResult { get; init; }
         public int CorrectionCalls { get; private set; }
         public string? LastCorrectionReason { get; private set; }
@@ -401,7 +474,8 @@ public sealed class FundingEditorialServiceTests
             CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<FundingEditorialMutation> RequestPublicationAsync(Guid adminUserPublicId,
             Guid opportunityPublicId, byte[] expectedRowVersion, byte[] idempotencyKeyHash,
-            byte[] requestHash, CancellationToken cancellationToken) => throw new NotSupportedException();
+            byte[] requestHash, CancellationToken cancellationToken) =>
+            Task.FromResult(RequestResult ?? Success(opportunityPublicId));
         public Task<FundingEditorialMutation> ReviewAsync(Guid adminUserPublicId,
             Guid opportunityPublicId, FundingReviewDecision decision, string? reason,
             byte[] expectedRowVersion, byte[] idempotencyKeyHash, byte[] requestHash,

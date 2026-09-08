@@ -205,11 +205,37 @@ internal static class FundingEditorialServiceSupport
             .GroupBy(issue => string.IsNullOrWhiteSpace(issue.FieldPath) ? "entity" : issue.FieldPath)
             .ToDictionary(
                 group => group.Key,
-                group => group.Select(issue => issue.Message)
+                group => group.Select(TranslateReadinessMessage)
                     .Distinct(StringComparer.Ordinal)
                     .ToArray(),
                 StringComparer.OrdinalIgnoreCase);
     }
+
+    private static string TranslateReadinessMessage(FundingReadinessIssue issue) => issue.Code switch
+    {
+        "name" => "Ingresa el nombre del financiador.",
+        "slug" =>
+            "El financiador no tiene un identificador público válido. Contacta a soporte para corregirlo.",
+        "websiteUrl" => "Agrega el sitio web oficial del financiador.",
+        "primaryAlias" => "Agrega un nombre principal al financiador.",
+        "title" => "Ingresa el título de la oportunidad.",
+        "primaryFunder" =>
+            "Publica el financiador principal antes de enviar la oportunidad a revisión.",
+        "officialSource" =>
+            "Selecciona una fuente principal habilitada con una URL oficial.",
+        "geographicScope" =>
+            "Define el alcance geográfico como específico o global.",
+        "countries" =>
+            "Selecciona al menos un país elegible para el alcance geográfico específico.",
+        "globalGeography" =>
+            "Elimina los países y regiones cuando el alcance geográfico sea global.",
+        "categories" => "Selecciona al menos una categoría de financiamiento.",
+        "inactiveCatalogReference" =>
+            "Revisa la moneda, el tipo de financiamiento, el alcance, las categorías y el financiador principal. Alguna selección está inactiva o no es coherente.",
+        "criticalEvidence" =>
+            "Completa la evidencia del título, la descripción, la elegibilidad y el cierre, o marca expresamente el dato como desconocido.",
+        _ => issue.Message
+    };
 
     private static string NormalizeCode(string code) => code switch
     {

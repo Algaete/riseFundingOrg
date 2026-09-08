@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -83,14 +83,38 @@ function opportunity(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function funder(overrides: Record<string, unknown> = {}) {
+  return {
+    funderId: '8fa6c73a-af02-4182-8b60-5bcef027ec5c',
+    slug: 'fundacion-salud',
+    name: 'Fundación Salud',
+    description: null,
+    websiteUrl: 'https://foundation.example',
+    countryId: 152,
+    countryCode: 'CL',
+    countryName: 'Chile',
+    publicationStatus: 2,
+    isActive: true,
+    contentVersion: 1,
+    createdAtUtc: '2026-08-01T10:00:00Z',
+    updatedAtUtc: '2026-08-20T12:00:00Z',
+    eTag: '"0000000000000001"',
+    aliases: ['Fundación Salud'],
+    submittedAtUtc: '2026-08-19T12:00:00Z',
+    reviewedAtUtc: '2026-08-20T12:00:00Z',
+    reviewedByUserId: '89b8d22a-472c-42e4-b034-c772ce3bb08e',
+    publishedAtUtc: '2026-08-20T12:00:00Z',
+    rejectionReason: null,
+    opportunities: [],
+    ...overrides,
+  }
+}
+
 function supportingResponse(url: string) {
   if (url.endsWith('/catalogs')) return json(catalogs)
+  if (url.endsWith('/admin/funders/8fa6c73a-af02-4182-8b60-5bcef027ec5c')) return json(funder())
   if (url.includes('/admin/funders?')) return json({
-    items: [{
-      funderId: '8fa6c73a-af02-4182-8b60-5bcef027ec5c', slug: 'fundacion-salud', name: 'Fundación Salud',
-      description: null, websiteUrl: null, countryId: 152, publicationStatus: 2,
-      contentVersion: 1, updatedAtUtc: '2026-08-20T12:00:00Z', eTag: '"0000000000000001"',
-    }],
+    items: [funder()],
     totalCount: 1, page: 1, pageSize: 100,
   })
   if (url.endsWith('/admin/funding-sources')) return json([{ id: 7, name: 'Manual editorial', providerType: 0, baseUrl: null, isEnabled: true }])
@@ -204,6 +228,81 @@ describe('administración editorial de fondos', () => {
 
     expect(await screen.findByText('Otro administrador actualizó esta oportunidad.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cargar versión vigente' })).toBeInTheDocument()
+  })
+
+  it('localiza el rechazo de readiness y guía hacia un financiador principal todavía en borrador', async () => {
+    const current = opportunity({
+      publicationStatus: 0,
+      geographicScope: 0,
+      countryIds: [],
+      regionIds: [],
+    })
+    const draftFunder = funder({
+      publicationStatus: 0,
+      submittedAtUtc: null,
+      reviewedAtUtc: null,
+      reviewedByUserId: null,
+      publishedAtUtc: null,
+    })
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/catalogs')) return Promise.resolve(json(catalogs))
+      if (url.endsWith(`/admin/funders/${draftFunder.funderId}`)) {
+        return Promise.resolve(json(draftFunder))
+      }
+      if (url.includes('/admin/funders?')) {
+        return Promise.resolve(json({ items: [draftFunder], totalCount: 1, page: 1, pageSize: 20 }))
+      }
+      if (url.endsWith('/admin/funding-sources')) {
+        return Promise.resolve(json([{ id: 7, name: 'Manual editorial', providerType: 0, baseUrl: null, isEnabled: true }]))
+      }
+      if (url.endsWith('/submit-review')) {
+        return Promise.resolve(json({
+          type: 'https://fundingplatform.local/problems/opportunity-not-ready',
+          title: 'Oportunidad no está listo para revisión',
+          status: 422,
+          errors: {
+            catalogs: ['Every catalog reference must be active and geography must remain consistent.'],
+            funderLinks: ['A published primary funder is required.'],
+            geographicScope: ['Unknown geographic scope cannot be published.'],
+          },
+        }, 422))
+      }
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({ title: 'Not found', status: 404 }, 404))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: [`/admin/funding/${current.opportunityId}`],
+    })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+
+    const funderReadiness = await screen.findByRole('link', { name: 'Financiador principal publicado' })
+    expect(funderReadiness).toHaveAttribute('href', `/admin/funders/${draftFunder.funderId}`)
+    await waitFor(() => expect(funderReadiness.closest('li')).toHaveTextContent('Borrador'))
+    expect(screen.getByRole('button', { name: 'Enviar a revisión' })).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Gestionar financiador Fundación Salud' })).toHaveAttribute(
+      'href',
+      `/admin/funders/${draftFunder.funderId}`,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Enviar a revisión' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Faltan datos para enviar esta oportunidad a revisión.')
+    expect(alert).toHaveTextContent('Publica el financiador principal antes de enviar la oportunidad a revisión.')
+    expect(alert).toHaveTextContent('Define el alcance geográfico como específico o global.')
+    expect(alert).toHaveTextContent('Revisa la moneda, el tipo de financiamiento, el alcance, las categorías y el financiador principal. Alguna selección está inactiva o no es coherente.')
+    expect(alert).not.toHaveTextContent('A published primary funder is required.')
+    expect(alert).not.toHaveTextContent('Unknown geographic scope cannot be published.')
+    expect(within(alert).getByRole('link', { name: 'Corregir financiador y alcance' })).toHaveAttribute(
+      'href',
+      '#financiadores-alcance',
+    )
+    expect(document.querySelector('#financiadores-alcance')).toBeInTheDocument()
   })
 
   it('muestra los campos concretos cuando la referencia de fuente está duplicada', async () => {
