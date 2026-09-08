@@ -39,7 +39,8 @@ Los incrementos de feedback del MVP están preparados localmente mediante
 `035_organization_custom_taxonomy.sql`, junto con la base gobernada de adjuntos
 `036_project_assets.sql` y su pipeline Defender
 `037_project_asset_defender_pipeline.sql`, extendido por
-`038_project_asset_image_sanitization.sql`. Amplían los catálogos del perfil, evitan que “Otros”
+`038_project_asset_image_sanitization.sql` y la retención exacta
+`039_project_asset_content_retention.sql`. Amplían los catálogos del perfil, evitan que “Otros”
 genere coincidencias
 automáticas y agregan al proyecto una
 etapa independiente junto con los 17 ODS oficiales, permiten registrar de forma opcional los tipos
@@ -53,13 +54,15 @@ imágenes JPEG/PNG/WebP limpias, elimina sus metadatos y conserva los PDF como c
 La copia confiable queda descrita por un manifiesto `Trusted*` propio y el resultado observado por
 Defender se conserva separado del estado efectivo que decide la plataforma. Las imágenes históricas
 que hubieran llegado al container confiable sin esta transformación se revocan de forma fail-closed,
-con el manifiesto exacto necesario para retirar esa versión. Estas ocho migraciones y sus
+con el manifiesto exacto necesario para retirar esa versión. `039` agrega tareas durables de
+retención de adjuntos eliminados, cuarentenas terminales y copias revocadas, con leases,
+reintentos acotados y borrado condicionado a la identidad exacta. Estas nueve migraciones y sus
 interfaces todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
 continúa siendo `001`→`030`. El rollout debe respetar el orden base de datos → 100 % del tráfico API
 nuevo → infraestructura de seguridad → frontend, activando `VITE_PROJECT_ASSETS_ENABLED` al final.
 La infraestructura como código ya declara containers privados, CORS exacto y lifecycle, pero no se
-ha aplicado. La funcionalidad de adjuntos permanece apagada hasta incorporar la retención física
-DB-driven, aplicar `036`→`038`, provisionar Defender/Event Grid y validar casos E2E limpio y
+ha aplicado. La funcionalidad de adjuntos permanece apagada hasta validar la retención DB-driven
+en SQL y Blob reales, aplicar `036`→`039`, provisionar Defender/Event Grid y validar casos E2E limpio y
 malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
@@ -268,7 +271,8 @@ Variables agrupadas:
   DOCUMENT_EXTRACTION_MAX_STACK_DEPTH, DOCUMENT_EXTRACTION_TIMEOUT_SECONDS,
   DOCUMENT_EXTRACTION_LEASE_SECONDS, DOCUMENT_EXTRACTION_WATCHDOG_BATCH_SIZE,
   CONTENT_RETENTION_BATCH_SIZE, CONTENT_RETENTION_SOURCE_DOCUMENT_BATCH_SIZE y
-  CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS.
+  CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS, además de
+  CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE y CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS.
 - Defender/RSS: las familias DEFENDER_EVENT_GRID_*, DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES,
   DEFENDER_WATCHDOG_BATCH_SIZE y OFFICIAL_RSS_* son fail-closed. Los ejemplos dejan
   DEFENDER_EVENT_GRID_ENABLED y OFFICIAL_RSS_ENABLED en `false`.
@@ -1075,7 +1079,7 @@ su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producció
 el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
 incluyeron una llamada a OpenAI o a otro proveedor externo.
 
-## Adjuntos gobernados de proyectos — incrementos 036A/036B/038
+## Adjuntos gobernados de proyectos — incrementos 036–039
 
 La base local permite que un Admin de la organización prepare imágenes JPEG, PNG o WebP y documentos
 PDF para un proyecto. La carga usa una autorización SAS HTTPS create-only de cinco minutos sobre un
@@ -1100,26 +1104,37 @@ completo para retirar el blob exacto. La migración también revoca de forma fai
 imagen histórica confiable que no pruebe haber pasado por este pipeline; los PDF históricos sólo se
 mantienen si cumplen la identidad byte-exacta.
 
+`039` reclama en SQL tareas inmutables por manifiesto, con lease y hasta ocho intentos. Espera
+24 horas desde el borrado lógico o el scan terminal para retirar cuarentenas; las copias confiables
+eliminadas también tienen 24 horas de gracia y las revocadas son elegibles inmediatamente.
+El worker verifica container, nombre, ETag, versión, MIME, longitud y metadatos SHA-256 antes de
+borrar, y confirma la ausencia del blob actual y de la versión registrada antes de completar SQL.
+No enumera ni borra otras versiones o snapshots: una discrepancia de identidad falla cerrada.
+No procesa contenido activo, cargas `incoming` ni promociones huérfanas sin recibo persistido.
+La finalización significa indisponibilidad lógica; soft delete/lifecycle gobierna la purga posterior.
+
 La publicación, revisión administrativa y proyección al marketplace fallan cerradas mientras exista
 un adjunto activo que no esté `Trusted` + `Clean`; una imagen de portada también exige texto
 alternativo. Video no está habilitado en 036A. Aunque contratos, API e interfaz están preparados,
 `ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false` son obligatorios hasta completar:
 
-- retención física gobernada por base de datos para purgar blobs de adjuntos eliminados y
-  cuarentenas terminales sin afectar contenido confiable todavía activo;
+- validación SQL/Blob real de la retención `039`, incluidos reintentos, revocación tardía,
+  soft delete y conservación del contenido activo;
 - provisión de Microsoft Defender for Storage/Event Grid y prueba E2E limpia y maliciosa del worker
   ya implementado localmente;
 - aplicación y verificación en Azure de los containers privados `fp-project-incoming`,
   `fp-project-quarantine` y `fp-project-trusted`, RBAC mínimo, CORS exacto para el origen web y
   lifecycle de cargas abandonadas/versiones, ya declarados en Bicep;
-- aplicación de las migraciones `036`→`038` y publicación coordinada de la API y del worker general.
+- aplicación de las migraciones `036`→`039` y publicación coordinada de la API y del worker general.
 
 La API y el worker general se restauran/publican para `linux-x64`, RID que contiene la dependencia
 nativa de Skia usada por la sanitización; el ZIP del worker exige `libSkiaSharp.so` en su manifiesto.
-El orden de rollout es base de datos `036`→`038` → API nueva en todo el tráfico → infraestructura de
+El orden de rollout es base de datos `036`→`039` → API nueva en todo el tráfico → infraestructura de
 seguridad validada → frontend con el feature flag habilitado al final. No se debe activar parcialmente.
-Hasta este corte `038` no se ejecutó contra SQL Server/Azure SQL, no hubo deploy y los flags de
-backend, frontend y recepción Defender/Event Grid continúan deshabilitados.
+Hasta este corte `031`→`039` no se ejecutaron contra SQL Server/Azure SQL, no hubo deploy de estos
+incrementos y los flags de backend, frontend, retención y recepción Defender/Event Grid continúan
+deshabilitados. El checklist del siguiente corte está en
+[`docs/runbooks/project-assets-rollout.md`](docs/runbooks/project-assets-rollout.md).
 
 Endpoints principales del backend hasta este cierre:
 

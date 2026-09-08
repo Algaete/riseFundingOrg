@@ -27,6 +27,8 @@ public static class FundingPlatformConfiguration
         ("CONTENT_RETENTION_BATCH_SIZE", "ContentRetention:BatchSize"),
         ("CONTENT_RETENTION_SOURCE_DOCUMENT_BATCH_SIZE", "ContentRetention:SourceDocumentBatchSize"),
         ("CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS", "ContentRetention:SourceDocumentLeaseSeconds"),
+        ("CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE", "ContentRetention:ProjectAssetBatchSize"),
+        ("CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS", "ContentRetention:ProjectAssetLeaseSeconds"),
         ("SOURCE_DOCUMENT_INCOMING_CONTAINER", "SourceDocuments:IncomingContainer"),
         ("SOURCE_DOCUMENT_QUARANTINE_CONTAINER", "SourceDocuments:QuarantineContainer"),
         ("SOURCE_DOCUMENT_TRUSTED_CONTAINER", "SourceDocuments:TrustedContainer"),

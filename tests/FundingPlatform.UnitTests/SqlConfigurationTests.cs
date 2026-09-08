@@ -39,6 +39,8 @@ public sealed class SqlConfigurationTests
             ["IMPORT_OUTBOX_BATCH_SIZE"] = "25",
             ["GRANTS_GOV_TIMEOUT_SECONDS"] = "20",
             ["IMPORT_ALLOWED_PROVIDERS"] = "grants-gov",
+            ["CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE"] = "25",
+            ["CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS"] = "900",
             ["AUTH_ACCESS_TOKEN_MINUTES"] = "15",
             ["AUTH_REFRESH_TOKEN_DAYS"] = "30",
             ["AUTH_ADMIN_SESSION_MINUTES"] = "60"
@@ -80,6 +82,8 @@ public sealed class SqlConfigurationTests
         Assert.Equal("25", configuration["ImportWorkers:OutboxBatchSize"]);
         Assert.Equal("20", configuration["ImportWorkers:GrantsGovTimeoutSeconds"]);
         Assert.Equal("grants-gov", configuration["ImportWorkers:AllowedProviders"]);
+        Assert.Equal("25", configuration["ContentRetention:ProjectAssetBatchSize"]);
+        Assert.Equal("900", configuration["ContentRetention:ProjectAssetLeaseSeconds"]);
         Assert.Equal("15", configuration["Authentication:Jwt:AccessTokenMinutes"]);
         Assert.Equal("30", configuration["Authentication:RefreshToken:LifetimeDays"]);
         Assert.Equal("60", configuration["Authentication:Mfa:AdminSessionMinutes"]);

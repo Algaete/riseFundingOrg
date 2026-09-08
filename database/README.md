@@ -24,8 +24,9 @@ principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
 `032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
 `034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
-`036_project_assets.sql`, `037_project_asset_defender_pipeline.sql` y
-`038_project_asset_image_sanitization.sql`, con sus smokes transaccionales. Los ocho incrementos
+`036_project_assets.sql`, `037_project_asset_defender_pipeline.sql`,
+`038_project_asset_image_sanitization.sql` y `039_project_asset_content_retention.sql`, con sus
+smokes transaccionales. Los nueve incrementos
 están preparados
 para el siguiente release y todavía
 no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
@@ -61,12 +62,23 @@ Huellas locales del incremento:
   `36bb637b22848b1a126be594ba73952925e0f9fbea50fbce602ad12626a25d12`;
 - migración `037` (1899 líneas/13 lotes):
   `41a80202ddfe3183d2ce712d07dc7efb0edf0c86447b328b735505b923c041fd`;
-- smoke `037` (1015 líneas/un lote):
-  `6eeb417d3eec03b97328cd711be8ccfd436b614cb5aeff0274f7612ea585590c`;
+- smoke `037` (1016 líneas/un lote, compatible con `039`):
+  `928a454daeb584231c6d2bf1f3afbba1de314be2fce449ba8b7cf3573046af78`;
 - migración `038` (1762 líneas/8 lotes):
   `f258f9868c31798d5d3a5ff99d663f508927ac761c1e0dfa96e3e1f9ee56d23c`;
-- smoke `038` (1002 líneas/un lote):
-  `bb4c34fd3014716b775855be3951eafebcef09f38c7ff276c9b98bb871967507`.
+- smoke `038` (1003 líneas/un lote, compatible con `039`):
+  `6f5b6208a66d2f4bc62654b38f7b245f7426dcc4b305f2be281d7b8103818622`;
+- migración `039` (412 líneas/7 lotes):
+  `884f206fdb0afe349be4bcbb0e1a0ce9d0c4a524fae2fcdae5f7fe6068fbb05e`;
+- smoke `039` (237 líneas/un lote):
+  `00e5ccc09d0c3b7d4a2cfc1cf3971b59c592a2ccb6a045dfd2ffbc6dff7737c8`.
+
+El smoke `027` conserva el fingerprint del conjunto original y agrega una lista explícita de
+permisos `036`/`037`/`039`, para poder ejecutarse después de toda la cadena. Su revisión actual
+tiene 539 líneas/un lote y SHA-256
+`05ad782f560fea48eba38ddf91f63cf2f20edb7bec04000eafd66c12a3006657`.
+Las migraciones históricas no se modificaron; las huellas anteriores de smokes documentadas en
+los cierres históricos corresponden a esos cortes, no al preflight actual.
 
 `036` agrega adjuntos privados de proyecto con intents de carga y finalización durable, cuarentena,
 escaneo fail-closed, ETags de proyecto/asset, portada única accesible sólo si está limpia/confiable y
@@ -93,14 +105,28 @@ efectivo, de modo que un `Clean` de Defender no oculte un rechazo posterior del 
 La migración falla cerrada ante imágenes históricas marcadas como confiables pero no sanitizadas:
 retira su confianza y genera la evidencia de revocación con el manifiesto exacto del blob. Una
 revocación posterior también conserva ese manifiesto completo para no borrar por nombre una versión
-distinta. El worker continúa bloqueado por configuración hasta incorporar el retiro físico
-DB-driven de blobs terminales y completar el E2E real limpio/malicioso. `031`→`038` y sus smokes son
-artefactos locales: **`038` no se ha ejecutado contra SQL Server/Azure SQL y no se desplegó en
-Azure**.
+distinta.
 
-El parser ScriptDom T-SQL 170 aceptó los ocho lotes de la migración y el lote único del smoke; los
-tests estáticos focales de arquitectura SQL pasaron 6/6. Son gates locales y no sustituyen una
-ejecución transaccional contra SQL Server o Azure SQL.
+`039` implementa tareas inmutables y un ledger de intentos para retirar contenido de proyecto por
+manifiesto exacto. La selección excluye contenido activo y revalida identidad y elegibilidad en
+cada claim. El lease es exclusivo, con hasta ocho intentos y backoff de 60 segundos a una hora;
+una finalización repetida con el mismo lease/identidad es idempotente. Cada cuarentena terminal o
+adjunto borrado espera 24 horas; las copias revocadas son elegibles inmediatamente. El worker
+verifica ETag, versión, MIME, longitud y metadatos hash, borra únicamente el actual y la versión
+identificados y confirma ausencia antes de cerrar SQL. No enumera ni borra snapshots u otras
+versiones; soft delete/lifecycle determina la purga física posterior. Cargas `incoming` y promociones
+huérfanas sin recibo durable quedan fuera del claim.
+
+El worker continúa bloqueado por configuración hasta validar SQL/Blob y completar el E2E real
+limpio/malicioso. `031`→`039` y sus smokes son artefactos locales: **no se ejecutaron contra SQL
+Server/Azure SQL ni se desplegaron en Azure**. El smoke `039` cubre elegibilidad, gracia, imágenes
+sanitizadas/legacy revocadas, identidad exacta, idempotencia, conflicto de lease, reintentos e
+historial acotado. La validación local es parsing estático, no ejecución del smoke SQL.
+
+El parser ScriptDom T-SQL 170 valida los lotes de `039` y los smokes revisados `027`, `037`, `038`
+y `039`. Son gates locales y no sustituyen una ejecución transaccional contra SQL Server o Azure
+SQL. El checklist de activación está en
+[`docs/runbooks/project-assets-rollout.md`](../docs/runbooks/project-assets-rollout.md).
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

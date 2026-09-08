@@ -253,6 +253,8 @@ builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceip
 builder.Services.AddScoped<IDefenderScanWatchdogRepository,
     SqlDefenderScanWatchdogRepository>();
 builder.Services.AddScoped<IProjectAssetRepository, SqlProjectAssetRepository>();
+builder.Services.AddScoped<IProjectAssetContentRetentionRepository,
+    SqlProjectAssetContentRetentionRepository>();
 builder.Services.AddScoped<IProjectAssetDefenderScanReceiptRepository,
     SqlProjectAssetDefenderScanReceiptRepository>();
 builder.Services.AddScoped<IProjectAssetDefenderScanWatchdogRepository,
@@ -264,6 +266,8 @@ builder.Services.AddSingleton<ISourceDocumentRetentionBlobStore>(serviceProvider
     serviceProvider.GetRequiredService<AzureSourceDocumentBlobStore>());
 builder.Services.AddSingleton<AzureProjectAssetBlobStore>();
 builder.Services.AddSingleton<IProjectAssetBlobStore>(serviceProvider =>
+    serviceProvider.GetRequiredService<AzureProjectAssetBlobStore>());
+builder.Services.AddSingleton<IProjectAssetContentRetentionBlobStore>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureProjectAssetBlobStore>());
 builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
     ProjectAssetTrustedContentPromoter>();
@@ -304,6 +308,7 @@ builder.Services.AddScoped<ProjectAssetDefenderEventGridService>();
 builder.Services.AddScoped<ProjectAssetDefenderScanWatchdogService>();
 builder.Services.AddScoped<ContentRetentionService>();
 builder.Services.AddScoped<SourceDocumentContentRetentionService>();
+builder.Services.AddScoped<ProjectAssetContentRetentionService>();
 builder.Services.AddSingleton<DeterministicDevelopmentEmbeddingService>();
 var configuredOpenAi = builder.Configuration
     .GetSection(OpenAiProviderOptions.SectionName)

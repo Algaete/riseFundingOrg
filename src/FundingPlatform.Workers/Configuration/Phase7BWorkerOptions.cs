@@ -10,6 +10,8 @@ public sealed class ContentRetentionOptions
     public int BatchSize { get; set; } = 100;
     public int SourceDocumentBatchSize { get; set; } = 25;
     public int SourceDocumentLeaseSeconds { get; set; } = 900;
+    public int ProjectAssetBatchSize { get; set; } = 25;
+    public int ProjectAssetLeaseSeconds { get; set; } = 900;
 }
 
 public sealed class ContentRetentionOptionsValidator : IValidateOptions<ContentRetentionOptions>
@@ -17,7 +19,9 @@ public sealed class ContentRetentionOptionsValidator : IValidateOptions<ContentR
     public ValidateOptionsResult Validate(string? name, ContentRetentionOptions options) =>
         options.BatchSize is >= 1 and <= 500 &&
         options.SourceDocumentBatchSize is >= 1 and <= 100 &&
-        options.SourceDocumentLeaseSeconds is >= 30 and <= 3_600
+        options.SourceDocumentLeaseSeconds is >= 30 and <= 3_600 &&
+        options.ProjectAssetBatchSize is >= 1 and <= 100 &&
+        options.ProjectAssetLeaseSeconds is >= 30 and <= 3_600
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(
                 "ContentRetention batch/lease settings are outside their supported ranges.");

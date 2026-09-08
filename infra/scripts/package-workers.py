@@ -48,6 +48,7 @@ PROJECTS = (
             "ImportOutboxDispatcherFunction": "timerTrigger",
             "ImportQueueFunction": "queueTrigger",
             "ImportSchedulerFunction": "timerTrigger",
+            "ProjectAssetContentRetentionFunction": "timerTrigger",
             "ProjectAssetDefenderEventGridFunction": "httpTrigger",
             "ProjectAssetDefenderScanWatchdogFunction": "timerTrigger",
             "SemanticProcessingFunction": "timerTrigger",

@@ -271,6 +271,7 @@ verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
   'AzureWebJobs.ImportOutboxDispatcherFunction.Disabled=true' \
   'AzureWebJobs.ImportQueueFunction.Disabled=true' \
   'AzureWebJobs.ImportSchedulerFunction.Disabled=true' \
+  'AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled=true' \
   'AzureWebJobs.SemanticProcessingFunction.Disabled=true' \
   'AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled=true'
 

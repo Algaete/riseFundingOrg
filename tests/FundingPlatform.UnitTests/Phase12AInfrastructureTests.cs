@@ -324,7 +324,9 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("verify_disabled_function_settings", verifier, StringComparison.Ordinal);
         Assert.Contains("[?ends_with(name, '.Disabled')].[name, value]", verifier,
             StringComparison.Ordinal);
-        Assert.Equal(18, verifier.Split(".Disabled=true'", StringSplitOptions.None).Length - 1);
+        Assert.Equal(19, verifier.Split(".Disabled=true'", StringSplitOptions.None).Length - 1);
+        Assert.Contains("AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled=true", verifier,
+            StringComparison.Ordinal);
         Assert.Contains("${registry_server}/rise-funding-api@", verifier, StringComparison.Ordinal);
         Assert.Contains("^sha256:[0-9a-f]{64}$", verifier, StringComparison.Ordinal);
         Assert.Contains("/health", verifier, StringComparison.Ordinal);

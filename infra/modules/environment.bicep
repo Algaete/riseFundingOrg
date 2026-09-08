@@ -478,6 +478,7 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
       'AzureWebJobs.ProjectAssetDefenderScanWatchdogFunction.Disabled': 'true'
       'AzureWebJobs.ContentRetentionFunction.Disabled': 'true'
       'AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled': 'true'
+      'AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled': 'true'
       'AzureWebJobs.SemanticProcessingFunction.Disabled': 'true'
       'AzureWebJobs.AiExplanationProcessingFunction.Disabled': 'true'
       'AzureWebJobs.AlertScheduleFunction.Disabled': 'true'

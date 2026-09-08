@@ -12,13 +12,18 @@ using Microsoft.Extensions.Options;
 
 namespace FundingPlatform.Infrastructure.ProjectAssets.Storage;
 
-public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDisposable
+public sealed class AzureProjectAssetBlobStore :
+    IProjectAssetBlobStore,
+    IProjectAssetContentRetentionBlobStore,
+    IDisposable
 {
     private const string ContentHashMetadata = "fp-content-sha256";
     private const string SourceHashMetadata = "fp-source-sha256";
     private const string ProcessingVersionMetadata = "fp-processing-version";
     private readonly BlobServiceClient? serviceClient;
     private readonly TimeProvider timeProvider;
+    private readonly string quarantineContainer;
+    private readonly string trustedContainer;
     private readonly SemaphoreSlim delegationKeyLock = new(1, 1);
     private UserDelegationKey? delegationKey;
 
@@ -28,9 +33,20 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         TimeProvider timeProvider)
     {
         this.timeProvider = timeProvider;
+        quarantineContainer = options.Value.QuarantineContainer;
+        trustedContainer = options.Value.TrustedContainer;
         if (options.Value.Enabled &&
             Uri.TryCreate(options.Value.BlobServiceUri, UriKind.Absolute, out var endpoint))
             serviceClient = new BlobServiceClient(endpoint, credential);
+    }
+
+    internal AzureProjectAssetBlobStore(
+        BlobServiceClient serviceClient, ProjectAssetOptions options, TimeProvider timeProvider)
+    {
+        this.serviceClient = serviceClient;
+        this.timeProvider = timeProvider;
+        quarantineContainer = options.QuarantineContainer;
+        trustedContainer = options.TrustedContainer;
     }
 
     public async Task<ProjectAssetUploadGrant> CreateUploadGrantAsync(
@@ -324,6 +340,123 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         }
     }
 
+    public async Task<ProjectAssetBlobRetentionDeletion> RequestDeletionAsync(
+        ProjectAssetContentRetentionBlobKind blobKind,
+        ProtectedProjectAssetBlobLocation location,
+        string expectedETag,
+        string? expectedVersionId,
+        string expectedMimeType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        byte[]? expectedSourceContentHash,
+        string? expectedProcessingVersion,
+        CancellationToken cancellationToken)
+    {
+        var expectedContainer = blobKind switch
+        {
+            ProjectAssetContentRetentionBlobKind.Quarantine => quarantineContainer,
+            ProjectAssetContentRetentionBlobKind.Trusted => trustedContainer,
+            _ => null
+        };
+        if (expectedContainer is null ||
+            !string.Equals(location.Container, expectedContainer, StringComparison.Ordinal))
+            throw new ProjectAssetStorageException("retention-scope", "content-conflict", 409);
+        if (expectedLength <= 0) throw new ArgumentOutOfRangeException(nameof(expectedLength));
+        if (expectedContentHash is not { Length: 32 })
+            throw new ArgumentException(
+                "The expected content hash must be SHA-256.", nameof(expectedContentHash));
+        if ((expectedSourceContentHash is null) != (expectedProcessingVersion is null) ||
+            expectedSourceContentHash is not null && expectedSourceContentHash.Length != 32)
+            throw new ArgumentException(
+                "Sanitized retention metadata must contain a SHA-256 source hash and processing version together.",
+                nameof(expectedSourceContentHash));
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedMimeType);
+
+        var normalizedETag = NormalizeETag(expectedETag);
+        var normalizedVersionId = expectedVersionId is null
+            ? null
+            : RequireVersionId(expectedVersionId);
+        var client = RequireClient();
+        var current = GetBlobClient(client, location);
+        var version = normalizedVersionId is null
+            ? null
+            : current.WithVersion(normalizedVersionId);
+
+        try
+        {
+            var currentProperties = await GetRetentionPropertiesAsync(
+                current, normalizedETag, cancellationToken);
+            var versionProperties = version is null
+                ? null
+                : await GetRetentionPropertiesAsync(
+                    version, normalizedETag, cancellationToken);
+
+            if (currentProperties is not null)
+            {
+                if (!string.Equals(currentProperties.VersionId, normalizedVersionId,
+                        StringComparison.Ordinal))
+                    throw new ProjectAssetStorageException(
+                        "retention-version", "content-conflict", 409);
+                VerifyRetentionManifest(
+                    currentProperties,
+                    expectedMimeType,
+                    expectedLength,
+                    expectedContentHash,
+                    expectedSourceContentHash,
+                    expectedProcessingVersion);
+            }
+            if (versionProperties is not null)
+            {
+                if (!string.Equals(versionProperties.VersionId, normalizedVersionId,
+                        StringComparison.Ordinal))
+                    throw new ProjectAssetStorageException(
+                        "retention-version", "content-conflict", 409);
+                VerifyRetentionManifest(
+                    versionProperties,
+                    expectedMimeType,
+                    expectedLength,
+                    expectedContentHash,
+                    expectedSourceContentHash,
+                    expectedProcessingVersion);
+            }
+
+            if (currentProperties is not null)
+            {
+                await current.DeleteIfExistsAsync(
+                    DeleteSnapshotsOption.None,
+                    Conditions(normalizedETag),
+                    cancellationToken);
+            }
+
+            if (versionProperties is not null)
+            {
+                await version!.DeleteIfExistsAsync(
+                    DeleteSnapshotsOption.None,
+                    Conditions(normalizedETag),
+                    cancellationToken);
+            }
+
+            var currentAbsent = await IsRetentionTargetAbsentAsync(
+                current, normalizedETag, cancellationToken);
+            var versionAbsent = version is null || await IsRetentionTargetAbsentAsync(
+                version, normalizedETag, cancellationToken);
+            return new ProjectAssetBlobRetentionDeletion(currentAbsent && versionAbsent);
+        }
+        catch (ProjectAssetStorageException)
+        {
+            throw;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 412)
+        {
+            throw new ProjectAssetStorageException(
+                "retention-delete", "content-conflict", 409, exception);
+        }
+        catch (RequestFailedException exception)
+        {
+            throw StorageFailure("retention-delete", exception);
+        }
+    }
+
     public void Dispose() => delegationKeyLock.Dispose();
 
     private BlobServiceClient RequireClient() => serviceClient ??
@@ -432,6 +565,79 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         {
             throw StorageFailure("verify-sanitized-upload", exception);
         }
+    }
+
+    private static async Task<BlobProperties?> GetRetentionPropertiesAsync(
+        BlobClient blob,
+        string expectedETag,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await blob.GetPropertiesAsync(
+                Conditions(expectedETag), cancellationToken)).Value;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            return null;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 412)
+        {
+            throw new ProjectAssetStorageException(
+                "retention-verify", "content-conflict", 409, exception);
+        }
+    }
+
+    private static async Task<bool> IsRetentionTargetAbsentAsync(
+        BlobClient blob,
+        string expectedETag,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _ = await blob.GetPropertiesAsync(
+                Conditions(expectedETag), cancellationToken);
+            return false;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            return true;
+        }
+        catch (RequestFailedException exception) when (exception.Status == 412)
+        {
+            throw new ProjectAssetStorageException(
+                "retention-verify-absence", "content-conflict", 409, exception);
+        }
+    }
+
+    private static void VerifyRetentionManifest(
+        BlobProperties properties,
+        string expectedMimeType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        byte[]? expectedSourceContentHash,
+        string? expectedProcessingVersion)
+    {
+        var storedHash = MetadataValue(properties.Metadata, ContentHashMetadata);
+        if (properties.ContentLength != expectedLength ||
+            !string.Equals(
+                properties.ContentType, expectedMimeType, StringComparison.OrdinalIgnoreCase) ||
+            !TryReadHash(storedHash, out var actualHash) ||
+            !CryptographicOperations.FixedTimeEquals(actualHash, expectedContentHash))
+            throw new ProjectAssetStorageException(
+                "retention-verify", "content-conflict", 409);
+
+        if (expectedSourceContentHash is null) return;
+        var storedSourceHash = MetadataValue(properties.Metadata, SourceHashMetadata);
+        var storedProcessingVersion = MetadataValue(
+            properties.Metadata, ProcessingVersionMetadata);
+        if (!TryReadHash(storedSourceHash, out var actualSourceHash) ||
+            !CryptographicOperations.FixedTimeEquals(
+                actualSourceHash, expectedSourceContentHash) ||
+            !string.Equals(
+                storedProcessingVersion, expectedProcessingVersion, StringComparison.Ordinal))
+            throw new ProjectAssetStorageException(
+                "retention-verify", "content-conflict", 409);
     }
 
     private static string? MetadataValue(
