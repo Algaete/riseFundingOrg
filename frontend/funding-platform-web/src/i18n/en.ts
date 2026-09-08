@@ -1,5 +1,8 @@
 import type { es } from '@/i18n/es'
 import { authEn } from '@/i18n/auth/en'
+import { matchingEn } from '@/i18n/matching/en'
+import { networkEn } from '@/i18n/network/en'
+import { collaborationFeedbackEn } from '@/i18n/collaboration-feedback/en'
 import { organizationFundingEn } from '@/i18n/organization-funding/en'
 import { fundingCatalogEn } from '@/i18n/funding-catalog/en'
 import { marketplaceEn } from '@/i18n/marketplace/en'
@@ -15,6 +18,9 @@ import type { TranslationShape } from '@/i18n/resource-types'
 export const en = {
   translation: {
     auth: authEn,
+    matching: matchingEn,
+    network: networkEn,
+    collaborationFeedback: collaborationFeedbackEn,
     organizationFunding: organizationFundingEn,
     fundingCatalog: fundingCatalogEn,
     marketplace: marketplaceEn,

@@ -4,6 +4,7 @@ import { registerWorkspaceLanguageTests } from './workspace-checks'
 import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
+import { registerMatchingNetworkLanguageTests } from './matching-network-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -87,6 +88,7 @@ registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDiscoveryLanguageTests(expectNoSeriousAccessibilityViolations)
 registerOrganizationFundingLanguageTests(expectNoSeriousAccessibilityViolations)
+registerMatchingNetworkLanguageTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

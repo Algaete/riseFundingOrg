@@ -16,6 +16,7 @@ import {
   Target,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { ApiError } from '@/api/http-client'
@@ -24,167 +25,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   createMatchingCommandId,
   matchingApi,
-  type HardGateStatus,
   type MatchClassification,
-  type MatchingDataState,
   type MatchingRuleEvidence,
-  type MatchingRuleOutcome,
   type MatchingRuleResult,
   type MatchingRunDetail,
-  type MatchingRunStatus,
   type MatchingRunSummary,
   type ProjectFundingMatch,
 } from '@/features/matching/matching-api'
 import { organizationApi } from '@/features/organizations/organization-api'
 import { projectApi, type ProjectSummary } from '@/features/projects/project-api'
+import i18n from '@/i18n'
+import { collaborationErrorMessage, hasMatchingRuleLabel, isStandardMatchingDisclaimer, matchingEvidenceField, matchingEvidenceSource, matchingReasonText, matchingRuleName } from '@/i18n/collaboration-messages'
+import { workspaceLocale } from '@/i18n/workspace-messages'
 
 const selectClass = 'h-11 w-full rounded-lg border bg-background px-3 text-sm'
-const matchingDisclaimer = 'Resultado orientativo basado en datos disponibles; no confirma elegibilidad ni reemplaza la revisión de las bases del fondo.'
-
-const classificationNames: Record<MatchClassification, string> = {
-  0: 'Compatible',
-  1: 'Incompatible',
-  2: 'Datos insuficientes',
-}
-
-const hardGateNames: Record<HardGateStatus, string> = {
-  0: 'Sin incompatibilidades detectadas',
-  1: 'Incompatibilidad detectada',
-  2: 'Datos insuficientes',
-}
-
-const runStatusNames: Record<MatchingRunStatus, string> = {
-  0: 'Pendiente',
-  1: 'En proceso',
-  2: 'Completado',
-  3: 'Fallido',
-}
-
-const outcomeNames: Record<MatchingRuleOutcome, string> = {
-  0: 'Coincide',
-  1: 'Coincide parcialmente',
-  2: 'No coincide',
-  3: 'No se puede determinar',
-}
-
-const dataStateNames: Record<MatchingDataState, string> = {
-  0: 'Dato conocido',
-  1: 'Dato desconocido',
-  2: 'No aplica',
-}
-
-const evidenceSourceNames: Record<string, string> = {
-  organization: 'Perfil institucional',
-  organization_profile: 'Perfil institucional',
-  project: 'Proyecto',
-  funding_opportunity: 'Bases del fondo',
-  opportunity: 'Bases del fondo',
-  'versioned-snapshots': 'Versiones guardadas del proyecto, perfil y fondo',
-}
-
-const evidenceFieldNames: Record<string, string> = {
-  organization_type: 'Tipo de organización',
-  organization_country: 'País de la organización',
-  legal_entity_type: 'Figura jurídica',
-  established_year: 'Antigüedad institucional',
-  project_country: 'País o territorio del proyecto',
-  project_region: 'Región del proyecto',
-  project_category: 'Área de impacto',
-  project_beneficiary_type: 'Población beneficiaria',
-  project_budget: 'Necesidad de financiamiento',
-  project_currency: 'Moneda del proyecto',
-  project_dates: 'Fechas del proyecto',
-  opportunity_country: 'País admitido por el fondo',
-  opportunity_category: 'Área financiada',
-  opportunity_beneficiary_type: 'Población admitida',
-  opportunity_project_type: 'Tipo de proyecto admitido',
-  opportunity_amount: 'Monto financiable',
-  opportunity_currency: 'Moneda del fondo',
-  opportunity_deadline: 'Vigencia del fondo',
-  geography: 'País o región',
-  categories: 'Áreas de impacto',
-  beneficiaries: 'Población beneficiaria',
-  amount: 'Monto y moneda',
-  legal_entity: 'Figura jurídica',
-  operating_years: 'Años de operación',
-  prior_experience: 'Experiencia previa',
-  project_type: 'Tipo de proyecto',
-}
-
-const reasonMessages: Record<string, string> = {
-  MATCH: 'Los datos disponibles coinciden con esta condición.',
-  PARTIAL_MATCH: 'Los datos disponibles coinciden solo parcialmente con esta condición.',
-  NO_MATCH: 'Los datos disponibles muestran una incompatibilidad con esta condición.',
-  UNKNOWN: 'No hay datos suficientes para evaluar esta condición.',
-  NOT_APPLICABLE: 'Esta condición no aplica a este caso.',
-  COUNTRY_MATCH: 'El territorio del proyecto está contemplado por el fondo.',
-  COUNTRY_NO_MATCH: 'El territorio del proyecto no está contemplado por el fondo.',
-  COUNTRY_UNKNOWN: 'Falta información territorial para comparar este criterio.',
-  CATEGORY_MATCH: 'El área de impacto del proyecto coincide con la convocatoria.',
-  CATEGORY_NO_MATCH: 'El área de impacto declarada no coincide con la convocatoria.',
-  CATEGORY_UNKNOWN: 'Falta información para comparar las áreas de impacto.',
-  BENEFICIARY_MATCH: 'La población beneficiaria del proyecto está contemplada por el fondo.',
-  BENEFICIARY_NO_MATCH: 'La población beneficiaria declarada no está contemplada por el fondo.',
-  BENEFICIARY_UNKNOWN: 'Falta información para comparar la población beneficiaria.',
-  PROJECT_TYPE_UNKNOWN: 'Falta información para comparar el tipo de proyecto.',
-  AMOUNT_MATCH: 'La necesidad de financiamiento está dentro del rango publicado.',
-  AMOUNT_PARTIAL: 'La necesidad de financiamiento coincide solo parcialmente con el rango publicado.',
-  AMOUNT_NO_MATCH: 'La necesidad de financiamiento está fuera del rango publicado.',
-  AMOUNT_UNKNOWN: 'Faltan monto o moneda para evaluar el rango de financiamiento.',
-  ORGANIZATION_TYPE_MATCH: 'El tipo de organización está contemplado por el fondo.',
-  ORGANIZATION_TYPE_NO_MATCH: 'El tipo de organización no está contemplado por el fondo.',
-  ORGANIZATION_TYPE_UNKNOWN: 'Falta información para comparar el tipo de organización.',
-  DEADLINE_OPEN: 'La fecha de cierre publicada aún no ha pasado.',
-  DEADLINE_CLOSED: 'La fecha de cierre publicada ya pasó.',
-  DEADLINE_UNKNOWN: 'La fuente no informa una fecha de cierre precisa.',
-  GEOGRAPHY_GLOBAL: 'El fondo no restringe la comparación a un país o región específicos.',
-  GEOGRAPHY_COUNTRY_MATCH: 'Al menos un país del proyecto coincide con el alcance publicado.',
-  GEOGRAPHY_REGION_MATCH: 'Al menos una región del proyecto coincide con el alcance publicado.',
-  GEOGRAPHY_EXPLICIT_NO_MATCH: 'El territorio declarado por el proyecto no coincide con el alcance publicado.',
-  GEOGRAPHY_MISSING_PROJECT: 'El proyecto no tiene territorio suficiente para evaluar esta condición.',
-  GEOGRAPHY_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan suficiente alcance territorial.',
-  ORGANIZATION_TYPE_ALLOWED: 'El tipo institucional figura entre los admitidos por las bases estructuradas.',
-  ORGANIZATION_TYPE_EXCLUDED: 'El tipo institucional figura entre los excluidos por las bases estructuradas.',
-  ORGANIZATION_TYPE_NOT_ALLOWED: 'El tipo institucional no figura entre los contemplados por las bases estructuradas.',
-  ORGANIZATION_TYPE_NOT_RESTRICTED: 'Las bases estructuradas no restringen el tipo de organización.',
-  ORGANIZATION_TYPE_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan suficiente detalle sobre tipos de organización.',
-  LEGAL_ENTITY_NOT_REQUIRED: 'Las bases estructuradas no exigen una figura jurídica específica.',
-  LEGAL_ENTITY_ALLOWED: 'La figura jurídica declarada está contemplada por las bases estructuradas.',
-  LEGAL_ENTITY_EXCLUDED: 'La figura jurídica declarada figura entre las excluidas por las bases estructuradas.',
-  LEGAL_ENTITY_NOT_ALLOWED: 'La figura jurídica declarada no figura entre las contempladas por las bases estructuradas.',
-  LEGAL_ENTITY_PRESENT: 'El perfil institucional contiene una figura jurídica para contrastar.',
-  LEGAL_ENTITY_MISSING_ORGANIZATION: 'El perfil institucional no informa una figura jurídica suficiente para comparar.',
-  LEGAL_ENTITY_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan suficiente detalle sobre figura jurídica.',
-  OPERATING_YEARS_MEETS: 'La antigüedad institucional comprobable alcanza el mínimo publicado.',
-  OPERATING_YEARS_NOT_REQUIRED: 'Las bases estructuradas no exigen una antigüedad operativa mínima.',
-  OPERATING_YEARS_MINIMUM_NOT_MET: 'La antigüedad institucional comprobable no alcanza el mínimo publicado.',
-  OPERATING_YEARS_BOUNDARY_UNKNOWN: 'El año de constitución disponible no permite confirmar con precisión el mínimo requerido.',
-  OPERATING_YEARS_MISSING_ORGANIZATION: 'El perfil institucional no informa un año de constitución suficiente para comparar.',
-  OPERATING_YEARS_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan un mínimo de antigüedad suficiente para comparar.',
-  PRIOR_EXPERIENCE_NOT_REQUIRED: 'Las bases estructuradas no exigen experiencia previa.',
-  PRIOR_EXPERIENCE_HAS_EXPERIENCE: 'El perfil institucional declara experiencia previa.',
-  PRIOR_EXPERIENCE_NO_EXPERIENCE: 'El perfil institucional no declara la experiencia previa requerida.',
-  PRIOR_EXPERIENCE_MISSING_ORGANIZATION: 'El perfil institucional no contiene información suficiente sobre experiencia previa.',
-  PRIOR_EXPERIENCE_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan si exigen experiencia previa.',
-  CATEGORIES_MATCH: 'Al menos un área de impacto del proyecto coincide con las áreas publicadas.',
-  CATEGORIES_NO_MATCH: 'Las áreas de impacto declaradas no coinciden con las áreas publicadas.',
-  CATEGORIES_MISSING_PROJECT: 'El proyecto no tiene áreas de impacto suficientes para comparar.',
-  CATEGORIES_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan áreas de impacto suficientes para comparar.',
-  BENEFICIARIES_MATCH: 'Al menos una población beneficiaria del proyecto coincide con las bases estructuradas.',
-  BENEFICIARIES_NO_MATCH: 'La población beneficiaria declarada no coincide con las bases estructuradas.',
-  BENEFICIARIES_MISSING_PROJECT: 'El proyecto no informa suficiente población beneficiaria para comparar.',
-  BENEFICIARIES_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan poblaciones beneficiarias suficientes para comparar.',
-  PROJECT_TYPE_MATCH: 'Al menos un tipo de proyecto coincide con los contemplados por las bases estructuradas.',
-  PROJECT_TYPE_NO_MATCH: 'El tipo de proyecto declarado no coincide con los contemplados por las bases estructuradas.',
-  PROJECT_TYPE_MISSING_PROJECT: 'El proyecto no informa un tipo suficiente para comparar.',
-  PROJECT_TYPE_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan tipos de proyecto suficientes para comparar.',
-  AMOUNT_WITHIN_RANGE: 'La necesidad de financiamiento está dentro del rango publicado.',
-  AMOUNT_ABOVE_MAX_PARTIAL: 'El rango publicado cubre solo una parte de la necesidad de financiamiento.',
-  AMOUNT_BELOW_MIN: 'La necesidad de financiamiento está por debajo del mínimo publicado.',
-  AMOUNT_CURRENCY_MISMATCH: 'La moneda del proyecto no coincide con la moneda publicada por el fondo.',
-  AMOUNT_MISSING_PROJECT: 'El proyecto no informa monto y moneda suficientes para comparar.',
-  AMOUNT_MISSING_OPPORTUNITY: 'Las bases estructuradas no informan monto y moneda suficientes para comparar.',
-}
 
 function parsePage(value: string | null) {
   const parsed = Number(value)
@@ -196,23 +50,23 @@ function clampPercent(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(value)
+  return new Intl.NumberFormat(workspaceLocale(), { maximumFractionDigits: 1 }).format(value)
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return 'Sin fecha registrada'
+  if (!value) return i18n.t('matching.noDate')
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-CL', {
+  return new Intl.DateTimeFormat(workspaceLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date)
 }
 
-function formatDateOnly(value: string | null) {
+function formatDateOnly(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
   if (!match) return value
-  return new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium' }).format(
+  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium' }).format(
     new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12),
   )
 }
@@ -223,52 +77,32 @@ function fundingDeadlineText(
   if (opportunity.deadlinePrecision === 2 && opportunity.closeAtUtc) {
     const instant = new Date(opportunity.closeAtUtc)
     if (!Number.isNaN(instant.getTime())) {
-      const formatted = new Intl.DateTimeFormat('es-CL', {
+      const formatted = new Intl.DateTimeFormat(workspaceLocale(), {
         dateStyle: 'medium',
         timeStyle: 'short',
         timeZone: 'UTC',
         hourCycle: 'h23',
       }).format(instant)
-      return `Cierre exacto: ${formatted} UTC`
+      return i18n.t('matching.exactDeadline', { date: formatted })
     }
   }
 
   if (opportunity.deadlinePrecision === 1 && opportunity.closeDate) {
-    return `Cierre publicado: ${formatDateOnly(opportunity.closeDate)}`
+    return i18n.t('matching.publishedDeadline', { date: formatDateOnly(opportunity.closeDate) })
   }
 
   if (opportunity.deadlinePrecision === 0 &&
       !opportunity.closeDate && !opportunity.closeAtUtc) {
-    return 'Convocatoria continua'
+    return i18n.t('matching.rolling')
   }
 
-  return 'Cierre exacto no informado'
-}
-
-function apiErrorMessage(error: unknown, fallback: string) {
-  if (!(error instanceof ApiError)) return fallback
-  return Object.values(error.problem.errors ?? {}).flat()[0]
-    ?? error.problem.detail
-    ?? error.problem.title
-}
-
-function reasonText(rule: MatchingRuleResult) {
-  const normalizedCode = rule.reasonCode.trim().toUpperCase().replace(/[.-]+/g, '_')
-  const translated = reasonMessages[normalizedCode]
-  if (translated) return translated
-  if (rule.dataState === 2) return 'Esta condición no aplica a este caso.'
-  return {
-    0: `Los datos disponibles coinciden para “${rule.name}”.`,
-    1: `Los datos disponibles coinciden parcialmente para “${rule.name}”.`,
-    2: `Se detectó una incompatibilidad para “${rule.name}”.`,
-    3: `No hay datos suficientes para evaluar “${rule.name}”.`,
-  }[rule.outcome]
+  return i18n.t('matching.unknownDeadline')
 }
 
 function reasonParameterText(parameters: Record<string, string | null>) {
   const messages: string[] = []
   if (/^\d{1,4}$/.test(parameters.matchCount ?? '')) {
-    messages.push(`Coincidencias registradas: ${parameters.matchCount}`)
+    messages.push(i18n.t('matching.matchCount', { count: Number(parameters.matchCount) }))
   }
   const projectCurrency = /^[A-Z]{3}$/.test(parameters.projectCurrency ?? '')
     ? parameters.projectCurrency
@@ -277,12 +111,12 @@ function reasonParameterText(parameters: Record<string, string | null>) {
     ? parameters.opportunityCurrency
     : null
   if (projectCurrency || opportunityCurrency) {
-    messages.push(`Monedas comparadas: proyecto ${projectCurrency ?? 'sin dato'} · fondo ${opportunityCurrency ?? 'sin dato'}`)
+    messages.push(i18n.t('matching.currenciesCompared', { project: projectCurrency ?? i18n.t('matching.noData'), opportunity: opportunityCurrency ?? i18n.t('matching.noData') }))
   }
   const yearParameters = [
-    ['Años mínimos comprobables', parameters.minimumGuaranteedYears],
-    ['Años máximos posibles', parameters.maximumPossibleYears],
-    ['Años requeridos', parameters.requiredYears],
+    [i18n.t('matching.minimumYears'), parameters.minimumGuaranteedYears],
+    [i18n.t('matching.maximumYears'), parameters.maximumPossibleYears],
+    [i18n.t('matching.requiredYears'), parameters.requiredYears],
   ] as const
   for (const [label, value] of yearParameters) {
     if (/^\d{1,3}$/.test(value ?? '')) messages.push(`${label}: ${value}`)
@@ -291,50 +125,49 @@ function reasonParameterText(parameters: Record<string, string | null>) {
 }
 
 function Evidence({ evidence }: { evidence: MatchingRuleEvidence }) {
-  const source = evidenceSourceNames[evidence.source.toLocaleLowerCase('es-CL')]
-    ?? 'Fuente versionada'
-  const field = evidenceFieldNames[evidence.fieldCode.toLocaleLowerCase('es-CL')]
-    ?? 'Campo estructurado'
+  const { t } = useTranslation()
+  const source = matchingEvidenceSource(evidence.source)
+  const field = matchingEvidenceField(evidence.fieldCode)
   return (
     <div className="rounded-lg bg-muted/70 p-3 text-xs text-muted-foreground">
-      <p><strong className="text-foreground">Evidencia controlada:</strong> {source} · {field}</p>
+      <p><strong className="text-foreground">{t('matching.controlledEvidence')}</strong> {source} · {field}</p>
       {evidence.valueCodes.length > 0 && (
-        <p className="mt-1">{evidence.valueCodes.length} valores estructurados considerados.</p>
+        <p className="mt-1">{t('matching.evidenceValues', { count: evidence.valueCodes.length })}</p>
       )}
     </div>
   )
 }
 
 function RuleResult({ rule }: { rule: MatchingRuleResult }) {
+  const { t } = useTranslation()
   const parameterMessages = reasonParameterText(rule.reasonParameters)
   return (
     <li className="space-y-3 rounded-lg border bg-background p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-bold">{rule.name}</h4>
+            <h4 className="font-bold" lang={hasMatchingRuleLabel(rule.code) ? undefined : 'es'}>{matchingRuleName(rule)}</h4>
             {rule.isHardGate && (
               <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
-                Condición excluyente
+                {t('matching.hardCondition')}
               </span>
             )}
             {rule.isWarning && (
               <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-                Advertencia
+                {t('matching.warning')}
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{reasonText(rule)}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{matchingReasonText(rule)}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-semibold">{outcomeNames[rule.outcome]}</p>
-          <p className="text-xs text-muted-foreground">{dataStateNames[rule.dataState]}</p>
+          <p className="text-sm font-semibold">{t(`matching.outcome.${rule.outcome}`)}</p>
+          <p className="text-xs text-muted-foreground">{t(`matching.dataState.${rule.dataState}`)}</p>
         </div>
       </div>
       {!rule.isHardGate && (
         <p className="text-xs text-muted-foreground">
-          Aporte al puntaje: <strong className="text-foreground">{formatPercent(rule.weightedPoints)}</strong>
-          {' '}de {formatPercent(rule.weight)} puntos posibles
+          {t('matching.scoreContribution', { points: formatPercent(rule.weightedPoints), weight: formatPercent(rule.weight) })}
         </p>
       )}
       {parameterMessages.length > 0 && (
@@ -349,11 +182,12 @@ function RuleResult({ rule }: { rule: MatchingRuleResult }) {
 
 function classificationClass(classification: MatchClassification) {
   if (classification === 0) return 'bg-accent text-accent-foreground'
-  if (classification === 1) return 'bg-destructive/10 text-destructive'
+  if (classification === 1) return 'bg-destructive/10 text-foreground'
   return 'bg-muted text-foreground'
 }
 
 function MatchResultCard({ match }: { match: ProjectFundingMatch }) {
+  const { t } = useTranslation()
   const opportunity = match.fundingOpportunity
   return (
     <article aria-labelledby={`match-${opportunity.publicId}`}>
@@ -362,11 +196,11 @@ function MatchResultCard({ match }: { match: ProjectFundingMatch }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-3 py-1 text-xs font-bold ${classificationClass(match.classification)}`}>
-                {classificationNames[match.classification]}
+                {t(`matching.classification.${match.classification}`)}
               </span>
               {!match.isCurrent && (
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-                  Resultado desactualizado
+                  {t('matching.staleResult')}
                 </span>
               )}
             </div>
@@ -377,48 +211,48 @@ function MatchResultCard({ match }: { match: ProjectFundingMatch }) {
           </div>
           <Button asChild size="sm" variant="outline">
             <Link to={`/opportunities/${encodeURIComponent(opportunity.slug)}`}>
-              Revisar fondo <ArrowRight className="size-4" />
+              {t('matching.reviewFunding')} <ArrowRight className="size-4" />
             </Link>
           </Button>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border bg-background p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Puntaje orientativo</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('matching.score')}</p>
               {match.compatibilityScore === null
-                ? <p className="mt-1 text-xl font-bold">No aplica</p>
-                : <p aria-label={`Puntaje orientativo ${formatPercent(match.compatibilityScore)} de 100`} className="mt-1 text-2xl font-bold">{formatPercent(match.compatibilityScore)}<span className="text-sm text-muted-foreground">/100</span></p>}
+                ? <p className="mt-1 text-xl font-bold">{t('matching.notApplicable')}</p>
+                : <p aria-label={t('matching.scoreLabel', { score: formatPercent(match.compatibilityScore) })} className="mt-1 text-2xl font-bold">{formatPercent(match.compatibilityScore)}<span className="text-sm text-muted-foreground">/100</span></p>}
             </div>
             <div className="rounded-lg border bg-background p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cobertura de datos</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('matching.coverage')}</p>
               <p className="mt-1 text-2xl font-bold">{formatPercent(match.evidenceCoverage)}%</p>
-              <progress aria-label={`Cobertura de datos ${formatPercent(match.evidenceCoverage)}%`} className="mt-2 h-2 w-full accent-primary" max="100" value={clampPercent(match.evidenceCoverage)} />
+              <progress aria-label={t('matching.coverageLabel', { coverage: formatPercent(match.evidenceCoverage) })} className="mt-2 h-2 w-full accent-primary" max="100" value={clampPercent(match.evidenceCoverage)} />
             </div>
             <div className="rounded-lg border bg-background p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Condiciones excluyentes</p>
-              <p className="mt-1 text-sm font-bold">{hardGateNames[match.hardGateStatus]}</p>
-              {match.hardGateStatus === 2 && <p className="mt-1 text-xs text-muted-foreground">Desconocido no cuenta como aprobado.</p>}
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('matching.hardConditions')}</p>
+              <p className="mt-1 text-sm font-bold">{t(`matching.hardGate.${match.hardGateStatus}`)}</p>
+              {match.hardGateStatus === 2 && <p className="mt-1 text-xs text-muted-foreground">{t('matching.unknownNotPassed')}</p>}
             </div>
           </div>
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <span>Versión de las bases: {opportunity.contentVersion}</span>
+            <span>{t('matching.termsVersion', { version: opportunity.contentVersion })}</span>
             <span>{fundingDeadlineText(opportunity)}</span>
           </div>
 
           <details className="group rounded-lg border bg-muted/30 p-4">
             <summary className="cursor-pointer font-bold">
-              Ver desglose de {match.ruleResults.length} reglas
+              {t('matching.ruleCount', { count: match.ruleResults.length })}
             </summary>
             <p className="mt-2 text-sm text-muted-foreground">
-              Las condiciones excluyentes se evalúan por separado: un puntaje alto no anula una incompatibilidad ni un dato desconocido.
+              {t('matching.scoreHelp')}
             </p>
             {match.ruleResults.length > 0 ? (
               <ul className="mt-4 grid gap-3">
                 {match.ruleResults.map((rule) => <RuleResult key={rule.code} rule={rule} />)}
               </ul>
             ) : (
-              <p className="mt-4 text-sm text-muted-foreground">No se registraron reglas para este resultado.</p>
+              <p className="mt-4 text-sm text-muted-foreground">{t('matching.noRules')}</p>
             )}
           </details>
         </CardContent>
@@ -436,6 +270,7 @@ function RunSummaryButton({
   selected: boolean
   onSelect: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <li>
       <button
@@ -446,12 +281,12 @@ function RunSummaryButton({
       >
         <div className="flex items-start justify-between gap-2">
           <span className="font-bold">{formatDateTime(run.completedAtUtc ?? run.createdAtUtc)}</span>
-          <span className="rounded-full bg-muted px-2 py-1 text-xs">{runStatusNames[run.status]}</span>
+          <span className="rounded-full bg-muted px-2 py-1 text-xs">{t(`matching.runStatus.${run.status}`)}</span>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          {run.candidateCount} de {run.totalCandidateCount} fondos evaluados · {run.compatibleCount} compatibles · {run.incompatibleCount} incompatibles · {run.insufficientDataCount} sin datos suficientes
+          {t('matching.runCounts', { candidate: run.candidateCount, total: run.totalCandidateCount, compatible: run.compatibleCount, incompatible: run.incompatibleCount, insufficient: run.insufficientDataCount })}
         </p>
-        {run.isTruncated && <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200">Comparación acotada; no cubre todo el catálogo.</p>}
+        {run.isTruncated && <p className="mt-2 text-xs font-semibold text-amber-800 dark:text-amber-200">{t('matching.bounded')}</p>}
       </button>
     </li>
   )
@@ -470,11 +305,12 @@ function RunHistory({
   page: number
   onPage: (page: number) => void
 }) {
+  const { t } = useTranslation()
   const lastPage = Math.max(1, Math.ceil(runs.totalCount / runs.pageSize))
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><History className="size-5" /> Historial</CardTitle>
+        <CardTitle className="flex items-center gap-2"><History className="size-5" /> {t('matching.history')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <ul className="grid gap-3">
@@ -488,12 +324,12 @@ function RunHistory({
           ))}
         </ul>
         {lastPage > 1 && (
-          <nav aria-label="Paginación del historial" className="flex items-center justify-between gap-2">
-            <Button aria-label="Página anterior del historial" disabled={page <= 1} onClick={() => onPage(page - 1)} size="icon" variant="outline">
+          <nav aria-label={t('matching.historyPagination')} className="flex items-center justify-between gap-2">
+            <Button aria-label={t('matching.historyPrevious')} disabled={page <= 1} onClick={() => onPage(page - 1)} size="icon" variant="outline">
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="text-xs text-muted-foreground">Página {runs.pageNumber} de {lastPage}</span>
-            <Button aria-label="Página siguiente del historial" disabled={page >= lastPage} onClick={() => onPage(page + 1)} size="icon" variant="outline">
+            <span className="text-xs text-muted-foreground">{t('matching.page', { page: runs.pageNumber, total: lastPage })}</span>
+            <Button aria-label={t('matching.historyNext')} disabled={page >= lastPage} onClick={() => onPage(page + 1)} size="icon" variant="outline">
               <ChevronRight className="size-4" />
             </Button>
           </nav>
@@ -504,6 +340,7 @@ function RunHistory({
 }
 
 function MatchingResults({ detail }: { detail: MatchingRunDetail }) {
+  const { t } = useTranslation()
   const run = detail.run
   const current = run.isCurrent
   return (
@@ -512,29 +349,29 @@ function MatchingResults({ detail }: { detail: MatchingRunDetail }) {
         <CardContent className="space-y-4 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Resultado reproducible</p>
-              <h2 className="mt-1 text-2xl font-bold" id="matching-results-title">Compatibilidad orientativa</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Calculada {formatDateTime(run.completedAtUtc ?? run.createdAtUtc)}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{t('matching.reproducible')}</p>
+              <h2 className="mt-1 text-2xl font-bold" id="matching-results-title">{t('matching.indicativeCompatibility')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('matching.calculated', { date: formatDateTime(run.completedAtUtc ?? run.createdAtUtc) })}</p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${current ? 'bg-accent text-accent-foreground' : 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100'}`}>
-              {current ? 'Versiones vigentes' : 'Contiene versiones anteriores'}
+              {current ? t('matching.currentVersions') : t('matching.oldVersions')}
             </span>
           </div>
           <dl className="grid gap-3 rounded-lg bg-muted p-4 text-sm sm:grid-cols-3">
-            <div><dt className="text-muted-foreground">Proyecto</dt><dd className="font-bold">v{run.projectVersion}</dd></div>
-            <div><dt className="text-muted-foreground">Perfil institucional</dt><dd className="font-bold">v{run.organizationProfileVersion}</dd></div>
-            <div><dt className="text-muted-foreground">Motor y reglas</dt><dd className="font-bold">{run.engineVersion} · {run.matchingProfile.name} v{run.matchingProfile.version}</dd></div>
+            <div><dt className="text-muted-foreground">{t('matching.project')}</dt><dd className="font-bold">v{run.projectVersion}</dd></div>
+            <div><dt className="text-muted-foreground">{t('matching.profile')}</dt><dd className="font-bold">v{run.organizationProfileVersion}</dd></div>
+            <div><dt className="text-muted-foreground">{t('matching.engineRules')}</dt><dd className="font-bold">{run.engineVersion} · {run.matchingProfile.name} v{run.matchingProfile.version}</dd></div>
           </dl>
-          <p className="text-xs text-muted-foreground">Catálogo considerado al {formatDateTime(run.catalogSnapshotAtUtc)}.</p>
+          <p className="text-xs text-muted-foreground">{t('matching.snapshot', { date: formatDateTime(run.catalogSnapshotAtUtc) })}</p>
           {run.isTruncated && (
             <p className="flex items-start gap-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100" role="status">
               <CircleAlert className="mt-0.5 size-4 shrink-0" />
-              Comparación acotada: se evaluaron {run.candidateCount} de {run.totalCandidateCount} fondos candidatos. Este resultado no es una revisión exhaustiva del catálogo.
+              {t('matching.boundedHelp', { candidate: run.candidateCount, total: run.totalCandidateCount })}
             </p>
           )}
           <p className="flex items-start gap-2 rounded-lg border p-3 text-sm text-muted-foreground">
             <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-            {detail.disclaimer || matchingDisclaimer}
+            {isStandardMatchingDisclaimer(detail.disclaimer) ? t('matching.disclaimer') : <span lang="es">{detail.disclaimer}</span>}
           </p>
         </CardContent>
       </Card>
@@ -543,9 +380,9 @@ function MatchingResults({ detail }: { detail: MatchingRunDetail }) {
         <Card>
           <CardContent className="space-y-3 p-10 text-center">
             <DatabaseZap className="mx-auto size-9 text-muted-foreground" />
-            <h3 className="text-xl font-bold">No hubo fondos para comparar</h3>
-            <p className="text-sm text-muted-foreground">No encontramos oportunidades publicadas y activas dentro del conjunto evaluable.</p>
-            <Button asChild variant="outline"><Link to="/opportunities">Revisar catálogo</Link></Button>
+            <h3 className="text-xl font-bold">{t('matching.noFunding')}</h3>
+            <p className="text-sm text-muted-foreground">{t('matching.noFundingHelp')}</p>
+            <Button asChild variant="outline"><Link to="/opportunities">{t('matching.reviewCatalog')}</Link></Button>
           </CardContent>
         </Card>
       ) : (
@@ -560,36 +397,39 @@ function MatchingResults({ detail }: { detail: MatchingRunDetail }) {
 }
 
 function OrganizationRequired() {
+  const { t } = useTranslation()
   return (
     <Card>
       <CardContent className="space-y-4 p-8 text-center">
         <Target className="mx-auto size-9 text-primary" />
-        <h1 className="text-2xl font-bold">Primero crea tu organización</h1>
-        <p className="text-sm text-muted-foreground">El cálculo necesita un proyecto y el perfil institucional de su organización.</p>
-        <Button asChild><Link to="/onboarding">Crear organización</Link></Button>
+        <h1 className="text-2xl font-bold">{t('matching.organizationRequired')}</h1>
+        <p className="text-sm text-muted-foreground">{t('matching.organizationRequiredHelp')}</p>
+        <Button asChild><Link to="/onboarding">{t('matching.createOrganization')}</Link></Button>
       </CardContent>
     </Card>
   )
 }
 
 function NoProjects() {
+  const { t } = useTranslation()
   return (
     <Card>
       <CardContent className="space-y-4 p-10 text-center">
         <Target className="mx-auto size-9 text-primary" />
-        <h2 className="text-xl font-bold">Necesitas un proyecto</h2>
-        <p className="text-sm text-muted-foreground">Crea un proyecto antes de calcular su compatibilidad con fondos.</p>
-        <Button asChild><Link to="/projects">Ir a proyectos</Link></Button>
+        <h2 className="text-xl font-bold">{t('matching.projectRequired')}</h2>
+        <p className="text-sm text-muted-foreground">{t('matching.projectRequiredHelp')}</p>
+        <Button asChild><Link to="/projects">{t('matching.goProjects')}</Link></Button>
       </CardContent>
     </Card>
   )
 }
 
 export function MatchingWorkspacePage() {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const command = useRef<{ projectId: string; key: string } | null>(null)
-  const [calculationNotice, setCalculationNotice] = useState('')
+  const [calculationNotice, setCalculationNotice] = useState<'' | 'matching.replayed' | 'matching.calculationCompleted'>('')
   const requestedProjectId = searchParams.get('projectId')
   const requestedRunId = searchParams.get('runId')
   const page = parsePage(searchParams.get('page'))
@@ -661,8 +501,8 @@ export function MatchingWorkspacePage() {
         response.run,
       )
       setCalculationNotice(response.wasReplay
-        ? 'Se recuperó de forma segura el mismo cálculo.'
-        : 'El cálculo terminó correctamente.')
+        ? 'matching.replayed'
+        : 'matching.calculationCompleted')
       const next = new URLSearchParams(searchParams)
       next.set('projectId', project.publicId)
       next.set('runId', runId)
@@ -705,15 +545,15 @@ export function MatchingWorkspacePage() {
   }
 
   if (organizations.isPending) {
-    return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando espacio de compatibilidad…</p>
+    return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {t('matching.loading')}</p>
   }
   if (organizations.isError) {
     return (
       <Card className="border-destructive/40">
         <CardContent className="space-y-3 p-8" role="alert">
           <CircleAlert className="size-8 text-destructive" />
-          <h1 className="text-xl font-bold">No pudimos cargar tu organización</h1>
-          <Button onClick={() => void organizations.refetch()} variant="outline">Reintentar</Button>
+          <h1 className="text-xl font-bold">{t('matching.organizationFailed')}</h1>
+          <Button onClick={() => void organizations.refetch()} variant="outline">{t('matching.retry')}</Button>
         </CardContent>
       </Card>
     )
@@ -723,10 +563,10 @@ export function MatchingWorkspacePage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">FASE 9A · Reglas determinísticas</p>
-        <h1 className="mt-1 text-3xl font-bold">Compatibilidad por proyecto</h1>
+        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('matching.eyebrow')}</p>
+        <h1 className="mt-1 text-3xl font-bold">{t('matching.title')}</h1>
         <p className="mt-2 max-w-3xl text-muted-foreground">
-          Compara cada proyecto con las condiciones estructuradas de fondos activos. El cálculo es reproducible, no usa IA y no decide si puedes postular.
+          {t('matching.description')}
         </p>
       </header>
 
@@ -735,23 +575,23 @@ export function MatchingWorkspacePage() {
           <div className="flex items-start gap-3 rounded-lg bg-muted p-4 text-sm">
             <Scale className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
             <div>
-              <p className="font-bold">Compatibilidad orientativa, no elegibilidad</p>
-              <p className="mt-1 text-muted-foreground">Las condiciones excluyentes y los datos desconocidos se muestran separados del puntaje. Revisa siempre las bases y la fuente oficial.</p>
+              <p className="font-bold">{t('matching.notEligibility')}</p>
+              <p className="mt-1 text-muted-foreground">{t('matching.notEligibilityHelp')}</p>
             </div>
           </div>
 
-          {projects.isPending && <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-4 animate-spin" /> Cargando proyectos…</p>}
+          {projects.isPending && <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-4 animate-spin" /> {t('matching.loadingProjects')}</p>}
           {projects.isError && (
             <div className="space-y-3" role="alert">
-              <p className="text-sm text-destructive">No pudimos cargar tus proyectos.</p>
-              <Button onClick={() => void projects.refetch()} size="sm" variant="outline">Reintentar</Button>
+              <p className="text-sm text-destructive">{t('matching.projectsFailed')}</p>
+              <Button onClick={() => void projects.refetch()} size="sm" variant="outline">{t('matching.retry')}</Button>
             </div>
           )}
           {projects.data && availableProjects.length === 0 && <NoProjects />}
           {availableProjects.length > 0 && (
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <label className="grid gap-1.5 text-sm font-semibold" htmlFor="matching-project">
-                Proyecto a comparar
+                {t('matching.projectToCompare')}
                 <select
                   className={selectClass}
                   disabled={calculation.isPending}
@@ -759,17 +599,17 @@ export function MatchingWorkspacePage() {
                   onChange={(event) => selectProject(event.target.value)}
                   value={selectedProject?.publicId ?? ''}
                 >
-                  <option value="">Selecciona un proyecto</option>
+                  <option value="">{t('matching.selectProject')}</option>
                   {availableProjects.map((project) => (
                     <option key={project.publicId} value={project.publicId}>
-                      {project.title}{project.publicationStatus === 4 ? ' (Archivado)' : ''}
+                      {project.title}{project.publicationStatus === 4 ? t('matching.archivedSuffix') : ''}
                     </option>
                   ))}
                 </select>
                 <span className="text-xs font-normal text-muted-foreground">
                   {selectedProject?.publicationStatus === 4
-                    ? 'Proyecto archivado: puedes consultar su historial, pero no iniciar cálculos nuevos.'
-                    : 'Los proyectos archivados conservan su historial, pero no admiten cálculos nuevos.'}
+                    ? t('matching.archivedSelected')
+                    : t('matching.archivedHelp')}
                 </span>
               </label>
               <Button
@@ -778,28 +618,28 @@ export function MatchingWorkspacePage() {
                 type="button"
               >
                 {calculation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                {runs.data?.items.length ? 'Calcular versión actual' : 'Calcular compatibilidad'}
+                {runs.data?.items.length ? t('matching.calculateCurrent') : t('matching.calculate')}
               </Button>
             </div>
           )}
 
           {calculation.isError && (
-            <div className="space-y-3 rounded-lg bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+            <div className="space-y-3 rounded-lg bg-destructive/10 p-4 text-sm text-foreground" role="alert">
               <div className="flex items-start gap-2">
                 <ShieldAlert className="mt-0.5 size-4 shrink-0" />
                 <div>
-                  <h2 className="font-bold">No pudimos completar el cálculo</h2>
-                  <p className="mt-1">{apiErrorMessage(calculation.error, 'Comprueba la conexión e intenta nuevamente.')}</p>
+                  <h2 className="font-bold">{t('matching.calculationFailed')}</h2>
+                  <p className="mt-1">{collaborationErrorMessage(calculation.error, 'matching')}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {canCalculate && <Button onClick={retryCalculation} size="sm" variant="outline">Reintentar cálculo</Button>}
-                <Button asChild size="sm" variant="ghost"><Link to="/organization/profile">Revisar perfil</Link></Button>
-                {selectedProject && <Button asChild size="sm" variant="ghost"><Link to={`/projects/${selectedProject.publicId}`}>Revisar proyecto</Link></Button>}
+                {canCalculate && <Button onClick={retryCalculation} size="sm" variant="outline">{t('matching.retryCalculation')}</Button>}
+                <Button asChild size="sm" variant="ghost"><Link to="/organization/profile">{t('matching.reviewProfile')}</Link></Button>
+                {selectedProject && <Button asChild size="sm" variant="ghost"><Link to={`/projects/${selectedProject.publicId}`}>{t('matching.reviewProject')}</Link></Button>}
               </div>
             </div>
           )}
-          {calculationNotice && <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground" role="status"><CheckCircle2 className="size-4" /> {calculationNotice}</p>}
+          {calculationNotice && <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground" role="status"><CheckCircle2 className="size-4" /> {t(calculationNotice)}</p>}
         </CardContent>
       </Card>
 
@@ -807,22 +647,22 @@ export function MatchingWorkspacePage() {
         <Card>
           <CardContent className="space-y-3 p-10 text-center">
             <Target className="mx-auto size-9 text-muted-foreground" />
-            <h2 className="text-xl font-bold">Elige un proyecto</h2>
-            <p className="text-sm text-muted-foreground">Cada proyecto tiene territorios, beneficiarios y necesidades de financiamiento diferentes.</p>
+            <h2 className="text-xl font-bold">{t('matching.chooseProject')}</h2>
+            <p className="text-sm text-muted-foreground">{t('matching.chooseProjectHelp')}</p>
           </CardContent>
         </Card>
       )}
 
       {selectedProject && runs.isPending && (
-        <Card><CardContent className="flex items-center gap-2 p-8" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando cálculos anteriores…</CardContent></Card>
+        <Card><CardContent className="flex items-center gap-2 p-8" role="status"><LoaderCircle className="size-5 animate-spin" /> {t('matching.loadingHistory')}</CardContent></Card>
       )}
       {selectedProject && runs.isError && (
         <Card className="border-destructive/40">
           <CardContent className="space-y-3 p-8" role="alert">
             <CircleAlert className="size-8 text-destructive" />
-            <h2 className="text-xl font-bold">No pudimos consultar el historial</h2>
-            <p className="text-sm text-muted-foreground">{apiErrorMessage(runs.error, 'Comprueba la conexión e intenta nuevamente.')}</p>
-            <Button onClick={() => void runs.refetch()} variant="outline">Reintentar</Button>
+            <h2 className="text-xl font-bold">{t('matching.historyFailed')}</h2>
+            <p className="text-sm text-muted-foreground">{collaborationErrorMessage(runs.error, 'matching')}</p>
+            <Button onClick={() => void runs.refetch()} variant="outline">{t('matching.retry')}</Button>
           </CardContent>
         </Card>
       )}
@@ -830,11 +670,11 @@ export function MatchingWorkspacePage() {
         <Card>
           <CardContent className="space-y-3 p-10 text-center">
             <Clock3 className="mx-auto size-9 text-muted-foreground" />
-            <h2 className="text-xl font-bold">Aún no hay cálculos para este proyecto</h2>
+            <h2 className="text-xl font-bold">{t('matching.noCalculations')}</h2>
             <p className="text-sm text-muted-foreground">
               {canCalculate
-                ? 'Usa “Calcular compatibilidad” para crear un resultado con las versiones actuales.'
-                : 'Este proyecto archivado no tiene cálculos históricos.'}
+                ? t('matching.calculateHelp')
+                : t('matching.archivedEmpty')}
             </p>
           </CardContent>
         </Card>
@@ -850,14 +690,14 @@ export function MatchingWorkspacePage() {
             selectedRunId={selectedRunId}
           />}
           <div>
-            {detail.isPending && <Card><CardContent className="flex items-center gap-2 p-8" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando desglose…</CardContent></Card>}
+            {detail.isPending && <Card><CardContent className="flex items-center gap-2 p-8" role="status"><LoaderCircle className="size-5 animate-spin" /> {t('matching.loadingBreakdown')}</CardContent></Card>}
             {detail.isError && (
               <Card className="border-destructive/40">
                 <CardContent className="space-y-3 p-8" role="alert">
                   <CircleAlert className="size-8 text-destructive" />
-                  <h2 className="text-xl font-bold">No pudimos cargar este cálculo</h2>
-                  <p className="text-sm text-muted-foreground">{apiErrorMessage(detail.error, 'Comprueba la conexión e intenta nuevamente.')}</p>
-                  <Button onClick={() => void detail.refetch()} variant="outline">Reintentar</Button>
+                  <h2 className="text-xl font-bold">{t('matching.detailFailed')}</h2>
+                  <p className="text-sm text-muted-foreground">{collaborationErrorMessage(detail.error, 'matching')}</p>
+                  <Button onClick={() => void detail.refetch()} variant="outline">{t('matching.retry')}</Button>
                 </CardContent>
               </Card>
             )}

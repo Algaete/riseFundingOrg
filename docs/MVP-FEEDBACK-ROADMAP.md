@@ -198,11 +198,58 @@ respuestas están simulados bajo la guarda que bloquea solicitudes API inesperad
 Límites: I18N-05 sigue pendiente para nombres de catálogos y códigos estables de reglas de API.
 Sin cambios de backend, SQL, roles, seguridad, `preferredLocale`, flags de adjuntos, push ni Azure.
 
+### I18N-04C: compatibilidad y red de organizaciones
+
+Implementado localmente:
+
+- Matching por proyecto: selección, cálculo explícito, historial y paginación, resultados
+  actuales/históricos, cobertura, puntajes, condiciones excluyentes y desglose ES/EN.
+  Las nueve reglas actuales y los 72 códigos de explicación existentes tienen recursos propios.
+- El idioma no modifica el motor, pesos, resultados, clasificación, datos desconocidos ni
+  frescura del cálculo. Se conservan proyecto, ejecución, página, URL y reglas desplegadas,
+  sin consultas ni cálculos adicionales por idioma. Los proyectos archivados siguen sin
+  admitir cálculos nuevos; el historial permanece disponible.
+- Fechas, puntajes y avisos traducidos; el cierre exacto conserva UTC y las fechas sin hora
+  mantienen su día. Las versiones del motor, perfil y bases permanecen intactas.
+- Las evidencias continúan limitadas a fuentes/campos conocidos y conteos, sin revelar
+  valores crudos, parámetros no permitidos ni datos privados fuera del contrato. Reglas
+  desconocidas conservan su nombre y usan el resultado recibido como explicación de respaldo.
+- El aviso estándar se traduce solo si coincide exactamente con el contrato conocido.
+  Avisos nuevos o personalizados de la fuente se conservan originales, sin traducción supuesta.
+- Red: directorio, búsqueda, filtros de dirección, estados, propósitos, privacidad,
+  preparación de invitaciones y acciones de solicitudes en ambos idiomas. Se conservan
+  texto pendiente, destinatario, proyecto opcional y mensaje privado al cambiar de idioma.
+- Visibilidad, permisos de miembro/administrador y capacidades de acción informadas por
+  el servidor no cambian. Traducir no activa el directorio ni envía, acepta, rechaza,
+  cancela o bloquea solicitudes. Mensajes de éxito/error visibles siguen el idioma elegido.
+- Cálculos y solicitudes pendientes no se repiten al traducir. Se mantienen las claves
+  idempotentes y las reglas de reintento existentes, además de los ETags de configuración
+  y acciones. No se modifican contratos ni políticas de concurrencia del backend.
+- Corrección de estados de lectura de la red: un fallo al cargar la organización ya no
+  se confunde con tener que crearla; configuración, directorio y conexiones muestran errores
+  y reintentos de lectura explícitos. Un fallo de configuración no se presenta como opt-out.
+- Recursos separados en `src/i18n/matching`, `network` y `collaboration-feedback`;
+  `collaboration-messages.ts` resuelve códigos y errores de protocolo sin exponer diagnósticos
+  arbitrarios. Contraste de avisos y controles de invitación adaptados a pantallas estrechas.
+  `/matching` y `/network` heredan el idioma elegido.
+
+Validación del corte I18N-04C: build, lint y typecheck E2E aprobados; 410 pruebas de frontend y
+73 pruebas de navegador aprobadas. Se omite únicamente la comprobación del SHA de Azure en local.
+Las comprobaciones de navegador cubren 320/1024px, claro/oscuro, reglas abiertas, permisos
+de miembros, borradores de invitación, errores y un cálculo sintético con reintento idempotente.
+Se usan datos y sesiones simulados bajo la guarda que bloquea solicitudes API inesperadas;
+no se envían invitaciones a organizaciones reales ni se ejecutan cálculos en Azure.
+
+Límites: no agrega matching con IA, profesionales, consorcios ni chat. Conserva la primera
+organización de la lista en ambas pantallas; no implementa un selector global nuevo.
+Nombres de organizaciones, proyectos, mensajes y catálogos permanecen originales; los
+catálogos bilingües y códigos de validación por campo siguen en I18N-05.
+Sin cambios de backend, SQL, roles, `preferredLocale`, SSO, flags de adjuntos, push ni despliegue.
+
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-04C: matching y red de organizaciones.
-2. I18N-04D: postulaciones, calendario, alertas y planes.
-3. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
+1. I18N-04D: postulaciones, calendario, alertas y planes.
+2. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -223,7 +270,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2 no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros
