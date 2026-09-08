@@ -186,7 +186,7 @@ done
    el administrador efectivo del servidor SQL, obtiene el token SQL y fija `AzureCliCredential`,
    deriva la conexión dev, registra PITR, abre una regla
    firewall única con cleanup verificado, ejecuta `--preflight`, aplica las pendientes, confirma
-   `001`→`035` sin pendientes, ejecuta los 35 smokes, verifica Full-Text listo y prueba reapply/provisioning
+   `001`→`036` sin pendientes, ejecuta los 36 smokes, verifica Full-Text listo y prueba reapply/provisioning
    idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.
@@ -221,6 +221,12 @@ done
     dos de extracción deben permanecer en `true`. La carga PDF tampoco es E2E hasta versionar CORS
     de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
     navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
+
+    Los adjuntos de proyecto de `036A` también deben permanecer apagados en backend y frontend. Su
+    activación exige, en este orden, migración `036` → API en todo el tráfico → decodificación/re-encode
+    de imágenes sin EXIF y creación de `fp-project-incoming`, `fp-project-quarantine` y
+    `fp-project-trusted` con RBAC, CORS y lifecycle → worker Defender/Event Grid validado con casos
+    limpio/malicioso → `VITE_PROJECT_ASSETS_ENABLED=true` al final. Video queda fuera de 036A.
 
     CI prepara ZIP offline reproducibles de ambos workers y verifica sus manifiestos/SHA-256, pero
     no recibe credenciales Azure. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880`

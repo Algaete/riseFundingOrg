@@ -23,12 +23,14 @@ principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 
 La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
 `032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
-`034_organization_funding_experience_types.sql` y `035_organization_custom_taxonomy.sql`, con sus
-smokes transaccionales. Los cinco incrementos están preparados para el siguiente release y todavía
+`034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
+`036_project_assets.sql`, con sus smokes transaccionales. Los seis incrementos están preparados
+para el siguiente release y todavía
 no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
 datos → 100 % del tráfico API nuevo → frontend; las guardas `51011` y `51013` impiden que una
 instancia API antigua genere un snapshot incompleto cuando la organización ya tiene relaciones
-nuevas.
+nuevas. `036` permanece apagada por feature flag hasta completar su despliegue coordinado de SQL,
+Blob privado y API; no publica URLs de blobs ni reutiliza `SourceDocuments`.
 Huellas locales del incremento:
 
 - migración `031` (354 líneas/un lote):
@@ -50,7 +52,19 @@ Huellas locales del incremento:
 - migración `035` (602 líneas/4 lotes):
   `7586b84e5138f1ea7bb26204f200788b9da0e2e6812c4efc19ba25eabcba50bb`;
 - smoke `035` (207 líneas/un lote):
-  `a7d228f658e3c7d5b97051ebba5a059a7eec712180a9c869883da5df151a5a45`.
+  `a7d228f658e3c7d5b97051ebba5a059a7eec712180a9c869883da5df151a5a45`;
+- migración `036` (3366 líneas/19 lotes):
+  `e15b507d2c0823d49e7a8a3cfb845a3dda18a469a2fea75799939ba6bb99156d`;
+- smoke `036` (501 líneas/un lote):
+  `36bb637b22848b1a126be594ba73952925e0f9fbea50fbce602ad12626a25d12`.
+
+`036` agrega adjuntos privados de proyecto con intents de carga y finalización durable, cuarentena,
+escaneo fail-closed, ETags de proyecto/asset, portada única accesible sólo si está limpia/confiable y
+borrado lógico. Admite hasta
+8 imágenes JPEG/PNG/WebP de 10 MiB y 25 megapíxeles, 4 PDF de 25 MiB, 12 activos, 5 intents
+pendientes y 250 MiB por proyecto. Las lecturas privadas exigen membresía activa; las mutaciones,
+rol administrador. La publicación, la aprobación administrativa y la proyección marketplace
+revalidan que cada adjunto activo siga limpio y confiable.
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

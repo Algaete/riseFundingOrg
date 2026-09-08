@@ -58,6 +58,13 @@ y Container Apps son cross-site, por lo que el refresh cookie `SameSite=Lax` req
 `app.<dominio>`/`api.<dominio>` bajo el mismo sitio registrable. La carga directa de PDF también queda
 pendiente hasta versionar CORS de Blob y publicar/validar Functions y Defender/Event Grid.
 
+El incremento local `036A` añade la base de imágenes JPG/PNG/WebP y PDF de proyectos, pero no cambia
+ese estado: permanece apagado y video se difiere. Antes de habilitarlo se requiere
+decodificación/re-encode de imágenes con eliminación de EXIF, worker Defender/Event Grid validado y
+los containers privados `fp-project-incoming`, `fp-project-quarantine` y `fp-project-trusted` con
+RBAC, CORS exacto y lifecycle. El rollout es base de datos `036` → API en todo el tráfico →
+infraestructura de seguridad → frontend, con `VITE_PROJECT_ASSETS_ENABLED=true` únicamente al final.
+
 ## Escala y costo
 
 El workflow pregunta `api_min_replicas`:
@@ -199,7 +206,7 @@ para un cambio completo de infraestructura; no describe trabajo pendiente del am
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
-   `--preflight`, aplica las pendientes, confirma `001`→`035` sin pendientes, corre los 35 smokes,
+   `--preflight`, aplica las pendientes, confirma `001`→`036` sin pendientes, corre los 36 smokes,
    verifica Full-Text listo,
    aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
    SuperAdmin. No usa Graph para crear principals SQL.

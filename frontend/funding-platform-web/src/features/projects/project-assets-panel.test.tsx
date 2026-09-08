@@ -1,0 +1,270 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+
+import { setAuthenticatedSession } from '@/features/auth/auth-session'
+import { ProjectAssetsPanel } from '@/features/projects/project-assets-panel'
+import type { ProjectAsset, ProjectAssetCollection } from '@/features/projects/project-assets-api'
+
+const organizationId = '51ea2f6f-b1af-4e09-856c-6dcbdcfc812f'
+const projectId = 'bd351806-9139-4524-bc01-93c3676729cb'
+
+function json(value: unknown, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify(value), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  }))
+}
+
+function collection(items: ProjectAsset[], projectETag = '"0102030405060708"'): ProjectAssetCollection {
+  return { projectId, publicationStatus: 0, projectETag, items }
+}
+
+function asset(overrides: Partial<ProjectAsset> = {}): ProjectAsset {
+  return {
+    assetId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+    kind: 0,
+    fileName: 'river.png',
+    displayName: 'Río comunitario',
+    mimeType: 'image/png',
+    contentLength: 1200,
+    pixelWidth: 1200,
+    pixelHeight: 800,
+    storageStatus: 1,
+    scanStatus: 0,
+    scanProvider: 1,
+    scanResultCode: 'pending',
+    sortOrder: 0,
+    isCover: false,
+    altText: null,
+    caption: null,
+    isReady: false,
+    contentUrl: null,
+    createdAtUtc: '2026-09-08T12:00:00Z',
+    updatedAtUtc: '2026-09-08T12:00:00Z',
+    eTag: '"1112131415161718"',
+    ...overrides,
+  }
+}
+
+function renderPanel(overrides: Partial<React.ComponentProps<typeof ProjectAssetsPanel>> = {}) {
+  const onProjectChanged = vi.fn().mockResolvedValue(undefined)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ProjectAssetsPanel
+        hasUnsavedChanges={false}
+        onProjectChanged={onProjectChanged}
+        organizationId={organizationId}
+        projectETag="&quot;0001020304050607&quot;"
+        projectId={projectId}
+        publicationStatus={0}
+        {...overrides}
+      />
+    </QueryClientProvider>,
+  )
+  return { onProjectChanged, queryClient }
+}
+
+describe('panel de adjuntos del proyecto', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_PROJECT_ASSETS_ENABLED', 'true')
+    setAuthenticatedSession({
+      status: 'authenticated',
+      accessToken: 'project-asset-token',
+      accessTokenExpiresAtUtc: '2099-09-08T18:00:00Z',
+      user: {
+        publicId: '89b8d22a-472c-42e4-b034-c772ce3bb08e',
+        email: 'member@example.test',
+        displayName: 'Miembro',
+        preferredLocale: 'es-CL',
+        roles: ['Professional'],
+        mfaEnabled: false,
+      },
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('permanece ausente y no consulta la API cuando la bandera está apagada', async () => {
+    vi.stubEnv('VITE_PROJECT_ASSETS_ENABLED', 'false')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderPanel()
+
+    expect(screen.queryByRole('heading', { name: 'Fotos y documentos' })).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('bloquea mutaciones con cambios sin guardar y nunca previsualiza un archivo pendiente', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => json(collection([asset()])))
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderPanel({ hasUnsavedChanges: true })
+
+    expect(await screen.findByRole('heading', { name: 'Fotos y documentos' })).toBeInTheDocument()
+    expect(await screen.findByText('Sin vista previa hasta completar el análisis')).toBeInTheDocument()
+    expect(document.querySelector('img')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Cargar y verificar/ })).toBeDisabled()
+    expect(screen.getByText(/Videos: próxima fase/)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('carga de forma secuencial, mantiene el secreto sólo en memoria y muestra fases reales', async () => {
+    let assetListRequests = 0
+    const createHeaders: Headers[] = []
+    const completionBodies: Record<string, unknown>[] = []
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith(`/organizations/${organizationId}/projects/${projectId}/assets`) && init?.method === 'GET') {
+        assetListRequests += 1
+        return json(collection([], assetListRequests === 1 ? '"0102030405060708"' : '"3132333435363738"'))
+      }
+      if (url.endsWith(`/organizations/${organizationId}/projects/${projectId}/asset-upload-intents`)) {
+        createHeaders.push(new Headers(init?.headers))
+        return json({
+          intentId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          kind: 0,
+          status: 0,
+          expiresAtUtc: '2026-09-08T12:05:00Z',
+          maxContentLength: 10 * 1024 * 1024,
+          uploadMethod: 'PUT',
+          uploadUrl: 'https://testing.blob.core.windows.net/project-incoming/photo.png?sig=secret',
+          requiredHeaders: {
+            'x-ms-blob-type': 'BlockBlob',
+            'Content-Type': 'image/png',
+            'If-None-Match': '*',
+          },
+          completionToken: 'one-time-project-secret',
+          statusUrl: 'private-status-url',
+          eTag: '"1112131415161718"',
+          projectETag: '"2122232425262728"',
+          securityNotice: 'server validates again',
+        }, 201)
+      }
+      if (url.startsWith('https://testing.blob.core.windows.net/')) {
+        return Promise.resolve(new Response(null, { status: 201 }))
+      }
+      if (url.endsWith('/asset-upload-intents/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/complete')) {
+        completionBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+        return json({
+          code: 'ready',
+          intentId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          intentStatus: 2,
+          assetId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+          storageStatus: 2,
+          scanStatus: 1,
+          scanProvider: 0,
+          intentETag: '"2223242526272829"',
+          assetETag: '"2324252627282930"',
+          projectETag: '"3132333435363738"',
+          wasReplay: false,
+        })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    const { onProjectChanged, queryClient } = renderPanel()
+    const input = await screen.findByLabelText('Seleccionar fotos o documentos')
+    await vi.waitFor(() => expect(input).toBeEnabled())
+    await user.upload(input, new File(['png'], 'photo.png', { type: 'image/png' }))
+    await user.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))
+
+    await vi.waitFor(() => expect(createHeaders).toHaveLength(1))
+    await vi.waitFor(() => expect(completionBodies).toHaveLength(1))
+    await vi.waitFor(() => expect(onProjectChanged).toHaveBeenCalled())
+    await vi.waitFor(() => expect(queryClient.isMutating()).toBe(0))
+    expect(screen.getByText(/photo\.png.*Listo/, { selector: 'span' })).toBeInTheDocument()
+    expect(createHeaders[0]?.get('If-Match')).toBe('"0102030405060708"')
+    expect(completionBodies[0]).toEqual({ completionToken: 'one-time-project-secret' })
+    const directCall = fetchMock.mock.calls.find(([url]) => String(url).startsWith('https://testing.blob.core.windows.net/'))
+    expect(directCall?.[1]).toMatchObject({ credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer' })
+    expect(sessionStorage.length).toBe(0)
+    expect(localStorage.length).toBe(0)
+    expect(assetListRequests).toBeGreaterThanOrEqual(2)
+    expect(onProjectChanged).toHaveBeenCalled()
+  })
+
+  it('sólo permite una portada lista con texto alternativo y usa contenido autenticado', async () => {
+    const readyImage = asset({
+      storageStatus: 2,
+      scanStatus: 1,
+      scanResultCode: 'clean',
+      isReady: true,
+      contentUrl: `/api/v1/organizations/${organizationId}/projects/${projectId}/assets/cccccccc-cccc-cccc-cccc-cccccccccccc/content`,
+    })
+    const metadataRequests: { headers: Headers; body: Record<string, unknown> }[] = []
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith(`/organizations/${organizationId}/projects/${projectId}/assets`) && init?.method === 'GET') {
+        return json(collection([readyImage]))
+      }
+      if (url.endsWith('/assets/cccccccc-cccc-cccc-cccc-cccccccccccc/content')) {
+        return Promise.resolve(new Response('image', { status: 200, headers: { 'Content-Type': 'image/png' } }))
+      }
+      if (url.endsWith('/assets/cccccccc-cccc-cccc-cccc-cccccccccccc') && init?.method === 'PATCH') {
+        metadataRequests.push({
+          headers: new Headers(init.headers),
+          body: JSON.parse(String(init.body)) as Record<string, unknown>,
+        })
+        return json({
+          code: 'updated',
+          assetId: readyImage.assetId,
+          assetETag: '"4142434445464748"',
+          projectETag: '"5152535455565758"',
+          wasReplay: false,
+        })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: vi.fn(() => 'blob:private-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+
+    const user = userEvent.setup()
+    renderPanel()
+
+    const cover = await screen.findByRole('checkbox', { name: /Usar como portada/ })
+    await user.click(cover)
+    await user.click(screen.getByRole('button', { name: 'Guardar datos' }))
+    expect(await screen.findByText('La portada necesita texto alternativo.')).toBeInTheDocument()
+    expect(metadataRequests).toHaveLength(0)
+
+    await user.type(screen.getByLabelText(/Texto alternativo/), 'Personas trabajando junto al río')
+    await user.click(screen.getByRole('button', { name: 'Guardar datos' }))
+
+    await vi.waitFor(() => expect(metadataRequests).toHaveLength(1))
+    expect(metadataRequests[0]?.headers.get('If-Match')).toBe(readyImage.eTag)
+    expect(metadataRequests[0]?.headers.get('X-Project-If-Match')).toBe('"0102030405060708"')
+    expect(metadataRequests[0]?.body).toMatchObject({
+      altText: 'Personas trabajando junto al río',
+      isCover: true,
+    })
+    const contentCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/content'))
+    expect(new Headers(contentCall?.[1]?.headers).get('Authorization')).toBe('Bearer project-asset-token')
+  })
+
+  it('pide confirmación explícita antes de eliminar', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => json(collection([asset()]))))
+    const user = userEvent.setup()
+    renderPanel()
+
+    await user.click(await screen.findByRole('button', { name: 'Eliminar' }))
+    expect(screen.getByRole('alertdialog', { name: /Eliminar Río comunitario/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+})

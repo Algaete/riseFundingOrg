@@ -25,6 +25,7 @@ using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Projects;
+using FundingPlatform.Application.ProjectAssets;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts;
 using FundingPlatform.Core.Identity;
@@ -47,6 +48,7 @@ using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
 using FundingPlatform.Infrastructure.Persistence.Marketplace;
 using FundingPlatform.Infrastructure.Persistence.Projects;
+using FundingPlatform.Infrastructure.Persistence.ProjectAssets;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
@@ -54,6 +56,11 @@ using FundingPlatform.Infrastructure.SourceDocuments.Cryptography;
 using FundingPlatform.Infrastructure.SourceDocuments.Inspection;
 using FundingPlatform.Infrastructure.SourceDocuments.Scanning;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
+using FundingPlatform.Infrastructure.ProjectAssets.Configuration;
+using FundingPlatform.Infrastructure.ProjectAssets.Cryptography;
+using FundingPlatform.Infrastructure.ProjectAssets.Inspection;
+using FundingPlatform.Infrastructure.ProjectAssets.Scanning;
+using FundingPlatform.Infrastructure.ProjectAssets.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -222,6 +229,14 @@ builder.Services.AddScoped<OrganizationProfileService>();
 builder.Services.AddScoped<IProjectRepository, SqlProjectRepository>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ProjectWorkflowService>();
+builder.Services.AddScoped<IProjectAssetRepository, SqlProjectAssetRepository>();
+builder.Services.AddScoped<ProjectAssetService>();
+builder.Services.AddSingleton<IProjectAssetCompletionTokenService,
+    ProjectAssetCompletionTokenService>();
+builder.Services.AddSingleton<IProjectAssetContentInspector,
+    StreamingProjectAssetContentInspector>();
+builder.Services.AddSingleton<IProjectAssetScanner, ConfiguredProjectAssetScanner>();
+builder.Services.AddSingleton<IProjectAssetBlobStore, AzureProjectAssetBlobStore>();
 builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
@@ -348,6 +363,15 @@ builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SourceDocumentExtractionOptions>>().Value.ToPolicy());
+builder.Services
+    .AddOptions<ProjectAssetOptions>()
+    .Bind(builder.Configuration.GetSection(ProjectAssetOptions.SectionName))
+    .Validate(
+        options => ProjectAssetOptions.IsValid(options, builder.Environment.EnvironmentName),
+        "La configuración ProjectAssets no es válida.")
+    .ValidateOnStart();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<ProjectAssetOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value;
@@ -621,6 +645,36 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("project-asset-create", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("project-asset-mutation", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("project-asset-content", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
     options.AddPolicy("import-run-create", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -699,8 +753,8 @@ app.UseStatusCodePages();
 app.UseCors(policy => policy
     .WithOrigins(webOptions.AllowedCorsOrigins)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-    .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID", "Idempotency-Key", "If-Match")
-    .WithExposedHeaders("ETag", "X-Correlation-ID")
+    .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID", "Idempotency-Key", "If-Match", "X-Project-If-Match")
+    .WithExposedHeaders("ETag", "X-Correlation-ID", "X-Project-ETag")
     .AllowCredentials());
 
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
@@ -748,6 +802,7 @@ app.MapAuthenticationEndpoints();
 app.MapExternalAuthenticationEndpoints();
 app.MapOrganizationEndpoints();
 app.MapProjectEndpoints();
+app.MapProjectAssetEndpoints();
 app.MapAdminProjectEndpoints();
 app.MapAdminUserEndpoints();
 app.MapAdminOperationsEndpoints();

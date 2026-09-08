@@ -36,16 +36,21 @@ servicios externos también continúan apagados. La base compartida histórica `
 Los incrementos de feedback del MVP están preparados localmente mediante
 `031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql`,
 `033_project_impact_profile.sql`, `034_organization_funding_experience_types.sql` y
-`035_organization_custom_taxonomy.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere
-coincidencias automáticas y agregan al proyecto una
+`035_organization_custom_taxonomy.sql`, junto con la base gobernada de adjuntos
+`036_project_assets.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere coincidencias
+automáticas y agregan al proyecto una
 etapa independiente junto con los 17 ODS oficiales, permiten registrar de forma opcional los tipos
 de financiadores con los que la organización tiene experiencia y agregan opciones privadas en áreas
-de impacto, poblaciones, tipos de proyecto e idiomas. Estas cinco migraciones y sus interfaces
-todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
-continúa siendo `001`→`030`. El rollout de `034` y `035` debe respetar el
-orden base de datos → 100 % del tráfico API nuevo → frontend, porque su guarda de compatibilidad
-rechaza de forma segura una actualización de una API antigua cuando ya existen esas relaciones o
-valores personalizados.
+de impacto, poblaciones, tipos de proyecto e idiomas. El incremento `036A` admite imágenes
+JPG/PNG/WebP y documentos PDF privados mediante carga directa gobernada, cuarentena, scan y promoción
+al container confiable; video queda reservado para una fase posterior. Estas seis migraciones y sus
+interfaces todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
+continúa siendo `001`→`030`. El rollout debe respetar el orden base de datos → 100 % del tráfico API
+nuevo → infraestructura de seguridad → frontend, activando `VITE_PROJECT_ASSETS_ENABLED` al final.
+La funcionalidad de adjuntos permanece apagada hasta implementar decode/reencode real con eliminación
+de EXIF, publicar y validar el worker Defender/Event Grid, y provisionar containers privados, CORS y
+lifecycle. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
+una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
@@ -237,6 +242,11 @@ Variables agrupadas:
   SOURCE_DOCUMENT_FINALIZE_LEASE_SECONDS, SOURCE_DOCUMENT_SCAN_TIMEOUT_SECONDS,
   SOURCE_DOCUMENT_SCAN_MODE y SOURCE_DOCUMENT_DEVELOPMENT_FAKE_RESULT. La API accede a Blob
   mediante Entra/Managed Identity y no necesita una account key.
+- Adjuntos de proyecto 036A: `PROJECT_ASSETS_ENABLED`, `PROJECT_ASSET_INCOMING_CONTAINER`,
+  `PROJECT_ASSET_QUARANTINE_CONTAINER`, `PROJECT_ASSET_TRUSTED_CONTAINER`, límites de bytes/píxeles,
+  TTL/lease/timeout y `PROJECT_ASSET_SCAN_MODE`. Backend y frontend permanecen apagados con
+  `PROJECT_ASSETS_ENABLED=false` y `VITE_PROJECT_ASSETS_ENABLED=false` hasta completar los gates de
+  sanitización, Defender/Event Grid y Storage; el navegador nunca recibe account keys.
 - Extracción/retención: DOCUMENT_EXTRACTION_MAX_BYTES, DOCUMENT_EXTRACTION_MAX_PAGES,
   DOCUMENT_EXTRACTION_MAX_CHARACTERS, DOCUMENT_EXTRACTION_MAX_UTF8_BYTES,
   DOCUMENT_EXTRACTION_MAX_STACK_DEPTH, DOCUMENT_EXTRACTION_TIMEOUT_SECONDS,
@@ -1047,10 +1057,37 @@ su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producció
 el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
 incluyeron una llamada a OpenAI o a otro proveedor externo.
 
+## Adjuntos gobernados de proyectos — incremento 036A
+
+La base local permite que un Admin de la organización prepare imágenes JPG, PNG o WebP y documentos
+PDF para un proyecto. La carga usa una autorización SAS HTTPS create-only de cinco minutos sobre un
+objeto opaco; la API vuelve a transmitir y verificar longitud, MIME, firma, dimensiones y SHA-256,
+mantiene el archivo en cuarentena y solo sirve contenido cuyo estado sea confiable y limpio. Los
+listados no exponen rutas Blob, hashes ni SAS. Los miembros activos pueden consultar; intents y
+mutaciones requieren Admin, ETag del proyecto y, cuando corresponde, ETag del adjunto.
+
+La publicación, revisión administrativa y proyección al marketplace fallan cerradas mientras exista
+un adjunto activo que no esté `Trusted` + `Clean`; una imagen de portada también exige texto
+alternativo. Video no está habilitado en 036A. Aunque contratos, API e interfaz están preparados,
+`ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false` son obligatorios hasta completar:
+
+- decodificación y re-encode real de cada imagen, eliminando EXIF y otros metadatos no necesarios;
+- worker de resultados de Microsoft Defender for Storage/Event Grid, con prueba E2E limpia y maliciosa;
+- containers privados `fp-project-incoming`, `fp-project-quarantine` y `fp-project-trusted`, RBAC
+  mínimo, CORS exacto para el origen web y lifecycle de cargas abandonadas/versiones.
+
+El orden de rollout es base de datos `036` → API nueva en todo el tráfico → infraestructura de
+seguridad validada → frontend con el feature flag habilitado al final. No se debe activar parcialmente.
+
 Endpoints principales del backend hasta este cierre:
 
 - tenant: `POST /api/v1/organizations/{organizationId}/projects/{projectId}/publish` y
   `/archive`, con `If-Match` e `Idempotency-Key`;
+- adjuntos privados de proyecto: `GET /api/v1/organizations/{organizationId}/projects/{projectId}/assets`,
+  `POST /asset-upload-intents`, `GET /asset-upload-intents/{intentId}`,
+  `POST /asset-upload-intents/{intentId}/complete`, `PATCH/DELETE /assets/{assetId}`,
+  `GET /assets/{assetId}/content` y `PUT /assets/order`, todos bajo el mismo prefijo de
+  organización/proyecto;
 - admin MFA: cola, detalle completo y decisión bajo `/api/v1/admin/projects`;
 - público anónimo: `GET /api/v1/projects/{slug}`, limitado a proyectos publicados y
   organizaciones activas con perfil apto;

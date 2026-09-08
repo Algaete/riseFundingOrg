@@ -28,6 +28,8 @@ import {
   type ProjectDetails,
   type ProjectWriteInput,
 } from '@/features/projects/project-api'
+import { ProjectAssetsPanel } from '@/features/projects/project-assets-panel'
+import { isProjectAssetsEnabled } from '@/features/projects/project-assets-config'
 
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
 const textareaClass = 'min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm'
@@ -322,6 +324,14 @@ export function ProjectDetailPage() {
       {project.data.publicationStatus !== 4 && <Button asChild variant="outline"><Link to={`/matching?projectId=${encodeURIComponent(project.data.publicId)}`}><Gauge className="size-4" />Calcular compatibilidad</Link></Button>}
     </div>
     <ProjectPublicationPanel hasUnsavedChanges={hasUnsavedChanges} onChanged={async () => { await project.refetch(); await organizations.refetch() }} organizationId={organization.publicId} organizationReady={organization.profileStatus === 2 && organization.profileCompleteness >= 80} project={project.data} />
+    {isProjectAssetsEnabled() && <ProjectAssetsPanel
+      hasUnsavedChanges={hasUnsavedChanges}
+      onProjectChanged={async () => { await project.refetch() }}
+      organizationId={organization.publicId}
+      projectETag={project.data.eTag}
+      projectId={project.data.publicId}
+      publicationStatus={project.data.publicationStatus}
+    />}
     <ProjectForm catalogs={catalogs.data} onDirtyChange={setHasUnsavedChanges} organizationId={organization.publicId} project={project.data} />
   </div>
 }
