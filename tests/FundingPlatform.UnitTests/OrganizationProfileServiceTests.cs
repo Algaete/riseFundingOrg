@@ -40,7 +40,86 @@ public sealed class OrganizationProfileServiceTests
             CancellationToken.None);
 
         Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
-        Assert.Contains("desiredFunding", result.Errors!.Keys);
+        Assert.Contains("desiredFundingMax", result.Errors!.Keys);
+        Assert.Null(repository.UpdatedProfile);
+    }
+
+    [Fact]
+    public async Task Update_treats_null_collections_as_empty_for_put_replacement()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+        var profile = CompleteProfile() with
+        {
+            CountryIds = null!,
+            RegionIds = null!,
+            CategoryIds = null!,
+            BeneficiaryTypeIds = null!,
+            ProjectTypeIds = null!,
+            TagIds = null!,
+            Languages = null!
+        };
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], profile, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.Success, result.Outcome);
+        Assert.Empty(repository.UpdatedProfile!.CountryIds);
+        Assert.Empty(repository.UpdatedProfile.RegionIds);
+        Assert.Empty(repository.UpdatedProfile.CategoryIds);
+        Assert.Empty(repository.UpdatedProfile.BeneficiaryTypeIds);
+        Assert.Empty(repository.UpdatedProfile.ProjectTypeIds);
+        Assert.Empty(repository.UpdatedProfile.TagIds);
+        Assert.Empty(repository.UpdatedProfile.Languages);
+    }
+
+    [Fact]
+    public async Task Update_returns_all_required_field_errors_for_missing_required_values()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+        var profile = CompleteProfile() with
+        {
+            Name = null!,
+            HomeCountryId = 0,
+            OrganizationTypeId = 0
+        };
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], profile, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Equal(
+            ["homeCountryId", "name", "organizationTypeId"],
+            result.Errors!.Keys.Order().ToArray());
+        Assert.Null(repository.UpdatedProfile);
+    }
+
+    [Fact]
+    public async Task Update_returns_field_specific_errors_for_each_invalid_money_input()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+        var profile = CompleteProfile() with
+        {
+            AnnualBudgetMin = -1,
+            AnnualBudgetMax = -2,
+            AnnualBudgetCurrency = "euro",
+            DesiredFundingMin = 10_000,
+            DesiredFundingMax = 5_000,
+            DesiredFundingCurrency = null
+        };
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], profile, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Equal(
+            [
+                "annualBudgetCurrency", "annualBudgetMax", "annualBudgetMin",
+                "desiredFundingCurrency", "desiredFundingMax"
+            ],
+            result.Errors!.Keys.Order().ToArray());
         Assert.Null(repository.UpdatedProfile);
     }
 

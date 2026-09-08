@@ -29,7 +29,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             null, null, null, null, null, 0, null,
             null, null, null, null, null, null,
             [], [], [], [], [], [], []);
-        var errors = Validate(profile, requireCollections: false);
+        var errors = Validate(profile);
         if (errors.Count > 0)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors: errors);
@@ -71,7 +71,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         CancellationToken cancellationToken)
     {
         var profile = Normalize(input);
-        var errors = Validate(profile, requireCollections: true);
+        var errors = Validate(profile);
         if (expectedRowVersion.Length != 8)
         {
             errors["ifMatch"] = ["If-Match no contiene una versión válida."];
@@ -122,18 +122,16 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         completed += profile.HomeCountryId > 0 && profile.OrganizationTypeId > 0 ? 1 : 0;
         completed += profile.LegalEntityTypeId.HasValue && profile.EstablishedYear.HasValue ? 1 : 0;
         completed += !string.IsNullOrWhiteSpace(profile.Description) ? 1 : 0;
-        completed += profile.CountryIds.Count > 0 ? 1 : 0;
-        completed += profile.CategoryIds.Count > 0 ? 1 : 0;
-        completed += profile.BeneficiaryTypeIds.Count > 0 ? 1 : 0;
-        completed += profile.ProjectTypeIds.Count > 0 ? 1 : 0;
+        completed += profile.CountryIds?.Count > 0 ? 1 : 0;
+        completed += profile.CategoryIds?.Count > 0 ? 1 : 0;
+        completed += profile.BeneficiaryTypeIds?.Count > 0 ? 1 : 0;
+        completed += profile.ProjectTypeIds?.Count > 0 ? 1 : 0;
         completed += profile.DesiredFundingMin.HasValue || profile.DesiredFundingMax.HasValue ? 1 : 0;
-        completed += profile.Languages.Count > 0 ? 1 : 0;
+        completed += profile.Languages?.Count > 0 ? 1 : 0;
         return completed * 10m;
     }
 
-    private static Dictionary<string, string[]> Validate(
-        OrganizationProfileData profile,
-        bool requireCollections)
+    private static Dictionary<string, string[]> Validate(OrganizationProfileData profile)
     {
         var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(profile.Name) || profile.Name.Length > 250)
@@ -144,8 +142,10 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             errors["establishedYear"] = ["El año de constitución no es válido."];
         if (profile.PreviousFundingExperience > 2)
             errors["previousFundingExperience"] = ["La experiencia previa no es válida."];
-        ValidateRange(profile.AnnualBudgetMin, profile.AnnualBudgetMax, profile.AnnualBudgetCurrency, "annualBudget", errors);
-        ValidateRange(profile.DesiredFundingMin, profile.DesiredFundingMax, profile.DesiredFundingCurrency, "desiredFunding", errors);
+        ValidateRange(profile.AnnualBudgetMin, profile.AnnualBudgetMax,
+            profile.AnnualBudgetCurrency, "annualBudget", errors);
+        ValidateRange(profile.DesiredFundingMin, profile.DesiredFundingMax,
+            profile.DesiredFundingCurrency, "desiredFunding", errors);
         ValidateLength(profile.LegalName, 300, "legalName", errors);
         ValidateLength(profile.TaxIdentifier, 50, "taxIdentifier", errors);
         ValidateLength(profile.WebsiteUrl, 2048, "websiteUrl", errors);
@@ -157,7 +157,6 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
              string.IsNullOrWhiteSpace(website.Host) ||
              !string.IsNullOrEmpty(website.UserInfo)))
             errors["websiteUrl"] = ["Ingresa un dominio válido, por ejemplo onara.org."];
-        _ = requireCollections;
         if (profile.Languages.Any(language => language.Proficiency is < 1 or > 5))
             errors["languages"] = ["El dominio de idioma debe estar entre 1 y 5."];
         return errors;
@@ -166,12 +165,19 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
     private static void ValidateRange(decimal? minimum, decimal? maximum, string? currency, string key,
         IDictionary<string, string[]> errors)
     {
-        if (minimum < 0 || maximum < 0 || (minimum.HasValue && maximum.HasValue && maximum < minimum))
-            errors[key] = ["El rango monetario no es válido."];
+        if (minimum < 0)
+            errors[$"{key}Min"] = ["El monto mínimo no puede ser negativo."];
+        if (maximum < 0)
+            errors[$"{key}Max"] = ["El monto máximo no puede ser negativo."];
+        if (minimum >= 0 && maximum >= 0 && maximum < minimum)
+            errors[$"{key}Max"] = ["El monto máximo no puede ser menor al mínimo."];
         if ((minimum.HasValue || maximum.HasValue) && string.IsNullOrWhiteSpace(currency))
             errors[$"{key}Currency"] = ["Selecciona una moneda para el rango."];
         if (!minimum.HasValue && !maximum.HasValue && !string.IsNullOrWhiteSpace(currency))
             errors[$"{key}Currency"] = ["No indiques moneda si el rango está vacío."];
+        if (!string.IsNullOrWhiteSpace(currency) &&
+            (currency.Length != 3 || currency.Any(character => character is < 'A' or > 'Z')))
+            errors[$"{key}Currency"] = ["Selecciona una moneda ISO de tres letras."];
     }
 
     private static void ValidateLength(string? value, int maximum, string key, IDictionary<string, string[]> errors)
@@ -189,13 +195,14 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         ExperienceSummary = NormalizeOptional(profile.ExperienceSummary),
         AnnualBudgetCurrency = NormalizeCurrency(profile.AnnualBudgetCurrency),
         DesiredFundingCurrency = NormalizeCurrency(profile.DesiredFundingCurrency),
-        CountryIds = profile.CountryIds.Distinct().Order().ToArray(),
-        RegionIds = profile.RegionIds.Distinct().Order().ToArray(),
-        CategoryIds = profile.CategoryIds.Distinct().Order().ToArray(),
-        BeneficiaryTypeIds = profile.BeneficiaryTypeIds.Distinct().Order().ToArray(),
-        ProjectTypeIds = profile.ProjectTypeIds.Distinct().Order().ToArray(),
-        TagIds = profile.TagIds.Distinct().Order().ToArray(),
-        Languages = profile.Languages.GroupBy(language => language.LanguageId)
+        CountryIds = (profile.CountryIds ?? []).Distinct().Order().ToArray(),
+        RegionIds = (profile.RegionIds ?? []).Distinct().Order().ToArray(),
+        CategoryIds = (profile.CategoryIds ?? []).Distinct().Order().ToArray(),
+        BeneficiaryTypeIds = (profile.BeneficiaryTypeIds ?? []).Distinct().Order().ToArray(),
+        ProjectTypeIds = (profile.ProjectTypeIds ?? []).Distinct().Order().ToArray(),
+        TagIds = (profile.TagIds ?? []).Distinct().Order().ToArray(),
+        Languages = (profile.Languages ?? []).OfType<OrganizationLanguage>()
+            .GroupBy(language => language.LanguageId)
             .Select(group => group.Last()).OrderBy(language => language.LanguageId).ToArray()
     };
 
@@ -205,7 +212,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         return (json, SHA256.HashData(Encoding.UTF8.GetBytes(json)));
     }
 
-    private static string Normalize(string value) => value.Trim();
+    private static string Normalize(string? value) => value?.Trim() ?? string.Empty;
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static string? NormalizeWebsiteUrl(string? value)

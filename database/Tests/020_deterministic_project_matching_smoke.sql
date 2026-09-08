@@ -88,16 +88,36 @@ IF NOT EXISTS
       AND is_unique = 0)
     THROW 54003, N'Matching tenant or nullable incompatible-score constraints are missing.', 1;
 
-DECLARE @ProfileId INT =
-    (SELECT Id FROM dbo.FundingPlatform_MatchingProfiles
-     WHERE Code = N'deterministic-project-v1' AND Version = 1
-       AND EngineVersion = N'deterministic-sql-v1'
-       AND UnknownPolicy = 1 AND Status = 2 AND IsActive = 1);
-IF @ProfileId IS NULL
+DECLARE @ProfileId INT, @ProfileVersion INT, @EngineVersion NVARCHAR(50);
+DECLARE @HandlerVersion NVARCHAR(50);
+SELECT @ProfileId = Id,
+       @ProfileVersion = Version,
+       @EngineVersion = EngineVersion
+FROM dbo.FundingPlatform_MatchingProfiles
+WHERE Code = N'deterministic-project-v1'
+  AND UnknownPolicy = 1 AND Status = 2 AND IsActive = 1;
+SET @HandlerVersion = CASE @ProfileVersion WHEN 1 THEN N'v1' WHEN 2 THEN N'v2' END;
+
+/* This smoke remains executable both at the historical 9A boundary and after
+   migration 032 activates the compatible v2 engine. Only one published
+   profile may be active, and v1 remains present for audit when v2 is active. */
+IF (SELECT COUNT_BIG(1)
+    FROM dbo.FundingPlatform_MatchingProfiles
+    WHERE IsActive = 1) <> 1
+   OR @ProfileId IS NULL
+   OR NOT ((@ProfileVersion = 1 AND @EngineVersion = N'deterministic-sql-v1')
+           OR (@ProfileVersion = 2 AND @EngineVersion = N'deterministic-sql-v2'))
+   OR (@ProfileVersion = 2 AND NOT EXISTS
+      (SELECT 1
+       FROM dbo.FundingPlatform_MatchingProfiles
+       WHERE Code = N'deterministic-project-v1' AND Version = 1
+         AND EngineVersion = N'deterministic-sql-v1'
+         AND UnknownPolicy = 1 AND Status = 2 AND IsActive = 0))
    OR (SELECT COUNT_BIG(1)
        FROM dbo.FundingPlatform_MatchingRuleWeights AS weights
        INNER JOIN dbo.FundingPlatform_MatchingRules AS rules
            ON rules.Id = weights.MatchingRuleId
+          AND rules.HandlerVersion = @HandlerVersion
        WHERE weights.MatchingProfileId = @ProfileId) <> 9
    OR (SELECT SUM(Weight) FROM dbo.FundingPlatform_MatchingRuleWeights
        WHERE MatchingProfileId = @ProfileId) <> 100
@@ -128,6 +148,7 @@ IF EXISTS
                ON rules.Id = weights.MatchingRuleId
            WHERE weights.MatchingProfileId = @ProfileId
              AND rules.Code = required.Code
+             AND rules.HandlerVersion = @HandlerVersion
              AND rules.IsHardGate = required.IsHardGate
              AND weights.Weight = required.Weight))
     THROW 54005, N'The deterministic rule catalog or weights drifted.', 1;

@@ -185,8 +185,8 @@ done
    El script hace `git fetch`, exige `main` limpio e idéntico a `origin/main`, valida grupo/miembro y
    el administrador efectivo del servidor SQL, obtiene el token SQL y fija `AzureCliCredential`,
    deriva la conexión dev, registra PITR, abre una regla
-   firewall única con cleanup verificado, ejecuta `--preflight`, confirma `001`→`030` sin
-   pendientes, ejecuta los 30 smokes, verifica Full-Text listo y prueba reapply/provisioning
+   firewall única con cleanup verificado, ejecuta `--preflight`, aplica las pendientes, confirma
+   `001`→`032` sin pendientes, ejecuta los 32 smokes, verifica Full-Text listo y prueba reapply/provisioning
    idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.

@@ -42,9 +42,9 @@ function hasAcceptedRegistration() {
   return window.sessionStorage.getItem(registrationAcceptedKey) === 'true'
 }
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ message, id }: { message?: string; id?: string }) {
   return message ? (
-    <p role="alert" className="text-sm text-destructive">{message}</p>
+    <p role="alert" className="text-sm text-destructive" id={id}>{message}</p>
   ) : null
 }
 
@@ -265,10 +265,11 @@ export function RegisterForm() {
 
   return (
     <form className="space-y-4" noValidate onSubmit={submit}>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-name">Nombre</label><Input id="register-name" autoComplete="name" {...form.register('displayName')} /><FieldError message={form.formState.errors.displayName?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-email">Correo</label><Input id="register-email" type="email" autoComplete="email" {...form.register('email')} /><FieldError message={form.formState.errors.email?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-password">Contraseña</label><Input id="register-password" type="password" autoComplete="new-password" {...form.register('password')} /><FieldError message={form.formState.errors.password?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-confirm">Confirmar contraseña</label><Input id="register-confirm" type="password" autoComplete="new-password" {...form.register('confirmPassword')} /><FieldError message={form.formState.errors.confirmPassword?.message} /></div>
+      <p className="text-xs text-muted-foreground"><span aria-hidden="true">*</span> Campos obligatorios</p>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-name">Nombre <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.displayName ? 'register-name-error' : undefined} aria-invalid={Boolean(form.formState.errors.displayName)} id="register-name" autoComplete="name" required {...form.register('displayName')} /><FieldError id="register-name-error" message={form.formState.errors.displayName?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-email">Correo <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.email ? 'register-email-error' : undefined} aria-invalid={Boolean(form.formState.errors.email)} id="register-email" type="email" autoComplete="email" required {...form.register('email')} /><FieldError id="register-email-error" message={form.formState.errors.email?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-password">Contraseña <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.password ? 'register-password-error' : undefined} aria-invalid={Boolean(form.formState.errors.password)} id="register-password" type="password" autoComplete="new-password" required {...form.register('password')} /><FieldError id="register-password-error" message={form.formState.errors.password?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-confirm">Confirmar contraseña <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.confirmPassword ? 'register-confirm-error' : undefined} aria-invalid={Boolean(form.formState.errors.confirmPassword)} id="register-confirm" type="password" autoComplete="new-password" required {...form.register('confirmPassword')} /><FieldError id="register-confirm-error" message={form.formState.errors.confirmPassword?.message} /></div>
       <RequestError error={mutation.error} />
       <Button className="w-full" type="submit" disabled={mutation.isPending || submissionLocked.current}>{mutation.isPending ? 'Creando cuenta…' : 'Crear cuenta'}</Button>
     </form>

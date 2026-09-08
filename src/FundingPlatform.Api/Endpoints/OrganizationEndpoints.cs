@@ -123,24 +123,17 @@ public static class OrganizationEndpoints
         if (!TryParseETag(context.Request.Headers.IfMatch, out var rowVersion))
             return Problem(StatusCodes.Status428PreconditionRequired, "Versión requerida",
                 "Vuelve a cargar el perfil e intenta nuevamente.", "if-match-required");
-        if (request.CountryIds is null || request.RegionIds is null || request.CategoryIds is null ||
-            request.BeneficiaryTypeIds is null || request.ProjectTypeIds is null ||
-            request.TagIds is null || request.Languages is null)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["collections"] = ["Todas las colecciones del perfil deben enviarse."]
-            });
 
         var profile = new OrganizationProfileData(
-            request.Name, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
+            request.Name ?? string.Empty, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
             request.OrganizationTypeId, request.LegalEntityTypeId, request.OrganizationSizeId,
             request.EstablishedYear, request.WebsiteUrl, request.Description,
             request.PreviousFundingExperience, request.ExperienceSummary,
             request.AnnualBudgetMin, request.AnnualBudgetMax, request.AnnualBudgetCurrency,
             request.DesiredFundingMin, request.DesiredFundingMax, request.DesiredFundingCurrency,
-            request.CountryIds, request.RegionIds, request.CategoryIds,
-            request.BeneficiaryTypeIds, request.ProjectTypeIds, request.TagIds,
-            request.Languages.Select(language =>
+            request.CountryIds ?? [], request.RegionIds ?? [], request.CategoryIds ?? [],
+            request.BeneficiaryTypeIds ?? [], request.ProjectTypeIds ?? [], request.TagIds ?? [],
+            (request.Languages ?? []).OfType<OrganizationLanguageRequest>().Select(language =>
                 new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray());
         var result = await service.UpdateAsync(
             userId, organizationId, rowVersion, profile, cancellationToken);

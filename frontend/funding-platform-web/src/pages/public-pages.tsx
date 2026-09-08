@@ -1,4 +1,4 @@
-import { ArrowRight, BellRing, BrainCircuit, SearchCheck } from 'lucide-react'
+import { ArrowRight, Handshake, SearchCheck, Target } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -19,19 +19,19 @@ import { useAuth } from '@/features/auth/use-auth'
 
 const benefits = [
   {
-    title: 'Descubre oportunidades',
-    description: 'Explora convocatorias con filtros pensados para organizaciones.',
+    title: 'Publica tu proyecto',
+    description: 'Ordena su propósito, impacto y necesidades para presentarlo con claridad.',
+    icon: Target,
+  },
+  {
+    title: 'Encuentra financiamiento',
+    description: 'Explora oportunidades y entiende por qué coinciden con tu proyecto.',
     icon: SearchCheck,
   },
   {
-    title: 'Prioriza con contexto',
-    description: 'Entiende por qué una oportunidad coincide con tu perfil.',
-    icon: BrainCircuit,
-  },
-  {
-    title: 'Llega antes del cierre',
-    description: 'Organiza postulaciones, fechas clave y alertas en un solo lugar.',
-    icon: BellRing,
+    title: 'Conecta con aliados',
+    description: 'Descubre organizaciones y crea vínculos para colaborar o formar alianzas.',
+    icon: Handshake,
   },
 ]
 
@@ -48,25 +48,30 @@ export function HomePage() {
         <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-72 max-w-3xl rounded-full bg-accent/70 blur-3xl" />
         <div className="mx-auto max-w-4xl text-center">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
-            Financiamiento con propósito
+            Proyectos que encuentran oportunidades
           </p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Encuentra el fondo correcto para tu próxima iniciativa
+            Conecta tu proyecto con el financiamiento y los aliados que necesita
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Centraliza oportunidades, recibe recomendaciones explicables y
-            organiza tus postulaciones sin perder fechas importantes.
+            Publica tus iniciativas, descubre fondos compatibles y organiza
+            alianzas para avanzar desde la idea hasta la ejecución.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button size="default" asChild>
-              <Link to={isAuthenticated ? '/funding' : '/register'}>
-                {isAuthenticated ? 'Ver concursos disponibles' : 'Comenzar sin costo'} <ArrowRight className="size-4" />
+              <Link to="/funding">
+                Encontrar financiamiento <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to={isAuthenticated ? workspaceUrl : '/funding'}>{isAuthenticated ? 'Ir a mi espacio' : 'Explorar oportunidades'}</Link>
+              <Link to={isAuthenticated ? '/projects' : '/register'}>Publicar mi proyecto</Link>
             </Button>
           </div>
+          {isAuthenticated && (
+            <Link className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline" to={workspaceUrl}>
+              Ir a mi espacio
+            </Link>
+          )}
         </div>
       </section>
       <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-20 sm:px-6 md:grid-cols-3">

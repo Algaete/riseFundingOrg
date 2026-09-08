@@ -21,6 +21,25 @@ principals runtime falló después con SQL 102 y fue revertido transaccionalment
 membresías parciales. La corrección se incluye en este release y aún debe ejecutarse en Azure;
 principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 
+La cadena local agrega `031_organization_profile_catalog_expansion.sql` y
+`032_matching_other_neutrality.sql`, con sus smokes transaccionales. Ambos artefactos están
+preparados para el siguiente release y todavía no forman parte del estado Azure descrito arriba.
+Huellas locales del incremento:
+
+- migración `031` (354 líneas/un lote):
+  `457f9584de3aebb9b3b354d14051262bb4a081b43dee51f2259b547f20cefb7e`;
+- smoke `031` (204 líneas/un lote):
+  `cc2d9e9044c0b747b42babc3177a7f77d9781bd6ea9542a226df1330d9aefa88`;
+- migración `032` (388 líneas/un lote):
+  `e7b35a144ebaa0598b906e021c6a664fc9524a4a1e850841c96fde050e5eae6d`;
+- smoke `032` (327 líneas/un lote):
+  `6af60b2956d8ae72aaf16b164fcacb3dfaede851fe37010ad2bc1e6f3de63f79`.
+
+Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
+revisión compatible de 945 líneas con SHA-256
+`028cb1268a5dfdb52ebac753d467820aaa7fe3060f4de1796476fe785133f460`; la huella original de 924
+líneas documentada en el cierre histórico de 9A se conserva más abajo como evidencia de ese corte.
+
 ### Snapshot anterior al primer apply
 
 La cadena completa `001`→`028` pasó `DatabaseMigrator --validate` contra
@@ -387,6 +406,14 @@ organización 15%, figura jurídica 15%, años de operación 10%, experiencia pr
 excluyentes con estado agregado `Pass`/`Fail`/`Unknown`. `Unknown` aporta cero y reduce cobertura,
 sin renormalizar los demás pesos; un `Fail` produce `Incompatible` y score `NULL`, mientras un hard
 gate `Unknown` sin fallos produce `InsufficientData`.
+
+La migración local `032` conserva esa familia y sus pesos, pero activa el perfil versión 2 y el
+motor `deterministic-sql-v2`. Los valores controlados `OTHER` de área, población y tipo de proyecto
+se excluyen de ambos snapshots antes de contar o intersectar; por tanto quedan `Unknown` y no suman
+puntos por una coincidencia nominal. El perfil, handlers y resultados v1 permanecen inmutables y
+auditables. El smoke histórico `020` acepta el único perfil publicado activo v1 o v2 para poder
+seguir ejecutándose sobre la cadena completa, mientras `032` verifica específicamente la nueva
+semántica y la conservación del historial.
 
 La persistencia contiene únicamente identificadores, snapshots/versiones, razones, parámetros y
 evidencia estructurada allowlisted necesarios para explicar el cálculo. 9A no almacena prompts,

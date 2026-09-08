@@ -64,13 +64,13 @@ public sealed record UpdateOrganizationProfileRequest(
     decimal? DesiredFundingMin,
     decimal? DesiredFundingMax,
     string? DesiredFundingCurrency,
-    IReadOnlyList<short>? CountryIds,
-    IReadOnlyList<int>? RegionIds,
-    IReadOnlyList<int>? CategoryIds,
-    IReadOnlyList<int>? BeneficiaryTypeIds,
-    IReadOnlyList<int>? ProjectTypeIds,
-    IReadOnlyList<long>? TagIds,
-    IReadOnlyList<OrganizationLanguageRequest>? Languages);
+    IReadOnlyList<short>? CountryIds = null,
+    IReadOnlyList<int>? RegionIds = null,
+    IReadOnlyList<int>? CategoryIds = null,
+    IReadOnlyList<int>? BeneficiaryTypeIds = null,
+    IReadOnlyList<int>? ProjectTypeIds = null,
+    IReadOnlyList<long>? TagIds = null,
+    IReadOnlyList<OrganizationLanguageRequest>? Languages = null);
 
 public sealed record OrganizationProfileResponse(
     Guid PublicId,

@@ -78,9 +78,12 @@ test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: 'Encuentra el fondo correcto para tu próxima iniciativa',
+      name: 'Conecta tu proyecto con el financiamiento y los aliados que necesita',
     }),
   ).toBeVisible()
+
+  await expect(page.getByRole('link', { name: 'Encontrar financiamiento' })).toHaveAttribute('href', '/funding')
+  await expect(page.getByRole('link', { name: 'Publicar mi proyecto' })).toHaveAttribute('href', '/register')
 
   await page.getByRole('link', { name: 'Ingresar' }).click()
 
@@ -146,13 +149,17 @@ test('ofrece acceso usable en la navegación móvil', async ({ page }) => {
   await expect(page.getByLabel('Correo electrónico')).toBeVisible()
 })
 
-test('cumple accesibilidad automatizada básica en inicio y acceso', async ({ page }) => {
+test('cumple accesibilidad automatizada básica en inicio, acceso y registro', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expectNoSeriousAccessibilityViolations(page)
 
   await page.goto('/login')
   await expect(page.getByText('Bienvenido de vuelta')).toBeVisible()
+  await expectNoSeriousAccessibilityViolations(page)
+
+  await page.goto('/register')
+  await expect(page.getByRole('heading', { level: 2, name: 'Crea tu cuenta' })).toBeVisible()
   await expectNoSeriousAccessibilityViolations(page)
 
   await page.goto('/funding')

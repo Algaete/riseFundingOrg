@@ -111,8 +111,9 @@ La prueba no termina sólo con estado `Online`. Sin apuntar la API pública a la
    `earliestRestoreDate`, hora inicial/final y resultado del script.
 2. Acceder a la base temporal mediante el flujo administrativo de Microsoft Entra aprobado y una
    regla de red temporal gobernada; no incorporar credenciales SQL ni secretos al log.
-3. Ejecutar verificaciones de sólo lectura: presencia de las 29 migraciones, conteos esperados de
-   tablas críticas y una muestra funcional acordada anterior/posterior al punto. Registrar sólo
+3. Ejecutar verificaciones de sólo lectura: presencia del conjunto de migraciones esperado para el
+   release y punto temporal restaurados, conteos esperados de tablas críticas y una muestra
+   funcional acordada anterior/posterior al punto. Registrar sólo
    conteos o hashes no sensibles, nunca datos personales de beneficiarios o usuarios.
 4. Confirmar nuevamente que `risefunding-dev` conserva su ID y que la API sigue usando el origen.
 5. Obtener aprobación del responsable sobre la evidencia y el RTO observado.

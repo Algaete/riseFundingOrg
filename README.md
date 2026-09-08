@@ -33,6 +33,12 @@ configurar y deshabilitado en Azure dev; correo, Defender/Event Grid, PDF E2E, d
 servicios externos también continúan apagados. La base compartida histórica `res` permanece en
 18/18, correspondiente a 8A.
 
+El incremento de estabilización del perfil organizacional está preparado localmente mediante
+`031_organization_profile_catalog_expansion.sql` y `032_matching_other_neutrality.sql`. Amplía los
+catálogos solicitados, conserva referencias históricas y evita que “Otros” genere coincidencias
+automáticas. Estas dos migraciones y la interfaz asociada todavía no se han aplicado ni publicado
+en Azure dev; por eso el estado observado del ambiente continúa siendo `001`→`030`.
+
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
 workers. El worker general ya fue publicado mediante One Deploy y su canary Grants.gov completó
@@ -64,7 +70,7 @@ no se activaron alertas y no se publicó el paquete del worker de extracción.
 | 10A | DB dev y preflight SQL validados; email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 12A | Dev operativo: `001`→`030`, 30/30 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | En curso: API/frontend y worker general publicados; importación Grants.gov 25/25 verificada sin autopublicación; extracción, dominios, auth E2E, alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y

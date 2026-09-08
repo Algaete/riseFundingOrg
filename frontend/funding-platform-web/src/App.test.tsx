@@ -97,7 +97,8 @@ describe('aplicación', () => {
     authenticate()
     renderRoute('/')
 
-    expect(await screen.findByRole('link', { name: 'Ver concursos disponibles' })).toHaveAttribute('href', '/funding')
+    expect(await screen.findByRole('link', { name: 'Encontrar financiamiento' })).toHaveAttribute('href', '/funding')
+    expect(screen.getByRole('link', { name: 'Publicar mi proyecto' })).toHaveAttribute('href', '/projects')
     expect(screen.getAllByRole('link', { name: 'Ir a mi espacio' })[0]).toHaveAttribute('href', '/dashboard')
     expect(screen.queryByRole('link', { name: 'Ingresar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Crear cuenta' })).not.toBeInTheDocument()
