@@ -114,18 +114,19 @@ function AuthPanel({
 }
 
 export function LoginPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Bienvenido de vuelta"
-      description="Accede al espacio de tu organización."
+      title={t('auth.pages.login.title')}
+      description={t('auth.pages.login.description')}
     >
       <LoginForm />
-      <div className="mt-4 flex justify-between text-sm">
+      <div className="mt-4 flex flex-wrap justify-between gap-3 text-sm">
         <Link className="text-primary hover:underline" to="/forgot-password">
-          Recuperar contraseña
+          {t('auth.actions.forgotPassword')}
         </Link>
         <Link className="text-primary hover:underline" to="/register">
-          Crear cuenta
+          {t('actions.createAccount')}
         </Link>
       </div>
     </AuthPanel>
@@ -133,7 +134,8 @@ export function LoginPage() {
 }
 
 export function ExternalAuthenticationCallbackPage() {
-  return <AuthPanel title="Acceso con Microsoft" description="Validamos una autorización de un solo uso."><ExternalAuthenticationCallback /></AuthPanel>
+  const { t } = useTranslation()
+  return <AuthPanel title={t('auth.pages.external.title')} description={t('auth.pages.external.description')}><ExternalAuthenticationCallback /></AuthPanel>
 }
 
 export function PricingPage() {
@@ -141,55 +143,61 @@ export function PricingPage() {
 }
 
 export function RegisterPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Crea tu cuenta"
-      description="Usaremos tu correo para verificar la cuenta antes de permitir el acceso."
+      title={t('auth.pages.register.title')}
+      description={t('auth.pages.register.description')}
     ><RegisterForm /></AuthPanel>
   )
 }
 
 export function VerifyEmailPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Verifica tu correo"
-      description="Confirma el enlace temporal que recibiste por correo."
+      title={t('auth.pages.verify.title')}
+      description={t('auth.pages.verify.description')}
     ><VerifyEmailForm /></AuthPanel>
   )
 }
 
 export function ForgotPasswordPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Recupera tu contraseña"
-      description="Si la cuenta existe, enviaremos un enlace temporal sin revelar su estado."
+      title={t('auth.pages.forgot.title')}
+      description={t('auth.pages.forgot.description')}
     ><ForgotPasswordForm /></AuthPanel>
   )
 }
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Define una nueva contraseña"
-      description="El enlace es de un solo uso y todas tus sesiones anteriores se cerrarán."
+      title={t('auth.pages.reset.title')}
+      description={t('auth.pages.reset.description')}
     ><ResetPasswordForm /></AuthPanel>
   )
 }
 
 export function MfaChallengePage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Verificación en dos pasos"
-      description="Ingresa el código de tu autenticador o uno de recuperación."
+      title={t('auth.pages.challenge.title')}
+      description={t('auth.pages.challenge.description')}
     ><MfaChallengeForm /></AuthPanel>
   )
 }
 
 export function MfaSetupPage() {
+  const { t } = useTranslation()
   return (
     <AuthPanel
-      title="Protege tu cuenta administrativa"
-      description="MFA es obligatorio para administradores antes de acceder a la consola."
+      title={t('auth.pages.setup.title')}
+      description={t('auth.pages.setup.description')}
     ><MfaSetupForm /></AuthPanel>
   )
 }

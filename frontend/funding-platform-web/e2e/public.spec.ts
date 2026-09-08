@@ -56,6 +56,14 @@ async function useGuestSession(page: Page) {
 }
 
 async function expectNoSeriousAccessibilityViolations(page: Page) {
+  // Theme changes animate colors. Audit the settled UI, not a transient mix
+  // of the previous foreground and the new background.
+  await page.evaluate(async () => {
+    const finiteAnimations = document.getAnimations().filter(animation =>
+      animation.effect?.getComputedTiming().iterations !== Infinity,
+    )
+    await Promise.all(finiteAnimations.map(animation => animation.finished.catch(() => undefined)))
+  })
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()
@@ -172,7 +180,8 @@ for (const width of [320, 390, 768, 1024, 1440]) {
     await page.getByRole('link', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveValue('en')
-    await expect(page.getByRole('main')).toHaveAttribute('lang', 'es')
+    await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
 
     await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('es')
     await expect(page.getByRole('combobox', { name: 'Cambiar tema' })).toBeVisible()
@@ -231,6 +240,95 @@ test('cumple accesibilidad automatizada básica en inicio, acceso y registro', a
 
   await page.goto('/funding')
   await expect(page.getByRole('heading', { level: 1, name: 'Oportunidades de financiamiento' })).toBeVisible()
+  await expectNoSeriousAccessibilityViolations(page)
+})
+
+for (const [path, spanishTitle, englishTitle] of [
+  ['/login', 'Bienvenido de vuelta', 'Welcome back'],
+  ['/register', 'Crea tu cuenta', 'Create your account'],
+  ['/forgot-password', 'Recupera tu contraseña', 'Recover your password'],
+  ['/reset-password?token=synthetic-token', 'Define una nueva contraseña', 'Set a new password'],
+  ['/verify-email?token=synthetic-token', 'Verifica tu correo', 'Verify your email'],
+  ['/mfa', 'Verificación en dos pasos', 'Two-step verification'],
+  ['/mfa/setup', 'Protege tu cuenta administrativa', 'Protect your admin account'],
+  ['/auth/external/callback', 'Acceso con Microsoft', 'Sign in with Microsoft'],
+] as const) {
+  test(`traduce ${path} y conserva accesibilidad a 320px`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 })
+    await page.goto(path)
+    await expect(page.getByRole('heading', { name: spanishTitle, exact: true })).toBeVisible()
+    await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
+    await expect(page.getByRole('heading', { name: englishTitle, exact: true })).toBeVisible()
+    await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await expectNoSeriousAccessibilityViolations(page)
+    await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
+    await expectNoSeriousAccessibilityViolations(page)
+  })
+}
+
+test('traduce errores visibles sin perder lo escrito ni enviar credenciales', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByLabel('Correo electrónico').fill('incomplete@')
+  await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
+  await expect(page.getByText('Ingresa un correo válido')).toBeVisible()
+  await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
+  await expect(page.getByLabel('Email address')).toHaveValue('incomplete@')
+  await expect(page.getByLabel('Email address')).toHaveAccessibleDescription('Enter a valid email')
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAccessibleDescription('Enter your password')
+  await expectNoSeriousAccessibilityViolations(page)
+})
+
+test('muestra el error de acceso traducido con una respuesta sintética', async ({ page }) => {
+  await page.route('**/api/v1/auth/login', route => route.fulfill({
+    status: 401, contentType: 'application/problem+json',
+    body: JSON.stringify({ status: 401, type: 'https://fundingplatform.local/problems/invalid-credentials', title: 'El correo o la contraseña no son válidos.' }),
+  }))
+  await page.goto('/login')
+  await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
+  await page.getByLabel('Email address').fill('synthetic@example.invalid')
+  await page.getByLabel('Password', { exact: true }).fill('Synthetic-test-only')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText('The email or password is invalid.')
+  await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('es')
+  await expect(page.getByRole('alert')).toHaveText('El correo o la contraseña no son válidos.')
+  await expectNoSeriousAccessibilityViolations(page)
+  await page.getByRole('combobox', { name: 'Cambiar tema', exact: true }).selectOption('dark')
+  await expectNoSeriousAccessibilityViolations(page)
+})
+
+test('conserva un QR MFA sintético y su configuración al cambiar de idioma', async ({ page }) => {
+  let setupRequests = 0
+  await page.route('**/api/v1/auth/login', route => route.fulfill({
+    status: 202, contentType: 'application/json',
+    body: JSON.stringify({ status: 'mfa_setup_required', mfaSetupToken: 'synthetic-limited-token' }),
+  }))
+  await page.route('**/api/v1/me/mfa/setup', route => {
+    setupRequests += 1
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ sharedKey: 'JBSWY3DPEHPK3PXP', authenticatorUri: 'otpauth://totp/Synthetic:test@example.invalid?secret=JBSWY3DPEHPK3PXP&issuer=Synthetic' }),
+    })
+  })
+  await page.setViewportSize({ width: 320, height: 844 })
+  await page.goto('/login')
+  await page.getByLabel('Correo electrónico').fill('synthetic@example.invalid')
+  await page.getByLabel('Contraseña', { exact: true }).fill('Synthetic-test-only')
+  await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
+  await expect(page).toHaveURL(/\/mfa\/setup$/)
+  const qr = page.getByRole('img', { name: 'Código QR para configurar MFA' })
+  await expect(qr).toBeVisible()
+  const paths = await qr.locator('path').evaluateAll(nodes => nodes.map(node => node.getAttribute('d')))
+  await page.getByLabel('Código de 6 dígitos').fill('123456')
+  await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
+  const translatedQr = page.getByRole('img', { name: 'QR code to set up MFA' })
+  await expect(translatedQr).toBeVisible()
+  expect(await translatedQr.locator('path').evaluateAll(nodes => nodes.map(node => node.getAttribute('d')))).toEqual(paths)
+  await expect(page.getByLabel('6-digit code')).toHaveValue('123456')
+  expect(setupRequests).toBe(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await expectNoSeriousAccessibilityViolations(page)
+  await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
   await expectNoSeriousAccessibilityViolations(page)
 })
 

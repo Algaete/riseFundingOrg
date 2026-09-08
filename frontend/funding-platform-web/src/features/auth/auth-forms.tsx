@@ -4,9 +4,11 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { z } from 'zod'
+import type { z } from 'zod'
+import { Trans, useTranslation } from 'react-i18next'
 
-import { ApiError } from '@/api/http-client'
+import { getAuthErrorKey, getExternalNoticeKey, type AuthOperation, type AuthErrorKey } from '@/features/auth/auth-feedback'
+import { codeSchema, emailSchema, loginSchema, mfaSetupCodeSchema, registerSchema, resetSchema, type AuthValidationKey } from '@/features/auth/auth-validation'
 import { getExternalAuthBaseUrl } from '@/api/api-config'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,50 +26,34 @@ import {
   resolvePostAuthenticationPath,
 } from '@/features/auth/post-auth-navigation'
 
-const passwordSchema = z.string()
-  .min(12, 'La contraseña debe tener al menos 12 caracteres')
-  .max(128, 'La contraseña no puede superar 128 caracteres')
-
 const registrationAcceptedKey = 'funding-platform-registration-accepted'
-const genericRegistrationMessage =
-  'Si la solicitud es válida, recibirás instrucciones por correo.'
-
-const externalAuthenticationMessages: Record<string, string> = {
-  failed: 'No fue posible completar el acceso con Microsoft. Intenta nuevamente.',
-  invalid_identity: 'Microsoft autenticó la cuenta, pero no entregó una identidad y un correo utilizables.',
-  account_link_required: 'Ya existe una cuenta con ese correo. Ingresa con tu contraseña y vincula Microsoft desde Mi cuenta.',
-}
+const requestErrorClassName = 'rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground'
 
 function hasAcceptedRegistration() {
   return window.sessionStorage.getItem(registrationAcceptedKey) === 'true'
 }
 
 function FieldError({ message, id }: { message?: string; id?: string }) {
+  const { t } = useTranslation()
   return message ? (
-    <p role="alert" className="text-sm text-destructive" id={id}>{message}</p>
+    <p role="alert" className="text-sm text-destructive" id={id}>{t(message as AuthValidationKey)}</p>
   ) : null
 }
 
-function RequestError({ error }: { error: unknown }) {
-  if (!error) return null
-  const message = error instanceof ApiError
-    ? error.problem.detail ?? error.problem.title
-    : 'No fue posible completar la solicitud. Intenta nuevamente.'
-  return <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{message}</p>
+function RequestError({ error, operation, messageKey }: { error?: unknown; operation?: AuthOperation; messageKey?: AuthErrorKey }) {
+  const { t } = useTranslation()
+  if (!error && !messageKey) return null
+  return <p role="alert" className={requestErrorClassName}>{t(messageKey ?? getAuthErrorKey(error, operation))}</p>
 }
 
 function SuccessMessage({ message }: { message: string }) {
   return <p role="status" className="rounded-lg bg-accent p-3 text-sm">{message}</p>
 }
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'Ingresa tu correo').email('Ingresa un correo válido'),
-  password: z.string().min(1, 'Ingresa tu contraseña').max(128),
-})
-
 type LoginValues = z.infer<typeof loginSchema>
 
 export function LoginForm() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const auth = useAuth()
@@ -75,9 +61,8 @@ export function LoginForm() {
   const requestedPath = getSafeAuthenticatedPath(
     (location.state as { from?: string } | null)?.from,
   )
-  const externalAuthenticationMessage = externalAuthenticationMessages[
-    searchParams.get('sso') ?? ''
-  ]
+  const externalNoticeKey = getExternalNoticeKey(searchParams.get('sso'))
+  const externalAuthenticationMessage = externalNoticeKey ? t(externalNoticeKey) : undefined
   const [logoutIncomplete] = useState(() =>
     searchParams.get('logout') === 'incomplete' ||
     window.sessionStorage.getItem('funding-platform-logout-incomplete') === 'true',
@@ -128,15 +113,14 @@ export function LoginForm() {
     return (
       <div className="space-y-4">
         {externalAuthenticationMessage && (
-          <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <p role="alert" className={requestErrorClassName}>
             {externalAuthenticationMessage}
           </p>
         )}
         <p role="status" className="rounded-lg bg-accent p-3 text-sm">
-          Ya tienes una sesión abierta como <strong>{auth.session.user.email}</strong>.
-          Cierra esa sesión antes de ingresar con otra cuenta Microsoft.
+          <Trans i18nKey="auth.notices.existingSession" components={{ email: <strong className="break-all">{auth.session.user.email}</strong> }} />
         </p>
-        <Button asChild className="w-full"><Link to="/dashboard">Continuar con esta sesión</Link></Button>
+        <Button asChild className="w-full"><Link to="/dashboard">{t('auth.actions.continueSession')}</Link></Button>
       </div>
     )
   }
@@ -144,37 +128,37 @@ export function LoginForm() {
   return (
     <div className="space-y-4">
       {logoutIncomplete && (
-        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          La sesión local se cerró, pero no pudimos confirmar su revocación en el servidor.
+        <p role="alert" className={requestErrorClassName}>
+          {t('auth.notices.logoutIncomplete')}
         </p>
       )}
       {externalAuthenticationMessage && (
-        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <p role="alert" className={requestErrorClassName}>
           {externalAuthenticationMessage}
         </p>
       )}
       {entraEnabled && <>
         <Button className="w-full" variant="outline" asChild>
           <a href={`${getExternalAuthBaseUrl()}/auth/external/entra/start?returnUrl=${encodeURIComponent(requestedPath)}`}>
-            Continuar con Microsoft
+            {t('auth.actions.microsoft')}
           </a>
         </Button>
-        <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground"><span className="h-px flex-1 bg-border" /><span>o con correo</span><span className="h-px flex-1 bg-border" /></div>
+        <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground"><span className="h-px flex-1 bg-border" /><span>{t('auth.actions.emailAlternative')}</span><span className="h-px flex-1 bg-border" /></div>
       </>}
       <form className="space-y-4" noValidate onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="login-email">Correo electrónico</label>
-        <Input id="login-email" type="email" autoComplete="email" aria-invalid={Boolean(form.formState.errors.email)} {...form.register('email')} />
-        <FieldError message={form.formState.errors.email?.message} />
+        <label className="text-sm font-medium" htmlFor="login-email">{t('auth.fields.emailAddress')}</label>
+        <Input aria-describedby={form.formState.errors.email ? 'login-email-error' : undefined} id="login-email" type="email" autoComplete="email" aria-invalid={Boolean(form.formState.errors.email)} {...form.register('email')} />
+        <FieldError id="login-email-error" message={form.formState.errors.email?.message} />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="login-password">Contraseña</label>
-        <Input id="login-password" type="password" autoComplete="current-password" aria-invalid={Boolean(form.formState.errors.password)} {...form.register('password')} />
-        <FieldError message={form.formState.errors.password?.message} />
+        <label className="text-sm font-medium" htmlFor="login-password">{t('auth.fields.password')}</label>
+        <Input aria-describedby={form.formState.errors.password ? 'login-password-error' : undefined} id="login-password" type="password" autoComplete="current-password" aria-invalid={Boolean(form.formState.errors.password)} {...form.register('password')} />
+        <FieldError id="login-password-error" message={form.formState.errors.password?.message} />
       </div>
-      <RequestError error={mutation.error} />
+      <RequestError operation="login" error={mutation.error} />
       <Button type="submit" className="w-full" disabled={mutation.isPending}>
-        {mutation.isPending ? 'Ingresando…' : 'Ingresar'}
+        {mutation.isPending ? t('auth.actions.signingIn') : t('actions.signIn')}
       </Button>
       </form>
     </div>
@@ -182,6 +166,7 @@ export function LoginForm() {
 }
 
 export function ExternalAuthenticationCallback() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const started = useRef(false)
@@ -214,23 +199,14 @@ export function ExternalAuthenticationCallback() {
       if (code) exchange.mutate()
     }
   }, [code, exchange])
-  if (!code) return <RequestError error={new Error('missing external handoff')} />
-  return <div className="space-y-4"><p role="status" className="text-sm">Finalizando inicio de sesión con Microsoft…</p><RequestError error={exchange.error} />{exchange.isError && <Button asChild className="w-full" variant="outline"><Link to="/login">Volver al acceso</Link></Button>}</div>
+  if (!code) return <div className="space-y-4"><RequestError messageKey="auth.errors.invalidHandoff" /><Button asChild className="w-full" variant="outline"><Link to="/login">{t('auth.actions.backToSignIn')}</Link></Button></div>
+  return <div className="space-y-4">{!exchange.isError && <p role="status" className="text-sm">{t('auth.status.externalPending')}</p>}<RequestError operation="external" error={exchange.error} />{exchange.isError && <Button asChild className="w-full" variant="outline"><Link to="/login">{t('auth.actions.backToSignIn')}</Link></Button>}</div>
 }
-
-const registerSchema = z.object({
-  displayName: z.string().trim().min(1, 'Ingresa tu nombre').max(150),
-  email: z.string().email('Ingresa un correo válido').max(320),
-  password: passwordSchema,
-  confirmPassword: z.string(),
-}).refine((values) => values.password === values.confirmPassword, {
-  message: 'Las contraseñas no coinciden',
-  path: ['confirmPassword'],
-})
 
 type RegisterValues = z.infer<typeof registerSchema>
 
 export function RegisterForm() {
+  const { t } = useTranslation()
   const [accepted, setAccepted] = useState(hasAcceptedRegistration)
   const submissionLocked = useRef(accepted)
   const form = useForm<RegisterValues>({
@@ -254,7 +230,7 @@ export function RegisterForm() {
   })
 
   if (accepted) {
-    return <div className="space-y-4"><SuccessMessage message={mutation.data?.message ?? genericRegistrationMessage} /><p className="text-sm text-muted-foreground">Revisa tu bandeja y también la carpeta de correo no deseado. El envío ya fue aceptado; no necesitas crear la cuenta nuevamente.</p><Button className="w-full" variant="outline" asChild><Link to="/login">Ir a iniciar sesión</Link></Button></div>
+    return <div className="space-y-4"><SuccessMessage message={t('auth.notices.registrationAccepted')} /><p className="text-sm text-muted-foreground">{t('auth.notices.registrationHelp')}</p><Button className="w-full" variant="outline" asChild><Link to="/login">{t('auth.actions.goToSignIn')}</Link></Button></div>
   }
 
   const submit = form.handleSubmit((values) => {
@@ -265,59 +241,54 @@ export function RegisterForm() {
 
   return (
     <form className="space-y-4" noValidate onSubmit={submit}>
-      <p className="text-xs text-muted-foreground"><span aria-hidden="true">*</span> Campos obligatorios</p>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-name">Nombre <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.displayName ? 'register-name-error' : undefined} aria-invalid={Boolean(form.formState.errors.displayName)} id="register-name" autoComplete="name" required {...form.register('displayName')} /><FieldError id="register-name-error" message={form.formState.errors.displayName?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-email">Correo <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.email ? 'register-email-error' : undefined} aria-invalid={Boolean(form.formState.errors.email)} id="register-email" type="email" autoComplete="email" required {...form.register('email')} /><FieldError id="register-email-error" message={form.formState.errors.email?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-password">Contraseña <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.password ? 'register-password-error' : undefined} aria-invalid={Boolean(form.formState.errors.password)} id="register-password" type="password" autoComplete="new-password" required {...form.register('password')} /><FieldError id="register-password-error" message={form.formState.errors.password?.message} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-confirm">Confirmar contraseña <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.confirmPassword ? 'register-confirm-error' : undefined} aria-invalid={Boolean(form.formState.errors.confirmPassword)} id="register-confirm" type="password" autoComplete="new-password" required {...form.register('confirmPassword')} /><FieldError id="register-confirm-error" message={form.formState.errors.confirmPassword?.message} /></div>
-      <RequestError error={mutation.error} />
-      <Button className="w-full" type="submit" disabled={mutation.isPending || submissionLocked.current}>{mutation.isPending ? 'Creando cuenta…' : 'Crear cuenta'}</Button>
+      <p className="text-xs text-muted-foreground"><span aria-hidden="true">*</span> {t('auth.fields.required')}</p>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-name">{t('auth.fields.name')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.displayName ? 'register-name-error' : undefined} aria-invalid={Boolean(form.formState.errors.displayName)} id="register-name" autoComplete="name" required {...form.register('displayName')} /><FieldError id="register-name-error" message={form.formState.errors.displayName?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-email">{t('auth.fields.email')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.email ? 'register-email-error' : undefined} aria-invalid={Boolean(form.formState.errors.email)} id="register-email" type="email" autoComplete="email" required {...form.register('email')} /><FieldError id="register-email-error" message={form.formState.errors.email?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-password">{t('auth.fields.password')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.password ? 'register-password-error' : undefined} aria-invalid={Boolean(form.formState.errors.password)} id="register-password" type="password" autoComplete="new-password" required {...form.register('password')} /><FieldError id="register-password-error" message={form.formState.errors.password?.message} /></div>
+      <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-confirm">{t('auth.fields.confirmPassword')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.confirmPassword ? 'register-confirm-error' : undefined} aria-invalid={Boolean(form.formState.errors.confirmPassword)} id="register-confirm" type="password" autoComplete="new-password" required {...form.register('confirmPassword')} /><FieldError id="register-confirm-error" message={form.formState.errors.confirmPassword?.message} /></div>
+      <RequestError operation="register" error={mutation.error} />
+      <Button className="w-full" type="submit" disabled={mutation.isPending || submissionLocked.current}>{mutation.isPending ? t('auth.actions.creating') : t('actions.createAccount')}</Button>
     </form>
   )
 }
 
-const emailSchema = z.object({ email: z.string().email('Ingresa un correo válido').max(320) })
-
 export function ForgotPasswordForm() {
+  const { t } = useTranslation()
   const form = useForm<z.infer<typeof emailSchema>>({ resolver: zodResolver(emailSchema), defaultValues: { email: '' } })
   const mutation = useMutation({ mutationFn: ({ email }: { email: string }) => authApi.forgotPassword(email) })
   return <form className="space-y-4" noValidate onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="forgot-email">Correo</label><Input id="forgot-email" type="email" autoComplete="email" {...form.register('email')} /><FieldError message={form.formState.errors.email?.message} /></div>
-    {mutation.data && <SuccessMessage message={mutation.data.message} />}<RequestError error={mutation.error} />
-    <Button className="w-full" type="submit" disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? 'Enviando…' : mutation.data ? 'Enlace enviado' : 'Enviar enlace'}</Button>
+    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="forgot-email">{t('auth.fields.email')}</label><Input aria-describedby={form.formState.errors.email ? 'forgot-email-error' : undefined} aria-invalid={Boolean(form.formState.errors.email)} id="forgot-email" type="email" autoComplete="email" {...form.register('email')} /><FieldError id="forgot-email-error" message={form.formState.errors.email?.message} /></div>
+    {mutation.data && <SuccessMessage message={t('auth.notices.recoveryAccepted')} />}<RequestError operation="forgot" error={mutation.error} />
+    <Button className="w-full" type="submit" disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? t('auth.actions.sending') : mutation.data ? t('auth.actions.linkSent') : t('auth.actions.sendLink')}</Button>
   </form>
 }
 
 export function VerifyEmailForm() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const mutation = useMutation({ mutationFn: () => authApi.verifyEmail(token) })
-  if (!token) return <RequestError error={new Error('missing token')} />
-  return <div className="space-y-4">{mutation.data && <SuccessMessage message={mutation.data.message} />}<RequestError error={mutation.error} /><Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? 'Verificando…' : mutation.data ? 'Correo verificado' : 'Verificar mi correo'}</Button>{mutation.data && <Button className="w-full" variant="outline" asChild><Link to="/login">Iniciar sesión</Link></Button>}</div>
+  if (!token) return <RequestError messageKey="auth.errors.missingVerifyToken" />
+  return <div className="space-y-4">{mutation.data && <SuccessMessage message={t('auth.notices.emailVerified')} />}<RequestError operation="verify" error={mutation.error} /><Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? t('auth.actions.verifying') : mutation.data ? t('auth.actions.emailVerified') : t('auth.actions.verifyEmail')}</Button>{mutation.data && <Button className="w-full" variant="outline" asChild><Link to="/login">{t('auth.actions.signIn')}</Link></Button>}</div>
 }
 
-const resetSchema = z.object({ password: passwordSchema, confirmPassword: z.string() }).refine((value) => value.password === value.confirmPassword, { message: 'Las contraseñas no coinciden', path: ['confirmPassword'] })
-
 export function ResetPasswordForm() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const form = useForm<z.infer<typeof resetSchema>>({ resolver: zodResolver(resetSchema), defaultValues: { password: '', confirmPassword: '' } })
   const mutation = useMutation({ mutationFn: ({ password }: z.infer<typeof resetSchema>) => authApi.resetPassword(token, password) })
-  if (!token) return <RequestError error={new Error('missing token')} />
+  if (!token) return <RequestError messageKey="auth.errors.missingResetToken" />
   return <form className="space-y-4" noValidate onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="reset-password">Nueva contraseña</label><Input id="reset-password" type="password" autoComplete="new-password" {...form.register('password')} /><FieldError message={form.formState.errors.password?.message} /></div>
-    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="reset-confirm">Confirmar contraseña</label><Input id="reset-confirm" type="password" autoComplete="new-password" {...form.register('confirmPassword')} /><FieldError message={form.formState.errors.confirmPassword?.message} /></div>
-    {mutation.data && <SuccessMessage message={mutation.data.message} />}<RequestError error={mutation.error} />
-    <Button className="w-full" type="submit" disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? 'Actualizando…' : 'Actualizar contraseña'}</Button>
+    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="reset-password">{t('auth.fields.newPassword')}</label><Input aria-describedby={form.formState.errors.password ? 'reset-password-error' : undefined} aria-invalid={Boolean(form.formState.errors.password)} id="reset-password" type="password" autoComplete="new-password" {...form.register('password')} /><FieldError id="reset-password-error" message={form.formState.errors.password?.message} /></div>
+    <div className="space-y-2"><label className="text-sm font-medium" htmlFor="reset-confirm">{t('auth.fields.confirmPassword')}</label><Input aria-describedby={form.formState.errors.confirmPassword ? 'reset-confirm-error' : undefined} aria-invalid={Boolean(form.formState.errors.confirmPassword)} id="reset-confirm" type="password" autoComplete="new-password" {...form.register('confirmPassword')} /><FieldError id="reset-confirm-error" message={form.formState.errors.confirmPassword?.message} /></div>
+    {mutation.data && <SuccessMessage message={t('auth.notices.passwordUpdated')} />}<RequestError operation="reset" error={mutation.error} />
+    <Button className="w-full" type="submit" disabled={mutation.isPending || Boolean(mutation.data)}>{mutation.isPending ? t('auth.actions.updating') : t('auth.actions.updatePassword')}</Button>
   </form>
 }
 
-const codeSchema = z.object({ code: z.string().trim().min(6, 'Ingresa el código').max(64) })
-const mfaSetupCodeSchema = z.object({
-  code: z.string().trim().regex(/^\d{6}$/, 'Ingresa el código de 6 dígitos'),
-})
-
 export function MfaChallengeForm() {
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const challengeState = location.state as { challengeToken?: string; returnUrl?: string } | null
@@ -334,11 +305,12 @@ export function MfaChallengeForm() {
       void navigate(destination, { replace: true })
     },
   })
-  if (!challengeToken) return <p className="text-sm">El desafío ya no está disponible. <Link className="text-primary hover:underline" to="/login">Inicia sesión nuevamente.</Link></p>
-  return <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}><div className="space-y-2"><label className="text-sm font-medium" htmlFor="mfa-code">Código de autenticación o recuperación</label><Input id="mfa-code" autoComplete="one-time-code" inputMode="numeric" {...form.register('code')} /><FieldError message={form.formState.errors.code?.message} /></div><RequestError error={mutation.error} /><Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? 'Verificando…' : 'Continuar'}</Button></form>
+  if (!challengeToken) return <p className="text-sm">{t('auth.notices.challengeExpired')} <Link className="text-primary underline underline-offset-2" to="/login">{t('auth.actions.signInAgain')}</Link></p>
+  return <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}><div className="space-y-2"><label className="text-sm font-medium" htmlFor="mfa-code">{t('auth.fields.challengeCode')}</label><Input aria-describedby={form.formState.errors.code ? 'mfa-code-error' : undefined} aria-invalid={Boolean(form.formState.errors.code)} id="mfa-code" autoComplete="one-time-code" inputMode="numeric" {...form.register('code')} /><FieldError id="mfa-code-error" message={form.formState.errors.code?.message} /></div><RequestError operation="challenge" error={mutation.error} /><Button className="w-full" disabled={mutation.isPending}>{mutation.isPending ? t('auth.actions.verifying') : t('auth.actions.continue')}</Button></form>
 }
 
 export function MfaSetupForm() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
   const setup = useQuery({
@@ -363,32 +335,32 @@ export function MfaSetupForm() {
       clearAuthSession()
     },
   })
-  if (!hasLimitedAccessToken() && recoveryCodes.length === 0) return <p className="text-sm">Esta configuración expiró. <Link className="text-primary hover:underline" to="/login">Inicia sesión nuevamente.</Link></p>
-  if (recoveryCodes.length > 0) return <div className="space-y-4"><SuccessMessage message="MFA fue activado. Guarda estos códigos una sola vez." /><ul className="grid grid-cols-2 gap-2 font-mono text-sm">{recoveryCodes.map((code) => <li className="rounded border p-2" key={code}>{code}</li>)}</ul><Button className="w-full" asChild><Link to="/login">Volver a iniciar sesión</Link></Button></div>
-  if (setup.isPending) return <p role="status" className="text-sm">Preparando autenticador…</p>
-  if (setup.error || !setup.data) return <RequestError error={setup.error ?? new Error('setup unavailable')} />
+  if (!hasLimitedAccessToken() && recoveryCodes.length === 0) return <p className="text-sm">{t('auth.notices.setupExpired')} <Link className="text-primary underline underline-offset-2" to="/login">{t('auth.actions.signInAgain')}</Link></p>
+  if (recoveryCodes.length > 0) return <div className="space-y-4"><SuccessMessage message={t('auth.notices.mfaActivated')} /><ul className="grid grid-cols-2 gap-2 font-mono text-sm">{recoveryCodes.map((code) => <li className="min-w-0 break-all rounded border p-2" key={code}>{code}</li>)}</ul><Button className="w-full" asChild><Link to="/login">{t('auth.actions.returnToSignIn')}</Link></Button></div>
+  if (setup.isPending) return <p role="status" className="text-sm">{t('auth.status.preparingAuthenticator')}</p>
+  if (setup.error || !setup.data) return <RequestError operation="setup" error={setup.error ?? new Error('setup unavailable')} />
   return <div className="space-y-5">
     <div className="space-y-3 text-center">
-      <p className="text-sm font-medium">Escanea este QR con tu aplicación autenticadora</p>
+      <p className="text-sm font-medium">{t('auth.mfa.scan')}</p>
       <div className="mx-auto w-fit rounded-xl border bg-white p-3 shadow-sm">
         <QRCodeSVG
-          aria-label="Código QR para configurar MFA"
+          aria-label={t('auth.mfa.qrLabel')}
           bgColor="#ffffff"
           fgColor="#111827"
           level="M"
           marginSize={4}
           role="img"
           size={196}
-          title="Código QR para configurar MFA"
+          title={t('auth.mfa.qrLabel')}
           value={setup.data.authenticatorUri}
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        En Microsoft Authenticator, Google Authenticator o 1Password elige agregar una cuenta y escanear un código QR.
+        {t('auth.mfa.scanHelp')}
       </p>
     </div>
     <details className="rounded-lg bg-muted p-4 text-sm">
-      <summary className="cursor-pointer font-medium">¿No puedes escanearlo? Usa la clave manual</summary>
+      <summary className="cursor-pointer font-medium">{t('auth.mfa.manualKey')}</summary>
       <p className="mt-3 break-all font-mono">{setup.data.sharedKey}</p>
     </details>
     <div className="space-y-2 text-center">
@@ -398,16 +370,16 @@ export function MfaSetupForm() {
         type="button"
         variant="outline"
       >
-        {setup.isFetching ? 'Generando QR…' : 'Generar un QR nuevo'}
+        {setup.isFetching ? t('auth.actions.generatingQr') : t('auth.actions.generateQr')}
       </Button>
       <p className="text-xs text-muted-foreground">
-        Úsalo solo si el QR anterior fue compartido o dejó de funcionar; al regenerarlo, el anterior queda inválido.
+        {t('auth.mfa.regenerateWarning')}
       </p>
     </div>
     <form className="space-y-4" onSubmit={form.handleSubmit((values) => confirmation.mutate(values))}>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="mfa-setup-code">Código de 6 dígitos</label>
-        <Input
+        <label className="text-sm font-medium" htmlFor="mfa-setup-code">{t('auth.fields.setupCode')}</label>
+        <Input aria-describedby={form.formState.errors.code ? 'mfa-setup-code-error' : undefined} aria-invalid={Boolean(form.formState.errors.code)}
           id="mfa-setup-code"
           autoComplete="one-time-code"
           inputMode="numeric"
@@ -415,10 +387,10 @@ export function MfaSetupForm() {
           placeholder="123456"
           {...form.register('code')}
         />
-        <FieldError message={form.formState.errors.code?.message} />
+        <FieldError id="mfa-setup-code-error" message={form.formState.errors.code?.message} />
       </div>
-      <RequestError error={confirmation.error} />
-      <Button className="w-full" disabled={confirmation.isPending}>{confirmation.isPending ? 'Confirmando…' : 'Activar MFA'}</Button>
+      <RequestError operation="setup" error={confirmation.error} />
+      <Button className="w-full" disabled={confirmation.isPending}>{confirmation.isPending ? t('auth.actions.confirming') : t('auth.actions.activateMfa')}</Button>
     </form>
   </div>
 }

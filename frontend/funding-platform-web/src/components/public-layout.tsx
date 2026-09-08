@@ -8,6 +8,12 @@ import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/use-auth'
 
+// Only completed translation blocks inherit the chosen interface language.
+const translatedPaths = new Set([
+  '/', '/login', '/register', '/forgot-password', '/reset-password',
+  '/verify-email', '/mfa', '/mfa/setup', '/auth/external/callback',
+])
+
 export function PublicLayout() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
@@ -56,7 +62,7 @@ export function PublicLayout() {
         </div>
       </header>
       {/* Until their translation block is complete, inner pages remain Spanish. */}
-      <main lang={pathname === '/' ? undefined : 'es'}>
+      <main lang={translatedPaths.has(pathname.toLowerCase().replace(/\/+$/, '') || '/') ? undefined : 'es'}>
         <Outlet />
       </main>
       <footer className="border-t px-4 py-8 text-center text-sm text-muted-foreground">

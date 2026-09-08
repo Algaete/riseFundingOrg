@@ -110,7 +110,8 @@ describe('RegisterForm', () => {
 
     await waitFor(() => expect(register).toHaveBeenCalledTimes(1))
     resolveRegistration({ message: 'Solicitud aceptada.' })
-    expect(await screen.findByText('Solicitud aceptada.')).toBeInTheDocument()
+    expect(await screen.findByText('Si la solicitud es válida, recibirás instrucciones por correo.')).toBeInTheDocument()
+    expect(screen.queryByText('Solicitud aceptada.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Crear cuenta' })).not.toBeInTheDocument()
 
     firstRender.unmount()

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { initializeAuthSession } from '@/features/auth/auth-session'
 import { useAuth } from '@/features/auth/use-auth'
@@ -21,13 +22,14 @@ export function ProtectedRoute({
   children: ReactNode
   requireAdmin?: boolean
 }) {
+  const { t } = useTranslation()
   const auth = useAuth()
   const location = useLocation()
 
   if (auth.status === 'initializing') {
     return (
       <div className="grid min-h-screen place-items-center" role="status">
-        <p className="text-sm text-muted-foreground">Comprobando sesión…</p>
+        <p className="text-sm text-muted-foreground">{t('auth.status.checkingSession')}</p>
       </div>
     )
   }

@@ -1,7 +1,10 @@
-import type { es, TranslationShape } from '@/i18n/es'
+import type { es } from '@/i18n/es'
+import { authEn } from '@/i18n/auth/en'
+import type { TranslationShape } from '@/i18n/resource-types'
 
 export const en = {
   translation: {
+    auth: authEn,
     appName: 'FundingPlatform',
     appTagline: 'Funding that finds good causes',
     language: { label: 'Language' },

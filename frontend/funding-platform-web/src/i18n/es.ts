@@ -1,5 +1,8 @@
+import { authEs } from '@/i18n/auth/es'
+
 export const es = {
   translation: {
+    auth: authEs,
     appName: 'FundingPlatform',
     appTagline: 'Fondos que encuentran buenas causas',
     language: { label: 'Idioma' },
@@ -74,6 +77,3 @@ export const es = {
     },
   },
 } as const
-
-// Keep both resource trees identical, without requiring identical translated values.
-export type TranslationShape<T> = { [K in keyof T]: T[K] extends string ? string : TranslationShape<T[K]> }

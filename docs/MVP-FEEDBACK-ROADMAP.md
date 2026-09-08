@@ -36,12 +36,37 @@ Validación del corte I18N-01: build, lint y typecheck E2E aprobados; 221 prueba
 es local. La suite cubre persistencia tras recarga, paridad ES/EN, almacenamiento bloqueado,
 semántica de idioma, accesibilidad pública y cabeceras responsive con sesiones sintéticas.
 
+### I18N-02: autenticación y validaciones
+
+Implementado localmente:
+
+- Acceso, registro, recuperación/restablecimiento de contraseña, verificación de correo, desafío y
+  configuración MFA, callback Microsoft y comprobación de sesión en español e inglés.
+- Recursos separados en `src/i18n/auth`, esquemas en `auth-validation.ts` y mapeo de errores
+  de protocolo en `auth-feedback.ts`. La paridad de claves ES/EN se comprueba con tipos y pruebas.
+- Validaciones y avisos ya visibles cambian de idioma sin borrar campos, repetir solicitudes,
+  regenerar QR, modificar claves manuales/códigos de recuperación ni consumir otro handoff SSO.
+- Errores conocidos usan identificadores de protocolo y estado HTTP; los desconocidos muestran
+  un mensaje genérico traducido, no texto arbitrario del servidor. Registro y recuperación
+  conservan respuestas genéricas que no revelan si una cuenta existe.
+- Campos vinculados a sus errores para lectores de pantalla; enlaces de sesión vencida subrayados
+  y contraste corregido en avisos. Pantallas de autenticación heredan el idioma seleccionado.
+
+Validación del corte I18N-02: build, lint y typecheck E2E aprobados; 268 pruebas de frontend y
+32 pruebas de navegador aprobadas. Se omite únicamente el SHA de Azure en esta ejecución local.
+Incluye formularios a 320px, accesibilidad en claro/oscuro, errores y MFA con respuestas sintéticas;
+el test de contraste espera el fin de las transiciones de tema. No se utilizan cuentas reales.
+
+Límites: no cambia permisos, autenticación, política de contraseñas, payloads ni `preferredLocale`
+de cuentas. No habilita SSO/correo ni traduce plantillas de email o páginas de Microsoft. Mi cuenta
+y el contenido de los espacios internos siguen pendientes. No hay despliegue ni migración SQL.
+
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-02: acceso, registro, recuperación, verificación, MFA y validaciones del formulario.
-2. I18N-03: onboarding, perfil de organización y formularios/fichas de proyectos.
-3. I18N-04: catálogo, marketplace, matching, red, postulaciones, calendario, alertas y planes.
-4. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos de fechas/montos.
+1. I18N-03: onboarding, perfil de organización y formularios/fichas de proyectos.
+2. I18N-04: resumen, cuenta, catálogo, marketplace, matching, red, postulaciones, calendario,
+   alertas y planes.
+3. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -62,7 +87,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01 no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02 no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros
