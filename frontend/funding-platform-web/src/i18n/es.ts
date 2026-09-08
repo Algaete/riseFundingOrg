@@ -1,4 +1,7 @@
 import { authEs } from '@/i18n/auth/es'
+import { fundingCatalogEs } from '@/i18n/funding-catalog/es'
+import { marketplaceEs } from '@/i18n/marketplace/es'
+import { discoveryFeedbackEs } from '@/i18n/discovery-feedback/es'
 import { dashboardEs } from '@/i18n/dashboard/es'
 import { accountEs } from '@/i18n/account/es'
 import { organizationEs } from '@/i18n/organization/es'
@@ -9,6 +12,9 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 export const es = {
   translation: {
     auth: authEs,
+    fundingCatalog: fundingCatalogEs,
+    marketplace: marketplaceEs,
+    discoveryFeedback: discoveryFeedbackEs,
     dashboard: dashboardEs,
     account: accountEs,
     organization: organizationEs,

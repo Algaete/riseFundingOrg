@@ -124,9 +124,43 @@ backend o SQL. Los títulos recibidos de la API se conservan, sin traducción au
 Las páginas completas de postulaciones, calendario y alertas siguen pendientes en I18N-04D,
 aunque sus indicadores del resumen ya son bilingües. Sin push ni despliegue Azure.
 
+### I18N-04B: catálogo público y marketplace
+
+Implementado localmente:
+
+- Catálogo público de oportunidades: búsqueda, paginación, carga, estados vacíos, errores,
+  disponibilidad, fechas, montos y fichas completas en español e inglés.
+- Marketplace: búsqueda con debounce, filtros, orden, paginación, tarjetas, perfil público de
+  organización y conexión con el detalle canónico de proyectos ya traducido en I18N-03.
+- Recursos separados en `src/i18n/funding-catalog`, `marketplace` y `discovery-feedback`;
+  las claves ES/EN se verifican con tipos y pruebas. Los errores públicos usan mensajes seguros
+  basados en estado HTTP y no muestran diagnósticos arbitrarios del servidor.
+- Cambiar idioma conserva borradores de búsqueda, filtros, IDs de catálogo, orden, página,
+  parámetros de URL y consultas pendientes. Se mantiene el orden financiero limitado a una
+  misma moneda, sin conversión de importes ni cambios de precisión o reglas de cierre.
+- Confirmación de salida externa traducida: se preservan destino exacto, hostname, foco,
+  cierre con Escape, rechazo de URLs inseguras y necesidad de una acción explícita para continuar.
+- Atribuciones y contenido de las fuentes permanecen intactos. El aviso de Grants.gov conserva
+  su texto original en inglés con `lang="en"`; las categorías visuales siguen siendo orientativas.
+- Las fichas compartidas con el espacio privado declaran su idioma; las acciones privadas
+  todavía pendientes mantienen `lang="es"`. Paginación y confirmación externa se ajustan a móvil.
+
+Validación del corte I18N-04B: build, lint y typecheck E2E aprobados; 347 pruebas de frontend y
+58 pruebas de navegador aprobadas, con la comprobación del SHA de Azure omitida en local.
+Incluye cierres por día y hora exacta, filtros y debounce, atribuciones, enlaces seguros, exclusión
+de borradores y PII adicional, accesibilidad claro/oscuro y vistas a 320/1024px. Sólo datos sintéticos;
+las pruebas no siguen los enlaces de postulación ni escriben en la API.
+
+Límites: los nombres de catálogos conservan el español de la API con `lang="es"`; su traducción
+pertenece a I18N-05. No se traducen títulos, descripciones, requisitos ni atribuciones de fuentes.
+Las rutas privadas `/opportunities`, su detalle y `/favorites` tienen filtros y acciones propios
+que no quedan completos por traducir sus fichas compartidas; se explicitan en I18N-04B.2 antes
+de seguir con matching y red. No hay cambios de backend, SQL, permisos, seguridad de cuentas,
+flags de adjuntos, push ni despliegue Azure.
+
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-04B: catálogo público y marketplace.
+1. I18N-04B.2: catálogo interno de oportunidades, detalle y favoritos (filtros y acciones propias).
 2. I18N-04C: matching y red de organizaciones.
 3. I18N-04D: postulaciones, calendario, alertas y planes.
 4. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
@@ -150,7 +184,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

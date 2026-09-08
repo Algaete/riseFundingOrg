@@ -279,7 +279,7 @@ function FundingGrid({
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       {items.map((opportunity) => (
         <FundingCard
-          action={<FavoriteButton organizationId={organization.publicId} opportunity={opportunity} />}
+          action={<div className="grid" lang="es"><FavoriteButton organizationId={organization.publicId} opportunity={opportunity} /></div>}
           detailHref={`/opportunities/${opportunity.slug}`}
           key={opportunity.publicId}
           opportunity={opportunity}
@@ -737,7 +737,7 @@ export function OrganizationFundingDetailPage() {
   return (
     <FundingOpportunityDetailView
       action={(
-        <Card>
+        <Card lang="es">
           <CardHeader><CardTitle>Tu selección</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3">
@@ -752,7 +752,7 @@ export function OrganizationFundingDetailPage() {
           </CardContent>
         </Card>
       )}
-      additionalDetails={<OrganizationSpecificDetails catalogs={catalogs.data} item={opportunity.data} />}
+      additionalDetails={<div lang="es"><OrganizationSpecificDetails catalogs={catalogs.data} item={opportunity.data} /></div>}
       backTo="/opportunities"
       item={toDisplayDetail(opportunity.data)}
     />
