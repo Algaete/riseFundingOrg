@@ -67,17 +67,22 @@ malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
-pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B incorporan selector español/inglés,
+pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2 incorporan selector español/inglés,
 portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
 y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos. También
 incluyen Resumen y Mi cuenta, con estados de carga, fallos parciales y avisos de vinculación;
 catálogo público de fondos, marketplace y perfiles públicos de organizaciones, con filtros y paginación.
+También oportunidades internas, detalle y Favoritos, con condiciones de elegibilidad, acciones y avisos.
 Cambiar el idioma conserva borradores, organización seleccionada, confirmaciones y cargas pendientes;
 no inicia ni repite vinculaciones Microsoft. Mi cuenta distingue fallos de consulta de SSO deshabilitado.
 **La traducción completa sigue pendiente**: nombres de catálogos, administración y las demás páginas
-internas, incluidos filtros/acciones de oportunidades y Favoritos. Se conservan el contenido original
+internas de matching, conexiones, postulaciones, calendario, alertas y planes. Se conservan el contenido original
 y las atribuciones de fuentes, los parámetros de búsqueda y la confirmación de salida externa.
 No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.
+Favoritos conserva la intención del clic mientras responde la API y revierte el estado ante fallos;
+ordenar por monto sin moneda muestra un aviso visible, sin aparentar una búsqueda infinita.
+Estas pantallas de oportunidades mantienen su organización previa (la primera de la lista);
+no se agrega un selector global de organización en este bloque. Todo sigue local, sin despliegue.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos

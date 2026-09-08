@@ -158,12 +158,51 @@ que no quedan completos por traducir sus fichas compartidas; se explicitan en I1
 de seguir con matching y red. No hay cambios de backend, SQL, permisos, seguridad de cuentas,
 flags de adjuntos, push ni despliegue Azure.
 
+### I18N-04B.2: oportunidades internas, detalle y Favoritos
+
+Implementado localmente:
+
+- Catálogo interno: búsqueda con debounce, filtros avanzados, orden, moneda, paginación,
+  contadores, validaciones, cargas, errores y estados vacíos en español e inglés.
+- Detalle autenticado: condiciones de las bases, admisión/exclusión por tipo de organización
+  y personalidad jurídica, fuentes, modalidad/precisión de cierre y acciones privadas traducidas.
+  La hora exacta permanece en UTC; no se modifica la zona horaria informada ni se convierte moneda.
+- Favoritos: guardar/quitar, estado inmediato del botón, avisos, fallos y navegación tras quitar
+  el último resultado de una página. Los mensajes ya visibles acompañan el cambio de idioma.
+- Corrección reproducida con respuestas lentas: la operación de favorito captura la intención
+  del clic como variable de la mutación. Su resultado ya no se invierte si el estado optimista
+  o el idioma provocan un render antes de que responda el servidor.
+- Corrección del orden por monto sin moneda: el aviso se muestra fuera del panel plegable de
+  filtros, abre inicialmente los campos pertinentes y no deja un indicador de búsqueda infinita.
+  La consulta sigue bloqueada hasta corregir los criterios; aviso con contraste claro/oscuro.
+- Recursos tipados propios en `src/i18n/organization-funding` y mapeo seguro de errores HTTP
+  en `organization-funding-feedback.ts`. Las tres rutas heredan el idioma de interfaz.
+
+Cambiar idioma mantiene el texto pendiente, los filtros e IDs, la página, los parámetros de URL
+y la organización usada por estas pantallas, sin consultas adicionales ni escrituras por idioma.
+Se conserva el comportamiento previo de usar la primera organización de la lista: este corte
+no agrega un selector ni un contexto global de organización. Las claves de caché y el rollback
+de Favoritos siguen acotados a esa organización; no se tocan cachés de otra.
+
+Los enlaces de guardar búsqueda e iniciar postulación mantienen su destino y no crean nada por
+cambiar de idioma. Las pruebas no siguen enlaces de postulación. Títulos, bases y atribuciones
+permanecen originales; los catálogos conservan su español con `lang="es"`, separado de los
+sufijos traducidos de admisión/exclusión. Se mantiene el aviso de que clasificar no confirma elegibilidad.
+
+Validación del corte I18N-04B.2: build, lint y typecheck E2E aprobados; 370 pruebas de frontend y
+65 pruebas de navegador aprobadas. Se omite únicamente la comprobación del SHA de Azure en local.
+La suite de navegador comprueba vistas de 320/1024px, accesibilidad, filtros, ausencia de
+escrituras por idioma y eliminación explícita de un favorito sintético. Todos los datos y
+respuestas están simulados bajo la guarda que bloquea solicitudes API inesperadas.
+
+Límites: I18N-05 sigue pendiente para nombres de catálogos y códigos estables de reglas de API.
+Sin cambios de backend, SQL, roles, seguridad, `preferredLocale`, flags de adjuntos, push ni Azure.
+
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-04B.2: catálogo interno de oportunidades, detalle y favoritos (filtros y acciones propias).
-2. I18N-04C: matching y red de organizaciones.
-3. I18N-04D: postulaciones, calendario, alertas y planes.
-4. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
+1. I18N-04C: matching y red de organizaciones.
+2. I18N-04D: postulaciones, calendario, alertas y planes.
+3. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -184,7 +223,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2 no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

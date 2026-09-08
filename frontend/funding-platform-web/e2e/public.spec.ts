@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { registerWorkspaceLanguageTests } from './workspace-checks'
 import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 import { registerDiscoveryLanguageTests } from './discovery-checks'
+import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -85,6 +86,7 @@ test.afterEach(async ({ page }) => {
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDiscoveryLanguageTests(expectNoSeriousAccessibilityViolations)
+registerOrganizationFundingLanguageTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

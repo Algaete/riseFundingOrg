@@ -330,7 +330,7 @@ describe('oportunidades de la organización', () => {
     expect(screen.getByText('20%')).toBeInTheDocument()
     expect(screen.getByText('Cierre exacto').parentElement).toHaveTextContent('UTC')
     expect(screen.getByText('America/Santiago')).toBeInTheDocument()
-    expect(screen.getByText('Fundación · admitido')).toBeInTheDocument()
+    expect(screen.getByText((_text, element) => element?.tagName === 'LI' && element.textContent === 'Fundación · admitido')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Fuentes vinculadas' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Iniciar postulación' })).toHaveAttribute(

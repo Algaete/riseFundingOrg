@@ -22,9 +22,9 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
-import { ApiError } from '@/api/http-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -46,6 +46,9 @@ import {
   type OrganizationCatalogs,
   type OrganizationSummary,
 } from '@/features/organizations/organization-api'
+import i18n from '@/i18n'
+import { organizationFundingErrorMessage } from '@/i18n/organization-funding-feedback'
+import { workspaceLocale } from '@/i18n/workspace-messages'
 
 const defaultPageSize = 12
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
@@ -80,13 +83,6 @@ function firstId(value: string | null) {
   return parseIds(value)[0]?.toString() ?? ''
 }
 
-function apiErrorMessage(error: unknown, fallback: string) {
-  if (!(error instanceof ApiError)) return fallback
-  return Object.values(error.problem.errors ?? {}).flat()[0]
-    ?? error.problem.detail
-    ?? error.problem.title
-}
-
 function useOrganization() {
   const organizations = useQuery({
     queryKey: ['organizations'],
@@ -99,14 +95,15 @@ function useOrganization() {
 }
 
 function OrganizationRequired() {
+  const { t } = useTranslation()
   return (
     <Card>
       <CardContent className="space-y-4 p-8 text-center">
-        <h1 className="text-2xl font-bold">Primero crea tu organización</h1>
+        <h1 className="text-2xl font-bold">{t('organizationFunding.requiredTitle')}</h1>
         <p className="text-sm text-muted-foreground">
-          Los favoritos y filtros de trabajo se guardan dentro del espacio de tu organización.
+          {t('organizationFunding.requiredHelp')}
         </p>
-        <Button asChild><Link to="/onboarding">Crear organización</Link></Button>
+        <Button asChild><Link to="/onboarding">{t('organizationFunding.createOrganization')}</Link></Button>
       </CardContent>
     </Card>
   )
@@ -153,14 +150,14 @@ function FavoriteButton({
   opportunity: OrganizationFundingOpportunityListItem
   fullWidth?: boolean
 }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [feedback, setFeedback] = useState('')
-  const nextFavoriteState = !opportunity.isFavorite
+  const [feedback, setFeedback] = useState<'' | 'organizationFunding.favoriteFailed' | 'organizationFunding.favoriteAdded' | 'organizationFunding.favoriteRemoved'>('')
   const mutation = useMutation({
-    mutationFn: () => nextFavoriteState
+    mutationFn: (nextFavoriteState: boolean) => nextFavoriteState
       ? organizationFundingApi.addFavorite(organizationId, opportunity.publicId)
       : organizationFundingApi.removeFavorite(organizationId, opportunity.publicId),
-    onMutate: async () => {
+    onMutate: async (nextFavoriteState) => {
       setFeedback('')
       await queryClient.cancelQueries({ queryKey: ['organization-funding', organizationId] })
       const previous = queryClient.getQueriesData<CachedFundingValue>({
@@ -174,24 +171,24 @@ function FavoriteButton({
     },
     onError: (_error, _variables, context) => {
       context?.previous.forEach(([queryKey, value]) => queryClient.setQueryData(queryKey, value))
-      setFeedback('No pudimos actualizar el favorito. Intenta nuevamente.')
+      setFeedback('organizationFunding.favoriteFailed')
     },
-    onSuccess: () => {
-      setFeedback(nextFavoriteState ? 'Oportunidad guardada en favoritos.' : 'Oportunidad eliminada de favoritos.')
+    onSuccess: (_data, nextFavoriteState) => {
+      setFeedback(nextFavoriteState ? 'organizationFunding.favoriteAdded' : 'organizationFunding.favoriteRemoved')
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ['organization-funding', organizationId] })
     },
   })
 
-  const label = opportunity.isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'
+  const label = opportunity.isFavorite ? t('organizationFunding.removeFavorite') : t('organizationFunding.saveFavorite')
   return (
     <div className={fullWidth ? 'grid gap-2' : 'grid gap-1'}>
       <Button
         aria-pressed={opportunity.isFavorite}
         className={fullWidth ? 'w-full' : undefined}
         disabled={mutation.isPending}
-        onClick={() => mutation.mutate()}
+        onClick={() => mutation.mutate(!opportunity.isFavorite)}
         size="sm"
         type="button"
         variant={opportunity.isFavorite ? 'default' : 'outline'}
@@ -206,7 +203,7 @@ function FavoriteButton({
           className={`${fullWidth ? 'text-sm' : 'sr-only'} ${mutation.isError ? 'text-destructive' : 'text-muted-foreground'}`}
           role={mutation.isError ? 'alert' : 'status'}
         >
-          {feedback}
+          {t(feedback)}
         </p>
       )}
     </div>
@@ -228,12 +225,13 @@ function CatalogSelect({
   value: string
   onChange: (value: string) => void
 }) {
+  const { t } = useTranslation()
   return (
     <label className="grid gap-1.5 text-sm font-semibold" htmlFor={id}>
       {label}
       <select className={selectClass} id={id} onChange={(event) => onChange(event.target.value)} value={value}>
-        <option value="">Todos</option>
-        {items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        <option value="">{t('organizationFunding.all')}</option>
+        {items.map((item) => <option key={item.id} lang="es" value={item.id}>{item.name}</option>)}
       </select>
       {description && <span className="text-xs font-normal text-muted-foreground">{description}</span>}
     </label>
@@ -251,18 +249,19 @@ function ResultsPagination({
   disabled: boolean
   setPage: (page: number) => void
 }) {
+  const { t } = useTranslation()
   const lastPage = Math.max(1, Math.ceil(response.totalCount / response.pageSize))
   if (lastPage <= 1) return null
   return (
-    <nav aria-label="Paginación de oportunidades" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 sm:justify-end">
+    <nav aria-label={t('organizationFunding.pagination')} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 sm:justify-end">
       <Button disabled={page <= 1 || disabled} onClick={() => setPage(page - 1)} type="button" variant="outline">
-        <ChevronLeft className="size-4" /> Anterior
+        <ChevronLeft className="size-4" /> {t('organizationFunding.previous')}
       </Button>
       <p className="text-sm text-muted-foreground">
-        Página <strong className="text-foreground">{response.pageNumber}</strong> de {lastPage}
+        {t('organizationFunding.page', { page: response.pageNumber, total: lastPage })}
       </p>
       <Button disabled={page >= lastPage || disabled} onClick={() => setPage(page + 1)} type="button" variant="outline">
-        Siguiente <ChevronRight className="size-4" />
+        {t('organizationFunding.next')} <ChevronRight className="size-4" />
       </Button>
     </nav>
   )
@@ -279,7 +278,7 @@ function FundingGrid({
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       {items.map((opportunity) => (
         <FundingCard
-          action={<div className="grid" lang="es"><FavoriteButton organizationId={organization.publicId} opportunity={opportunity} /></div>}
+          action={<div className="grid"><FavoriteButton organizationId={organization.publicId} opportunity={opportunity} /></div>}
           detailHref={`/opportunities/${opportunity.slug}`}
           key={opportunity.publicId}
           opportunity={opportunity}
@@ -303,14 +302,20 @@ function catalogNames(ids: readonly number[], items: readonly CatalogOption<numb
   return [...new Set(ids.map((id) => names.get(id)).filter((name): name is string => Boolean(name)))]
 }
 
-function DetailChips({ label, values }: { label: string; values: readonly string[] }) {
+type EligibilityChip = { key: number; name: string; suffix: string }
+
+function DetailChips({ label, values }: { label: string; values: readonly (string | EligibilityChip)[] }) {
   if (values.length === 0) return null
   return (
     <div>
       <h3 className="text-sm font-bold">{label}</h3>
       <ul className="mt-2 flex flex-wrap gap-2">
         {values.map((value) => (
-          <li className="rounded-full border bg-background px-3 py-1.5 text-xs" key={value}>{value}</li>
+          <li className="rounded-full border bg-background px-3 py-1.5 text-xs" key={typeof value === 'string' ? value : value.key}>
+            {typeof value === 'string'
+              ? <span lang="es">{value}</span>
+              : <><span lang="es">{value.name}</span> · {value.suffix}</>}
+          </li>
         ))}
       </ul>
     </div>
@@ -318,14 +323,14 @@ function DetailChips({ label, values }: { label: string; values: readonly string
 }
 
 function yesNoUnknown(value: boolean | null) {
-  return value === null ? 'No informado' : value ? 'Sí' : 'No'
+  return value === null ? i18n.t('organizationFunding.notReported') : value ? i18n.t('organizationFunding.yes') : i18n.t('organizationFunding.no')
 }
 
 function formatUtcDateTime(value: string | null) {
   if (!value) return null
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return `${new Intl.DateTimeFormat('es-CL', {
+  return `${new Intl.DateTimeFormat(workspaceLocale(), {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'UTC',
@@ -339,21 +344,22 @@ function OrganizationSpecificDetails({
   item: OrganizationFundingOpportunityDetail
   catalogs?: OrganizationCatalogs
 }) {
+  const { t } = useTranslation()
   const textConditions = [
-    ['Actividades permitidas', item.allowedActivities],
-    ['Actividades excluidas', item.excludedActivities],
-    ['Restricciones', item.restrictions],
-    ['Organizaciones objetivo', item.targetOrganizationsDescription],
-    ['Poblaciones objetivo', item.targetPopulationsDescription],
+    [t('organizationFunding.allowedActivities'), item.allowedActivities],
+    [t('organizationFunding.excludedActivities'), item.excludedActivities],
+    [t('organizationFunding.restrictions'), item.restrictions],
+    [t('organizationFunding.targetOrganizations'), item.targetOrganizationsDescription],
+    [t('organizationFunding.targetPopulations'), item.targetPopulationsDescription],
   ].filter((entry): entry is [string, string] => Boolean(entry[1]))
   const organizationTypes = item.organizationTypes.map((value) => {
     const name = catalogs?.organizationTypes.find((option) => option.id === value.id)?.name
-    return name ? `${name} · ${value.eligibilityMode === 1 ? 'admitido' : 'excluido'}` : null
-  }).filter((value): value is string => Boolean(value))
+    return name ? { key: value.id, name, suffix: value.eligibilityMode === 1 ? t('organizationFunding.admitted') : t('organizationFunding.excluded') } : null
+  }).filter((value) => value !== null)
   const legalEntityTypes = item.legalEntityTypes.map((value) => {
     const name = catalogs?.legalEntityTypes.find((option) => option.id === value.id)?.name
-    return name ? `${name} · ${value.eligibilityMode === 1 ? 'admitida' : 'excluida'}` : null
-  }).filter((value): value is string => Boolean(value))
+    return name ? { key: value.id, name, suffix: value.eligibilityMode === 1 ? t('organizationFunding.admittedFeminine') : t('organizationFunding.excludedFeminine') } : null
+  }).filter((value) => value !== null)
   const languages = catalogNames(item.languages.map((value) => value.id), catalogs?.languages)
   const classifications = [
     catalogNames(item.countryIds, catalogs?.countries),
@@ -368,73 +374,73 @@ function OrganizationSpecificDetails({
   ].some((values) => values.length > 0)
   const fundingType = catalogs?.fundingTypes.find((value) => value.id === item.fundingTypeId)?.name
   const issuerCountry = catalogs?.countries.find((value) => value.id === item.issuerCountryId)?.name
-  const deadline = item.deadlineType === 2 ? 'Convocatoria continua'
-    : item.deadlineType === 1 ? 'Fecha de cierre fija' : 'No informado'
-  const deadlinePrecision = item.deadlinePrecision === 2 ? 'Fecha y hora'
-    : item.deadlinePrecision === 1 ? 'Fecha' : 'No informada'
+  const deadline = item.deadlineType === 2 ? t('organizationFunding.continuous')
+    : item.deadlineType === 1 ? t('organizationFunding.fixedDeadline') : t('organizationFunding.notReported')
+  const deadlinePrecision = item.deadlinePrecision === 2 ? t('organizationFunding.dateTime')
+    : item.deadlinePrecision === 1 ? t('organizationFunding.date') : t('organizationFunding.notReportedFeminine')
   const exactClose = formatUtcDateTime(item.closeAtUtc)
-  const geography = item.geographicScope === 2 ? 'Global'
-    : item.geographicScope === 1 ? 'Territorios especificados en las bases' : 'No informado'
-  const remote = item.remoteApplication === 2 ? 'Sí'
-    : item.remoteApplication === 1 ? 'No' : 'No informado'
+  const geography = item.geographicScope === 2 ? t('organizationFunding.global')
+    : item.geographicScope === 1 ? t('organizationFunding.specifiedTerritories') : t('organizationFunding.notReported')
+  const remote = item.remoteApplication === 2 ? t('organizationFunding.yes')
+    : item.remoteApplication === 1 ? t('organizationFunding.no') : t('organizationFunding.notReported')
 
   return (
     <>
       <section className="space-y-4 rounded-xl border p-5">
         <div>
-          <h2 className="text-xl font-bold">Condiciones publicadas</h2>
+          <h2 className="text-xl font-bold">{t('organizationFunding.publishedConditions')}</h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Estos datos provienen de las bases y no confirman por sí solos que tu organización sea elegible.
+            {t('organizationFunding.conditionsHelp')}
           </p>
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div><dt className="font-semibold">Tipo de financiamiento</dt><dd className="mt-1 text-muted-foreground">{fundingType ?? 'No informado'}</dd></div>
-          <div><dt className="font-semibold">País emisor</dt><dd className="mt-1 text-muted-foreground">{issuerCountry ?? 'No informado'}</dd></div>
-          <div><dt className="font-semibold">Modalidad de cierre</dt><dd className="mt-1 text-muted-foreground">{deadline}</dd></div>
-          <div><dt className="font-semibold">Precisión del cierre</dt><dd className="mt-1 text-muted-foreground">{deadlinePrecision}</dd></div>
-          {exactClose && <div><dt className="font-semibold">Cierre exacto</dt><dd className="mt-1 text-muted-foreground">{exactClose}</dd></div>}
-          <div><dt className="font-semibold">Alcance geográfico</dt><dd className="mt-1 text-muted-foreground">{geography}</dd></div>
-          <div><dt className="font-semibold">Postulación remota</dt><dd className="mt-1 text-muted-foreground">{remote}</dd></div>
-          <div><dt className="font-semibold">Años mínimos de operación</dt><dd className="mt-1 text-muted-foreground">{item.minimumOperatingYears ?? 'No informado'}</dd></div>
-          <div><dt className="font-semibold">Exige entidad legal</dt><dd className="mt-1 text-muted-foreground">{yesNoUnknown(item.requiresLegalEntity)}</dd></div>
-          <div><dt className="font-semibold">Exige experiencia previa</dt><dd className="mt-1 text-muted-foreground">{yesNoUnknown(item.requiresPriorExperience)}</dd></div>
-          <div><dt className="font-semibold">Porcentaje de cofinanciamiento</dt><dd className="mt-1 text-muted-foreground">{item.cofundingPercentage === null ? 'No informado' : `${item.cofundingPercentage}%`}</dd></div>
-          {item.deadlineTimeZoneId && <div><dt className="font-semibold">Zona horaria del cierre</dt><dd className="mt-1 text-muted-foreground">{item.deadlineTimeZoneId}</dd></div>}
+          <div><dt className="font-semibold">{t('organizationFunding.fundingType')}</dt><dd className="mt-1 text-muted-foreground">{fundingType ? <span lang="es">{fundingType}</span> : t('organizationFunding.notReported')}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.issuerCountry')}</dt><dd className="mt-1 text-muted-foreground">{issuerCountry ? <span lang="es">{issuerCountry}</span> : t('organizationFunding.notReported')}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.deadlineType')}</dt><dd className="mt-1 text-muted-foreground">{deadline}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.deadlinePrecision')}</dt><dd className="mt-1 text-muted-foreground">{deadlinePrecision}</dd></div>
+          {exactClose && <div><dt className="font-semibold">{t('organizationFunding.exactClose')}</dt><dd className="mt-1 text-muted-foreground">{exactClose}</dd></div>}
+          <div><dt className="font-semibold">{t('organizationFunding.geography')}</dt><dd className="mt-1 text-muted-foreground">{geography}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.remote')}</dt><dd className="mt-1 text-muted-foreground">{remote}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.minimumYears')}</dt><dd className="mt-1 text-muted-foreground">{item.minimumOperatingYears ?? t('organizationFunding.notReported')}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.legalRequired')}</dt><dd className="mt-1 text-muted-foreground">{yesNoUnknown(item.requiresLegalEntity)}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.experienceRequired')}</dt><dd className="mt-1 text-muted-foreground">{yesNoUnknown(item.requiresPriorExperience)}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.cofundingPercentage')}</dt><dd className="mt-1 text-muted-foreground">{item.cofundingPercentage === null ? t('organizationFunding.notReported') : `${item.cofundingPercentage.toLocaleString(workspaceLocale())}%`}</dd></div>
+          {item.deadlineTimeZoneId && <div><dt className="font-semibold">{t('organizationFunding.deadlineZone')}</dt><dd className="mt-1 text-muted-foreground">{item.deadlineTimeZoneId}</dd></div>}
         </dl>
         {textConditions.map(([label, value]) => (
           <div key={label}>
             <h3 className="text-sm font-bold">{label}</h3>
-            <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground">{value}</p>
+            <p className="mt-1 whitespace-pre-line text-sm leading-6 text-muted-foreground" lang="es">{value}</p>
           </div>
         ))}
       </section>
 
       {classifications && (
         <section className="space-y-4">
-          <h2 className="text-xl font-bold">Cobertura y clasificaciones de las bases</h2>
-          <DetailChips label="Países" values={catalogNames(item.countryIds, catalogs?.countries)} />
-          <DetailChips label="Regiones" values={catalogNames(item.regionIds, catalogs?.regions)} />
-          <DetailChips label="Categorías" values={catalogNames(item.categoryIds, catalogs?.fundingCategories)} />
-          <DetailChips label="Poblaciones beneficiarias" values={catalogNames(item.beneficiaryTypeIds, catalogs?.beneficiaryTypes)} />
-          <DetailChips label="Tipos de proyecto" values={catalogNames(item.projectTypeIds, catalogs?.projectTypes)} />
-          <DetailChips label="Temas" values={catalogNames(item.tagIds, catalogs?.tags)} />
-          <DetailChips label="Tipos de organización" values={organizationTypes} />
-          <DetailChips label="Personalidades jurídicas" values={legalEntityTypes} />
-          <DetailChips label="Idiomas indicados" values={languages} />
+          <h2 className="text-xl font-bold">{t('organizationFunding.classifications')}</h2>
+          <DetailChips label={t('organizationFunding.countries')} values={catalogNames(item.countryIds, catalogs?.countries)} />
+          <DetailChips label={t('organizationFunding.regions')} values={catalogNames(item.regionIds, catalogs?.regions)} />
+          <DetailChips label={t('organizationFunding.categories')} values={catalogNames(item.categoryIds, catalogs?.fundingCategories)} />
+          <DetailChips label={t('organizationFunding.beneficiaries')} values={catalogNames(item.beneficiaryTypeIds, catalogs?.beneficiaryTypes)} />
+          <DetailChips label={t('organizationFunding.projectTypes')} values={catalogNames(item.projectTypeIds, catalogs?.projectTypes)} />
+          <DetailChips label={t('organizationFunding.topics')} values={catalogNames(item.tagIds, catalogs?.tags)} />
+          <DetailChips label={t('organizationFunding.organizationTypes')} values={organizationTypes} />
+          <DetailChips label={t('organizationFunding.legalTypes')} values={legalEntityTypes} />
+          <DetailChips label={t('organizationFunding.languages')} values={languages} />
         </section>
       )}
 
       {item.sources.length > 0 && (
         <section>
-          <h2 className="text-xl font-bold">Fuentes vinculadas</h2>
+          <h2 className="text-xl font-bold">{t('organizationFunding.sources')}</h2>
           <ul className="mt-3 grid gap-2">
             {item.sources.map((source) => (
               <li className="rounded-lg border px-4 py-3 text-sm" key={`${source.fundingSourceId}-${source.externalId ?? source.sourceUrl}`}>
-                <a className="font-semibold text-primary underline underline-offset-2" href={source.sourceUrl} rel="noopener noreferrer" target="_blank">
+                <a className="font-semibold text-primary underline underline-offset-2" href={source.sourceUrl} lang="es" rel="noopener noreferrer" target="_blank">
                   {source.sourceName}
                 </a>
-                {source.externalId && <span className="ml-2 text-xs text-muted-foreground">Referencia {source.externalId}</span>}
-                {source.isPrimary && <span className="ml-2 text-xs text-muted-foreground">Fuente principal</span>}
+                {source.externalId && <span className="ml-2 text-xs text-muted-foreground">{t('organizationFunding.reference', { id: source.externalId })}</span>}
+                {source.isPrimary && <span className="ml-2 text-xs text-muted-foreground">{t('organizationFunding.primarySource')}</span>}
               </li>
             ))}
           </ul>
@@ -445,6 +451,7 @@ function OrganizationSpecificDetails({
 }
 
 export function OrganizationFundingCatalogPage() {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { organizations, organization } = useOrganization()
   const catalogs = useQuery({
@@ -483,6 +490,7 @@ export function OrganizationFundingCatalogPage() {
   const amountCurrencyError = (minimumAmount !== undefined || maximumAmount !== undefined) && !currency
   const amountSortCurrencyError = (sort === 'amount-asc' || sort === 'amount-desc') && !currency
   const dateError = Boolean(closingFrom && closingTo && closingFrom > closingTo)
+  const hasInvalidFilters = amountError || amountCurrencyError || amountSortCurrencyError || dateError
 
   const criteria = useMemo(() => ({
     query: urlQuery,
@@ -509,7 +517,7 @@ export function OrganizationFundingCatalogPage() {
   const opportunities = useQuery({
     queryKey: ['organization-funding', organization?.publicId, 'search', criteria],
     queryFn: ({ signal }) => organizationFundingApi.search(organization!.publicId, criteria, signal),
-    enabled: Boolean(organization) && !amountError && !amountCurrencyError && !amountSortCurrencyError && !dateError,
+    enabled: Boolean(organization) && !hasInvalidFilters,
     placeholderData: keepPreviousData,
   })
 
@@ -523,12 +531,12 @@ export function OrganizationFundingCatalogPage() {
     setSearchParams(new URLSearchParams(), { replace: true })
   }
 
-  if (organizations.isPending || catalogs.isPending) return <PageLoading label="Preparando oportunidades…" />
+  if (organizations.isPending || catalogs.isPending) return <PageLoading label={t('organizationFunding.preparing')} />
   if (organizations.isError || catalogs.isError || !catalogs.data) {
     return (
       <Card><CardContent className="p-8" role="alert">
-        <h1 className="text-xl font-bold">No pudimos preparar el catálogo</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Comprueba la conexión e intenta nuevamente.</p>
+        <h1 className="text-xl font-bold">{t('organizationFunding.prepareFailed')}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t('organizationFunding.loadHelp')}</p>
       </CardContent></Card>
     )
   }
@@ -547,17 +555,17 @@ export function OrganizationFundingCatalogPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Catálogo de fondos</p>
-        <h1 className="text-3xl font-bold tracking-tight">Concursos disponibles</h1>
+        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('organizationFunding.eyebrow')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('organizationFunding.title')}</h1>
         <p className="text-muted-foreground">
-          Busca fondos publicados para {organization.name}. Los filtros y la paginación se procesan en el servidor.
+          {t('organizationFunding.description', { name: organization.name })}
         </p>
       </header>
 
       <Card>
         <CardContent className="space-y-5 p-5 sm:p-6">
           <form className="flex flex-col gap-2 sm:flex-row" onSubmit={submitSearch}>
-            <label className="sr-only" htmlFor="organization-funding-search">Buscar oportunidades</label>
+            <label className="sr-only" htmlFor="organization-funding-search">{t('organizationFunding.searchLabel')}</label>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -565,12 +573,12 @@ export function OrganizationFundingCatalogPage() {
                 id="organization-funding-search"
                 maxLength={300}
                 onChange={(event) => setDraftQuery(event.target.value)}
-                placeholder="Título, organismo o descripción"
+                placeholder={t('organizationFunding.searchPlaceholder')}
                 value={draftQuery}
               />
               {draftQuery && (
                 <button
-                  aria-label="Limpiar búsqueda"
+                  aria-label={t('organizationFunding.clearSearch')}
                   className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted"
                   onClick={() => { setDraftQuery(''); replaceParameter('q', '') }}
                   type="button"
@@ -579,92 +587,92 @@ export function OrganizationFundingCatalogPage() {
                 </button>
               )}
             </div>
-            <Button type="submit">Buscar</Button>
+            <Button type="submit">{t('organizationFunding.search')}</Button>
           </form>
 
-          <details className="rounded-xl border p-4" open={filterCount > 0}>
+          <details className="rounded-xl border p-4" open={filterCount > 0 || hasInvalidFilters}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold">
-              <span className="flex items-center gap-2"><SlidersHorizontal className="size-4" /> Filtros avanzados</span>
-              {filterCount > 0 && <span className="rounded-full bg-accent px-2 py-1 text-xs">{filterCount} activos</span>}
+              <span className="flex items-center gap-2"><SlidersHorizontal className="size-4" /> {t('organizationFunding.advanced')}</span>
+              {filterCount > 0 && <span className="rounded-full bg-accent px-2 py-1 text-xs">{t('organizationFunding.active', { count: filterCount })}</span>}
             </summary>
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <CatalogSelect id="filter-country" items={catalogs.data.countries} label="País" onChange={(value) => replaceParameter('countryIds', value)} value={firstId(searchParams.get('countryIds'))} />
-              <CatalogSelect id="filter-region" items={catalogs.data.regions} label="Región" onChange={(value) => replaceParameter('regionIds', value)} value={firstId(searchParams.get('regionIds'))} />
-              <CatalogSelect id="filter-category" items={catalogs.data.fundingCategories} label="Categoría" onChange={(value) => replaceParameter('categoryIds', value)} value={firstId(searchParams.get('categoryIds'))} />
-              <CatalogSelect id="filter-tag" items={catalogs.data.tags} label="Tema" onChange={(value) => replaceParameter('tagIds', value)} value={firstId(searchParams.get('tagIds'))} />
-              <CatalogSelect id="filter-funding-type" items={catalogs.data.fundingTypes} label="Tipo de financiamiento" onChange={(value) => replaceParameter('fundingTypeIds', value)} value={firstId(searchParams.get('fundingTypeIds'))} />
+              <CatalogSelect id="filter-country" items={catalogs.data.countries} label={t('organizationFunding.country')} onChange={(value) => replaceParameter('countryIds', value)} value={firstId(searchParams.get('countryIds'))} />
+              <CatalogSelect id="filter-region" items={catalogs.data.regions} label={t('organizationFunding.region')} onChange={(value) => replaceParameter('regionIds', value)} value={firstId(searchParams.get('regionIds'))} />
+              <CatalogSelect id="filter-category" items={catalogs.data.fundingCategories} label={t('organizationFunding.category')} onChange={(value) => replaceParameter('categoryIds', value)} value={firstId(searchParams.get('categoryIds'))} />
+              <CatalogSelect id="filter-tag" items={catalogs.data.tags} label={t('organizationFunding.topic')} onChange={(value) => replaceParameter('tagIds', value)} value={firstId(searchParams.get('tagIds'))} />
+              <CatalogSelect id="filter-funding-type" items={catalogs.data.fundingTypes} label={t('organizationFunding.fundingType')} onChange={(value) => replaceParameter('fundingTypeIds', value)} value={firstId(searchParams.get('fundingTypeIds'))} />
               <CatalogSelect
-                description="Filtra lo indicado en las bases; no confirma elegibilidad."
+                description={t('organizationFunding.organizationTypeHelp')}
                 id="filter-organization-type"
                 items={catalogs.data.organizationTypes}
-                label="Tipo de organización admitido"
+                label={t('organizationFunding.admittedOrganizationType')}
                 onChange={(value) => replaceParameter('organizationTypeIds', value)}
                 value={firstId(searchParams.get('organizationTypeIds'))}
               />
-              <CatalogSelect id="filter-beneficiary" items={catalogs.data.beneficiaryTypes} label="Población beneficiaria" onChange={(value) => replaceParameter('beneficiaryTypeIds', value)} value={firstId(searchParams.get('beneficiaryTypeIds'))} />
-              <CatalogSelect id="filter-project-type" items={catalogs.data.projectTypes} label="Tipo de proyecto" onChange={(value) => replaceParameter('projectTypeIds', value)} value={firstId(searchParams.get('projectTypeIds'))} />
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-sponsor">Organismo convocante
-                <input className={inputClass} id="filter-sponsor" maxLength={250} onChange={(event) => replaceParameter('sponsor', event.target.value)} placeholder="Nombre del organismo" value={searchParams.get('sponsor') ?? ''} />
+              <CatalogSelect id="filter-beneficiary" items={catalogs.data.beneficiaryTypes} label={t('organizationFunding.beneficiary')} onChange={(value) => replaceParameter('beneficiaryTypeIds', value)} value={firstId(searchParams.get('beneficiaryTypeIds'))} />
+              <CatalogSelect id="filter-project-type" items={catalogs.data.projectTypes} label={t('organizationFunding.projectType')} onChange={(value) => replaceParameter('projectTypeIds', value)} value={firstId(searchParams.get('projectTypeIds'))} />
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-sponsor">{t('organizationFunding.sponsor')}
+                <input className={inputClass} id="filter-sponsor" maxLength={250} onChange={(event) => replaceParameter('sponsor', event.target.value)} placeholder={t('organizationFunding.sponsorPlaceholder')} value={searchParams.get('sponsor') ?? ''} />
               </label>
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-currency">Moneda
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-currency">{t('organizationFunding.currency')}
                 <select className={selectClass} id="filter-currency" onChange={(event) => replaceParameter('currency', event.target.value)} value={currency}>
-                  <option value="">Todas</option>
-                  {catalogs.data.currencies.map((item) => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}
+                  <option value="">{t('organizationFunding.allCurrencies')}</option>
+                  {catalogs.data.currencies.map((item) => <option key={item.code} lang="es" value={item.code}>{item.code} · {item.name}</option>)}
                 </select>
               </label>
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-minimum">Monto mínimo
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-minimum">{t('organizationFunding.minimumAmount')}
                 <input className={inputClass} id="filter-minimum" min="0" onChange={(event) => replaceParameter('minAmount', event.target.value)} step="1" type="number" value={searchParams.get('minAmount') ?? ''} />
               </label>
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-maximum">Monto máximo
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-maximum">{t('organizationFunding.maximumAmount')}
                 <input className={inputClass} id="filter-maximum" min="0" onChange={(event) => replaceParameter('maxAmount', event.target.value)} step="1" type="number" value={searchParams.get('maxAmount') ?? ''} />
               </label>
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-closing-from">Cierre desde
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-closing-from">{t('organizationFunding.closingFrom')}
                 <input className={inputClass} id="filter-closing-from" onChange={(event) => replaceParameter('closingFrom', event.target.value)} type="date" value={closingFrom} />
               </label>
-              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-closing-to">Cierre hasta
+              <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-closing-to">{t('organizationFunding.closingTo')}
                 <input className={inputClass} id="filter-closing-to" onChange={(event) => replaceParameter('closingTo', event.target.value)} type="date" value={closingTo} />
               </label>
               <label className="flex items-center gap-2 self-end rounded-lg border px-3 py-2.5 text-sm font-semibold">
                 <input checked={criteria.onlyOpen} onChange={(event) => replaceParameter('onlyOpen', event.target.checked ? '' : 'false')} type="checkbox" />
-                Solo convocatorias abiertas
+                {t('organizationFunding.onlyOpen')}
               </label>
             </div>
-            {(amountError || amountCurrencyError || amountSortCurrencyError || dateError) && (
-              <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
-                {amountError && 'El monto mínimo no puede superar al máximo.'}
-                {amountCurrencyError && ' Selecciona una moneda para filtrar por monto.'}
-                {amountSortCurrencyError && ' Selecciona una moneda para ordenar por monto.'}
-                {dateError && ' La fecha inicial de cierre no puede ser posterior a la final.'}
-              </div>
-            )}
             <Button className="mt-4" onClick={resetFilters} size="sm" type="button" variant="ghost">
-              <X className="size-4" /> Limpiar filtros
+              <X className="size-4" /> {t('organizationFunding.clearFilters')}
             </Button>
           </details>
+          {hasInvalidFilters && (
+            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">
+              {amountError && t('organizationFunding.amountRangeError')}
+              {amountCurrencyError && t('organizationFunding.amountCurrencyError')}
+              {amountSortCurrencyError && t('organizationFunding.sortCurrencyError')}
+              {dateError && t('organizationFunding.dateRangeError')}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p aria-live="polite" className="text-sm text-muted-foreground">
-          {opportunities.data
-            ? <><strong className="text-foreground">{opportunities.data.totalCount}</strong> oportunidades encontradas</>
-            : 'Preparando resultados…'}
-          {opportunities.isFetching && <span> · Actualizando…</span>}
+          {hasInvalidFilters ? t('organizationFunding.correctFilters') : opportunities.data
+            ? <><strong className="text-foreground">{opportunities.data.totalCount.toLocaleString(workspaceLocale())}</strong> {t('organizationFunding.found', { count: opportunities.data.totalCount })}</>
+            : t('organizationFunding.preparingResults')}
+          {opportunities.isFetching && <span> · {t('organizationFunding.refreshing')}</span>}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
-            <Link to={`/alerts?${savedSearchParameters.toString()}`}><Save className="size-4" /> Guardar búsqueda</Link>
+            <Link to={`/alerts?${savedSearchParameters.toString()}`}><Save className="size-4" /> {t('organizationFunding.saveSearch')}</Link>
           </Button>
-          <label className="grid gap-1 text-xs font-semibold" htmlFor="funding-sort">Ordenar
+          <label className="grid gap-1 text-xs font-semibold" htmlFor="funding-sort">{t('organizationFunding.sort')}
             <select className={selectClass} id="funding-sort" onChange={(event) => replaceParameter('sort', event.target.value)} value={criteria.sort}>
-              <option disabled={!urlQuery.trim()} value="relevance">Relevancia</option>
-              <option value="closing-soon">Cierre más próximo</option>
-              <option value="newest">Publicados recientemente</option>
-              <option value="amount-asc">Monto máximo: menor a mayor</option>
-              <option value="amount-desc">Monto máximo: mayor a menor</option>
+              <option disabled={!urlQuery.trim()} value="relevance">{t('organizationFunding.relevance')}</option>
+              <option value="closing-soon">{t('organizationFunding.closingSoon')}</option>
+              <option value="newest">{t('organizationFunding.newest')}</option>
+              <option value="amount-asc">{t('organizationFunding.amountAsc')}</option>
+              <option value="amount-desc">{t('organizationFunding.amountDesc')}</option>
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-semibold" htmlFor="funding-page-size">Por página
+          <label className="grid gap-1 text-xs font-semibold" htmlFor="funding-page-size">{t('organizationFunding.perPage')}
             <select className={selectClass} id="funding-page-size" onChange={(event) => replaceParameter('pageSize', event.target.value)} value={pageSize}>
               <option value="12">12</option><option value="24">24</option><option value="48">48</option>
             </select>
@@ -672,20 +680,20 @@ export function OrganizationFundingCatalogPage() {
         </div>
       </div>
 
-      {opportunities.isPending && <PageLoading label="Buscando oportunidades…" />}
+      {opportunities.isPending && !hasInvalidFilters && <PageLoading label={t('organizationFunding.searching')} />}
       {opportunities.isError && (
         <Card className="border-destructive/40"><CardContent className="space-y-3 p-6" role="alert">
-          <h2 className="font-bold">No fue posible buscar oportunidades</h2>
-          <p className="text-sm text-muted-foreground">{apiErrorMessage(opportunities.error, 'Comprueba la conexión e intenta nuevamente.')}</p>
-          <Button onClick={() => void opportunities.refetch()} variant="outline">Reintentar</Button>
+          <h2 className="font-bold">{t('organizationFunding.searchFailed')}</h2>
+          <p className="text-sm text-muted-foreground">{organizationFundingErrorMessage(opportunities.error, 'organizationFunding.loadHelp')}</p>
+          <Button onClick={() => void opportunities.refetch()} variant="outline">{t('organizationFunding.retry')}</Button>
         </CardContent></Card>
       )}
       {opportunities.data && opportunities.data.items.length === 0 && (
         <Card><CardContent className="space-y-3 p-8 text-center">
           <ListFilter className="mx-auto size-8 text-muted-foreground" />
-          <h2 className="font-bold">No encontramos concursos con esos criterios</h2>
-          <p className="text-sm text-muted-foreground">Amplía la búsqueda o limpia algunos filtros.</p>
-          <Button onClick={resetFilters} variant="outline">Limpiar búsqueda y filtros</Button>
+          <h2 className="font-bold">{t('organizationFunding.emptyTitle')}</h2>
+          <p className="text-sm text-muted-foreground">{t('organizationFunding.emptyHelp')}</p>
+          <Button onClick={resetFilters} variant="outline">{t('organizationFunding.clearAll')}</Button>
         </CardContent></Card>
       )}
       {opportunities.data && opportunities.data.items.length > 0 && (
@@ -699,6 +707,7 @@ export function OrganizationFundingCatalogPage() {
 }
 
 export function OrganizationFundingDetailPage() {
+  const { t } = useTranslation()
   const { slug = '' } = useParams()
   const { organizations, organization } = useOrganization()
   const opportunity = useQuery({
@@ -720,16 +729,16 @@ export function OrganizationFundingDetailPage() {
     return () => { document.title = previousTitle }
   }, [opportunity.data])
 
-  if (organizations.isPending) return <PageLoading label="Cargando organización…" />
-  if (organizations.isError) return <Card><CardContent className="p-8" role="alert">No pudimos cargar tu organización.</CardContent></Card>
+  if (organizations.isPending) return <PageLoading label={t('organizationFunding.organizationLoading')} />
+  if (organizations.isError) return <Card><CardContent className="p-8" role="alert">{t('organizationFunding.organizationFailed')}</CardContent></Card>
   if (!organization) return <OrganizationRequired />
-  if (opportunity.isPending) return <PageLoading label="Cargando oportunidad…" />
+  if (opportunity.isPending) return <PageLoading label={t('organizationFunding.detailLoading')} />
   if (opportunity.isError || !opportunity.data) {
     return (
       <Card><CardContent className="space-y-4 p-8" role="alert">
-        <h1 className="text-2xl font-bold">No pudimos abrir esta oportunidad</h1>
-        <p className="text-sm text-muted-foreground">{apiErrorMessage(opportunity.error, 'La oportunidad no existe o ya no está publicada.')}</p>
-        <Button asChild variant="outline"><Link to="/opportunities">Volver a concursos</Link></Button>
+        <h1 className="text-2xl font-bold">{t('organizationFunding.detailFailed')}</h1>
+        <p className="text-sm text-muted-foreground">{organizationFundingErrorMessage(opportunity.error, 'organizationFunding.notAvailable')}</p>
+        <Button asChild variant="outline"><Link to="/opportunities">{t('organizationFunding.back')}</Link></Button>
       </CardContent></Card>
     )
   }
@@ -737,22 +746,22 @@ export function OrganizationFundingDetailPage() {
   return (
     <FundingOpportunityDetailView
       action={(
-        <Card lang="es">
-          <CardHeader><CardTitle>Tu selección</CardTitle></CardHeader>
+        <Card>
+          <CardHeader><CardTitle>{t('organizationFunding.yourSelection')}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3">
               <FavoriteButton fullWidth organizationId={organization.publicId} opportunity={opportunity.data} />
               <Button asChild className="w-full">
                 <Link to={`/applications?new=1&fundingOpportunityId=${encodeURIComponent(opportunity.data.publicId)}`}>
-                  Iniciar postulación
+                  {t('organizationFunding.startApplication')}
                 </Link>
               </Button>
-              <p className="text-xs leading-5 text-muted-foreground">En el siguiente paso debes elegir uno de tus proyectos. Esto no envía una postulación al financiador.</p>
+              <p className="text-xs leading-5 text-muted-foreground">{t('organizationFunding.applicationHelp')}</p>
             </div>
           </CardContent>
         </Card>
       )}
-      additionalDetails={<div lang="es"><OrganizationSpecificDetails catalogs={catalogs.data} item={opportunity.data} /></div>}
+      additionalDetails={<div><OrganizationSpecificDetails catalogs={catalogs.data} item={opportunity.data} /></div>}
       backTo="/opportunities"
       item={toDisplayDetail(opportunity.data)}
     />
@@ -760,6 +769,7 @@ export function OrganizationFundingDetailPage() {
 }
 
 export function OrganizationFavoritesPage() {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { organizations, organization } = useOrganization()
   const page = parsePositiveInteger(searchParams.get('page'), 1)
@@ -783,43 +793,43 @@ export function OrganizationFavoritesPage() {
     if (page > lastPage) setPage(lastPage)
   }, [favorites.data, page, setPage])
 
-  if (organizations.isPending) return <PageLoading label="Cargando favoritos…" />
-  if (organizations.isError) return <Card><CardContent className="p-8" role="alert">No pudimos cargar tu organización.</CardContent></Card>
+  if (organizations.isPending) return <PageLoading label={t('organizationFunding.favoritesLoading')} />
+  if (organizations.isError) return <Card><CardContent className="p-8" role="alert">{t('organizationFunding.organizationFailed')}</CardContent></Card>
   if (!organization) return <OrganizationRequired />
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Tu organización</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Favoritos</h1>
-          <p className="mt-2 text-muted-foreground">Concursos guardados por tu cuenta en {organization.name}.</p>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('organizationFunding.yourOrganization')}</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{t('organizationFunding.favoritesTitle')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('organizationFunding.favoritesDescription', { name: organization.name })}</p>
         </div>
-        <Button asChild variant="outline"><Link to="/opportunities"><Search className="size-4" /> Explorar concursos</Link></Button>
+        <Button asChild variant="outline"><Link to="/opportunities"><Search className="size-4" /> {t('organizationFunding.browse')}</Link></Button>
       </header>
 
-      {favorites.isPending && <PageLoading label="Cargando favoritos…" />}
+      {favorites.isPending && <PageLoading label={t('organizationFunding.favoritesLoading')} />}
       {favorites.isError && (
         <Card className="border-destructive/40"><CardContent className="space-y-3 p-6" role="alert">
-          <h2 className="font-bold">No fue posible cargar tus favoritos</h2>
-          <p className="text-sm text-muted-foreground">{apiErrorMessage(favorites.error, 'Comprueba la conexión e intenta nuevamente.')}</p>
-          <Button onClick={() => void favorites.refetch()} variant="outline">Reintentar</Button>
+          <h2 className="font-bold">{t('organizationFunding.favoritesFailed')}</h2>
+          <p className="text-sm text-muted-foreground">{organizationFundingErrorMessage(favorites.error, 'organizationFunding.loadHelp')}</p>
+          <Button onClick={() => void favorites.refetch()} variant="outline">{t('organizationFunding.retry')}</Button>
         </CardContent></Card>
       )}
       {favorites.data && favorites.data.totalCount === 0 && (
         <Card><CardContent className="space-y-4 p-8 text-center">
           <Heart className="mx-auto size-9 text-muted-foreground" />
-          <h2 className="text-xl font-bold">Todavía no guardas concursos</h2>
-          <p className="text-sm text-muted-foreground">Guarda los que te interesen para encontrarlos aquí rápidamente.</p>
-          <Button asChild><Link to="/opportunities">Explorar oportunidades</Link></Button>
+          <h2 className="text-xl font-bold">{t('organizationFunding.favoritesEmpty')}</h2>
+          <p className="text-sm text-muted-foreground">{t('organizationFunding.favoritesEmptyHelp')}</p>
+          <Button asChild><Link to="/opportunities">{t('organizationFunding.explore')}</Link></Button>
         </CardContent></Card>
       )}
       {favorites.data && favorites.data.totalCount > 0 && favorites.data.items.length === 0 && (
-        <PageLoading label="Volviendo a la última página con favoritos…" />
+        <PageLoading label={t('organizationFunding.returning')} />
       )}
       {favorites.data && favorites.data.items.length > 0 && (
         <>
-          <p aria-live="polite" className="text-sm text-muted-foreground"><strong className="text-foreground">{favorites.data.totalCount}</strong> favoritos guardados</p>
+          <p aria-live="polite" className="text-sm text-muted-foreground"><strong className="text-foreground">{favorites.data.totalCount.toLocaleString(workspaceLocale())}</strong> {t('organizationFunding.favoritesCount', { count: favorites.data.totalCount })}</p>
           <FundingGrid items={favorites.data.items} organization={organization} />
         </>
       )}

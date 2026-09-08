@@ -1,0 +1,146 @@
+import { expect, test, type Page } from '@playwright/test'
+import { fundingOrganizationId, fundingOrganizations, organizationFundingCatalogs, organizationFundingResponse, organizationOpportunity } from '../src/test/fixtures/organization-funding'
+import { english, fits, mockWorkspace, readOnlyJson } from './workspace-checks'
+
+// Registered under public.spec.ts's deny-by-default API guard. Every response is synthetic.
+async function mockOrganizationFunding(page: Page) {
+  await mockWorkspace(page)
+  await page.route('**/api/v1/organizations', readOnlyJson(fundingOrganizations))
+  await page.route('**/api/v1/catalogs', readOnlyJson(organizationFundingCatalogs))
+  const reads: string[] = []
+  const writes: string[] = []
+  let favorite = true
+  await page.route(`**/api/v1/organizations/${fundingOrganizationId}/funding-opportunities?*`, route => {
+    expect(route.request().method()).toBe('GET')
+    expect(route.request().headers().authorization).toBe('Bearer synthetic-ui-only')
+    const url = new URL(route.request().url())
+    reads.push(url.pathname + url.search)
+    return route.fulfill({ json: organizationFundingResponse(false, Number(url.searchParams.get('page')), 25) })
+  })
+  await page.route(`**/api/v1/organizations/${fundingOrganizationId}/funding-opportunities/${organizationOpportunity.slug}`, readOnlyJson(organizationOpportunity))
+  await page.route(`**/api/v1/organizations/${fundingOrganizationId}/favorites?*`, route => {
+    expect(route.request().method()).toBe('GET')
+    expect(route.request().headers().authorization).toBe('Bearer synthetic-ui-only')
+    reads.push(new URL(route.request().url()).pathname)
+    return route.fulfill({ json: favorite ? organizationFundingResponse(true) : { ...organizationFundingResponse(), items: [], totalCount: 0 } })
+  })
+  await page.route(`**/api/v1/organizations/${fundingOrganizationId}/favorites/${organizationOpportunity.publicId}`, route => {
+    expect(route.request().method()).toBe('DELETE')
+    expect(route.request().headers().authorization).toBe('Bearer synthetic-ui-only')
+    expect(route.request().postData()).toBeNull()
+    writes.push(route.request().method())
+    favorite = false
+    return route.fulfill({ status: 204 })
+  })
+  return { reads, writes }
+}
+
+export function registerOrganizationFundingLanguageTests(checkAccessibility: (page: Page) => Promise<void>) {
+  for (const width of [320, 1024]) {
+    test(`oportunidades internas ES/EN conservan filtros y página a ${width}px`, async ({ page }) => {
+      const { reads, writes } = await mockOrganizationFunding(page)
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/opportunities?q=agua&countryIds=152&categoryIds=1&organizationTypeIds=2&currency=USD&minAmount=25000&sort=amount-desc&page=2')
+      await expect(page.getByRole('heading', { name: organizationOpportunity.title })).toBeVisible()
+      const originalUrl = page.url()
+      const saved = await page.getByRole('link', { name: 'Guardar búsqueda', exact: true }).getAttribute('href')
+      await fits(page)
+      await english(page)
+      await expect(page.getByRole('heading', { name: 'Available funding', exact: true })).toBeVisible()
+      await expect(page.getByRole('textbox', { name: 'Search opportunities', exact: true })).toHaveValue('agua')
+      await expect(page.getByRole('combobox', { name: 'Country', exact: true })).toHaveValue('152')
+      await expect(page.getByRole('combobox', { name: 'Sort by', exact: true })).toHaveValue('amount-desc')
+      await expect(page.getByRole('option', { name: 'Medio ambiente', exact: true })).toHaveAttribute('lang', 'es')
+      await expect(page.getByText('Page 2 of 3')).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Save search', exact: true })).toHaveAttribute('href', saved!)
+      await expect(page.getByRole('button', { name: 'Save to favorites', exact: true })).toHaveAttribute('aria-pressed', 'false')
+      await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+      expect(page.url()).toBe(originalUrl)
+      expect(reads).toHaveLength(1)
+      expect(writes).toHaveLength(0)
+      await checkAccessibility(page)
+      await fits(page)
+      await page.getByRole('button', { name: 'Next', exact: true }).click()
+      await expect(page.getByText('Page 3 of 3')).toBeVisible()
+      expect(new URL(page.url()).searchParams.get('countryIds')).toBe('152')
+      expect(reads).toHaveLength(2)
+      await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
+      await checkAccessibility(page)
+      await fits(page)
+    })
+
+    test(`detalle interno ES/EN mantiene condiciones y destino a ${width}px`, async ({ page }) => {
+      const { writes } = await mockOrganizationFunding(page)
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/opportunities/' + organizationOpportunity.slug)
+      await expect(page.getByRole('heading', { name: 'Condiciones publicadas' })).toBeVisible()
+      await fits(page)
+      await english(page)
+      await expect(page.getByRole('heading', { name: 'Published conditions' })).toBeVisible()
+      await expect(page.getByText(organizationOpportunity.allowedActivities, { exact: true })).toHaveAttribute('lang', 'es')
+      await expect(page.getByText('Fundación · eligible', { exact: true })).toBeVisible()
+      await expect(page.getByText('Fundación · excluded', { exact: true })).toBeVisible()
+      await expect(page.getByText('12.5%', { exact: true })).toBeVisible()
+      await expect(page.getByText('America/Santiago', { exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Start application', exact: true })).toHaveAttribute('href', '/applications?new=1&fundingOpportunityId=' + organizationOpportunity.publicId)
+      await expect(page.getByRole('link', { name: 'Fuente vinculada Ñandú', exact: true })).toHaveAttribute('href', organizationOpportunity.sources[0].sourceUrl)
+      await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+      await checkAccessibility(page)
+      await fits(page)
+      expect(writes).toHaveLength(0)
+      // Only verify the destination: never create or send an application.
+    })
+
+    test(`favoritos ES/EN no escriben al traducir y permiten quitar uno sintético a ${width}px`, async ({ page }) => {
+      const { reads, writes } = await mockOrganizationFunding(page)
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/favorites?context=original')
+      await expect(page.getByRole('heading', { name: organizationOpportunity.title })).toBeVisible()
+      await fits(page)
+      await english(page)
+      await expect(page.getByText('1 saved favorite', { exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Remove from favorites', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+      expect(reads).toHaveLength(1)
+      expect(writes).toHaveLength(0)
+      await checkAccessibility(page)
+      await fits(page)
+      await page.getByRole('button', { name: 'Remove from favorites', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'You have not saved any opportunities yet' })).toBeVisible()
+      expect(writes).toEqual(['DELETE'])
+      expect(new URL(page.url()).search).toBe('?context=original')
+      await checkAccessibility(page)
+      await fits(page)
+    })
+  }
+
+  test('validación de filtros internos ES/EN accesible sin consultas ni escrituras', async ({ page }) => {
+    const { reads, writes } = await mockOrganizationFunding(page)
+    await page.setViewportSize({ width: 320, height: 900 })
+    await page.goto('/opportunities?sort=amount-desc')
+    await expect(page.getByRole('alert')).toHaveText('Selecciona una moneda para ordenar por monto.')
+    await expect(page.getByText('Buscando oportunidades…', { exact: true })).toHaveCount(0)
+    await expect(page.locator('details')).toHaveAttribute('open', '')
+    await page.locator('summary').click()
+    await expect(page.getByRole('alert')).toBeVisible()
+    await checkAccessibility(page)
+    await english(page)
+    await expect(page.getByRole('alert')).toHaveText('Select a currency to sort by amount.')
+    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(page.getByText('Searching opportunities…', { exact: true })).toHaveCount(0)
+    await expect(page.locator('details')).not.toHaveAttribute('open')
+    await checkAccessibility(page)
+    await fits(page)
+    await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
+    await checkAccessibility(page)
+    expect(reads).toHaveLength(0)
+    expect(writes).toHaveLength(0)
+    await page.locator('summary').click()
+    await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('USD')
+    await expect(page.getByRole('heading', { name: organizationOpportunity.title })).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    expect(reads).toHaveLength(1)
+    expect(new URL(page.url()).searchParams.get('sort')).toBe('amount-desc')
+    expect(writes).toHaveLength(0)
+  })
+}

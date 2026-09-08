@@ -1,4 +1,5 @@
 import { authEs } from '@/i18n/auth/es'
+import { organizationFundingEs } from '@/i18n/organization-funding/es'
 import { fundingCatalogEs } from '@/i18n/funding-catalog/es'
 import { marketplaceEs } from '@/i18n/marketplace/es'
 import { discoveryFeedbackEs } from '@/i18n/discovery-feedback/es'
@@ -12,6 +13,7 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 export const es = {
   translation: {
     auth: authEs,
+    organizationFunding: organizationFundingEs,
     fundingCatalog: fundingCatalogEs,
     marketplace: marketplaceEs,
     discoveryFeedback: discoveryFeedbackEs,
