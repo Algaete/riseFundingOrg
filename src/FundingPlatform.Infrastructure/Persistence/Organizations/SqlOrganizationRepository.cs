@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Dapper;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Core.Organizations;
@@ -40,11 +41,13 @@ public sealed class SqlOrganizationRepository(
             var languages = (await reader.ReadAsync<ShortCatalogRow>()).Select(MapShort).ToArray();
             var sustainableDevelopmentGoals = (await reader.ReadAsync<IntCatalogRow>())
                 .Select(MapInt).ToArray();
+            var fundingExperienceTypes = (await reader.ReadAsync<ShortCatalogRow>())
+                .Select(MapShort).ToArray();
 
             return new OrganizationCatalogs(
                 countries, regions, currencies, categories, fundingTypes, organizationTypes,
                 legalEntityTypes, organizationSizes, beneficiaries, projectTypes, tags, languages,
-                sustainableDevelopmentGoals);
+                sustainableDevelopmentGoals, fundingExperienceTypes);
         }
         catch (SqlException exception)
         {
@@ -134,7 +137,10 @@ public sealed class SqlOrganizationRepository(
             var tags = (await reader.ReadAsync<LongIdRow>()).Select(value => value.Id).ToArray();
             var languages = (await reader.ReadAsync<LanguageRow>())
                 .Select(value => new OrganizationLanguage(value.LanguageId, value.Proficiency)).ToArray();
-            return MapProfile(row, role, countries, regions, categories, beneficiaries, projectTypes, tags, languages);
+            var fundingExperienceTypeIds = (await reader.ReadAsync<ShortIdRow>())
+                .Select(value => value.Id).ToArray();
+            return MapProfile(row, role, countries, regions, categories, beneficiaries, projectTypes,
+                tags, languages, fundingExperienceTypeIds);
         }
         catch (SqlException exception) when (exception.Number is 51003 or 51203)
         {
@@ -190,6 +196,8 @@ public sealed class SqlOrganizationRepository(
         parameters.Add("ProjectTypeIds", ToIdTable(profile.ProjectTypeIds).AsTableValuedParameter("dbo.FundingPlatform_IntIdList"));
         parameters.Add("TagIds", ToIdTable(profile.TagIds).AsTableValuedParameter("dbo.FundingPlatform_BigIntIdList"));
         parameters.Add("Languages", ToLanguageTable(profile.Languages).AsTableValuedParameter("dbo.FundingPlatform_OrganizationLanguageList"));
+        parameters.Add("PreviousFunderTypeIdsJson",
+            JsonSerializer.Serialize(profile.FundingExperienceTypeIds ?? []));
 
         await using var connection = connectionFactory.CreateConnection();
         try
@@ -235,7 +243,8 @@ public sealed class SqlOrganizationRepository(
         OrganizationProfileRow row, byte role, IReadOnlyList<short> countries,
         IReadOnlyList<int> regions, IReadOnlyList<int> categories,
         IReadOnlyList<int> beneficiaries, IReadOnlyList<int> projectTypes,
-        IReadOnlyList<long> tags, IReadOnlyList<OrganizationLanguage> languages) =>
+        IReadOnlyList<long> tags, IReadOnlyList<OrganizationLanguage> languages,
+        IReadOnlyList<short> fundingExperienceTypeIds) =>
         new(row.PublicId, row.Name, row.LegalName, row.TaxIdentifier, row.HomeCountryId,
             row.OrganizationTypeId, row.LegalEntityTypeId, row.OrganizationSizeId,
             row.EstablishedYear, row.WebsiteUrl, row.Description, row.PreviousFundingExperience,
@@ -243,7 +252,7 @@ public sealed class SqlOrganizationRepository(
             row.AnnualBudgetCurrency?.Trim(), row.DesiredFundingMin, row.DesiredFundingMax,
             row.DesiredFundingCurrency?.Trim(), row.ProfileStatus, row.ProfileCompleteness,
             row.ProfileVersion, role, row.RowVersion, countries, regions, categories,
-            beneficiaries, projectTypes, tags, languages);
+            beneficiaries, projectTypes, tags, languages, fundingExperienceTypeIds);
 
     private static OrganizationDataException Wrap(string operation, SqlException exception) =>
         new(operation, exception.Number, exception);

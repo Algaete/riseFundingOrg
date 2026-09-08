@@ -22,9 +22,12 @@ membresías parciales. La corrección se incluye en este release y aún debe eje
 principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 
 La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
-`032_matching_other_neutrality.sql` y `033_project_impact_profile.sql`, con sus smokes
-transaccionales. Los tres incrementos están preparados para el siguiente release y todavía no
-forman parte del estado Azure descrito arriba.
+`032_matching_other_neutrality.sql`, `033_project_impact_profile.sql` y
+`034_organization_funding_experience_types.sql`, con sus smokes transaccionales. Los cuatro
+incrementos están preparados para el siguiente release y todavía no forman parte del estado Azure
+descrito arriba. Para `034`, el orden seguro es base de datos → 100 % del tráfico API nuevo →
+frontend; la guarda `51011` impide que una instancia API antigua genere un snapshot incompleto
+cuando la organización ya tiene tipos de financiadores relacionados.
 Huellas locales del incremento:
 
 - migración `031` (354 líneas/un lote):
@@ -39,6 +42,10 @@ Huellas locales del incremento:
   `e8b7f7382abf82dc9647ca7446250c9744234c188badb7afb33740f821bfaf9f`;
 - smoke `033` (240 líneas/un lote):
   `f3c1d2e041e923f5a09700b2af4d897d505bdeb360bac6468d53306a41a6bf7f`.
+- migración `034` (499 líneas/5 lotes):
+  `d3811089c78154d9acbb51ebe692096463eca0b3b33a12bb795c6e50e32a50a4`;
+- smoke `034` (195 líneas/un lote):
+  `11404611e3560c81c57285e7ddd66d10a6f4e6a8925775e5b2af70f9afc454eb`.
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

@@ -21,7 +21,8 @@ public sealed record OrganizationCatalogs(
     IReadOnlyList<CatalogOption<int>> ProjectTypes,
     IReadOnlyList<CatalogOption<long>> Tags,
     IReadOnlyList<CatalogOption<short>> Languages,
-    IReadOnlyList<CatalogOption<int>> SustainableDevelopmentGoals);
+    IReadOnlyList<CatalogOption<int>> SustainableDevelopmentGoals,
+    IReadOnlyList<CatalogOption<short>> FundingExperienceTypes);
 
 public sealed record OrganizationSummary(
     Guid PublicId,
@@ -65,7 +66,8 @@ public sealed record OrganizationProfile(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
-    IReadOnlyList<OrganizationLanguage> Languages);
+    IReadOnlyList<OrganizationLanguage> Languages,
+    IReadOnlyList<short> FundingExperienceTypeIds);
 
 public sealed record OrganizationProfileData(
     string Name,
@@ -92,7 +94,8 @@ public sealed record OrganizationProfileData(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
-    IReadOnlyList<OrganizationLanguage> Languages);
+    IReadOnlyList<OrganizationLanguage> Languages,
+    IReadOnlyList<short>? FundingExperienceTypeIds = null);
 
 public sealed record PersistedOrganization(
     Guid PublicId,

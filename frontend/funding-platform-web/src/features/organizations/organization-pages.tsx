@@ -88,6 +88,7 @@ const profileErrorFields: Record<string, FieldPath<OrganizationProfileUpdate>> =
   taxidentifier: 'taxIdentifier',
   description: 'description',
   previousfundingexperience: 'previousFundingExperience',
+  fundingexperiencetypeids: 'fundingExperienceTypeIds',
   experiencesummary: 'experienceSummary',
   annualbudget: 'annualBudgetMax',
   annualbudgetmin: 'annualBudgetMin',
@@ -117,6 +118,7 @@ const profileErrorTargets: Record<string, string> = {
   taxidentifier: 'organization-tax-identifier',
   description: 'organization-description',
   previousfundingexperience: 'organization-funding-experience',
+  fundingexperiencetypeids: 'organization-funding-experience-types',
   experiencesummary: 'organization-experience-summary',
   annualbudget: 'organization-annual-budget-max',
   annualbudgetmin: 'organization-annual-budget-min',
@@ -254,7 +256,7 @@ function profileStepForError(key: string) {
   if (
     normalized.startsWith('annualbudget') ||
     normalized.startsWith('desiredfunding') ||
-    ['previousfundingexperience', 'experiencesummary', 'languages'].includes(normalized)
+    ['previousfundingexperience', 'fundingexperiencetypeids', 'experiencesummary', 'languages'].includes(normalized)
   ) return 2
   return 0
 }
@@ -424,10 +426,10 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
     annualBudgetPresets,
   ))
   const { register, handleSubmit, reset, watch, setValue, setError, clearErrors, formState } = useForm<OrganizationProfileUpdate>({
-    defaultValues: profile,
+    defaultValues: { ...profile, fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [] },
   })
   useEffect(() => {
-    reset(profile)
+    reset({ ...profile, fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [] })
     setDesiredFundingPreset(selectedPreset(
       profile.desiredFundingMin,
       profile.desiredFundingMax,
@@ -482,6 +484,8 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
   const desiredFundingMax = watch('desiredFundingMax')
   const annualBudgetMin = watch('annualBudgetMin')
   const annualBudgetMax = watch('annualBudgetMax')
+  const previousFundingExperience = watch('previousFundingExperience')
+  const fundingExperienceTypeIds = watch('fundingExperienceTypeIds') ?? []
   const selectedOrganizationSizeId = watch('organizationSizeId')
   const visibleRegions = catalogs.regions.filter(region => countries.includes(region.countryId))
   const currentOrganizationSizes = currentOrganizationSizeCodes.flatMap(code => {
@@ -772,11 +776,28 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
             </>}
 
             {step === 2 && <>
-              <Field error={formState.errors.previousFundingExperience?.message} label="Experiencia postulando a fondos">
-                <select {...register('previousFundingExperience', { valueAsNumber: true })} aria-invalid={Boolean(formState.errors.previousFundingExperience)} className={selectClass} id="organization-funding-experience">
+              <Field error={formState.errors.previousFundingExperience?.message} label="¿La organización tiene experiencia previa con financiadores?">
+                <select {...register('previousFundingExperience', { valueAsNumber: true, onChange: event => {
+                  if (Number(event.target.value) !== 2) {
+                    setValue('fundingExperienceTypeIds', [], { shouldDirty: true })
+                    clearErrors('fundingExperienceTypeIds')
+                  }
+                } })} aria-invalid={Boolean(formState.errors.previousFundingExperience)} className={selectClass} id="organization-funding-experience">
                   <option value={0}>Sin informar</option><option value={1}>Aún no</option><option value={2}>Sí, tenemos experiencia</option>
                 </select>
               </Field>
+              {previousFundingExperience === 2 && (catalogs.fundingExperienceTypes ?? []).length > 0 &&
+                <MultiChoice
+                  error={formErrorMessage(formState.errors.fundingExperienceTypeIds)}
+                  id="organization-funding-experience-types"
+                  items={catalogs.fundingExperienceTypes ?? []}
+                  label="Experiencia previa con financiadores"
+                  onChange={value => {
+                    setValue('fundingExperienceTypeIds', value, { shouldDirty: true })
+                    clearErrors('fundingExperienceTypeIds')
+                  }}
+                  selected={fundingExperienceTypeIds}
+                />}
 
               <section className="grid gap-4 rounded-xl border p-4" aria-labelledby="desired-funding-heading">
                 <div>

@@ -44,6 +44,14 @@ const catalogs = {
   ],
   tags: [],
   languages: [{ id: 1, code: 'es', name: 'Español' }],
+  fundingExperienceTypes: [
+    { id: 1, code: 'GOVERNMENTS_PUBLIC_FUNDS', name: 'Gobiernos / fondos públicos' },
+    { id: 2, code: 'FOUNDATIONS_GRANTMAKERS', name: 'Fundaciones / grantmakers' },
+    { id: 3, code: 'MULTILATERAL_ORGANIZATIONS', name: 'Organismos multilaterales' },
+    { id: 4, code: 'INTERNATIONAL_COOPERATION', name: 'Cooperación internacional' },
+    { id: 5, code: 'COMPANIES', name: 'Empresas' },
+    { id: 6, code: 'PHILANTHROPISTS', name: 'Filántropos' },
+  ],
 }
 
 const organizationId = '51ea2f6f-b1af-4e09-856c-6dcbdcfc812f'
@@ -84,6 +92,7 @@ const profile: OrganizationProfile = {
   projectTypeIds: [],
   tagIds: [],
   languages: [],
+  fundingExperienceTypeIds: [],
 }
 
 function authenticate() {
@@ -393,6 +402,78 @@ describe('perfil de organización', () => {
       annualBudgetMax: 1_000_000,
       annualBudgetCurrency: 'CLP',
     })
+  })
+
+  it('permite seleccionar varios tipos de financiadores solo cuando declara experiencia', async () => {
+    authenticate()
+    let submittedBody: Record<string, unknown> | undefined
+    renderExistingProfile({
+      onUpdate: async (init) => {
+        submittedBody = JSON.parse(String(init.body)) as Record<string, unknown>
+        return (await json({
+          ...profile,
+          ...submittedBody,
+          profileVersion: 2,
+          eTag: '"0000000000000002"',
+        }))
+      },
+    })
+    const user = userEvent.setup()
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /3\.\s*Financiamiento/i }))
+    const experience = screen.getByLabelText(/¿La organización tiene experiencia previa con financiadores?.*Opcional/i)
+    expect(screen.queryByRole('group', { name: /Experiencia previa con financiadores/ })).not.toBeInTheDocument()
+
+    await user.selectOptions(experience, '2')
+    const group = screen.getByRole('group', { name: /Experiencia previa con financiadores.*Opcional/i })
+    expect(within(group).getAllByRole('checkbox').map(item => item.parentElement?.textContent?.trim())).toEqual([
+      'Gobiernos / fondos públicos',
+      'Fundaciones / grantmakers',
+      'Organismos multilaterales',
+      'Cooperación internacional',
+      'Empresas',
+      'Filántropos',
+    ])
+    await user.click(within(group).getByRole('checkbox', { name: 'Gobiernos / fondos públicos' }))
+    await user.click(within(group).getByRole('checkbox', { name: 'Cooperación internacional' }))
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    expect(await screen.findByText('Perfil guardado correctamente.')).toBeInTheDocument()
+    expect(submittedBody).toMatchObject({
+      previousFundingExperience: 2,
+      fundingExperienceTypeIds: [1, 4],
+    })
+  })
+
+  it('limpia los tipos de financiadores al cambiar a sin experiencia', async () => {
+    authenticate()
+    let submittedBody: Record<string, unknown> | undefined
+    renderExistingProfile({
+      profileData: { ...profile, previousFundingExperience: 2, fundingExperienceTypeIds: [1, 4] },
+      onUpdate: async (init) => {
+        submittedBody = JSON.parse(String(init.body)) as Record<string, unknown>
+        return (await json({ ...profile, ...submittedBody }))
+      },
+    })
+    const user = userEvent.setup()
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /3\.\s*Financiamiento/i }))
+    const group = screen.getByRole('group', { name: /Experiencia previa con financiadores.*Opcional/i })
+    expect(within(group).getByRole('checkbox', { name: 'Gobiernos / fondos públicos' })).toBeChecked()
+
+    await user.selectOptions(
+      screen.getByLabelText(/¿La organización tiene experiencia previa con financiadores?.*Opcional/i),
+      '1',
+    )
+    expect(screen.queryByRole('group', { name: /Experiencia previa con financiadores/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => expect(submittedBody).toMatchObject({
+      previousFundingExperience: 1,
+      fundingExperienceTypeIds: [],
+    }))
   })
 
   it('valida montos, orden y moneda antes de enviar y enfoca el primer campo inválido', async () => {

@@ -83,6 +83,68 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
     }
 
     [Fact]
+    public async Task Put_profile_preserves_omitted_funding_experience_types_for_experienced_organization()
+    {
+        repository.ExistingFundingExperienceTypeIds = [1, 4];
+        using var request = AuthenticatedPut("""
+            {
+              "name":"Fundación Demo",
+              "homeCountryId":152,
+              "organizationTypeId":2,
+              "previousFundingExperience":2
+            }
+            """);
+
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal([1, 4], repository.UpdatedProfile!.FundingExperienceTypeIds);
+        Assert.Equal([1, 4], payload.RootElement.GetProperty("fundingExperienceTypeIds")
+            .EnumerateArray().Select(value => value.GetInt16()).ToArray());
+    }
+
+    [Fact]
+    public async Task Put_profile_treats_an_explicit_empty_funding_experience_list_as_clear()
+    {
+        repository.ExistingFundingExperienceTypeIds = [1, 4];
+        using var request = AuthenticatedPut("""
+            {
+              "name":"Fundación Demo",
+              "homeCountryId":152,
+              "organizationTypeId":2,
+              "previousFundingExperience":2,
+              "fundingExperienceTypeIds":[]
+            }
+            """);
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(repository.UpdatedProfile!.FundingExperienceTypeIds!);
+    }
+
+    [Fact]
+    public async Task Put_profile_clears_funding_experience_types_when_experience_is_no()
+    {
+        repository.ExistingFundingExperienceTypeIds = [1, 4];
+        using var request = AuthenticatedPut("""
+            {
+              "name":"Fundación Demo",
+              "homeCountryId":152,
+              "organizationTypeId":2,
+              "previousFundingExperience":1,
+              "fundingExperienceTypeIds":[1,4]
+            }
+            """);
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(repository.UpdatedProfile!.FundingExperienceTypeIds!);
+    }
+
+    [Fact]
     public async Task Put_profile_reports_each_missing_required_field_without_calling_repository()
     {
         using var request = AuthenticatedPut("{}");
@@ -138,6 +200,7 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
     {
         public int UpdateCalls { get; private set; }
         public OrganizationProfileData? UpdatedProfile { get; private set; }
+        public IReadOnlyList<short> ExistingFundingExperienceTypeIds { get; set; } = [];
         private byte ProfileStatus { get; set; }
         private decimal ProfileCompleteness { get; set; }
 
@@ -156,10 +219,14 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
         public Task<OrganizationProfile?> GetProfileAsync(
             Guid userPublicId, Guid organizationPublicId, CancellationToken cancellationToken)
         {
-            if (UpdatedProfile is null || organizationPublicId != OrganizationId)
+            if (organizationPublicId != OrganizationId)
                 return Task.FromResult<OrganizationProfile?>(null);
 
-            var profile = UpdatedProfile;
+            var profile = UpdatedProfile ?? new OrganizationProfileData(
+                "Fundación Demo", null, null, 152, 2, null, null, null, null, null,
+                ExistingFundingExperienceTypeIds.Count > 0 ? (byte)2 : (byte)0, null,
+                null, null, null, null, null, null, [], [], [], [], [], [], [],
+                ExistingFundingExperienceTypeIds);
             return Task.FromResult<OrganizationProfile?>(new OrganizationProfile(
                 organizationPublicId, profile.Name, profile.LegalName, profile.TaxIdentifier,
                 profile.HomeCountryId, profile.OrganizationTypeId, profile.LegalEntityTypeId,
@@ -170,7 +237,7 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
                 ProfileStatus, ProfileCompleteness, 2, 1, [8, 7, 6, 5, 4, 3, 2, 1],
                 profile.CountryIds, profile.RegionIds, profile.CategoryIds,
                 profile.BeneficiaryTypeIds, profile.ProjectTypeIds, profile.TagIds,
-                profile.Languages));
+                profile.Languages, profile.FundingExperienceTypeIds ?? []));
         }
 
         public Task<PersistedOrganization> UpdateProfileAsync(

@@ -34,12 +34,15 @@ servicios externos también continúan apagados. La base compartida histórica `
 18/18, correspondiente a 8A.
 
 Los incrementos de feedback del MVP están preparados localmente mediante
-`031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql` y
-`033_project_impact_profile.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere
-coincidencias automáticas y agregan al proyecto una etapa independiente junto con los 17 ODS
-oficiales, de selección múltiple. Estas tres migraciones y sus interfaces todavía no se han
-aplicado ni publicado en Azure dev; por eso el estado observado del ambiente continúa siendo
-`001`→`030`.
+`031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql`,
+`033_project_impact_profile.sql` y `034_organization_funding_experience_types.sql`. Amplían los
+catálogos del perfil, evitan que “Otros” genere coincidencias automáticas, agregan al proyecto una
+etapa independiente junto con los 17 ODS oficiales y permiten registrar, de forma opcional y
+multiselección, los tipos de financiadores con los que la organización tiene experiencia. Estas
+cuatro migraciones y sus interfaces todavía no se han aplicado ni publicado en Azure dev; por eso
+el estado observado del ambiente continúa siendo `001`→`030`. El rollout de `034` debe respetar el
+orden base de datos → 100 % del tráfico API nuevo → frontend, porque su guarda de compatibilidad
+rechaza de forma segura una actualización de una API antigua cuando ya existen esas relaciones.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos

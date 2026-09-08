@@ -57,7 +57,8 @@ public sealed class OrganizationProfileServiceTests
             BeneficiaryTypeIds = null!,
             ProjectTypeIds = null!,
             TagIds = null!,
-            Languages = null!
+            Languages = null!,
+            FundingExperienceTypeIds = null
         };
 
         var result = await service.UpdateAsync(
@@ -71,6 +72,7 @@ public sealed class OrganizationProfileServiceTests
         Assert.Empty(repository.UpdatedProfile.ProjectTypeIds);
         Assert.Empty(repository.UpdatedProfile.TagIds);
         Assert.Empty(repository.UpdatedProfile.Languages);
+        Assert.Empty(repository.UpdatedProfile.FundingExperienceTypeIds!);
     }
 
     [Fact]
@@ -155,6 +157,44 @@ public sealed class OrganizationProfileServiceTests
     }
 
     [Fact]
+    public async Task Update_normalizes_and_snapshots_optional_funding_experience_types()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            CompleteProfile() with { FundingExperienceTypeIds = [4, 1, 4] },
+            CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.Success, result.Outcome);
+        Assert.Equal([1, 4], repository.UpdatedProfile!.FundingExperienceTypeIds);
+        Assert.Contains("\"fundingExperienceTypeIds\":[1,4]", repository.SnapshotJson,
+            StringComparison.Ordinal);
+        Assert.Equal(100m, repository.Completeness);
+    }
+
+    [Fact]
+    public async Task Update_rejects_funder_types_without_prior_experience()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            CompleteProfile() with
+            {
+                PreviousFundingExperience = 1,
+                FundingExperienceTypeIds = [1]
+            },
+            CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("fundingExperienceTypeIds", result.Errors!.Keys);
+        Assert.Null(repository.UpdatedProfile);
+    }
+
+    [Fact]
     public async Task Create_maps_owned_limit_without_leaking_database_detail()
     {
         var repository = new StubRepository { CreateErrorNumber = 51202 };
@@ -166,15 +206,44 @@ public sealed class OrganizationProfileServiceTests
         Assert.Equal(OrganizationWriteOutcome.OwnedLimitReached, result.Outcome);
     }
 
+    [Fact]
+    public async Task Update_maps_legacy_snapshot_guard_to_a_sanitized_conflict()
+    {
+        var repository = new StubRepository { UpdateErrorNumber = 51011 };
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], CompleteProfile(),
+            CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.Conflict, result.Outcome);
+        Assert.Null(result.Errors);
+    }
+
+    [Fact]
+    public async Task Update_maps_database_catalog_rejection_to_the_funding_experience_field()
+    {
+        var repository = new StubRepository { UpdateErrorNumber = 51012 };
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], CompleteProfile(),
+            CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("fundingExperienceTypeIds", result.Errors!.Keys);
+    }
+
     private static OrganizationProfileData CompleteProfile() => new(
         "Fundación Demo", "Fundación Demo", "TEST-1", 152, 2, 1, 1, 2020,
         "https://example.org", "Descripción de impacto", 2, "Experiencia previa",
         1_000, 2_000, "CLP", 3_000, 4_000, "USD",
-        [152], [7], [1], [1], [1], [], [new OrganizationLanguage(1, 5)]);
+        [152], [7], [1], [1], [1], [], [new OrganizationLanguage(1, 5)], [1, 4]);
 
     private sealed class StubRepository : IOrganizationRepository
     {
         public int? CreateErrorNumber { get; set; }
+        public int? UpdateErrorNumber { get; set; }
         public OrganizationProfileData? UpdatedProfile { get; private set; }
         public decimal? Completeness { get; private set; }
         public byte? ProfileStatus { get; private set; }
@@ -203,6 +272,9 @@ public sealed class OrganizationProfileServiceTests
             decimal profileCompleteness, string snapshotJson, byte[] contentHash,
             CancellationToken cancellationToken)
         {
+            if (UpdateErrorNumber.HasValue)
+                throw new OrganizationDataException(
+                    "update", UpdateErrorNumber.Value, new Exception());
             UpdatedProfile = profile;
             ProfileStatus = profileStatus;
             Completeness = profileCompleteness;

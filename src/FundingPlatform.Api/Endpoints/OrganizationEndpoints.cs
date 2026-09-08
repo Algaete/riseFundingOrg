@@ -124,6 +124,18 @@ public static class OrganizationEndpoints
             return Problem(StatusCodes.Status428PreconditionRequired, "Versión requerida",
                 "Vuelve a cargar el perfil e intenta nuevamente.", "if-match-required");
 
+        IReadOnlyList<short> fundingExperienceTypeIds = [];
+        if (request.PreviousFundingExperience == 2 && request.FundingExperienceTypeIds is not null)
+        {
+            fundingExperienceTypeIds = request.FundingExperienceTypeIds;
+        }
+        else if (request.PreviousFundingExperience == 2)
+        {
+            var current = await service.GetAsync(userId, organizationId, cancellationToken);
+            if (current is null) return NotFound();
+            fundingExperienceTypeIds = current.FundingExperienceTypeIds;
+        }
+
         var profile = new OrganizationProfileData(
             request.Name ?? string.Empty, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
             request.OrganizationTypeId, request.LegalEntityTypeId, request.OrganizationSizeId,
@@ -134,7 +146,8 @@ public static class OrganizationEndpoints
             request.CountryIds ?? [], request.RegionIds ?? [], request.CategoryIds ?? [],
             request.BeneficiaryTypeIds ?? [], request.ProjectTypeIds ?? [], request.TagIds ?? [],
             (request.Languages ?? []).OfType<OrganizationLanguageRequest>().Select(language =>
-                new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray());
+                new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray(),
+            fundingExperienceTypeIds);
         var result = await service.UpdateAsync(
             userId, organizationId, rowVersion, profile, cancellationToken);
 
@@ -142,7 +155,7 @@ public static class OrganizationEndpoints
             return Results.ValidationProblem(result.Errors!);
         if (result.Outcome == OrganizationWriteOutcome.Conflict)
             return Problem(StatusCodes.Status409Conflict, "El perfil cambió",
-                "Otra sesión guardó una versión más reciente. Recarga antes de continuar.", "organization-concurrency-conflict");
+                "Otra sesión guardó una versión más reciente o usó una versión anterior del perfil. Recarga antes de continuar.", "organization-concurrency-conflict");
         if (result.Outcome is OrganizationWriteOutcome.NotFound or OrganizationWriteOutcome.Forbidden)
             return NotFound();
 
@@ -166,7 +179,8 @@ public static class OrganizationEndpoints
         catalogs.ProjectTypes.Select(Map).ToArray(),
         catalogs.Tags.Select(Map).ToArray(),
         catalogs.Languages.Select(Map).ToArray(),
-        catalogs.SustainableDevelopmentGoals.Select(Map).ToArray());
+        catalogs.SustainableDevelopmentGoals.Select(Map).ToArray(),
+        catalogs.FundingExperienceTypes.Select(Map).ToArray());
 
     private static CatalogOptionResponse<T> Map<T>(CatalogOption<T> item) => new(item.Id, item.Code, item.Name);
 
@@ -185,7 +199,8 @@ public static class OrganizationEndpoints
         FormatETag(profile.RowVersion), profile.CountryIds, profile.RegionIds,
         profile.CategoryIds, profile.BeneficiaryTypeIds, profile.ProjectTypeIds,
         profile.TagIds, profile.Languages.Select(language =>
-            new OrganizationLanguageResponse(language.LanguageId, language.Proficiency)).ToArray());
+            new OrganizationLanguageResponse(language.LanguageId, language.Proficiency)).ToArray(),
+        profile.FundingExperienceTypeIds);
 
     private static string FormatETag(byte[] rowVersion) => $"\"{Convert.ToHexString(rowVersion)}\"";
 

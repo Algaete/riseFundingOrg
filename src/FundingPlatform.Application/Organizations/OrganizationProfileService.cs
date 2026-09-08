@@ -28,7 +28,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             Normalize(name), null, null, homeCountryId, organizationTypeId,
             null, null, null, null, null, 0, null,
             null, null, null, null, null, null,
-            [], [], [], [], [], [], []);
+            [], [], [], [], [], [], [], []);
         var errors = Validate(profile);
         if (errors.Count > 0)
         {
@@ -104,9 +104,22 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.Conflict);
         }
+        catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51011)
+        {
+            return new OrganizationWriteResult(OrganizationWriteOutcome.Conflict);
+        }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 51006 or 51204)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.NotFound);
+        }
+        catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51012)
+        {
+            return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
+                new Dictionary<string, string[]>
+                {
+                    ["fundingExperienceTypeIds"] =
+                        ["Revisa los tipos de financiadores seleccionados."]
+                });
         }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 51004 or 51007 or 51010 or 547)
         {
@@ -142,6 +155,13 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             errors["establishedYear"] = ["El año de constitución no es válido."];
         if (profile.PreviousFundingExperience > 2)
             errors["previousFundingExperience"] = ["La experiencia previa no es válida."];
+        if (profile.FundingExperienceTypeIds is { Count: > 0 } && profile.PreviousFundingExperience != 2)
+            errors["fundingExperienceTypeIds"] =
+                ["Selecciona tipos de financiadores solo si la organización tiene experiencia previa."];
+        if (profile.FundingExperienceTypeIds is { Count: > 6 })
+            errors["fundingExperienceTypeIds"] = ["Selecciona como máximo seis tipos de financiadores."];
+        if (profile.FundingExperienceTypeIds?.Any(id => id is < 1 or > 6) == true)
+            errors["fundingExperienceTypeIds"] = ["Uno o más tipos de financiadores no son válidos."];
         ValidateRange(profile.AnnualBudgetMin, profile.AnnualBudgetMax,
             profile.AnnualBudgetCurrency, "annualBudget", errors);
         ValidateRange(profile.DesiredFundingMin, profile.DesiredFundingMax,
@@ -203,7 +223,9 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         TagIds = (profile.TagIds ?? []).Distinct().Order().ToArray(),
         Languages = (profile.Languages ?? []).OfType<OrganizationLanguage>()
             .GroupBy(language => language.LanguageId)
-            .Select(group => group.Last()).OrderBy(language => language.LanguageId).ToArray()
+            .Select(group => group.Last()).OrderBy(language => language.LanguageId).ToArray(),
+        FundingExperienceTypeIds = (profile.FundingExperienceTypeIds ?? [])
+            .Distinct().Order().ToArray()
     };
 
     private static (string Json, byte[] Hash) CreateSnapshot(OrganizationProfileData profile)

@@ -21,7 +21,8 @@ public sealed record OrganizationCatalogsResponse(
     IReadOnlyList<CatalogOptionResponse<int>> ProjectTypes,
     IReadOnlyList<CatalogOptionResponse<long>> Tags,
     IReadOnlyList<CatalogOptionResponse<short>> Languages,
-    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals);
+    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals,
+    IReadOnlyList<CatalogOptionResponse<short>> FundingExperienceTypes);
 
 public sealed record CreateOrganizationRequest(
     string Name,
@@ -71,7 +72,8 @@ public sealed record UpdateOrganizationProfileRequest(
     IReadOnlyList<int>? BeneficiaryTypeIds = null,
     IReadOnlyList<int>? ProjectTypeIds = null,
     IReadOnlyList<long>? TagIds = null,
-    IReadOnlyList<OrganizationLanguageRequest>? Languages = null);
+    IReadOnlyList<OrganizationLanguageRequest>? Languages = null,
+    IReadOnlyList<short>? FundingExperienceTypeIds = null);
 
 public sealed record OrganizationProfileResponse(
     Guid PublicId,
@@ -105,7 +107,8 @@ public sealed record OrganizationProfileResponse(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
-    IReadOnlyList<OrganizationLanguageResponse> Languages);
+    IReadOnlyList<OrganizationLanguageResponse> Languages,
+    IReadOnlyList<short> FundingExperienceTypeIds);
 
 public sealed record ProfileCompletenessResponse(
     decimal Percentage,
