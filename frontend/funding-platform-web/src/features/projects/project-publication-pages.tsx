@@ -15,6 +15,8 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { workspaceMessage, workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError } from '@/api/http-client'
@@ -61,12 +63,6 @@ function errorMessage(error: unknown) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('es-CL', { dateStyle: 'long' }).format(new Date(value))
-}
-
-function formatDateOnly(value: string) {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Intl.DateTimeFormat('es-CL', { dateStyle: 'long' })
-    .format(new Date(year, month - 1, day))
 }
 
 function formatMoney(value: number | null, currency: string | null) {
@@ -187,7 +183,14 @@ export function AdminProjectReviewDetailPage() {
 
 function TaxonomyList({ title, values }: { title: string; values: PublicProjectCatalogItem[] }) {
   if (values.length === 0) return null
-  return <div><h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2><div className="mt-2 flex flex-wrap gap-2">{values.map(value => <span className="rounded-full border bg-card px-3 py-1.5 text-sm" key={`${title}-${value.id}`}>{value.name}</span>)}</div></div>
+  return <div><h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2><div className="mt-2 flex flex-wrap gap-2">{values.map(value => <span className="rounded-full border bg-card px-3 py-1.5 text-sm" key={`${title}-${value.id}`} lang="es">{value.name}</span>)}</div></div>
+}
+
+function formatPublicMoney(value: number | null, currency: string | null) {
+  if (value === null || !currency) return workspaceMessage('projects.notReported')
+  return new Intl.NumberFormat(workspaceLocale(), {
+    style: 'currency', currency, maximumFractionDigits: currency === 'CLP' ? 0 : 2,
+  }).format(value)
 }
 
 export function PublicProjectView({
@@ -197,6 +200,7 @@ export function PublicProjectView({
   project: UseQueryResult<PublicProject, Error>
   backTo: string
 }) {
+  const { t } = useTranslation()
   useEffect(() => {
     if (!project.data) return
     const previousTitle = document.title
@@ -204,8 +208,8 @@ export function PublicProjectView({
     return () => { document.title = previousTitle }
   }, [project.data])
 
-  if (project.isPending) return <div className="grid min-h-[60vh] place-items-center"><p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando proyecto público…</p></div>
-  if (project.isError || !project.data) return <section className="mx-auto max-w-3xl px-4 py-20 text-center"><CircleAlert className="mx-auto size-10 text-muted-foreground" /><h1 className="mt-4 text-3xl font-bold">Proyecto no disponible</h1><p className="mt-3 text-muted-foreground">No existe, todavía está en revisión o dejó de estar publicado.</p><Button className="mt-6" asChild variant="outline"><Link to={backTo}><ArrowLeft className="size-4" />Volver al marketplace</Link></Button></section>
+  if (project.isPending) return <div className="grid min-h-[60vh] place-items-center"><p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {t('projects.publicLoading')}</p></div>
+  if (project.isError || !project.data) return <section className="mx-auto max-w-3xl px-4 py-20 text-center"><CircleAlert className="mx-auto size-10 text-muted-foreground" /><h1 className="mt-4 text-3xl font-bold">{t('projects.publicUnavailable')}</h1><p className="mt-3 text-muted-foreground">{t('projects.publicUnavailableHelp')}</p><Button className="mt-6" asChild variant="outline"><Link to={backTo}><ArrowLeft className="size-4" />{t('projects.backMarketplace')}</Link></Button></section>
 
   const data = project.data
   const website = data.organization.websiteUrl && /^https?:\/\//i.test(data.organization.websiteUrl)
@@ -216,22 +220,22 @@ export function PublicProjectView({
     <header className="relative overflow-hidden border-b bg-[radial-gradient(circle_at_top_left,var(--accent),transparent_60%)] px-4 py-16 sm:px-6 sm:py-24">
       <div className="absolute -right-20 -top-24 size-80 rounded-full border-[48px] border-primary/10" aria-hidden="true" />
       <div className="relative mx-auto max-w-5xl">
-        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" to={backTo}><ArrowLeft className="size-4" />Marketplace</Link>
-        <div className="mt-8 flex flex-wrap items-center gap-3 text-sm"><span className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">Proyecto publicado</span><span className="text-muted-foreground">Publicado el {formatDate(data.publishedAtUtc)}</span></div>
+        <Link className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline" to={backTo}><ArrowLeft className="size-4" />{t('projects.marketplace')}</Link>
+        <div className="mt-8 flex flex-wrap items-center gap-3 text-sm"><span className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground">{t('projects.publicBadge')}</span><span className="text-muted-foreground">{t('projects.publishedDate', { date: formatWorkspaceDate(data.publishedAtUtc, 'long') })}</span></div>
         <h1 className="mt-5 max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">{data.title}</h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">{data.summary ?? 'Conoce este proyecto y su impacto esperado.'}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-4"><Link className="inline-flex items-center gap-2 font-semibold hover:text-primary hover:underline" to={`/marketplace/organizations/${data.organization.publicId}`}><Building2 className="size-5 text-primary" />{data.organization.name}</Link>{website && <Button asChild variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">Sitio oficial <ExternalLink className="size-4" /></a></Button>}</div>
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">{data.summary ?? t('projects.publicSummary')}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-4"><Link className="inline-flex items-center gap-2 font-semibold hover:text-primary hover:underline" to={`/marketplace/organizations/${data.organization.publicId}`}><Building2 className="size-5 text-primary" />{data.organization.name}</Link>{website && <Button asChild variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">{t('projects.officialSite')} <ExternalLink className="size-4" /></a></Button>}</div>
       </div>
     </header>
 
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_19rem]">
       <div className="space-y-9">
-        <section><h2 className="text-2xl font-bold">Acerca del proyecto</h2><p className="mt-4 whitespace-pre-line text-base leading-8 text-muted-foreground">{data.description ?? data.summary ?? 'La organización aún no publicó una descripción extendida.'}</p></section>
-        <section className="space-y-5"><TaxonomyList title="Territorios" values={[...data.countries, ...data.regions]} /><TaxonomyList title="Áreas de impacto" values={data.categories} /><TaxonomyList title="Poblaciones beneficiarias" values={data.beneficiaryTypes} /><TaxonomyList title="Tipos de proyecto" values={data.projectTypes} /><TaxonomyList title="ODS relacionados" values={data.sustainableDevelopmentGoals ?? []} /></section>
+        <section><h2 className="text-2xl font-bold">{t('projects.about')}</h2><p className="mt-4 whitespace-pre-line text-base leading-8 text-muted-foreground">{data.description ?? data.summary ?? t('projects.publicDescription')}</p></section>
+        <section className="space-y-5"><TaxonomyList title={t('projects.territories')} values={[...data.countries, ...data.regions]} /><TaxonomyList title={t('projects.impactAreas')} values={data.categories} /><TaxonomyList title={t('projects.beneficiaryPopulations')} values={data.beneficiaryTypes} /><TaxonomyList title={t('projects.projectTypes')} values={data.projectTypes} /><TaxonomyList title={t('projects.sdgs')} values={data.sustainableDevelopmentGoals ?? []} /></section>
       </div>
       <aside className="space-y-4">
-        <Card><CardHeader><CardTitle>Necesidad financiera</CardTitle></CardHeader><CardContent className="space-y-4"><div><p className="text-sm text-muted-foreground">Brecha por financiar</p><p className="mt-1 text-2xl font-bold text-primary">{formatMoney(data.fundingGap, data.currency)}</p></div><div className="grid gap-3 border-t pt-4 text-sm"><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Presupuesto</span><strong>{formatMoney(data.budgetTotal, data.currency)}</strong></p><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Confirmado</span><strong>{formatMoney(data.confirmedFunding, data.currency)}</strong></p></div><p className="text-xs leading-5 text-muted-foreground">FundingPlatform informa la necesidad declarada; no procesa donaciones ni garantiza resultados.</p></CardContent></Card>
-        <Card><CardContent className="space-y-3 p-5"><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><strong>{projectStatusNames[data.projectStatus] ?? 'Proyecto activo'}</strong></p><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><span>Etapa: <strong>{projectStageName(data.projectStage)}</strong></span></p>{(data.startDate || data.endDate) && <p className="flex items-start gap-2 text-sm"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" /><span>{data.startDate ? formatDateOnly(data.startDate) : 'Sin inicio definido'} — {data.endDate ? formatDateOnly(data.endDate) : 'Sin término definido'}</span></p>}<p className="flex items-center gap-2 text-sm"><MapPin className="size-4 text-primary" />{data.countries.map(country => country.name).join(', ') || 'Cobertura por confirmar'}</p><p className="flex items-center gap-2 text-sm"><Globe2 className="size-4 text-primary" />Contenido moderado antes de publicarse</p><p className="flex items-center gap-2 text-sm"><WalletCards className="size-4 text-primary" />Montos sin conversión de moneda</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>{t('projects.fundingNeed')}</CardTitle></CardHeader><CardContent className="space-y-4"><div><p className="text-sm text-muted-foreground">{t('projects.fundingGap')}</p><p className="mt-1 text-2xl font-bold text-primary">{formatPublicMoney(data.fundingGap, data.currency)}</p></div><div className="grid gap-3 border-t pt-4 text-sm"><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">{t('projects.budget')}</span><strong>{formatPublicMoney(data.budgetTotal, data.currency)}</strong></p><p className="flex items-center justify-between gap-3"><span className="text-muted-foreground">{t('projects.confirmed')}</span><strong>{formatPublicMoney(data.confirmedFunding, data.currency)}</strong></p></div><p className="text-xs leading-5 text-muted-foreground">{t('projects.fundingDisclaimer')}</p></CardContent></Card>
+        <Card><CardContent className="space-y-3 p-5"><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><strong>{workspaceMessage(projectStatusNames[data.projectStatus]) || t('projects.active')}</strong></p><p className="flex items-center gap-2 text-sm"><Target className="size-4 text-primary" /><span>{t('projects.stageLabel')} <strong>{workspaceMessage(projectStageName(data.projectStage))}</strong></span></p>{(data.startDate || data.endDate) && <p className="flex items-start gap-2 text-sm"><CalendarDays className="mt-0.5 size-4 shrink-0 text-primary" /><span>{data.startDate ? formatWorkspaceDate(data.startDate, 'long') : t('projects.noStart')} — {data.endDate ? formatWorkspaceDate(data.endDate, 'long') : t('projects.noEnd')}</span></p>}<p className="flex items-center gap-2 text-sm"><MapPin className="size-4 text-primary" />{data.countries.length ? <span lang="es">{data.countries.map(country => country.name).join(', ')}</span> : t('projects.coveragePending')}</p><p className="flex items-center gap-2 text-sm"><Globe2 className="size-4 text-primary" />{t('projects.moderated')}</p><p className="flex items-center gap-2 text-sm"><WalletCards className="size-4 text-primary" />{t('projects.noConversion')}</p></CardContent></Card>
       </aside>
     </div>
   </article>

@@ -1,0 +1,38 @@
+import type { workspaceFeedbackEs } from './es'
+import type { TranslationShape } from '@/i18n/resource-types'
+
+export const workspaceFeedbackEn = {
+  "invalid": "Check the indicated fields and try again.",
+  "forbidden": "You do not have permission to perform this operation.",
+  "conflict": "The data changed. Reload before continuing to avoid overwriting another version.",
+  "rateLimited": "Too many requests. Wait a few minutes and try again.",
+  "ownedLimit": "The MVP allows one owned organization per user.",
+  "transition": "The project’s current state does not allow this operation.",
+  "notReady": "The project is not ready. Complete the indicated requirements before requesting a review.",
+  "name": "Name is required and can be up to 250 characters long.",
+  "organizationType": "Select a valid type.",
+  "year": "The year established is invalid.",
+  "experience": "Previous experience is invalid.",
+  "experienceRequired": "Select funder types only if the organization has previous experience.",
+  "experienceLimit": "Select up to six funder types.",
+  "experienceTypes": "One or more funder types are invalid.",
+  "website": "Enter a valid domain, such as onara.org.",
+  "proficiency": "Language proficiency must be between 1 and 5.",
+  "customTotal": "You can add up to 20 custom options in total.",
+  "customKind": "A custom category is invalid.",
+  "customLength": "Each option must be between 2 and 100 characters long.",
+  "customCharacters": "The options contain unsupported characters.",
+  "customRepeated": "Do not add the same option more than once.",
+  "customOfficial": "That option already exists in the catalog. Select it from the list.",
+  "rangeOrder": "The maximum amount cannot be less than the minimum.",
+  "rangeCurrency": "Select a currency for the range.",
+  "rangeEmpty": "Do not specify a currency for an empty range.",
+  "currency": "Select a three-letter ISO currency.",
+  "projectTitle": "Title must be between 3 and 250 characters long.",
+  "status": "The project status is invalid.",
+  "stage": "The project stage is invalid.",
+  "sdgs": "Select only valid SDGs, from 1 to 17.",
+  "amounts": "Amounts cannot be negative.",
+  "budget": "Enter a total budget before adding a currency or confirmed funding.",
+  "projectRelations": "The project contains invalid references or data."
+} as const satisfies TranslationShape<typeof workspaceFeedbackEs>

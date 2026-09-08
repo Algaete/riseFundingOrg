@@ -1,10 +1,18 @@
 import type { es } from '@/i18n/es'
 import { authEn } from '@/i18n/auth/en'
+import { organizationEn } from '@/i18n/organization/en'
+import { projectsEn } from '@/i18n/projects/en'
+import { projectAssetsEn } from '@/i18n/project-assets/en'
+import { workspaceFeedbackEn } from '@/i18n/workspace-feedback/en'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const en = {
   translation: {
     auth: authEn,
+    organization: organizationEn,
+    projects: projectsEn,
+    projectAssets: projectAssetsEn,
+    workspaceFeedback: workspaceFeedbackEn,
     appName: 'FundingPlatform',
     appTagline: 'Funding that finds good causes',
     language: { label: 'Language' },

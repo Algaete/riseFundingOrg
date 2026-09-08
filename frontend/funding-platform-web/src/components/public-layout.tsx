@@ -17,6 +17,7 @@ const translatedPaths = new Set([
 export function PublicLayout() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
+  const translatedProject = /^\/(?:projects\/public|marketplace\/projects)\/[^/]+\/?$/i.test(pathname)
   const auth = useAuth()
   const isAuthenticated = auth.status === 'authenticated' && auth.session !== null
   const workspaceUrl = auth.session?.user.roles.some(role => role === 'Admin' || role === 'SuperAdmin')
@@ -62,7 +63,7 @@ export function PublicLayout() {
         </div>
       </header>
       {/* Until their translation block is complete, inner pages remain Spanish. */}
-      <main lang={translatedPaths.has(pathname.toLowerCase().replace(/\/+$/, '') || '/') ? undefined : 'es'}>
+      <main lang={translatedProject || translatedPaths.has(pathname.toLowerCase().replace(/\/+$/, '') || '/') ? undefined : 'es'}>
         <Outlet />
       </main>
       <footer className="border-t px-4 py-8 text-center text-sm text-muted-foreground">

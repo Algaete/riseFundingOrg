@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, ChevronLeft, ChevronRight, LoaderCircle, Plus, Save, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type FieldPath } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { workspaceMessage, workspaceRequestError, type OrganizationTextKey } from '@/i18n/workspace-messages'
 
 import { ApiError } from '@/api/http-client'
 import { Button } from '@/components/ui/button'
@@ -15,7 +17,7 @@ import {
   type OrganizationProfileUpdate,
 } from '@/features/organizations/organization-api'
 
-const steps = ['Identidad', 'Impacto', 'Financiamiento'] as const
+const steps = ['organization.stepsIdentity', 'organization.stepsImpact', 'organization.stepsFunding'] as const
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
 const textareaClass = 'min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm'
 const errorSummaryId = 'organization-profile-error-summary'
@@ -29,7 +31,7 @@ interface ApiValidationEntry {
 
 interface FinancialPreset {
   key: string
-  label: string
+  label: OrganizationTextKey
   minimum: number | null
   maximum: number | null
 }
@@ -41,17 +43,17 @@ interface CreateOrganizationValues {
 }
 
 const desiredFundingPresets: FinancialPreset[] = [
-  { key: 'up-to-25k', label: 'Hasta USD 25.000', minimum: null, maximum: 25_000 },
-  { key: '25k-100k', label: 'USD 25.000 – 100.000', minimum: 25_000, maximum: 100_000 },
-  { key: '100k-500k', label: 'USD 100.000 – 500.000', minimum: 100_000, maximum: 500_000 },
-  { key: 'over-500k', label: 'Más de USD 500.000', minimum: 500_000, maximum: null },
+  { key: 'up-to-25k', label: 'organization.upTo25', minimum: null, maximum: 25_000 },
+  { key: '25k-100k', label: 'organization.range25to100', minimum: 25_000, maximum: 100_000 },
+  { key: '100k-500k', label: 'organization.range100to500', minimum: 100_000, maximum: 500_000 },
+  { key: 'over-500k', label: 'organization.over500', minimum: 500_000, maximum: null },
 ]
 
 const annualBudgetPresets: FinancialPreset[] = [
-  { key: 'up-to-50k', label: 'Hasta USD 50.000', minimum: null, maximum: 50_000 },
-  { key: '50k-250k', label: 'USD 50.000 – 250.000', minimum: 50_000, maximum: 250_000 },
-  { key: '250k-1m', label: 'USD 250.000 – 1 millón', minimum: 250_000, maximum: 1_000_000 },
-  { key: 'over-1m', label: 'Más de USD 1 millón', minimum: 1_000_000, maximum: null },
+  { key: 'up-to-50k', label: 'organization.upTo50', minimum: null, maximum: 50_000 },
+  { key: '50k-250k', label: 'organization.range50to250', minimum: 50_000, maximum: 250_000 },
+  { key: '250k-1m', label: 'organization.range250to1m', minimum: 250_000, maximum: 1_000_000 },
+  { key: 'over-1m', label: 'organization.over1m', minimum: 1_000_000, maximum: null },
 ]
 
 const currentOrganizationSizeCodes = [
@@ -158,12 +160,13 @@ const createErrorTargets: Record<string, string> = {
   organizationtypeid: 'create-organization-type',
 }
 
-function requirementLabel(requirement: FieldRequirement) {
+function RequirementLabel({ requirement }: { requirement: FieldRequirement }) {
+  const { t } = useTranslation()
   if (requirement === 'required') {
-    return <><span aria-hidden="true" className="text-destructive"> *</span><span className="sr-only"> (obligatorio)</span></>
+    return <><span aria-hidden="true" className="text-destructive"> *</span><span className="sr-only">{t('organization.required')}</span></>
   }
 
-  return <span className="text-xs font-normal text-muted-foreground"> · {requirement === 'recommended' ? 'Recomendado' : 'Opcional'}</span>
+  return <span className="text-xs font-normal text-muted-foreground"> · {requirement === 'recommended' ? t('organization.recommended') : t('organization.optional')}</span>
 }
 
 function Field({ label, hint, error, requirement = 'optional', children }: {
@@ -173,19 +176,20 @@ function Field({ label, hint, error, requirement = 'optional', children }: {
   requirement?: FieldRequirement
   children: ReactNode
 }) {
+  useTranslation()
   return (
     <label className="grid gap-1.5 text-sm font-semibold">
-      <span>{label}{requirementLabel(requirement)}</span>
+      <span>{label}<RequirementLabel requirement={requirement} /></span>
       {children}
       {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
-      {error && <span className="text-xs font-normal text-destructive" role="alert">{error}</span>}
+      {error && <span className="text-xs font-normal text-destructive" role="alert">{workspaceMessage(error)}</span>}
     </label>
   )
 }
 
 function apiValidationEntries(error: unknown): ApiValidationEntry[] {
   if (!(error instanceof ApiError)) {
-    return [{ key: 'request', message: 'No fue posible guardar. Revisa la conexión e intenta nuevamente.' }]
+    return [{ key: 'request', message: 'organization.saveFailure' }]
   }
 
   const entries = Object.entries(error.problem.errors ?? {}).flatMap(([key, messages]) =>
@@ -193,7 +197,7 @@ function apiValidationEntries(error: unknown): ApiValidationEntry[] {
   )
   if (entries.length > 0) return entries
 
-  return [{ key: 'request', message: error.problem.detail ?? error.problem.title }]
+  return [{ key: 'request', message: workspaceRequestError(error, 'organization') }]
 }
 
 function normalizedErrorKey(key: string) {
@@ -211,10 +215,11 @@ function ValidationSummary({ error, id, targets = {}, onTargetClick }: {
   targets?: Record<string, string>
   onTargetClick?: (errorKey: string, targetId: string) => void
 }) {
+  const { t } = useTranslation()
   const entries = apiValidationEntries(error)
   return (
-    <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive" id={id} role="alert" tabIndex={-1}>
-      <p className="font-semibold">No pudimos guardar. Revisa lo siguiente:</p>
+    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-foreground" id={id} role="alert" tabIndex={-1}>
+      <p className="font-semibold">{t('organization.validationSummary')}</p>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         {entries.map((entry, index) => {
           const target = targets[normalizedErrorKey(entry.key)]
@@ -229,8 +234,8 @@ function ValidationSummary({ error, id, targets = {}, onTargetClick }: {
                       event.preventDefault()
                       onTargetClick(entry.key, target)
                     }}
-                  >{entry.message}</a>
-                : entry.message}
+                  >{workspaceMessage(entry.message)}</a>
+                : workspaceMessage(entry.message)}
             </li>
           )
         })}
@@ -279,14 +284,16 @@ function normalizeWebsiteUrl(value: string | null) {
 }
 
 function LoadingCard() {
+  const { t } = useTranslation()
   return (
     <Card><CardContent className="flex items-center gap-3 p-8 text-muted-foreground">
-      <LoaderCircle className="size-5 animate-spin" /> Cargando perfil de organización…
+      <LoaderCircle className="size-5 animate-spin" /> {t('organization.loading')}
     </CardContent></Card>
   )
 }
 
 function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { register, handleSubmit, setError, formState } = useForm<CreateOrganizationValues>({
     defaultValues: {
@@ -312,37 +319,37 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="space-y-2">
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Onboarding · Paso inicial</p>
-        <h1 className="text-3xl font-bold tracking-tight">Crea el espacio de tu organización</h1>
+        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('organization.onboardingStep')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('organization.createTitle')}</h1>
         <p className="leading-7 text-muted-foreground">
-          Este espacio separa de forma segura los datos, miembros y futuras recomendaciones de tu ONG.
+          {t('organization.createHelp')}
         </p>
       </div>
       <Card>
-        <CardHeader><CardTitle>Datos esenciales</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('organization.essentials')}</CardTitle></CardHeader>
         <CardContent>
           <form className="grid gap-5" noValidate onSubmit={handleSubmit((values) => create.mutate(values))}>
-            <p className="text-sm text-muted-foreground"><span aria-hidden="true" className="font-semibold text-destructive">*</span> indica un campo obligatorio.</p>
-            <Field error={formState.errors.name?.message} label="Nombre público" requirement="required">
+            <p className="text-sm text-muted-foreground"><span aria-hidden="true" className="font-semibold text-destructive">*</span> {t('organization.requiredGuide')}</p>
+            <Field error={formState.errors.name?.message} label={t('organization.publicName')} requirement="required">
               <Input
                 {...register('name', {
-                  required: 'Ingresa el nombre público de la organización.',
-                  maxLength: { value: 250, message: 'El nombre admite hasta 250 caracteres.' },
+                  required: 'organization.nameRequired',
+                  maxLength: { value: 250, message: 'organization.nameMax' },
                 })}
                 aria-invalid={Boolean(formState.errors.name)}
                 aria-required="true"
                 autoComplete="organization"
                 id="create-organization-name"
-                placeholder="Ej. Fundación Impacto Local"
+                placeholder={t('organization.namePlaceholder')}
                 required
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field error={formState.errors.homeCountryId?.message} label="País principal" requirement="required">
+              <Field error={formState.errors.homeCountryId?.message} label={t('organization.homeCountry')} requirement="required">
                 <select
                   {...register('homeCountryId', {
                     valueAsNumber: true,
-                    validate: value => value > 0 || 'Selecciona un país válido.',
+                    validate: value => value > 0 || 'organization.countryValid',
                   })}
                   aria-invalid={Boolean(formState.errors.homeCountryId)}
                   aria-required="true"
@@ -350,14 +357,14 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
                   id="create-organization-country"
                   required
                 >
-                  {catalogs.countries.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {catalogs.countries.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </Field>
-              <Field error={formState.errors.organizationTypeId?.message} label="Tipo de organización" requirement="required">
+              <Field error={formState.errors.organizationTypeId?.message} label={t('organization.organizationType')} requirement="required">
                 <select
                   {...register('organizationTypeId', {
                     valueAsNumber: true,
-                    validate: value => value > 0 || 'Selecciona un tipo de organización válido.',
+                    validate: value => value > 0 || 'organization.typeValid',
                   })}
                   aria-invalid={Boolean(formState.errors.organizationTypeId)}
                   aria-required="true"
@@ -365,14 +372,14 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
                   id="create-organization-type"
                   required
                 >
-                  {catalogs.organizationTypes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {catalogs.organizationTypes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </Field>
             </div>
             {create.isError && <ValidationSummary error={create.error} id="create-organization-error-summary" targets={createErrorTargets} />}
             <Button className="sm:justify-self-start" disabled={create.isPending || formState.isSubmitting} type="submit">
               {create.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Building2 className="size-4" />}
-              Crear organización
+              {t('organization.create')}
             </Button>
           </form>
         </CardContent>
@@ -398,21 +405,22 @@ function MultiChoice({
   id?: string
   requirement?: FieldRequirement
 }) {
+  useTranslation()
   function toggle(id: number) {
     onChange(selected.includes(id) ? selected.filter(value => value !== id) : [...selected, id])
   }
   return (
     <fieldset aria-invalid={Boolean(error)} className="space-y-2" id={id} tabIndex={-1}>
-      <legend className="text-sm font-semibold">{label}{requirementLabel(requirement)}</legend>
+      <legend className="text-sm font-semibold">{label}<RequirementLabel requirement={requirement} /></legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {items.map(item => (
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
             <input checked={selected.includes(item.id)} onChange={() => toggle(item.id)} type="checkbox" />
-            {item.name}
+            <span lang="es">{item.name}</span>
           </label>
         ))}
       </div>
-      {error && <span className="block text-xs text-destructive" role="alert">{error}</span>}
+      {error && <span className="block text-xs text-destructive" role="alert">{workspaceMessage(error)}</span>}
     </fieldset>
   )
 }
@@ -447,6 +455,7 @@ function CustomTaxonomyChoice({
   inputId: string
   otherCode: string
 }) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState('')
   const [localError, setLocalError] = useState<string>()
   const [editorOpen, setEditorOpen] = useState(false)
@@ -474,20 +483,20 @@ function CustomTaxonomyChoice({
   function addCustom() {
     const name = draft.trim().replace(/\s+/g, ' ')
     if (name.length < 2 || name.length > 100) {
-      setLocalError('Escribe una opción de entre 2 y 100 caracteres.')
+      setLocalError('organization.customLength')
       return
     }
     if (customValues.length >= 5) {
-      setLocalError('Puedes agregar hasta cinco opciones personalizadas en esta sección.')
+      setLocalError('organization.customLimit')
       return
     }
     const normalized = customComparison(name)
     if (customValues.some(value => customComparison(value) === normalized)) {
-      setLocalError('Esta opción ya fue agregada.')
+      setLocalError('organization.customDuplicate')
       return
     }
     if (items.some(item => customComparison(item.name) === normalized)) {
-      setLocalError('Esa opción ya existe en la lista. Selecciónala allí.')
+      setLocalError('organization.customOfficial')
       return
     }
     onCustomChange([...customValues, name])
@@ -499,7 +508,7 @@ function CustomTaxonomyChoice({
 
   return (
     <fieldset aria-invalid={Boolean(officialError || customError || localError)} className="space-y-2" id={id} tabIndex={-1}>
-      <legend className="text-sm font-semibold">{label}{requirementLabel('recommended')}</legend>
+      <legend className="text-sm font-semibold">{label}<RequirementLabel requirement="recommended" /></legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {items.map(item => item.id === other?.id && !otherSelected
           ? <button
@@ -509,17 +518,17 @@ function CustomTaxonomyChoice({
               key={item.id}
               onClick={() => toggle(item)}
               type="button"
-            ><Plus className="size-4" /> Agregar otra opción</button>
+            ><Plus className="size-4" /> {t('organization.addOther')}</button>
           : <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
               <input checked={selected.includes(item.id)} onChange={() => toggle(item)} type="checkbox" />
-              {item.name}{item.id === other?.id ? ' (valor anterior)' : ''}
+              <span lang="es">{item.name}</span>{item.id === other?.id ? t('organization.legacyValue') : ''}
             </label>)}
       </div>
-      {officialError && <span className="block text-xs text-destructive" role="alert">{officialError}</span>}
+      {officialError && <span className="block text-xs text-destructive" role="alert">{workspaceMessage(officialError)}</span>}
       {showCustomEditor && <div className="grid gap-2 rounded-lg border border-dashed bg-muted/30 p-3">
         {otherSelected && customValues.length === 0 &&
-          <p className="text-xs font-medium text-muted-foreground">Otro sin especificar</p>}
-        <label className="text-xs font-semibold" htmlFor={inputId}>Agregar otra opción en {label.toLocaleLowerCase()}</label>
+          <p className="text-xs font-medium text-muted-foreground">{t('organization.otherUnspecified')}</p>}
+        <label className="text-xs font-semibold" htmlFor={inputId}>{t('organization.addIn', { label: label.toLocaleLowerCase() })}</label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             aria-describedby={localError || customError ? errorId : undefined}
@@ -535,19 +544,19 @@ function CustomTaxonomyChoice({
               event.preventDefault()
               addCustom()
             }}
-            placeholder="Escribe una opción"
+            placeholder={t('organization.customPlaceholder')}
             ref={input}
             value={draft}
           />
           <Button disabled={!draft.trim() || customValues.length >= 5} onClick={addCustom} type="button" variant="outline">
-            <Plus className="size-4" /> Agregar
+            <Plus className="size-4" /> {t('organization.add')}
           </Button>
         </div>
-        {customValues.length > 0 && <div aria-label={`Opciones personalizadas de ${label}`} className="flex flex-wrap gap-2">
+        {customValues.length > 0 && <div aria-label={t('organization.customOptions', { label })} className="flex flex-wrap gap-2">
           {customValues.map(value => <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary" key={value}>
             {value}
             <button
-              aria-label={`Quitar ${value}`}
+              aria-label={t('organization.remove', { value })}
               className="rounded-full p-0.5 hover:bg-primary/15"
               onClick={() => onCustomChange(customValues.filter(item => item !== value))}
               type="button"
@@ -555,7 +564,7 @@ function CustomTaxonomyChoice({
           </span>)}
         </div>}
       </div>}
-      {(localError || customError) && <span className="block text-xs text-destructive" id={errorId} role="alert">{localError ?? customError}</span>}
+      {(localError || customError) && <span className="block text-xs text-destructive" id={errorId} role="alert">{workspaceMessage(localError ?? customError)}</span>}
     </fieldset>
   )
 }
@@ -565,6 +574,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
   catalogs: OrganizationCatalogs
   onboarding: boolean
 }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
   const [desiredFundingPreset, setDesiredFundingPreset] = useState(() => selectedPreset(
@@ -676,7 +686,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
   const visibleOrganizationSizes = selectedLegacyOrganizationSize
     ? [...sizeOptionsBase, {
         ...selectedLegacyOrganizationSize,
-        name: `${selectedLegacyOrganizationSize.name} (rango anterior; confirma uno nuevo)`,
+        name: t('organization.legacySize', { name: selectedLegacyOrganizationSize.name }),
       }]
     : sizeOptionsBase
   const currentProjectTypes = currentProjectTypeCodes.flatMap(code => {
@@ -694,7 +704,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
         ...currentProjectTypes,
         ...(selectedLegacyProgram ? [{
           ...selectedLegacyProgram,
-          name: `${selectedLegacyProgram.name} (valor anterior; confirma un tipo nuevo)`,
+          name: t('organization.legacyType', { name: selectedLegacyProgram.name }),
         }] : []),
       ]
     : catalogs.projectTypes
@@ -736,23 +746,23 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
       const hasMinimum = minimum !== null && minimum !== undefined
       const hasMaximum = maximum !== null && maximum !== undefined
       if (hasMinimum && minimum < 0) {
-        setError(minimumField, { type: 'validate', message: 'El monto mínimo no puede ser negativo.' })
+        setError(minimumField, { type: 'validate', message: 'organization.minimumNegative' })
         firstTarget ??= `${targetPrefix}-min`
       }
       if (hasMaximum && maximum < 0) {
-        setError(maximumField, { type: 'validate', message: 'El monto máximo no puede ser negativo.' })
+        setError(maximumField, { type: 'validate', message: 'organization.maximumNegative' })
         firstTarget ??= `${targetPrefix}-max`
       }
       if (hasMinimum && hasMaximum && maximum < minimum) {
-        setError(maximumField, { type: 'validate', message: 'El monto máximo debe ser igual o mayor al mínimo.' })
+        setError(maximumField, { type: 'validate', message: 'organization.rangeOrder' })
         firstTarget ??= `${targetPrefix}-max`
       }
       if ((hasMinimum || hasMaximum) && !currency) {
-        setError(currencyField, { type: 'validate', message: 'Selecciona una moneda para el rango informado.' })
+        setError(currencyField, { type: 'validate', message: 'organization.rangeCurrency' })
         firstTarget ??= `${targetPrefix}-currency`
       }
       if (!hasMinimum && !hasMaximum && currency) {
-        setError(currencyField, { type: 'validate', message: 'Ingresa al menos un monto o selecciona “Sin informar”.' })
+        setError(currencyField, { type: 'validate', message: 'organization.rangeEmpty' })
         firstTarget ??= `${targetPrefix}-currency`
       }
     }
@@ -790,19 +800,19 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{onboarding ? 'Onboarding' : 'Organización'}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Perfil de {profile.name}</h1>
-          <p className="mt-2 text-muted-foreground">Versión {profile.profileVersion} · {profile.profileCompleteness}% completo</p>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{onboarding ? t('organization.onboarding') : t('organization.organization')}</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{t('organization.profileTitle', { name: profile.name })}</h1>
+          <p className="mt-2 text-muted-foreground">{t('organization.profileVersion', { version: profile.profileVersion, percent: profile.profileCompleteness })}</p>
         </div>
-        <div className="h-2 w-48 overflow-hidden rounded-full bg-muted" aria-label={`${profile.profileCompleteness}% completo`}>
+        <div className="h-2 w-48 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label={t('organization.profileCompletion')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={profile.profileCompleteness} aria-valuetext={t('organization.completeness', { percent: profile.profileCompleteness })}>
           <div className="h-full bg-primary transition-all" style={{ width: `${profile.profileCompleteness}%` }} />
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2" aria-label="Pasos del perfil">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t('organization.profileSteps')}>
         {steps.map((label, index) => (
           <button className={`rounded-lg border px-3 py-3 text-sm font-semibold ${step === index ? 'border-primary bg-accent text-accent-foreground' : 'bg-card text-muted-foreground'}`} key={label} onClick={() => setStep(index)} type="button">
-            <span className="hidden sm:inline">{index + 1}. </span>{label}
+            <span className="hidden sm:inline">{index + 1}. </span>{t(label)}
           </button>
         ))}
       </div>
@@ -831,15 +841,15 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
         <Card>
           <CardContent className="grid gap-5 p-6">
             <p className="text-sm leading-6 text-muted-foreground" id="organization-profile-field-guide">
-              <span aria-hidden="true" className="font-semibold text-destructive">*</span> Obligatorio para guardar. Los campos recomendados mejoran tu perfil y sus recomendaciones; los opcionales pueden quedar vacíos en el borrador.
+              <span aria-hidden="true" className="font-semibold text-destructive">*</span> {t('organization.profileGuide')}
             </p>
             {step === 0 && <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field error={formState.errors.name?.message} label="Nombre público" requirement="required">
+                <Field error={formState.errors.name?.message} label={t('organization.publicName')} requirement="required">
                   <Input
                     {...register('name', {
-                      required: 'Ingresa el nombre público de la organización.',
-                      maxLength: { value: 250, message: 'El nombre admite hasta 250 caracteres.' },
+                      required: 'organization.nameRequired',
+                      maxLength: { value: 250, message: 'organization.nameMax' },
                     })}
                     aria-invalid={Boolean(formState.errors.name)}
                     aria-required="true"
@@ -847,18 +857,18 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                     required
                   />
                 </Field>
-                <Field error={formState.errors.legalName?.message} label="Razón social">
+                <Field error={formState.errors.legalName?.message} label={t('organization.legalName')}>
                   <Input {...register('legalName')} aria-invalid={Boolean(formState.errors.legalName)} id="organization-legal-name" />
                 </Field>
-                <Field error={formState.errors.taxIdentifier?.message} label="Identificador tributario">
+                <Field error={formState.errors.taxIdentifier?.message} label={t('organization.taxId')}>
                   <Input {...register('taxIdentifier')} aria-invalid={Boolean(formState.errors.taxIdentifier)} id="organization-tax-identifier" />
                 </Field>
-                <Field error={formState.errors.establishedYear?.message} label="Año de constitución" requirement="recommended">
+                <Field error={formState.errors.establishedYear?.message} label={t('organization.establishedYear')} requirement="recommended">
                   <Input
                     {...register('establishedYear', {
                       ...optionalNumber,
-                      min: { value: 1800, message: 'El año debe ser 1800 o posterior.' },
-                      max: { value: new Date().getFullYear(), message: 'El año no puede estar en el futuro.' },
+                      min: { value: 1800, message: 'organization.yearMin' },
+                      max: { value: new Date().getFullYear(), message: 'organization.yearFuture' },
                     })}
                     aria-invalid={Boolean(formState.errors.establishedYear)}
                     id="organization-established-year"
@@ -867,48 +877,48 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                     type="number"
                   />
                 </Field>
-                <Field error={formState.errors.homeCountryId?.message} label="País principal" requirement="required">
+                <Field error={formState.errors.homeCountryId?.message} label={t('organization.homeCountry')} requirement="required">
                   <select
                     {...register('homeCountryId', {
                       valueAsNumber: true,
-                      validate: value => value > 0 || 'Selecciona un país válido.',
+                      validate: value => value > 0 || 'organization.countryValid',
                     })}
                     aria-invalid={Boolean(formState.errors.homeCountryId)}
                     aria-required="true"
                     className={selectClass}
                     id="organization-home-country"
                     required
-                  >{catalogs.countries.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  >{catalogs.countries.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
                 </Field>
-                <Field error={formState.errors.organizationTypeId?.message} label="Tipo de organización" requirement="required">
+                <Field error={formState.errors.organizationTypeId?.message} label={t('organization.organizationType')} requirement="required">
                   <select
                     {...register('organizationTypeId', {
                       valueAsNumber: true,
-                      validate: value => value > 0 || 'Selecciona un tipo de organización válido.',
+                      validate: value => value > 0 || 'organization.typeValid',
                     })}
                     aria-invalid={Boolean(formState.errors.organizationTypeId)}
                     aria-required="true"
                     className={selectClass}
                     id="organization-type"
                     required
-                  >{catalogs.organizationTypes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  >{catalogs.organizationTypes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
                 </Field>
-                <Field error={formState.errors.legalEntityTypeId?.message} label="Personalidad jurídica" requirement="recommended">
-                  <select {...register('legalEntityTypeId', optionalNumber)} aria-invalid={Boolean(formState.errors.legalEntityTypeId)} className={selectClass} id="organization-legal-entity"><option value="">Sin informar</option>{catalogs.legalEntityTypes.filter(item => item.countryId === null || item.countryId === watch('homeCountryId')).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+                <Field error={formState.errors.legalEntityTypeId?.message} label={t('organization.legalEntity')} requirement="recommended">
+                  <select {...register('legalEntityTypeId', optionalNumber)} aria-invalid={Boolean(formState.errors.legalEntityTypeId)} className={selectClass} id="organization-legal-entity"><option value="">{t('organization.unspecified')}</option>{catalogs.legalEntityTypes.filter(item => item.countryId === null || item.countryId === watch('homeCountryId')).map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
                 </Field>
                 <Field
                   error={formState.errors.organizationSizeId?.message}
-                  hint="Cantidad de personas activas que forman parte del equipo."
-                  label="Tamaño del equipo"
+                  hint={t('organization.teamSizeHelp')}
+                  label={t('organization.teamSize')}
                   requirement="recommended"
                 >
-                  <select {...register('organizationSizeId', optionalNumber)} aria-invalid={Boolean(formState.errors.organizationSizeId)} className={selectClass} id="organization-size"><option value="">Sin informar</option>{visibleOrganizationSizes.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  <select {...register('organizationSizeId', optionalNumber)} aria-invalid={Boolean(formState.errors.organizationSizeId)} className={selectClass} id="organization-size"><option value="">{t('organization.unspecified')}</option>{visibleOrganizationSizes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
                 </Field>
               </div>
               <Field
                 error={formState.errors.websiteUrl?.message}
-                hint="Puedes escribir solo el dominio; lo guardaremos de forma segura con https://."
-                label="Sitio web"
+                hint={t('organization.websiteHelp')}
+                label={t('organization.website')}
               >
                 <Input
                   {...register('websiteUrl')}
@@ -919,22 +929,22 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                   type="text"
                 />
               </Field>
-              <Field error={formState.errors.description?.message} label="Descripción" requirement="recommended"><textarea aria-invalid={Boolean(formState.errors.description)} className={textareaClass} id="organization-description" {...register('description')} placeholder="Propósito, experiencia y territorio de trabajo" /></Field>
+              <Field error={formState.errors.description?.message} label={t('organization.description')} requirement="recommended"><textarea aria-invalid={Boolean(formState.errors.description)} className={textareaClass} id="organization-description" {...register('description')} placeholder={t('organization.descriptionPlaceholder')} /></Field>
             </>}
 
             {step === 1 && <>
-              <MultiChoice error={formErrorMessage(formState.errors.countryIds)} id="organization-countries" label="Países donde trabaja" items={catalogs.countries} requirement="recommended" selected={countries} onChange={value => {
+              <MultiChoice error={formErrorMessage(formState.errors.countryIds)} id="organization-countries" label={t('organization.countries')} items={catalogs.countries} requirement="recommended" selected={countries} onChange={value => {
                 setValue('countryIds', value, { shouldDirty: true })
                 clearErrors('countryIds')
                 const validRegionIds = catalogs.regions.filter(region => value.includes(region.countryId)).map(region => region.id)
                 setValue('regionIds', regions.filter(regionId => validRegionIds.includes(regionId)), { shouldDirty: true })
               }} />
-              {visibleRegions.length > 0 && <MultiChoice error={formErrorMessage(formState.errors.regionIds)} id="organization-regions" label="Regiones" items={visibleRegions} selected={regions} onChange={value => {
+              {visibleRegions.length > 0 && <MultiChoice error={formErrorMessage(formState.errors.regionIds)} id="organization-regions" label={t('organization.regions')} items={visibleRegions} selected={regions} onChange={value => {
                 setValue('regionIds', value, { shouldDirty: true })
                 clearErrors('regionIds')
               }} />}
               <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-                Las opciones que agregues son privadas para tu organización y todavía no influyen en las recomendaciones.
+                {t('organization.customHelp')}
               </p>
               <CustomTaxonomyChoice
                 customValues={customImpactAreas}
@@ -942,7 +952,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 id="organization-categories"
                 inputId="organization-custom-impact-areas"
                 items={catalogs.fundingCategories}
-                label="Áreas de impacto"
+                label={t('organization.impactAreas')}
                 officialError={formErrorMessage(formState.errors.categoryIds)}
                 onCustomChange={value => {
                   setValue('customImpactAreas', value, { shouldDirty: true })
@@ -961,7 +971,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 id="organization-beneficiaries"
                 inputId="organization-custom-beneficiary-types"
                 items={catalogs.beneficiaryTypes}
-                label="Poblaciones beneficiarias"
+                label={t('organization.beneficiaries')}
                 officialError={formErrorMessage(formState.errors.beneficiaryTypeIds)}
                 onCustomChange={value => {
                   setValue('customBeneficiaryTypes', value, { shouldDirty: true })
@@ -980,7 +990,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 id="organization-project-types"
                 inputId="organization-custom-project-types"
                 items={visibleProjectTypes}
-                label="Tipos de proyecto"
+                label={t('organization.projectTypes')}
                 officialError={formErrorMessage(formState.errors.projectTypeIds)}
                 onCustomChange={value => {
                   setValue('customProjectTypes', value, { shouldDirty: true })
@@ -996,14 +1006,14 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
             </>}
 
             {step === 2 && <>
-              <Field error={formState.errors.previousFundingExperience?.message} label="¿La organización tiene experiencia previa con financiadores?">
+              <Field error={formState.errors.previousFundingExperience?.message} label={t('organization.previousExperience')}>
                 <select {...register('previousFundingExperience', { valueAsNumber: true, onChange: event => {
                   if (Number(event.target.value) !== 2) {
                     setValue('fundingExperienceTypeIds', [], { shouldDirty: true })
                     clearErrors('fundingExperienceTypeIds')
                   }
                 } })} aria-invalid={Boolean(formState.errors.previousFundingExperience)} className={selectClass} id="organization-funding-experience">
-                  <option value={0}>Sin informar</option><option value={1}>Aún no</option><option value={2}>Sí, tenemos experiencia</option>
+                  <option value={0}>{t('organization.unspecified')}</option><option value={1}>{t('organization.noExperience')}</option><option value={2}>{t('organization.hasExperience')}</option>
                 </select>
               </Field>
               {previousFundingExperience === 2 && (catalogs.fundingExperienceTypes ?? []).length > 0 &&
@@ -1011,7 +1021,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                   error={formErrorMessage(formState.errors.fundingExperienceTypeIds)}
                   id="organization-funding-experience-types"
                   items={catalogs.fundingExperienceTypes ?? []}
-                  label="Experiencia previa con financiadores"
+                  label={t('organization.experienceTypes')}
                   onChange={value => {
                     setValue('fundingExperienceTypeIds', value, { shouldDirty: true })
                     clearErrors('fundingExperienceTypeIds')
@@ -1021,21 +1031,21 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
 
               <section className="grid gap-4 rounded-xl border p-4" aria-labelledby="desired-funding-heading">
                 <div>
-                  <h2 className="text-base font-semibold" id="desired-funding-heading">Monto de financiamiento que busca habitualmente <span className="text-xs font-normal text-muted-foreground">· Recomendado</span></h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Elige una referencia en USD o conserva un rango personalizado. Este dato describe a la organización, no reemplaza el monto de cada proyecto.</p>
+                  <h2 className="text-base font-semibold" id="desired-funding-heading">{t('organization.desiredFunding')} <span className="text-xs font-normal text-muted-foreground">· {t('organization.recommended')}</span></h2>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{t('organization.desiredFundingHelp')}</p>
                 </div>
-                <Field label="Rango habitual" requirement="recommended">
+                <Field label={t('organization.usualRange')} requirement="recommended">
                   <select className={selectClass} onChange={event => applyDesiredFundingPreset(event.target.value)} value={desiredFundingPreset}>
-                    <option value="">Sin informar</option>
-                    {desiredFundingPresets.map(preset => <option key={preset.key} value={preset.key}>{preset.label}</option>)}
-                    <option value="custom">Rango personalizado</option>
+                    <option value="">{t('organization.unspecified')}</option>
+                    {desiredFundingPresets.map(preset => <option key={preset.key} value={preset.key}>{t(preset.label)}</option>)}
+                    <option value="custom">{t('organization.customRange')}</option>
                   </select>
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field
                     error={formState.errors.desiredFundingCurrency?.message}
-                    hint="Es obligatoria solo cuando informas al menos un monto."
-                    label="Moneda objetivo"
+                    hint={t('organization.currencyHelp')}
+                    label={t('organization.desiredCurrency')}
                     requirement={desiredFundingMin !== null || desiredFundingMax !== null ? 'required' : 'optional'}
                   >
                     <select
@@ -1044,9 +1054,9 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       aria-required={desiredFundingMin !== null || desiredFundingMax !== null}
                       className={selectClass}
                       id="organization-desired-funding-currency"
-                    ><option value="">Sin informar</option>{catalogs.currencies.map(item => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
+                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
                   </Field>
-                  <Field error={formState.errors.desiredFundingMin?.message} label="Financiamiento mínimo">
+                  <Field error={formState.errors.desiredFundingMin?.message} label={t('organization.fundingMinimum')}>
                     <Input
                       {...register('desiredFundingMin', { ...optionalNumber, onChange: () => setDesiredFundingPreset('custom') })}
                       aria-invalid={Boolean(formState.errors.desiredFundingMin)}
@@ -1056,7 +1066,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       type="number"
                     />
                   </Field>
-                  <Field error={formState.errors.desiredFundingMax?.message} label="Financiamiento máximo">
+                  <Field error={formState.errors.desiredFundingMax?.message} label={t('organization.fundingMaximum')}>
                     <Input
                       {...register('desiredFundingMax', { ...optionalNumber, onChange: () => setDesiredFundingPreset('custom') })}
                       aria-invalid={Boolean(formState.errors.desiredFundingMax)}
@@ -1071,21 +1081,21 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
 
               <section className="grid gap-4 rounded-xl border p-4" aria-labelledby="annual-budget-heading">
                 <div>
-                  <h2 className="text-base font-semibold" id="annual-budget-heading">Presupuesto anual de la organización <span className="text-xs font-normal text-muted-foreground">· Opcional</span></h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">Puedes elegir una referencia en USD, usar otra moneda o dejar el rango sin informar.</p>
+                  <h2 className="text-base font-semibold" id="annual-budget-heading">{t('organization.annualBudget')} <span className="text-xs font-normal text-muted-foreground">· {t('organization.optional')}</span></h2>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{t('organization.annualBudgetHelp')}</p>
                 </div>
-                <Field label="Rango de presupuesto anual">
+                <Field label={t('organization.annualRange')}>
                   <select className={selectClass} onChange={event => applyAnnualBudgetPreset(event.target.value)} value={annualBudgetPreset}>
-                    <option value="">Sin informar</option>
-                    {annualBudgetPresets.map(preset => <option key={preset.key} value={preset.key}>{preset.label}</option>)}
-                    <option value="custom">Rango personalizado</option>
+                    <option value="">{t('organization.unspecified')}</option>
+                    {annualBudgetPresets.map(preset => <option key={preset.key} value={preset.key}>{t(preset.label)}</option>)}
+                    <option value="custom">{t('organization.customRange')}</option>
                   </select>
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Field
                     error={formState.errors.annualBudgetCurrency?.message}
-                    hint="Es obligatoria solo cuando informas al menos un monto."
-                    label="Moneda del presupuesto anual"
+                    hint={t('organization.currencyHelp')}
+                    label={t('organization.annualCurrency')}
                     requirement={annualBudgetMin !== null || annualBudgetMax !== null ? 'required' : 'optional'}
                   >
                     <select
@@ -1094,9 +1104,9 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       aria-required={annualBudgetMin !== null || annualBudgetMax !== null}
                       className={selectClass}
                       id="organization-annual-budget-currency"
-                    ><option value="">Sin informar</option>{catalogs.currencies.map(item => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
+                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
                   </Field>
-                  <Field error={formState.errors.annualBudgetMin?.message} label="Presupuesto anual mínimo">
+                  <Field error={formState.errors.annualBudgetMin?.message} label={t('organization.annualMinimum')}>
                     <Input
                       {...register('annualBudgetMin', { ...optionalNumber, onChange: () => setAnnualBudgetPreset('custom') })}
                       aria-invalid={Boolean(formState.errors.annualBudgetMin)}
@@ -1106,7 +1116,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       type="number"
                     />
                   </Field>
-                  <Field error={formState.errors.annualBudgetMax?.message} label="Presupuesto anual máximo">
+                  <Field error={formState.errors.annualBudgetMax?.message} label={t('organization.annualMaximum')}>
                     <Input
                       {...register('annualBudgetMax', { ...optionalNumber, onChange: () => setAnnualBudgetPreset('custom') })}
                       aria-invalid={Boolean(formState.errors.annualBudgetMax)}
@@ -1119,9 +1129,9 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 </div>
               </section>
 
-              <Field error={formState.errors.experienceSummary?.message} label="Resumen de experiencia"><textarea {...register('experienceSummary')} aria-invalid={Boolean(formState.errors.experienceSummary)} className={textareaClass} id="organization-experience-summary" placeholder="Cuéntanos brevemente sobre tu experiencia obteniendo financiamiento." /></Field>
+              <Field error={formState.errors.experienceSummary?.message} label={t('organization.experienceSummary')}><textarea {...register('experienceSummary')} aria-invalid={Boolean(formState.errors.experienceSummary)} className={textareaClass} id="organization-experience-summary" placeholder={t('organization.experiencePlaceholder')} /></Field>
               <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-                Los idiomas que agregues son privados para tu organización y todavía no influyen en las recomendaciones.
+                {t('organization.customLanguagesHelp')}
               </p>
               <CustomTaxonomyChoice
                 customValues={customLanguages}
@@ -1129,7 +1139,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 id="organization-languages"
                 inputId="organization-custom-languages"
                 items={catalogs.languages}
-                label="Idiomas de trabajo"
+                label={t('organization.languages')}
                 officialError={formErrorMessage(formState.errors.languages)}
                 onCustomChange={value => {
                   setValue('customLanguages', value, { shouldDirty: true })
@@ -1150,16 +1160,16 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
               onTargetClick={navigateToProfileError}
               targets={profileErrorTargets}
             />}
-            {update.isSuccess && <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground"><Check className="size-4" /> Perfil guardado correctamente.</p>}
+            {update.isSuccess && <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground"><Check className="size-4" /> {t('organization.saved')}</p>}
           </CardContent>
         </Card>
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <Button disabled={step === 0} onClick={() => setStep(value => value - 1)} type="button" variant="outline"><ChevronLeft className="size-4" /> Anterior</Button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <Button disabled={step === 0} onClick={() => setStep(value => value - 1)} type="button" variant="outline"><ChevronLeft className="size-4" /> {t('organization.previous')}</Button>
           <div className="flex gap-2">
             <Button disabled={!profile.canEdit || update.isPending || !formState.isDirty} type="submit">
-              {update.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />} Guardar
+              {update.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />} {t('organization.save')}
             </Button>
-            {step < steps.length - 1 && <Button onClick={() => setStep(value => value + 1)} type="button" variant="outline">Siguiente <ChevronRight className="size-4" /></Button>}
+            {step < steps.length - 1 && <Button onClick={() => setStep(value => value + 1)} type="button" variant="outline">{t('organization.next')} <ChevronRight className="size-4" /></Button>}
           </div>
         </div>
       </form>
@@ -1168,6 +1178,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
 }
 
 export function OrganizationWorkspacePage({ onboarding = false }: { onboarding?: boolean }) {
+  const { t } = useTranslation()
   const catalogs = useQuery({ queryKey: ['organization-catalogs'], queryFn: ({ signal }) => organizationApi.catalogs(signal), staleTime: 60 * 60 * 1000 })
   const organizations = useQuery({ queryKey: ['organizations'], queryFn: ({ signal }) => organizationApi.list(signal) })
   const organizationId = organizations.data?.[0]?.publicId
@@ -1179,7 +1190,7 @@ export function OrganizationWorkspacePage({ onboarding = false }: { onboarding?:
 
   if (catalogs.isPending || organizations.isPending || (organizationId && profile.isPending)) return <LoadingCard />
   if (catalogs.isError || organizations.isError || profile.isError || !catalogs.data) {
-    return <Card><CardContent className="p-8"><h1 className="text-xl font-bold">No pudimos cargar la organización</h1><p className="mt-2 text-sm text-muted-foreground">Comprueba que la API y Azure SQL estén disponibles y vuelve a intentarlo.</p></CardContent></Card>
+    return <Card><CardContent className="p-8"><h1 className="text-xl font-bold">{t('organization.loadFailed')}</h1><p className="mt-2 text-sm text-muted-foreground">{t('organization.loadFailedHelp')}</p></CardContent></Card>
   }
   if (!organizationId) return <CreateOrganization catalogs={catalogs.data} />
   if (!profile.data) return <LoadingCard />

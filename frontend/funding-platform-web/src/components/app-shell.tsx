@@ -17,7 +17,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from 'lucide-react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -85,6 +85,8 @@ function NavigationLink({ item }: { item: NavigationItem }) {
 
 export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const translatedContent = /^\/(?:onboarding|organization\/profile|projects(?:\/[^/]+)?)\/?$/i.test(pathname)
   const navigation = mode === 'admin' ? adminNavigation : memberNavigation
   const auth = useAuth()
   const isPlatformAdministrator = auth.session?.user.roles.some(
@@ -182,7 +184,7 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
         </nav>
 
         {/* Navigation is bilingual; workspace page translations follow in separate blocks. */}
-        <main lang="es" className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+        <main lang={translatedContent ? undefined : 'es'} className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { setAuthenticatedSession } from '@/features/auth/auth-session'
 import { ProjectAssetsPanel } from '@/features/projects/project-assets-panel'
 import type { ProjectAsset, ProjectAssetCollection } from '@/features/projects/project-assets-api'
+import { setInterfaceLanguage } from '@/i18n'
 
 const organizationId = '51ea2f6f-b1af-4e09-856c-6dcbdcfc812f'
 const projectId = 'bd351806-9139-4524-bc01-93c3676729cb'
@@ -90,6 +91,68 @@ describe('panel de adjuntos del proyecto', () => {
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it('traduce estados sin perder metadatos, abrir una vista insegura ni confirmar una eliminación', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => json(collection([asset()])))
+    vi.stubGlobal('fetch', fetchMock)
+    renderPanel()
+    const name = await screen.findByLabelText('Nombre visible')
+    fireEvent.change(name, { target: { value: 'Río Ñandú actualizado' } })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByLabelText('Display name')).toHaveValue('Río Ñandú actualizado')
+    expect(screen.getByText('Quarantined and being scanned')).toBeVisible()
+    expect(screen.getByRole('checkbox', { name: /Use as cover/ })).toBeDisabled()
+    expect(document.querySelector('img')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getByRole('alertdialog')).toHaveAccessibleName('¿Eliminar Río comunitario?')
+    expect(screen.getByLabelText('Nombre visible')).toHaveValue('Río Ñandú actualizado')
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
+  it('traduce un error de tamaño ya visible sin volver a validar ni cargar el archivo', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => json(collection([])))
+    vi.stubGlobal('fetch', fetchMock)
+    renderPanel()
+    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeEnabled())
+    const file = new File(['synthetic'], 'imagen-grande.png', { type: 'image/png' })
+    Object.defineProperty(file, 'size', { value: 11 * 1024 * 1024 })
+    await userEvent.upload(screen.getByLabelText('Seleccionar fotos o documentos'), file)
+    expect(await screen.findByRole('alert')).toHaveTextContent('imagen-grande.png debe pesar entre 1 byte y')
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByRole('alert')).toHaveTextContent('imagen-grande.png must be between 1 byte and 10 MB.')
+    expect(screen.getByRole('button', { name: 'Upload and verify file' })).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
+  it('no reinicia una carga pendiente al cambiar de idioma y traduce el resultado posterior', async () => {
+    let resolveIntent!: (response: Response) => void
+    const intent = new Promise<Response>(resolve => { resolveIntent = resolve })
+    let intentRequests = 0
+    let transfers = 0
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/assets')) return json(collection([]))
+      if (url.endsWith('/asset-upload-intents')) { intentRequests += 1; return intent }
+      if (url === 'https://synthetic.example.invalid/upload') { transfers += 1; expect(init?.credentials).toBe('omit'); return Promise.resolve(new Response(null, { status: 201 })) }
+      if (url.endsWith('/asset-upload-intents/synthetic-intent/complete')) return json({ projectETag: '"0000000000000002"', storageStatus: 2, scanStatus: 1, intentStatus: 2 })
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    renderPanel()
+    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeEnabled())
+    await userEvent.upload(screen.getByLabelText('Seleccionar fotos o documentos'), new File(['synthetic'], 'Río.png', { type: 'image/png' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))
+    expect(await screen.findByText('Solicitando una autorización de corta duración.')).toBeVisible()
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByText('Requesting short-lived authorization.')).toBeVisible()
+    expect(intentRequests).toBe(1)
+    resolveIntent(await json({ intentId: 'synthetic-intent', projectETag: '"0000000000000002"', uploadUrl: 'https://synthetic.example.invalid/upload', uploadMethod: 'PUT', requiredHeaders: {}, completionToken: 'synthetic-only' }))
+    expect(await screen.findByText('The file passed the security checks and is available.')).toBeVisible()
+    expect(intentRequests).toBe(1)
+    expect(transfers).toBe(1)
+    expect(screen.queryByText('synthetic-only')).not.toBeInTheDocument()
   })
 
   it('permanece ausente y no consulta la API cuando la bandera está apagada', async () => {

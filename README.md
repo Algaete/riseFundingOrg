@@ -67,10 +67,13 @@ malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
-pendiente y el despliegue. Los bloques locales I18N-01/02 incorporan selector español/inglés,
-portada, navegación y pantallas de autenticación bilingües, incluidas validaciones y MFA.
-**La traducción de organización, proyectos y demás páginas internas sigue pendiente**.
-No cambian el idioma de la cuenta, plantillas de correo ni la habilitación de SSO.
+pendiente y el despliegue. Los bloques locales I18N-01/02/03 incorporan selector español/inglés,
+portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
+y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos.
+Cambiar el idioma conserva borradores, selecciones, confirmaciones y cargas pendientes.
+**La traducción completa sigue pendiente**: catálogos, administración y las demás páginas internas
+se abordan en los siguientes bloques; los textos ingresados por usuarios no se traducen.
+No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos

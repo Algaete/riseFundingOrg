@@ -59,14 +59,47 @@ el test de contraste espera el fin de las transiciones de tema. No se utilizan c
 
 Límites: no cambia permisos, autenticación, política de contraseñas, payloads ni `preferredLocale`
 de cuentas. No habilita SSO/correo ni traduce plantillas de email o páginas de Microsoft. Mi cuenta
-y el contenido de los espacios internos siguen pendientes. No hay despliegue ni migración SQL.
+y el contenido de los espacios internos quedan fuera de este corte. No hay despliegue ni migración SQL.
+
+### I18N-03: organización, proyectos y adjuntos
+
+Implementado localmente:
+
+- Alta de organización, perfil de tres pasos, campos obligatorios/opcionales, opciones privadas,
+  experiencia y tramos financieros: interfaz, ayudas, validaciones y avisos en español e inglés.
+- Lista, creación y edición de proyectos; etapas, estados, requisitos de publicación,
+  envío a revisión, confirmación de archivo y ficha pública en ambos idiomas.
+- Panel de adjuntos: selección, límites, carga, cuarentena, resultados del escaneo, edición de
+  metadatos, descarga y confirmación de eliminación. El flag de adjuntos continúa apagado.
+- Recursos tipados separados en `src/i18n/organization`, `projects`, `project-assets` y
+  `workspace-feedback`; `workspace-messages.ts` centraliza mensajes heredados y formatos locales.
+- Cambiar el idioma conserva borradores, opciones privadas pendientes, selecciones de ODS/etapas,
+  errores visibles y confirmaciones. No repite cargas, solicitudes de contenido ni operaciones.
+  Se mantienen payloads, ETags, permisos, bloqueos editoriales y aislamiento de archivos.
+- Fechas y montos de proyectos siguen el idioma de interfaz; las fechas sin hora conservan su
+  día y no hay conversión de moneda. Nombres, descripciones y metadatos del usuario no se traducen.
+- Semántica accesible del progreso del perfil, contraste de avisos y menú de pasos apilado en
+  pantallas estrechas. Las páginas incluidas heredan el idioma elegido.
+
+Validación del corte I18N-03: build, lint y typecheck E2E aprobados; 292 pruebas de frontend y
+41 pruebas de navegador aprobadas, con la comprobación del SHA de Azure omitida en local.
+Incluye accesibilidad en claro/oscuro, pantallas de 320/1024px y conservación del estado entre
+idiomas con datos sintéticos. Las rutas simuladas de lectura rechazan escrituras inesperadas.
+
+Límites: los nombres de catálogos aún vienen en español, se conservan con `lang="es"` y se
+abordarán en I18N-05. Los errores heredados conocidos se mapean por texto exacto y los errores
+de protocolo por tipo/estado; una validación desconocida de API muestra un aviso genérico en
+inglés y conserva el diagnóstico original en español, hasta incorporar códigos de regla estables.
+La revisión administrativa de proyectos sigue en español. Sin cambios de backend, SQL,
+`preferredLocale`, políticas de seguridad, habilitación de adjuntos ni despliegue Azure.
 
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-03: onboarding, perfil de organización y formularios/fichas de proyectos.
-2. I18N-04: resumen, cuenta, catálogo, marketplace, matching, red, postulaciones, calendario,
-   alertas y planes.
-3. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos de fechas/montos.
+1. I18N-04A: resumen y Mi cuenta.
+2. I18N-04B: catálogo público y marketplace.
+3. I18N-04C: matching y red de organizaciones.
+4. I18N-04D: postulaciones, calendario, alertas y planes.
+5. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -87,7 +120,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02 no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03 no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter } from 'react-router-dom'
 
@@ -7,6 +7,7 @@ import { App } from '@/App'
 import { setAuthenticatedSession } from '@/features/auth/auth-session'
 import type { OrganizationProfile, OrganizationSummary } from '@/features/organizations/organization-api'
 import { appRoutes } from '@/router'
+import { setInterfaceLanguage } from '@/i18n'
 
 const catalogs = {
   countries: [{ id: 152, code: 'CL', name: 'Chile' }],
@@ -157,6 +158,72 @@ function renderExistingProfile({
 
 describe('perfil de organización', () => {
   afterEach(() => vi.unstubAllGlobals())
+
+  it('cambia de idioma sin perder nombre, opciones privadas ni la selección numérica de presupuesto', async () => {
+    authenticate()
+    const updates: RequestInit[] = []
+    renderExistingProfile({ onUpdate: async init => {
+      updates.push(init)
+      return json({ ...profile, ...JSON.parse(String(init.body)), profileVersion: 2, eTag: '"0000000000000002"' })
+    } })
+    const user = userEvent.setup()
+    const name = await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    fireEvent.change(name, { target: { value: 'Organización Ñandú' } })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByLabelText(/Public name.*required/i)).toHaveValue('Organización Ñandú')
+    expect(screen.getByRole('main')).not.toHaveAttribute('lang', 'es')
+    await user.click(screen.getByRole('button', { name: /Impact$/ }))
+    const impacts = screen.getByRole('group', { name: /Impact areas/ })
+    await user.click(within(impacts).getByRole('button', { name: 'Add another option' }))
+    await user.type(within(impacts).getByPlaceholderText('Enter an option'), 'Patrimonio Ñandú')
+    await act(() => setInterfaceLanguage('es'))
+    const spanishImpacts = screen.getByRole('group', { name: /Áreas de impacto/ })
+    expect(within(spanishImpacts).getByPlaceholderText('Escribe una opción')).toHaveValue('Patrimonio Ñandú')
+    await user.click(within(spanishImpacts).getByRole('button', { name: 'Agregar' }))
+    await user.click(screen.getByRole('button', { name: /Financiamiento$/ }))
+    await user.selectOptions(screen.getByLabelText(/Rango habitual/), '100k-500k')
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByLabelText(/Usual range/)).toHaveValue('100k-500k')
+    expect(screen.getByLabelText('Minimum funding · Optional')).toHaveValue(100000)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Profile saved successfully.')
+    expect(updates).toHaveLength(1)
+    expect(new Headers(updates[0].headers).get('If-Match')).toBe(profile.eTag)
+    expect(JSON.parse(String(updates[0].body))).toMatchObject({ name: 'Organización Ñandú', customImpactAreas: ['Patrimonio Ñandú'], desiredFundingMin: 100000, desiredFundingMax: 500000, desiredFundingCurrency: 'USD' })
+  })
+
+  it('traduce errores visibles de rangos financieros conservando el paso y sin guardar', async () => {
+    authenticate()
+    const update = vi.fn()
+    renderExistingProfile({ onUpdate: update })
+    await screen.findByRole('heading', { name: 'Perfil de Fundación Demo' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Financiamiento$/ }))
+    fireEvent.change(screen.getByLabelText(/Financiamiento mínimo/), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Financiamiento máximo/), { target: { value: '50' } })
+    await user.selectOptions(screen.getByLabelText(/Moneda objetivo/), 'USD')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('El monto máximo debe ser igual o mayor al mínimo.')).toBeVisible()
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByText('The maximum amount must be greater than or equal to the minimum.')).toBeVisible()
+    expect(screen.getByLabelText(/Minimum funding/)).toHaveValue(100)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('traduce una validación de API conocida y mantiene navegación y foco de errores', async () => {
+    authenticate()
+    renderExistingProfile({ onUpdate: async () => json({ status: 400, title: 'Validation', errors: { desiredFundingCurrency: ['Selecciona una moneda para el rango.'] } }, 400) })
+    const name = await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    fireEvent.change(name, { target: { value: 'Nuevo nombre' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await screen.findByText('No pudimos guardar. Revisa lo siguiente:')
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getAllByText('Select a currency for the range.')).toHaveLength(2)
+    const link = screen.getByRole('link', { name: 'Select a currency for the range.' })
+    expect(link).toHaveAttribute('href', '#organization-desired-funding-currency')
+    await userEvent.click(link)
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('id', 'organization-desired-funding-currency'))
+  })
 
   it('muestra el alta inicial cuando el usuario todavía no tiene organización', async () => {
     authenticate()

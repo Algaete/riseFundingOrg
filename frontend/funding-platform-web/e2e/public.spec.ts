@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { registerWorkspaceLanguageTests } from './workspace-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -78,6 +79,8 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
 })
+
+registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

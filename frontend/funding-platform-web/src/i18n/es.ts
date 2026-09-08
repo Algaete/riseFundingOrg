@@ -1,8 +1,16 @@
 import { authEs } from '@/i18n/auth/es'
+import { organizationEs } from '@/i18n/organization/es'
+import { projectsEs } from '@/i18n/projects/es'
+import { projectAssetsEs } from '@/i18n/project-assets/es'
+import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 
 export const es = {
   translation: {
     auth: authEs,
+    organization: organizationEs,
+    projects: projectsEs,
+    projectAssets: projectAssetsEs,
+    workspaceFeedback: workspaceFeedbackEs,
     appName: 'FundingPlatform',
     appTagline: 'Fondos que encuentran buenas causas',
     language: { label: 'Idioma' },

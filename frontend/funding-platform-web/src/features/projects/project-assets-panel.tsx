@@ -19,6 +19,9 @@ import {
   type ChangeEvent,
 } from 'react'
 
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
+import { workspaceMessage, workspaceLocale } from '@/i18n/workspace-messages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -37,13 +40,17 @@ import {
   projectAssetLimits,
 } from '@/features/projects/project-assets-config'
 
+type AssetFeedback = string
+  | { key: 'projectAssets.fileSize'; values: { name: string; maximum: number } }
+  | { key: 'projectAssets.maxAttachments' | 'projectAssets.maxImages' | 'projectAssets.maxDocuments'; values: { count: number } }
+
 type UploadPhase = 'authorizing' | 'uploading' | 'analyzing' | 'ready' | 'error'
 
 interface UploadTask {
   id: string
   fileName: string
   phase: UploadPhase
-  detail: string
+  detail: AssetFeedback
   intentId?: string
   assetId?: string
 }
@@ -60,12 +67,20 @@ interface ProjectAssetsPanelProps {
 const textareaClass = 'min-h-20 w-full rounded-lg border bg-background px-3 py-2 text-sm'
 
 function formatBytes(value: number) {
-  return new Intl.NumberFormat('es-CL', {
+  return new Intl.NumberFormat(workspaceLocale(), {
     maximumFractionDigits: 1,
     style: 'unit',
     unit: value >= 1024 * 1024 ? 'megabyte' : 'kilobyte',
     unitDisplay: 'short',
   }).format(value >= 1024 * 1024 ? value / (1024 * 1024) : value / 1024)
+}
+
+function displayAssetMessage(message: AssetFeedback) {
+  if (typeof message === 'string') return workspaceMessage(message)
+  if (message.key === 'projectAssets.fileSize') {
+    return i18n.t(message.key, { name: message.values.name, maximum: formatBytes(message.values.maximum) })
+  }
+  return i18n.t(message.key, { count: message.values.count })
 }
 
 function assetIsReady(asset: ProjectAsset) {
@@ -87,11 +102,11 @@ function fileKind(file: File): 0 | 1 | null {
   return null
 }
 
-function validateFiles(files: File[], current: ProjectAsset[]) {
-  if (files.length === 0) return 'Selecciona al menos un archivo.'
+function validateFiles(files: File[], current: ProjectAsset[]): AssetFeedback | null {
+  if (files.length === 0) return 'projectAssets.selectFile'
   const kinds = files.map(fileKind)
   if (kinds.some(kind => kind === null)) {
-    return 'Sólo se admiten imágenes JPG, PNG o WebP y documentos PDF.'
+    return 'projectAssets.fileTypes'
   }
   const oversized = files.find((file, index) => {
     const maximum = kinds[index] === 0
@@ -103,30 +118,30 @@ function validateFiles(files: File[], current: ProjectAsset[]) {
     const maximum = fileKind(oversized) === 0
       ? projectAssetLimits.imageBytes
       : projectAssetLimits.documentBytes
-    return `${oversized.name} debe pesar entre 1 byte y ${formatBytes(maximum)}.`
+    return { key: 'projectAssets.fileSize', values: { name: oversized.name, maximum } }
   }
   const currentImages = current.filter(item => item.kind === 0).length
   const currentDocuments = current.filter(item => item.kind === 1).length
   const newImages = kinds.filter(kind => kind === 0).length
   const newDocuments = kinds.filter(kind => kind === 1).length
   if (current.length + files.length > projectAssetLimits.totalPerProject) {
-    return `Cada proyecto admite como máximo ${projectAssetLimits.totalPerProject} adjuntos.`
+    return { key: 'projectAssets.maxAttachments', values: { count: projectAssetLimits.totalPerProject } }
   }
   if (currentImages + newImages > projectAssetLimits.imagesPerProject) {
-    return `Cada proyecto admite como máximo ${projectAssetLimits.imagesPerProject} imágenes.`
+    return { key: 'projectAssets.maxImages', values: { count: projectAssetLimits.imagesPerProject } }
   }
   if (currentDocuments + newDocuments > projectAssetLimits.documentsPerProject) {
-    return `Cada proyecto admite como máximo ${projectAssetLimits.documentsPerProject} documentos PDF.`
+    return { key: 'projectAssets.maxDocuments', values: { count: projectAssetLimits.documentsPerProject } }
   }
   return null
 }
 
 function uploadPhaseLabel(task: UploadTask) {
-  if (task.phase === 'authorizing') return 'Creando autorización segura'
-  if (task.phase === 'uploading') return 'Transfiriendo al almacenamiento'
-  if (task.phase === 'analyzing') return 'Verificando y analizando'
-  if (task.phase === 'ready') return 'Listo'
-  return 'No se pudo cargar'
+  if (task.phase === 'authorizing') return 'projectAssets.authorizing'
+  if (task.phase === 'uploading') return 'projectAssets.uploading'
+  if (task.phase === 'analyzing') return 'projectAssets.analyzing'
+  if (task.phase === 'ready') return 'projectAssets.ready'
+  return 'projectAssets.error'
 }
 
 function intentOutcome(intent: ProjectAssetUploadIntent): 'pending' | 'ready' | 'rejected' {
@@ -145,6 +160,7 @@ function SecureProjectImage({
   projectId: string
   asset: ProjectAsset
 }) {
+  const { t } = useTranslation()
   const [source, setSource] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -171,22 +187,23 @@ function SecureProjectImage({
     }
   }, [asset.assetId, asset.eTag, organizationId, projectId])
 
-  if (failed) return <p className="p-4 text-sm text-muted-foreground">No fue posible cargar la vista previa.</p>
-  if (!source) return <p className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> Cargando vista previa segura…</p>
+  if (failed) return <p className="p-4 text-sm text-muted-foreground">{t('projectAssets.previewFailed')}</p>
+  if (!source) return <p className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> {t('projectAssets.previewLoading')}</p>
   return <img alt={asset.altText ?? ''} className="h-48 w-full object-cover" src={source} />
 }
 
 function AssetStatus({ asset }: { asset: ProjectAsset }) {
+  const { t } = useTranslation()
   if (assetIsReady(asset)) {
-    return <span className="flex items-center gap-1 text-xs font-semibold text-primary"><CheckCircle2 aria-hidden className="size-4" /> Listo y verificado</span>
+    return <span className="flex items-center gap-1 text-xs font-semibold text-primary"><CheckCircle2 aria-hidden className="size-4" /> {t('projectAssets.verified')}</span>
   }
   if (asset.scanStatus === 2) {
-    return <span className="flex items-center gap-1 text-xs font-semibold text-destructive"><ShieldAlert aria-hidden className="size-4" /> Rechazado por seguridad</span>
+    return <span className="flex items-center gap-1 text-xs font-semibold text-destructive"><ShieldAlert aria-hidden className="size-4" /> {t('projectAssets.rejected')}</span>
   }
   if (asset.scanStatus >= 3 || asset.storageStatus === 3) {
-    return <span className="flex items-center gap-1 text-xs font-semibold text-destructive"><ShieldAlert aria-hidden className="size-4" /> Verificación fallida</span>
+    return <span className="flex items-center gap-1 text-xs font-semibold text-destructive"><ShieldAlert aria-hidden className="size-4" /> {t('projectAssets.failedVerification')}</span>
   }
-  return <span className="flex items-center gap-1 text-xs text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> En cuarentena y análisis</span>
+  return <span className="flex items-center gap-1 text-xs text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> {t('projectAssets.quarantined')}</span>
 }
 
 function AssetCard({
@@ -214,6 +231,7 @@ function AssetCard({
   onMove: (asset: ProjectAsset, direction: -1 | 1) => void
   onSave: (asset: ProjectAsset, input: ProjectAssetMetadataInput) => void
 }) {
+  const { t } = useTranslation()
   const [displayName, setDisplayName] = useState(asset.displayName)
   const [altText, setAltText] = useState(asset.altText ?? '')
   const [caption, setCaption] = useState(asset.caption ?? '')
@@ -255,23 +273,23 @@ function AssetCard({
   function saveMetadata() {
     const normalizedName = displayName.trim()
     if (!normalizedName) {
-      setMetadataError('Ingresa un nombre visible.')
+      setMetadataError('projectAssets.nameRequired')
       return
     }
     if (normalizedName.length > 200) {
-      setMetadataError('El nombre visible admite hasta 200 caracteres.')
+      setMetadataError('projectAssets.nameMax')
       return
     }
     if (altText.trim().length > 300) {
-      setMetadataError('El texto alternativo admite hasta 300 caracteres.')
+      setMetadataError('projectAssets.altMax')
       return
     }
     if (caption.trim().length > 1000) {
-      setMetadataError('La descripción admite hasta 1000 caracteres.')
+      setMetadataError('projectAssets.captionMax')
       return
     }
     if (isCover && !altText.trim()) {
-      setMetadataError('La portada necesita texto alternativo.')
+      setMetadataError('projectAssets.coverNeedsAlt')
       return
     }
     setMetadataError(null)
@@ -291,8 +309,8 @@ function AssetCard({
   return <article className="overflow-hidden rounded-xl border bg-card">
     <div className="border-b bg-muted/30">
       {asset.kind === 0 && ready && <SecureProjectImage asset={asset} organizationId={organizationId} projectId={projectId} />}
-      {asset.kind === 0 && !ready && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><ImageIcon aria-hidden className="size-5" /> Sin vista previa hasta completar el análisis</div>}
-      {asset.kind === 1 && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><FileText aria-hidden className="size-7" /> Documento PDF</div>}
+      {asset.kind === 0 && !ready && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><ImageIcon aria-hidden className="size-5" /> {t('projectAssets.noPreview')}</div>}
+      {asset.kind === 1 && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><FileText aria-hidden className="size-7" /> {t('projectAssets.pdf')}</div>}
     </div>
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -301,29 +319,29 @@ function AssetCard({
       </div>
 
       <div className="grid gap-3">
-        <label className="grid gap-1 text-sm font-semibold">Nombre visible
+        <label className="grid gap-1 text-sm font-semibold">{t('projectAssets.displayName')}
           <Input disabled={!editable || busy} maxLength={200} onChange={event => setDisplayName(event.target.value)} value={displayName} />
         </label>
-        {asset.kind === 0 && <label className="grid gap-1 text-sm font-semibold">Texto alternativo <span className="text-xs font-normal text-muted-foreground">Describe la imagen para personas que no pueden verla.</span>
+        {asset.kind === 0 && <label className="grid gap-1 text-sm font-semibold">{t('projectAssets.altText')} <span className="text-xs font-normal text-muted-foreground">{t('projectAssets.altHelp')}</span>
           <Input disabled={!editable || busy} maxLength={300} onChange={event => setAltText(event.target.value)} value={altText} />
         </label>}
-        <label className="grid gap-1 text-sm font-semibold">Descripción <span className="text-xs font-normal text-muted-foreground">Opcional</span>
+        <label className="grid gap-1 text-sm font-semibold">{t('projectAssets.description')} <span className="text-xs font-normal text-muted-foreground">{t('projectAssets.optional')}</span>
           <textarea className={textareaClass} disabled={!editable || busy} maxLength={1000} onChange={event => setCaption(event.target.value)} value={caption} />
         </label>
         {asset.kind === 0 && <label className="flex items-start gap-2 text-sm">
           <input checked={isCover} disabled={!editable || busy || !ready} onChange={event => setIsCover(event.target.checked)} type="checkbox" />
-          <span><span className="font-semibold">Usar como portada</span><span className="block text-xs text-muted-foreground">Sólo una imagen lista y con texto alternativo puede ser portada.</span></span>
+          <span><span className="font-semibold">{t('projectAssets.useCover')}</span><span className="block text-xs text-muted-foreground">{t('projectAssets.coverHelp')}</span></span>
         </label>}
       </div>
 
-      {metadataError && <p className="text-sm text-destructive" role="alert">{metadataError}</p>}
-      {downloadError && <p className="text-sm text-destructive" role="alert">{downloadError}</p>}
+      {metadataError && <p className="text-sm text-destructive" role="alert">{displayAssetMessage(metadataError)}</p>}
+      {downloadError && <p className="text-sm text-destructive" role="alert">{displayAssetMessage(downloadError)}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button aria-label={`Subir ${asset.displayName} en el orden`} disabled={!editable || busy || first} onClick={() => onMove(asset, -1)} size="icon" type="button" variant="outline"><ArrowUp aria-hidden className="size-4" /></Button>
-        <Button aria-label={`Bajar ${asset.displayName} en el orden`} disabled={!editable || busy || last} onClick={() => onMove(asset, 1)} size="icon" type="button" variant="outline"><ArrowDown aria-hidden className="size-4" /></Button>
-        <Button disabled={!editable || busy || !changed} onClick={saveMetadata} type="button" variant="outline"><Save aria-hidden className="size-4" /> Guardar datos</Button>
-        {asset.kind === 1 && ready && <Button disabled={downloading} onClick={() => void downloadDocument()} type="button" variant="outline">{downloading ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />} Descargar PDF</Button>}
-        {!deleting && <Button disabled={!editable || busy} onClick={() => onDelete(asset)} type="button" variant="ghost"><Trash2 aria-hidden className="size-4" /> Eliminar</Button>}
+        <Button aria-label={t('projectAssets.moveUp', { name: asset.displayName })} disabled={!editable || busy || first} onClick={() => onMove(asset, -1)} size="icon" type="button" variant="outline"><ArrowUp aria-hidden className="size-4" /></Button>
+        <Button aria-label={t('projectAssets.moveDown', { name: asset.displayName })} disabled={!editable || busy || last} onClick={() => onMove(asset, 1)} size="icon" type="button" variant="outline"><ArrowDown aria-hidden className="size-4" /></Button>
+        <Button disabled={!editable || busy || !changed} onClick={saveMetadata} type="button" variant="outline"><Save aria-hidden className="size-4" /> {t('projectAssets.saveMetadata')}</Button>
+        {asset.kind === 1 && ready && <Button disabled={downloading} onClick={() => void downloadDocument()} type="button" variant="outline">{downloading ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />} {t('projectAssets.downloadPdf')}</Button>}
+        {!deleting && <Button disabled={!editable || busy} onClick={() => onDelete(asset)} type="button" variant="ghost"><Trash2 aria-hidden className="size-4" /> {t('projectAssets.delete')}</Button>}
       </div>
     </div>
   </article>
@@ -337,12 +355,13 @@ export function ProjectAssetsPanel({
   hasUnsavedChanges,
   onProjectChanged,
 }: ProjectAssetsPanelProps) {
+  const { t } = useTranslation()
   const enabled = isProjectAssetsEnabled()
   const queryClient = useQueryClient()
   const currentProjectETag = useRef(projectETag)
   const [files, setFiles] = useState<File[]>([])
   const [fileInputVersion, setFileInputVersion] = useState(0)
-  const [selectionError, setSelectionError] = useState<string | null>(null)
+  const [selectionError, setSelectionError] = useState<AssetFeedback | null>(null)
   const [operationError, setOperationError] = useState<string | null>(null)
   const [tasks, setTasks] = useState<UploadTask[]>([])
   const [pollIteration, setPollIteration] = useState(0)
@@ -384,14 +403,14 @@ export function ProjectAssetsPanel({
           if (!task.intentId || task.phase !== 'analyzing') return task
           const result = byIntent.get(task.intentId)
           if (!result || result.status === 'rejected') {
-            return { ...task, detail: 'El análisis continúa; volveremos a consultar su estado.' }
+            return { ...task, detail: 'projectAssets.scanContinues' }
           }
           const outcome = intentOutcome(result.value)
           if (outcome === 'ready') {
-            return { ...task, phase: 'ready', detail: 'El archivo quedó limpio y disponible.' }
+            return { ...task, phase: 'ready', detail: 'projectAssets.clean' }
           }
           if (outcome === 'rejected') {
-            return { ...task, phase: 'error', detail: 'El archivo fue rechazado o no superó la verificación.' }
+            return { ...task, phase: 'error', detail: 'projectAssets.rejectedFile' }
           }
           return task
         }))
@@ -432,7 +451,7 @@ export function ProjectAssetsPanel({
         id,
         fileName: file.name,
         phase: 'authorizing',
-        detail: 'Solicitando una autorización de corta duración.',
+        detail: 'projectAssets.requesting',
       }))
       const recordTask = (id: string, patch: Partial<UploadTask>) => {
         const index = finalTasks.findIndex(task => task.id === id)
@@ -454,12 +473,12 @@ export function ProjectAssetsPanel({
           currentProjectETag.current = created.projectETag
           recordTask(id, {
             phase: 'uploading',
-            detail: 'La transferencia es directa; la autorización no permite sobrescribir archivos.',
+            detail: 'projectAssets.directTransfer',
           })
           await uploadProjectAssetDirectly(created, file)
           recordTask(id, {
             phase: 'analyzing',
-            detail: 'El archivo está aislado mientras se comprueba su tipo y seguridad.',
+            detail: 'projectAssets.isolated',
           })
           // El secreto vive únicamente en este alcance y se descarta después de completar.
           const completed = await projectAssetApi.completeUploadIntent(
@@ -470,7 +489,7 @@ export function ProjectAssetsPanel({
           )
           if (completed.projectETag) currentProjectETag.current = completed.projectETag
           if (completed.storageStatus === 2 && completed.scanStatus === 1) {
-            recordTask(id, { phase: 'ready', detail: 'El archivo quedó limpio y disponible.' })
+            recordTask(id, { phase: 'ready', detail: 'projectAssets.clean' })
           } else if (
             completed.scanStatus === 2 ||
             completed.scanStatus === 3 ||
@@ -478,12 +497,12 @@ export function ProjectAssetsPanel({
             completed.intentStatus === 3 ||
             completed.intentStatus === 4
           ) {
-            recordTask(id, { phase: 'error', detail: 'El archivo fue rechazado o no superó la verificación.' })
+            recordTask(id, { phase: 'error', detail: 'projectAssets.rejectedFile' })
           } else {
             recordTask(id, {
               intentId: created.intentId,
               assetId: completed.assetId ?? undefined,
-              detail: 'El análisis continúa en segundo plano; la galería se actualizará automáticamente.',
+              detail: 'projectAssets.backgroundScan',
             })
           }
         } catch (error) {
@@ -576,36 +595,36 @@ export function ProjectAssetsPanel({
 
   return <Card>
     <CardHeader>
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Adjuntos del proyecto</p>
-      <CardTitle>Fotos y documentos</CardTitle>
-      <p className="text-sm text-muted-foreground">Las imágenes y PDF son opcionales. Permanecen aislados hasta superar la validación de tipo y el análisis de seguridad.</p>
+      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{t('projectAssets.eyebrow')}</p>
+      <CardTitle>{t('projectAssets.title')}</CardTitle>
+      <p className="text-sm text-muted-foreground">{t('projectAssets.help')}</p>
     </CardHeader>
     <CardContent className="space-y-5">
-      {!projectEditable && <p className="rounded-lg bg-muted p-3 text-sm">Los adjuntos están bloqueados mientras el proyecto no sea borrador o rechazado.</p>}
-      {hasUnsavedChanges && <p className="rounded-lg bg-muted p-3 text-sm">Guarda primero los cambios del formulario para evitar conflictos de versión.</p>}
+      {!projectEditable && <p className="rounded-lg bg-muted p-3 text-sm">{t('projectAssets.locked')}</p>}
+      {hasUnsavedChanges && <p className="rounded-lg bg-muted p-3 text-sm">{t('projectAssets.unsaved')}</p>}
 
-      {assets.isPending && <p className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> Cargando adjuntos…</p>}
-      {assets.isError && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">{projectAssetErrorMessage(assets.error)}</p>}
+      {assets.isPending && <p className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> {t('projectAssets.loading')}</p>}
+      {assets.isError && <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground" role="alert">{displayAssetMessage(projectAssetErrorMessage(assets.error))}</p>}
 
       {!assets.isError && <section className="space-y-3" aria-labelledby="project-assets-upload-title">
-        <div><h2 className="font-semibold" id="project-assets-upload-title">Agregar archivos</h2><p className="mt-1 text-sm text-muted-foreground" id="project-assets-limits">JPG, PNG o WebP: máximo 10 MB, hasta 8 imágenes. PDF: máximo 25 MB, hasta 4 documentos. Máximo 12 adjuntos en total.</p></div>
-        <label className="grid gap-1.5 text-sm font-semibold" htmlFor="project-assets-files">Seleccionar fotos o documentos</label>
+        <div><h2 className="font-semibold" id="project-assets-upload-title">{t('projectAssets.addFiles')}</h2><p className="mt-1 text-sm text-muted-foreground" id="project-assets-limits">{t('projectAssets.limits')}</p></div>
+        <label className="grid gap-1.5 text-sm font-semibold" htmlFor="project-assets-files">{t('projectAssets.select')}</label>
         <Input accept={projectAssetAccept} aria-describedby="project-assets-limits" disabled={!editable || assets.isPending} id="project-assets-files" key={fileInputVersion} multiple onChange={selectFiles} type="file" />
         {files.length > 0 && <ul className="grid gap-1 text-sm">{files.map(file => <li key={`${file.name}-${file.size}`}>{file.name} · {formatBytes(file.size)}</li>)}</ul>}
-        {selectionError && <p className="text-sm text-destructive" role="alert">{selectionError}</p>}
-        <Button disabled={!editable || files.length === 0} onClick={() => upload.mutate(files)} type="button"><UploadCloud aria-hidden className="size-4" /> Cargar y verificar {files.length > 1 ? `${files.length} archivos` : 'archivo'}</Button>
+        {selectionError && <p className="text-sm text-destructive" role="alert">{displayAssetMessage(selectionError)}</p>}
+        <Button disabled={!editable || files.length === 0} onClick={() => upload.mutate(files)} type="button"><UploadCloud aria-hidden className="size-4" /> {files.length > 1 ? t('projectAssets.uploadMany', { count: files.length }) : t('projectAssets.uploadOne')}</Button>
       </section>}
 
-      {tasks.length > 0 && <section aria-label="Estado de las cargas" aria-live="polite"><ul className="grid gap-2">{tasks.map(task => <li className="rounded-lg border p-3 text-sm" key={task.id}><div className="flex items-center gap-2 font-semibold">{task.phase === 'ready' ? <CheckCircle2 aria-hidden className="size-4 text-primary" /> : task.phase === 'error' ? <ShieldAlert aria-hidden className="size-4 text-destructive" /> : <LoaderCircle aria-hidden className="size-4 animate-spin" />}<span>{task.fileName}: {uploadPhaseLabel(task)}</span></div><p className="mt-1 text-xs text-muted-foreground">{task.detail}</p></li>)}</ul></section>}
+      {tasks.length > 0 && <section aria-label={t('projectAssets.uploadStatus')} aria-live="polite"><ul className="grid gap-2">{tasks.map(task => <li className="rounded-lg border p-3 text-sm" key={task.id}><div className="flex items-center gap-2 font-semibold">{task.phase === 'ready' ? <CheckCircle2 aria-hidden className="size-4 text-primary" /> : task.phase === 'error' ? <ShieldAlert aria-hidden className="size-4 text-destructive" /> : <LoaderCircle aria-hidden className="size-4 animate-spin" />}<span>{task.fileName}: {displayAssetMessage(uploadPhaseLabel(task))}</span></div><p className="mt-1 text-xs text-muted-foreground">{displayAssetMessage(task.detail)}</p></li>)}</ul></section>}
 
-      {operationError && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">{operationError}</p>}
+      {operationError && <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground" role="alert">{displayAssetMessage(operationError)}</p>}
 
-      {deleteCandidate && <div aria-describedby="delete-project-asset-description" aria-labelledby="delete-project-asset-title" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4" role="alertdialog"><p className="font-semibold" id="delete-project-asset-title">¿Eliminar {deleteCandidate.displayName}?</p><p className="mt-1 text-sm text-muted-foreground" id="delete-project-asset-description">Esta acción quitará el archivo del proyecto.</p><div className="mt-3 flex gap-2"><Button disabled={remove.isPending} onClick={() => remove.mutate(deleteCandidate)} type="button" variant="outline">{remove.isPending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Trash2 aria-hidden className="size-4" />} Confirmar eliminación</Button><Button disabled={remove.isPending} onClick={() => setDeleteCandidate(null)} type="button" variant="ghost">Cancelar</Button></div></div>}
+      {deleteCandidate && <div aria-describedby="delete-project-asset-description" aria-labelledby="delete-project-asset-title" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4" role="alertdialog"><p className="font-semibold" id="delete-project-asset-title">{t('projectAssets.deleteTitle', { name: deleteCandidate.displayName })}</p><p className="mt-1 text-sm text-muted-foreground" id="delete-project-asset-description">{t('projectAssets.deleteHelp')}</p><div className="mt-3 flex flex-wrap gap-2"><Button disabled={remove.isPending} onClick={() => remove.mutate(deleteCandidate)} type="button" variant="outline">{remove.isPending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Trash2 aria-hidden className="size-4" />} {t('projectAssets.confirmDelete')}</Button><Button disabled={remove.isPending} onClick={() => setDeleteCandidate(null)} type="button" variant="ghost">{t('projectAssets.cancel')}</Button></div></div>}
 
-      {items.length === 0 && !assets.isPending && !assets.isError && <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Este proyecto todavía no tiene fotos ni documentos.</p>}
+      {items.length === 0 && !assets.isPending && !assets.isError && <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{t('projectAssets.empty')}</p>}
       {items.length > 0 && <div className="grid gap-4 lg:grid-cols-2">{items.map((asset, index) => <AssetCard asset={asset} busy={busy} deleting={deleteCandidate?.assetId === asset.assetId} editable={editable} first={index === 0} key={asset.assetId} last={index === items.length - 1} onDelete={setDeleteCandidate} onMove={(item, direction) => reorder.mutate({ asset: item, direction })} onSave={(item, input) => metadata.mutate({ asset: item, input })} organizationId={organizationId} projectId={projectId} />)}</div>}
 
-      <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground"><strong className="text-foreground">Videos: próxima fase.</strong> Se habilitarán cuando exista validación y transcodificación aislada para ese formato.</div>
+      <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground"><strong className="text-foreground">{t('projectAssets.videoNext')}</strong> {t('projectAssets.videoHelp')}</div>
     </CardContent>
   </Card>
 }
