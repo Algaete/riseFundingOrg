@@ -892,9 +892,37 @@ public sealed class ProjectAssetSecurityTests
             throw new NotSupportedException();
         }
 
+        public Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
+            ProtectedProjectAssetBlobLocation location,
+            string contentType,
+            long expectedLength,
+            byte[] expectedContentHash,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<ProjectAssetBlobReceipt?>(null);
+
+        public Task<ProjectAssetBlobReceipt?> GetVerifiedVersionReceiptAsync(
+            ProtectedProjectAssetBlobLocation location,
+            string versionId,
+            string contentType,
+            long expectedLength,
+            byte[] expectedContentHash,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<ProjectAssetBlobReceipt?>(null);
+
         public Task DeleteIfMatchAsync(
             ProtectedProjectAssetBlobLocation location,
             string? expectedETag,
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+            DeletedLocations.Add(location);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteVersionIfMatchAsync(
+            ProtectedProjectAssetBlobLocation location,
+            string versionId,
+            string expectedETag,
             CancellationToken cancellationToken)
         {
             Calls++;

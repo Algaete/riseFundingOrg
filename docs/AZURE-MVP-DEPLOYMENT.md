@@ -111,12 +111,13 @@ gate propio de 12B.
 
 No habilitar acceso público anónimo en Blob. No usar account keys en App Settings.
 
-El incremento local `036A` no provisiona ni activa automáticamente sus adjuntos de proyecto. Antes
-de habilitarlos se deben crear los containers privados `fp-project-incoming`,
-`fp-project-quarantine` y `fp-project-trusted`, asignar RBAC mínimo a la identidad de la API,
-versionar CORS exacto para el origen web y lifecycle para cargas abandonadas/versiones. Además se
-debe completar la decodificación/re-encode de imágenes con eliminación de EXIF y publicar/validar el
-worker de resultados Defender/Event Grid con casos limpio y malicioso. Hasta entonces mantener
+Los incrementos locales `036A/036B` no activan automáticamente sus adjuntos de proyecto. Bicep ya
+declara los containers privados `fp-project-incoming`, `fp-project-quarantine` y
+`fp-project-trusted`, CORS exacto y lifecycle, y el código incluye el worker autenticado de
+resultados Defender/Event Grid; nada de eso se ha aplicado o activado en Azure. Antes de habilitar se
+deben validar RBAC mínimo, provisionar Defender/Event Grid, completar la decodificación/re-encode de
+imágenes con eliminación de EXIF, incorporar retención DB-driven para adjuntos eliminados y
+cuarentenas terminales, y ejecutar E2E limpio y malicioso. Hasta entonces mantener
 `ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false`; video corresponde a una fase
 posterior.
 
@@ -209,6 +210,10 @@ PROJECT_ASSET_INCOMING_CONTAINER=fp-project-incoming
 PROJECT_ASSET_QUARANTINE_CONTAINER=fp-project-quarantine
 PROJECT_ASSET_TRUSTED_CONTAINER=fp-project-trusted
 PROJECT_ASSET_SCAN_MODE=MicrosoftDefender
+PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED=false
+PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME=<suscripcion-event-grid-exacta-y-distinta>
+PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES=240
+PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE=25
 FRONTEND_BASE_URL=https://app.<dominio>
 ALLOWED_CORS_ORIGINS=https://app.<dominio>
 Authentication__Jwt__Issuer=https://api.<dominio>
@@ -294,7 +299,7 @@ bash infra/scripts/prepare-database-dev.sh
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
 interactiva para la contraseña del SuperAdmin. La autenticación del operador queda fijada a la
 sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, aplica las
-migraciones pendientes, confirma 36 migraciones registradas sin pendientes y luego ejecuta los 36
+migraciones pendientes, confirma 37 migraciones registradas sin pendientes y luego ejecuta los 37
 smokes con rollback, verifica
 `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y vincula las tres UAMI SQL por
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en
@@ -331,7 +336,7 @@ El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API.
 refresh/login persistente entre hosts cross-site ni PUT directo a Blob; esas pruebas esperan dominios
 same-site y CORS/Functions/Defender para importación.
 
-Para `036A`, desplegar en este orden: base de datos `036` → API en el 100 % del tráfico → containers,
+Para `036A/036B`, desplegar en este orden: base de datos `036`→`037` → API en el 100 % del tráfico → containers,
 RBAC, CORS, lifecycle, sanitización y worker Defender/Event Grid verificados → frontend. Cambiar
 `VITE_PROJECT_ASSETS_ENABLED=true` únicamente en el último paso y solo si el backend ya está
 habilitado; no exponer la interfaz durante un rollout parcial.

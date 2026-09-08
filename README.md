@@ -37,19 +37,23 @@ Los incrementos de feedback del MVP están preparados localmente mediante
 `031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql`,
 `033_project_impact_profile.sql`, `034_organization_funding_experience_types.sql` y
 `035_organization_custom_taxonomy.sql`, junto con la base gobernada de adjuntos
-`036_project_assets.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere coincidencias
+`036_project_assets.sql` y su pipeline Defender
+`037_project_asset_defender_pipeline.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere coincidencias
 automáticas y agregan al proyecto una
 etapa independiente junto con los 17 ODS oficiales, permiten registrar de forma opcional los tipos
 de financiadores con los que la organización tiene experiencia y agregan opciones privadas en áreas
 de impacto, poblaciones, tipos de proyecto e idiomas. El incremento `036A` admite imágenes
 JPG/PNG/WebP y documentos PDF privados mediante carga directa gobernada, cuarentena, scan y promoción
-al container confiable; video queda reservado para una fase posterior. Estas seis migraciones y sus
+al container confiable; video queda reservado para una fase posterior. `037` agrega recepción
+Event Grid autenticada, recibos idempotentes, rehash acotado, revocación de confianza ante un
+resultado tardío y watchdog de scans pendientes. Estas siete migraciones y sus
 interfaces todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
 continúa siendo `001`→`030`. El rollout debe respetar el orden base de datos → 100 % del tráfico API
 nuevo → infraestructura de seguridad → frontend, activando `VITE_PROJECT_ASSETS_ENABLED` al final.
-La funcionalidad de adjuntos permanece apagada hasta implementar decode/reencode real con eliminación
-de EXIF, publicar y validar el worker Defender/Event Grid, y provisionar containers privados, CORS y
-lifecycle. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
+La infraestructura como código ya declara containers privados, CORS exacto y lifecycle, pero no se
+ha aplicado. La funcionalidad de adjuntos permanece apagada hasta implementar decode/reencode real
+con eliminación de EXIF y provisionar y validar Defender/Event Grid con pruebas E2E limpia y
+maliciosa. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
@@ -247,6 +251,11 @@ Variables agrupadas:
   TTL/lease/timeout y `PROJECT_ASSET_SCAN_MODE`. Backend y frontend permanecen apagados con
   `PROJECT_ASSETS_ENABLED=false` y `VITE_PROJECT_ASSETS_ENABLED=false` hasta completar los gates de
   sanitización, Defender/Event Grid y Storage; el navegador nunca recibe account keys.
+- Pipeline 036B/037: `PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED`,
+  `PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME`,
+  `PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES` y
+  `PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE`. Sus dos Functions y el feature principal salen
+  explícitamente deshabilitados.
 - Extracción/retención: DOCUMENT_EXTRACTION_MAX_BYTES, DOCUMENT_EXTRACTION_MAX_PAGES,
   DOCUMENT_EXTRACTION_MAX_CHARACTERS, DOCUMENT_EXTRACTION_MAX_UTF8_BYTES,
   DOCUMENT_EXTRACTION_MAX_STACK_DEPTH, DOCUMENT_EXTRACTION_TIMEOUT_SECONDS,
@@ -474,9 +483,11 @@ candidato sigue sin publicarse.
 ### Activación Azure pendiente
 
 El código no habilita ni factura Defender/Event Grid por sí solo. Antes de producción, un operador
-debe crear/configurar esos recursos, registrar la política exacta con
-`configure-defender-event-grid-trust`, asignar RBAC mínimo y ejecutar un E2E real limpio/malicioso.
-Hasta entonces `DEFENDER_EVENT_GRID_ENABLED=false`, el scan productivo falla cerrado y no existe un
+debe crear/configurar esos recursos, registrar políticas exactas y separadas con
+`configure-defender-event-grid-trust --workload source-document` y
+`--workload project-asset`, usar suscripciones distintas, asignar RBAC mínimo y ejecutar un E2E real
+limpio/malicioso. Hasta entonces `DEFENDER_EVENT_GRID_ENABLED=false` y
+`PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED=false`; el scan productivo falla cerrado y no existe un
 botón de reintento que simule Defender.
 
 El despliegue usa cuatro UAMI distintas; una identidad adjunta a un Function App no se adjunta al
@@ -1057,7 +1068,7 @@ su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producció
 el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
 incluyeron una llamada a OpenAI o a otro proveedor externo.
 
-## Adjuntos gobernados de proyectos — incremento 036A
+## Adjuntos gobernados de proyectos — incrementos 036A/036B
 
 La base local permite que un Admin de la organización prepare imágenes JPG, PNG o WebP y documentos
 PDF para un proyecto. La carga usa una autorización SAS HTTPS create-only de cinco minutos sobre un
@@ -1072,11 +1083,15 @@ alternativo. Video no está habilitado en 036A. Aunque contratos, API e interfaz
 `ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false` son obligatorios hasta completar:
 
 - decodificación y re-encode real de cada imagen, eliminando EXIF y otros metadatos no necesarios;
-- worker de resultados de Microsoft Defender for Storage/Event Grid, con prueba E2E limpia y maliciosa;
-- containers privados `fp-project-incoming`, `fp-project-quarantine` y `fp-project-trusted`, RBAC
-  mínimo, CORS exacto para el origen web y lifecycle de cargas abandonadas/versiones.
+- retención física gobernada por base de datos para purgar blobs de adjuntos eliminados y
+  cuarentenas terminales sin afectar contenido confiable todavía activo;
+- provisión de Microsoft Defender for Storage/Event Grid y prueba E2E limpia y maliciosa del worker
+  ya implementado localmente;
+- aplicación y verificación en Azure de los containers privados `fp-project-incoming`,
+  `fp-project-quarantine` y `fp-project-trusted`, RBAC mínimo, CORS exacto para el origen web y
+  lifecycle de cargas abandonadas/versiones, ya declarados en Bicep.
 
-El orden de rollout es base de datos `036` → API nueva en todo el tráfico → infraestructura de
+El orden de rollout es base de datos `036`→`037` → API nueva en todo el tráfico → infraestructura de
 seguridad validada → frontend con el feature flag habilitado al final. No se debe activar parcialmente.
 
 Endpoints principales del backend hasta este cierre:

@@ -30,6 +30,10 @@ public sealed class SqlConfigurationTests
             ["SOURCE_DOCUMENT_SCAN_TIMEOUT_SECONDS"] = "10",
             ["SOURCE_DOCUMENT_SCAN_MODE"] = "DevelopmentFake",
             ["SOURCE_DOCUMENT_DEVELOPMENT_FAKE_RESULT"] = "Clean",
+            ["PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED"] = "true",
+            ["PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME"] = "project-assets",
+            ["PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES"] = "240",
+            ["PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE"] = "25",
             ["IMPORT_WORKER_LEASE_SECONDS"] = "1800",
             ["IMPORT_SCHEDULER_BATCH_SIZE"] = "10",
             ["IMPORT_OUTBOX_BATCH_SIZE"] = "25",
@@ -63,6 +67,14 @@ public sealed class SqlConfigurationTests
         Assert.Equal("10", configuration["SourceDocuments:ScanTimeoutSeconds"]);
         Assert.Equal("DevelopmentFake", configuration["SourceDocuments:ScanMode"]);
         Assert.Equal("Clean", configuration["SourceDocuments:DevelopmentFakeResult"]);
+        Assert.Equal("true", configuration["ProjectAssetDefenderEventGrid:Enabled"]);
+        Assert.Equal(
+            "project-assets",
+            configuration["ProjectAssetDefenderEventGrid:ExpectedSubscriptionName"]);
+        Assert.Equal(
+            "240",
+            configuration["ProjectAssetDefenderEventGrid:PendingScanTimeoutMinutes"]);
+        Assert.Equal("25", configuration["ProjectAssetDefenderEventGrid:WatchdogBatchSize"]);
         Assert.Equal("1800", configuration["ImportWorkers:LeaseSeconds"]);
         Assert.Equal("10", configuration["ImportWorkers:SchedulerBatchSize"]);
         Assert.Equal("25", configuration["ImportWorkers:OutboxBatchSize"]);

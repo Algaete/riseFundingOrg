@@ -465,21 +465,27 @@ public sealed class SqlProjectAssetRepository(
                 commandTimeout: 30,
                 cancellationToken: cancellationToken));
             return new ProjectAssetMutation(
-                row.Succeeded,
-                row.Code,
-                row.IntentPublicId,
-                row.Status.HasValue ? (ProjectAssetUploadIntentStatus)row.Status.Value : null,
-                row.AssetPublicId,
-                row.StorageStatus.HasValue
+                Succeeded: row.Succeeded,
+                Code: row.Code,
+                IntentPublicId: row.IntentPublicId,
+                IntentStatus: row.Status.HasValue
+                    ? (ProjectAssetUploadIntentStatus)row.Status.Value : null,
+                AssetPublicId: row.AssetPublicId,
+                StorageStatus: row.StorageStatus.HasValue
                     ? (ProjectAssetStorageStatus)row.StorageStatus.Value : null,
-                row.ScanStatus.HasValue ? (ProjectAssetScanStatus)row.ScanStatus.Value : null,
-                row.ScanProvider.HasValue
+                ScanStatus: row.ScanStatus.HasValue
+                    ? (ProjectAssetScanStatus)row.ScanStatus.Value : null,
+                ScanProvider: row.ScanProvider.HasValue
                     ? (ProjectAssetScanProvider)row.ScanProvider.Value : null,
-                row.RowVersion,
-                row.AssetRowVersion,
-                row.ProjectRowVersion,
-                ToUtc(row.ExpiresAtUtc),
-                row.WasReplay);
+                IntentRowVersion: row.RowVersion,
+                AssetRowVersion: row.AssetRowVersion,
+                ProjectRowVersion: row.ProjectRowVersion,
+                ExpiresAtUtc: ToUtc(row.ExpiresAtUtc),
+                WasReplay: row.WasReplay,
+                RevokedTrustedBlobContainer: row.RevokedTrustedBlobContainer,
+                RevokedTrustedBlobObjectName: row.RevokedTrustedBlobObjectName,
+                RevokedTrustedBlobETag: row.RevokedTrustedBlobETag,
+                RevokedTrustedBlobVersionId: row.RevokedTrustedBlobVersionId);
         }
         catch (SqlException exception)
         {
@@ -550,6 +556,10 @@ public sealed class SqlProjectAssetRepository(
         public byte[]? ProjectRowVersion { get; init; }
         public DateTime? ExpiresAtUtc { get; init; }
         public bool WasReplay { get; init; }
+        public string? RevokedTrustedBlobContainer { get; init; }
+        public string? RevokedTrustedBlobObjectName { get; init; }
+        public string? RevokedTrustedBlobETag { get; init; }
+        public string? RevokedTrustedBlobVersionId { get; init; }
     }
 
     private sealed class FinalizeRow

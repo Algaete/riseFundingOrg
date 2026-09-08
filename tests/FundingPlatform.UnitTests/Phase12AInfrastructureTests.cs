@@ -27,6 +27,19 @@ public sealed class Phase12AInfrastructureTests
         Assert.Equal(2, environment.Split("maximumInstanceCount: 1", StringSplitOptions.None).Length - 1);
         Assert.Contains("Microsoft.Storage/storageAccounts/managementPolicies", environment, StringComparison.Ordinal);
         Assert.Contains("fp-source-incoming/uploads/", environment, StringComparison.Ordinal);
+        Assert.Contains("fp-project-incoming/", environment, StringComparison.Ordinal);
+        Assert.Contains("name: 'fp-project-quarantine'", environment, StringComparison.Ordinal);
+        Assert.Contains("name: 'fp-project-trusted'", environment, StringComparison.Ordinal);
+        Assert.Contains("name: 'delete-project-asset-versions'", environment,
+            StringComparison.Ordinal);
+        Assert.Contains("'fp-project-quarantine/'", environment, StringComparison.Ordinal);
+        Assert.Contains("'fp-project-trusted/'", environment, StringComparison.Ordinal);
+        Assert.Contains("allowedOrigins: [\n              frontendDefaultOrigin", environment,
+            StringComparison.Ordinal);
+        Assert.Contains("allowedMethods: [\n              'PUT'", environment,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("allowedOrigins: [\n              '*'", environment,
+            StringComparison.Ordinal);
         Assert.Contains("daysAfterModificationGreaterThan: 1", environment, StringComparison.Ordinal);
         Assert.Contains("daysAfterCreationGreaterThan: 14", environment, StringComparison.Ordinal);
         Assert.Contains("Microsoft.App/managedEnvironments", environment, StringComparison.Ordinal);
@@ -78,6 +91,7 @@ public sealed class Phase12AInfrastructureTests
         foreach (var setting in new[]
         {
             "DefenderEventGrid__Enabled",
+            "ProjectAssetDefenderEventGrid__Enabled",
             "OfficialRss__Enabled",
             "Semantic__Enabled",
             "OpenAI__Enabled",
@@ -282,6 +296,17 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("stage must be base, api or frontend", verifier, StringComparison.Ordinal);
         Assert.Contains("GP_S_Gen5_1|1|60|0.5", verifier, StringComparison.Ordinal);
         Assert.Contains("7|12", verifier, StringComparison.Ordinal);
+        Assert.Contains("tags.boundary=='private-documents'", verifier, StringComparison.Ordinal);
+        Assert.Contains("false|false|true|TLS1_2|true|Enabled", verifier,
+            StringComparison.Ordinal);
+        Assert.Contains(".properties.isVersioningEnabled == true", verifier,
+            StringComparison.Ordinal);
+        Assert.Contains("$rule.allowedOrigins | sort", verifier, StringComparison.Ordinal);
+        Assert.Contains("fp-project-incoming\", \"fp-project-quarantine\", \"fp-project-trusted",
+            verifier, StringComparison.Ordinal);
+        Assert.Contains("delete-project-asset-versions", verifier, StringComparison.Ordinal);
+        Assert.Contains("private document lifecycle policy is missing or has drifted", verifier,
+            StringComparison.Ordinal);
         Assert.Contains("maximumInstanceCount", verifier, StringComparison.Ordinal);
         Assert.Contains("basicPublishingCredentialsPolicies/${publishing_endpoint}", verifier,
             StringComparison.Ordinal);
@@ -290,7 +315,7 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("verify_disabled_function_settings", verifier, StringComparison.Ordinal);
         Assert.Contains("[?ends_with(name, '.Disabled')].[name, value]", verifier,
             StringComparison.Ordinal);
-        Assert.Equal(16, verifier.Split(".Disabled=true'", StringSplitOptions.None).Length - 1);
+        Assert.Equal(18, verifier.Split(".Disabled=true'", StringSplitOptions.None).Length - 1);
         Assert.Contains("${registry_server}/rise-funding-api@", verifier, StringComparison.Ordinal);
         Assert.Contains("^sha256:[0-9a-f]{64}$", verifier, StringComparison.Ordinal);
         Assert.Contains("/health", verifier, StringComparison.Ordinal);

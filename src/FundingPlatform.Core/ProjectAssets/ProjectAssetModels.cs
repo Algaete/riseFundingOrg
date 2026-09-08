@@ -102,7 +102,11 @@ public sealed record ProjectAssetMutation(
     byte[]? AssetRowVersion = null,
     byte[]? ProjectRowVersion = null,
     DateTimeOffset? ExpiresAtUtc = null,
-    bool WasReplay = false);
+    bool WasReplay = false,
+    string? RevokedTrustedBlobContainer = null,
+    string? RevokedTrustedBlobObjectName = null,
+    string? RevokedTrustedBlobETag = null,
+    string? RevokedTrustedBlobVersionId = null);
 
 public enum ProjectAssetOutcome
 {

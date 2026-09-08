@@ -26,6 +26,7 @@ public sealed class SqlEventIngressTrustPolicyRepository(
                     SuperAdminUserPublicId = command.SuperAdminUserId,
                     PolicyPublicId = command.PolicyId,
                     command.ExpectedRowVersion,
+                    WorkloadKind = (byte)command.WorkloadKind,
                     command.TenantId,
                     command.PrincipalObjectId,
                     command.ApplicationClientId,

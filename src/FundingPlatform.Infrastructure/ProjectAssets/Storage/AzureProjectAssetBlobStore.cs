@@ -6,6 +6,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using FundingPlatform.Application.ProjectAssets;
+using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.ProjectAssets.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -107,7 +108,8 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
     {
         var client = RequireClient();
         var existing = await GetVerifiedReceiptAsync(
-            client, destination, contentType, expectedLength, expectedContentHash, cancellationToken);
+            client, destination, null, contentType, expectedLength, expectedContentHash,
+            cancellationToken);
         if (existing is not null) return existing;
 
         await using var sourceRead = await OpenReadAsync(source, sourceETag, cancellationToken);
@@ -146,7 +148,7 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         catch (RequestFailedException exception) when (exception.Status is 409 or 412)
         {
             return await GetVerifiedReceiptAsync(
-                       client, destination, contentType, expectedLength, expectedContentHash,
+                       client, destination, null, contentType, expectedLength, expectedContentHash,
                        cancellationToken)
                    ?? throw new ProjectAssetStorageException("copy", "content-conflict", 409);
         }
@@ -155,6 +157,35 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
             throw StorageFailure("copy", exception);
         }
     }
+
+    public Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string contentType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        CancellationToken cancellationToken) => GetVerifiedReceiptAsync(
+        RequireClient(),
+        location,
+        null,
+        contentType,
+        expectedLength,
+        expectedContentHash,
+        cancellationToken);
+
+    public Task<ProjectAssetBlobReceipt?> GetVerifiedVersionReceiptAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string versionId,
+        string contentType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        CancellationToken cancellationToken) => GetVerifiedReceiptAsync(
+        RequireClient(),
+        location,
+        RequireVersionId(versionId),
+        contentType,
+        expectedLength,
+        expectedContentHash,
+        cancellationToken);
 
     public async Task DeleteIfMatchAsync(
         ProtectedProjectAssetBlobLocation location,
@@ -176,6 +207,33 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         catch (RequestFailedException exception)
         {
             throw StorageFailure("delete", exception);
+        }
+    }
+
+    public async Task DeleteVersionIfMatchAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string versionId,
+        string expectedETag,
+        CancellationToken cancellationToken)
+    {
+        var client = RequireClient();
+        try
+        {
+            await GetBlobClient(client, location)
+                .WithVersion(RequireVersionId(versionId))
+                .DeleteIfExistsAsync(
+                    DeleteSnapshotsOption.None,
+                    Conditions(expectedETag),
+                    cancellationToken);
+        }
+        catch (RequestFailedException exception) when (exception.Status is 404 or 412)
+        {
+            // The caller verifies absence afterward. A changed immutable version is never
+            // deleted using a broader condition.
+        }
+        catch (RequestFailedException exception)
+        {
+            throw StorageFailure("delete-version", exception);
         }
     }
 
@@ -213,6 +271,7 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
     private static async Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
         BlobServiceClient client,
         ProtectedProjectAssetBlobLocation location,
+        string? versionId,
         string contentType,
         long expectedLength,
         byte[] expectedContentHash,
@@ -220,7 +279,9 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
     {
         try
         {
-            var properties = (await GetBlobClient(client, location).GetPropertiesAsync(
+            var blob = GetBlobClient(client, location);
+            if (versionId is not null) blob = blob.WithVersion(versionId);
+            var properties = (await blob.GetPropertiesAsync(
                 cancellationToken: cancellationToken)).Value;
             var storedHash = properties.Metadata.FirstOrDefault(pair => string.Equals(
                 pair.Key, ContentHashMetadata, StringComparison.OrdinalIgnoreCase)).Value;
@@ -255,11 +316,16 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
 
     private static string NormalizeETag(string value)
     {
-        var normalized = value.Trim();
-        if (normalized.Length is < 3 or > 100 || normalized[0] != '"' || normalized[^1] != '"' ||
-            normalized.Contains('\r') || normalized.Contains('\n'))
-            throw new ProjectAssetStorageException("etag", "invalid-blob-etag", 409);
-        return normalized;
+        if (BlobETagNormalizer.TryNormalize(value, out var normalized)) return normalized;
+        throw new ProjectAssetStorageException("etag", "invalid-blob-etag", 409);
+    }
+
+    private static string RequireVersionId(string value)
+    {
+        if (value.Length is < 1 or > 200 || value.Any(char.IsControl) ||
+            value.Contains('&') || value.Contains('#') || value.Contains('?'))
+            throw new ProjectAssetStorageException("version", "invalid-blob-version", 409);
+        return value;
     }
 
     private static bool TryReadHash(string? value, out byte[] hash)

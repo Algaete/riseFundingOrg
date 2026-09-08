@@ -44,6 +44,8 @@ PROJECTS = (
             "ImportOutboxDispatcherFunction": "timerTrigger",
             "ImportQueueFunction": "queueTrigger",
             "ImportSchedulerFunction": "timerTrigger",
+            "ProjectAssetDefenderEventGridFunction": "httpTrigger",
+            "ProjectAssetDefenderScanWatchdogFunction": "timerTrigger",
             "SemanticProcessingFunction": "timerTrigger",
             "SourceDocumentContentRetentionFunction": "timerTrigger",
         },
@@ -212,6 +214,11 @@ def validate_trigger_contract(spec: dict, function: dict) -> None:
             "authLevel": "Anonymous",
             "methods": ["post"],
             "route": "webhooks/defender-storage",
+        },
+        "ProjectAssetDefenderEventGridFunction": {
+            "authLevel": "Anonymous",
+            "methods": ["post"],
+            "route": "webhooks/defender-project-assets",
         },
         "ImportQueueFunction": {
             "connection": "AzureWebJobsStorage",

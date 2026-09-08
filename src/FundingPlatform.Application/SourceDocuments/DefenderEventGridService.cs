@@ -256,7 +256,6 @@ public sealed class DefenderEventGridService(
             // this event. Replays repeat the idempotent cleanup on storage failure.
             if (status == SourceDocumentScanStatus.Clean &&
                 trustedLocation is not null && trustedReceipt is not null &&
-                mutation.Code != "scan-result-applied" &&
                 mutation.ScanStatus != SourceDocumentScanStatus.Clean)
             {
                 if (!BlobETagNormalizer.TryNormalize(

@@ -20,7 +20,7 @@ public sealed partial class WorkerTriggerDeploymentSafetyTests
             "module extractionWorker './flex-function.bicep'",
             "module environmentRbac './environment-rbac.bicep'");
 
-        Assert.Equal(14, generalFunctions.Count);
+        Assert.Equal(16, generalFunctions.Count);
         Assert.Equal(2, extractionFunctions.Count);
         AssertExactDisabledSettings(generalSettings, generalFunctions);
         AssertExactDisabledSettings(extractionSettings, extractionFunctions);

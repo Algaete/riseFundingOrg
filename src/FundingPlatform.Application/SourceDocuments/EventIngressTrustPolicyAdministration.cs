@@ -1,13 +1,21 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace FundingPlatform.Application.SourceDocuments;
 
+public enum EventIngressWorkloadKind : byte
+{
+    SourceDocument = 1,
+    ProjectAsset = 2
+}
+
 public sealed record EventIngressTrustPolicyCommand(
     Guid SuperAdminUserId,
     Guid? PolicyId,
     byte[]? ExpectedRowVersion,
+    EventIngressWorkloadKind WorkloadKind,
     Guid TenantId,
     Guid PrincipalObjectId,
     Guid ApplicationClientId,
@@ -52,11 +60,24 @@ public sealed class EventIngressTrustPolicyAdministrationService(
         var normalized = Normalize(command);
         Validate(normalized);
         var keyHash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized.IdempotencyKey));
-        var requestHash = SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n',
-            "EventIngressTrustPolicy/v1",
+        var requestFields = new List<string>
+        {
+            normalized.WorkloadKind == EventIngressWorkloadKind.SourceDocument
+                ? "EventIngressTrustPolicy/v1"
+                : "EventIngressTrustPolicy/v2",
             normalized.PolicyId?.ToString("D") ?? string.Empty,
             normalized.ExpectedRowVersion is null
-                ? string.Empty : Convert.ToHexString(normalized.ExpectedRowVersion),
+                ? string.Empty : Convert.ToHexString(normalized.ExpectedRowVersion)
+        };
+        // Preserve the byte-for-byte v1 source-document hash so retrying a policy
+        // configured before 037 remains idempotent. New workloads are explicitly
+        // bound to the v2 hash domain.
+        if (normalized.WorkloadKind != EventIngressWorkloadKind.SourceDocument)
+        {
+            requestFields.Add(
+                ((byte)normalized.WorkloadKind).ToString(CultureInfo.InvariantCulture));
+        }
+        requestFields.AddRange([
             normalized.TenantId.ToString("D"),
             normalized.PrincipalObjectId.ToString("D"),
             normalized.ApplicationClientId.ToString("D"),
@@ -68,7 +89,10 @@ public sealed class EventIngressTrustPolicyAdministrationService(
             normalized.IsEnabled ? "1" : "0",
             normalized.ValidFromUtc.UtcDateTime.ToString("O"),
             normalized.ExpiresAtUtc?.UtcDateTime.ToString("O") ?? string.Empty,
-            normalized.Reason)));
+            normalized.Reason
+        ]);
+        var requestHash = SHA256.HashData(
+            Encoding.UTF8.GetBytes(string.Join('\n', requestFields)));
         return await repository.UpsertAsync(
             normalized, keyHash, requestHash, timeProvider.GetUtcNow(), cancellationToken);
     }
@@ -94,6 +118,8 @@ public sealed class EventIngressTrustPolicyAdministrationService(
             "^/subscriptions/[0-9a-f-]{36}/resourcegroups/[^/?#]+/providers/microsoft\\.storage/storageaccounts/[a-z0-9]{3,24}$";
         if (value.SuperAdminUserId == Guid.Empty || value.TenantId == Guid.Empty ||
             value.PrincipalObjectId == Guid.Empty || value.ApplicationClientId == Guid.Empty ||
+            value.WorkloadKind is not (EventIngressWorkloadKind.SourceDocument or
+                EventIngressWorkloadKind.ProjectAsset) ||
             (value.PolicyId.HasValue != (value.ExpectedRowVersion is { Length: 8 })) ||
             !Regex.IsMatch(value.TopicResourceId, topicPattern, RegexOptions.CultureInvariant) ||
             !Regex.IsMatch(value.StorageAccountResourceId, storagePattern, RegexOptions.CultureInvariant) ||

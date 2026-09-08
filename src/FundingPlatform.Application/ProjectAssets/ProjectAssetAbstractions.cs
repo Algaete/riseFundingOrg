@@ -163,9 +163,30 @@ public interface IProjectAssetBlobStore
         byte[] expectedContentHash,
         CancellationToken cancellationToken);
 
+    Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string contentType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        CancellationToken cancellationToken);
+
+    Task<ProjectAssetBlobReceipt?> GetVerifiedVersionReceiptAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string versionId,
+        string contentType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        CancellationToken cancellationToken);
+
     Task DeleteIfMatchAsync(
         ProtectedProjectAssetBlobLocation location,
         string? expectedETag,
+        CancellationToken cancellationToken);
+
+    Task DeleteVersionIfMatchAsync(
+        ProtectedProjectAssetBlobLocation location,
+        string versionId,
+        string expectedETag,
         CancellationToken cancellationToken);
 }
 

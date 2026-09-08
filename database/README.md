@@ -24,13 +24,14 @@ principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
 `032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
 `034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
-`036_project_assets.sql`, con sus smokes transaccionales. Los seis incrementos están preparados
+`036_project_assets.sql` y `037_project_asset_defender_pipeline.sql`, con sus smokes
+transaccionales. Los siete incrementos están preparados
 para el siguiente release y todavía
 no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
 datos → 100 % del tráfico API nuevo → frontend; las guardas `51011` y `51013` impiden que una
 instancia API antigua genere un snapshot incompleto cuando la organización ya tiene relaciones
 nuevas. `036` permanece apagada por feature flag hasta completar su despliegue coordinado de SQL,
-Blob privado y API; no publica URLs de blobs ni reutiliza `SourceDocuments`.
+Blob privado, API y el pipeline `037`; no publica URLs de blobs ni reutiliza `SourceDocuments`.
 Huellas locales del incremento:
 
 - migración `031` (354 líneas/un lote):
@@ -56,7 +57,11 @@ Huellas locales del incremento:
 - migración `036` (3366 líneas/19 lotes):
   `e15b507d2c0823d49e7a8a3cfb845a3dda18a469a2fea75799939ba6bb99156d`;
 - smoke `036` (501 líneas/un lote):
-  `36bb637b22848b1a126be594ba73952925e0f9fbea50fbce602ad12626a25d12`.
+  `36bb637b22848b1a126be594ba73952925e0f9fbea50fbce602ad12626a25d12`;
+- migración `037` (1899 líneas/13 lotes):
+  `41a80202ddfe3183d2ce712d07dc7efb0edf0c86447b328b735505b923c041fd`;
+- smoke `037` (1015 líneas/un lote):
+  `6eeb417d3eec03b97328cd711be8ccfd436b614cb5aeff0274f7612ea585590c`.
 
 `036` agrega adjuntos privados de proyecto con intents de carga y finalización durable, cuarentena,
 escaneo fail-closed, ETags de proyecto/asset, portada única accesible sólo si está limpia/confiable y
@@ -65,6 +70,14 @@ borrado lógico. Admite hasta
 pendientes y 250 MiB por proyecto. Las lecturas privadas exigen membresía activa; las mutaciones,
 rol administrador. La publicación, la aprobación administrativa y la proyección marketplace
 revalidan que cada adjunto activo siga limpio y confiable.
+
+`037` separa el ingreso Event Grid de adjuntos y documentos fuente mediante `WorkloadKind`, registra
+receipts antes de aceptar resultados Defender, promueve sólo copias PDF limpias y revoca por versión
+exacta un resultado limpio que posteriormente se vuelva malicioso, fallido o vencido. Su watchdog
+cierra scans pendientes sin abrir acceso al blob y el wrapper del outbox reconoce únicamente los
+diez eventos de adjuntos conocidos, con ACK por lotes, validación estricta e idempotencia. El worker
+queda bloqueado por configuración hasta incorporar sanitización real de imágenes y el retiro físico
+DB-driven de blobs terminales; `037` no se ha ejecutado todavía contra Azure SQL real.
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

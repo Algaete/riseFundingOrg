@@ -89,10 +89,38 @@ resource documents 'Microsoft.Storage/storageAccounts@2023-05-01' = {
       deleteRetentionPolicy: { enabled: true, days: 14 }
       containerDeleteRetentionPolicy: { enabled: true, days: 14 }
       isVersioningEnabled: true
+      cors: {
+        corsRules: deployCompute ? [
+          {
+            allowedOrigins: [
+              frontendDefaultOrigin
+            ]
+            allowedMethods: [
+              'PUT'
+            ]
+            allowedHeaders: [
+              'content-type'
+              'if-none-match'
+              'x-ms-blob-type'
+              'x-ms-client-request-id'
+              'x-ms-version'
+            ]
+            exposedHeaders: [
+              'etag'
+              'x-ms-request-id'
+              'x-ms-version-id'
+            ]
+            maxAgeInSeconds: 300
+          }
+        ] : []
+      }
     }
     resource incoming 'containers' = { name: 'fp-source-incoming', properties: { publicAccess: 'None' } }
     resource quarantine 'containers' = { name: 'fp-source-quarantine', properties: { publicAccess: 'None' } }
     resource trusted 'containers' = { name: 'fp-source-trusted', properties: { publicAccess: 'None' } }
+    resource projectIncoming 'containers' = { name: 'fp-project-incoming', properties: { publicAccess: 'None' } }
+    resource projectQuarantine 'containers' = { name: 'fp-project-quarantine', properties: { publicAccess: 'None' } }
+    resource projectTrusted 'containers' = { name: 'fp-project-trusted', properties: { publicAccess: 'None' } }
     resource dataProtection 'containers' = { name: 'dataprotection', properties: { publicAccess: 'None' } }
   }
 }
@@ -126,6 +154,52 @@ resource documentsLifecycle 'Microsoft.Storage/storageAccounts/managementPolicie
               ]
               prefixMatch: [
                 'fp-source-incoming/uploads/'
+              ]
+            }
+          }
+        }
+        {
+          name: 'delete-abandoned-project-asset-uploads'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            actions: {
+              baseBlob: {
+                delete: {
+                  daysAfterModificationGreaterThan: 1
+                }
+              }
+            }
+            filters: {
+              blobTypes: [
+                'blockBlob'
+              ]
+              prefixMatch: [
+                'fp-project-incoming/'
+              ]
+            }
+          }
+        }
+        {
+          name: 'delete-project-asset-versions'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            actions: {
+              version: {
+                delete: {
+                  daysAfterCreationGreaterThan: 14
+                }
+              }
+            }
+            filters: {
+              blobTypes: [
+                'blockBlob'
+              ]
+              prefixMatch: [
+                'fp-project-incoming/'
+                'fp-project-quarantine/'
+                'fp-project-trusted/'
               ]
             }
           }
@@ -324,6 +398,11 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       SOURCE_DOCUMENT_INCOMING_CONTAINER: 'fp-source-incoming'
       SOURCE_DOCUMENT_QUARANTINE_CONTAINER: 'fp-source-quarantine'
       SOURCE_DOCUMENT_TRUSTED_CONTAINER: 'fp-source-trusted'
+      PROJECT_ASSETS_ENABLED: 'false'
+      PROJECT_ASSET_INCOMING_CONTAINER: 'fp-project-incoming'
+      PROJECT_ASSET_QUARANTINE_CONTAINER: 'fp-project-quarantine'
+      PROJECT_ASSET_TRUSTED_CONTAINER: 'fp-project-trusted'
+      PROJECT_ASSET_SCAN_MODE: 'MicrosoftDefender'
       APPLICATIONINSIGHTS_CONNECTION_STRING: insights.properties.ConnectionString
       APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'ClientId=${apiIdentity.properties.clientId};Authorization=AAD'
       OTEL_SERVICE_NAME: 'FundingPlatform.Api'
@@ -341,6 +420,7 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       Email__Enabled: 'false'
       Email__FrontendBaseUrl: frontendDefaultOrigin
       DefenderEventGrid__Enabled: 'false'
+      ProjectAssetDefenderEventGrid__Enabled: 'false'
       OfficialRss__Enabled: 'false'
       Semantic__Enabled: 'false'
       OpenAI__Enabled: 'false'
@@ -394,6 +474,8 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
       'AzureWebJobs.ImportQueueFunction.Disabled': 'true'
       'AzureWebJobs.DefenderEventGridFunction.Disabled': 'true'
       'AzureWebJobs.DefenderScanWatchdogFunction.Disabled': 'true'
+      'AzureWebJobs.ProjectAssetDefenderEventGridFunction.Disabled': 'true'
+      'AzureWebJobs.ProjectAssetDefenderScanWatchdogFunction.Disabled': 'true'
       'AzureWebJobs.ContentRetentionFunction.Disabled': 'true'
       'AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled': 'true'
       'AzureWebJobs.SemanticProcessingFunction.Disabled': 'true'
@@ -408,6 +490,12 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
       DocumentExtractionQueueStorage__senderClientId: extractionSenderIdentity.properties.clientId
       DocumentExtractionQueueStorage__clientId: extractionConsumerIdentity.properties.clientId
       DEFENDER_EVENT_GRID_ENABLED: 'false'
+      PROJECT_ASSETS_ENABLED: 'false'
+      PROJECT_ASSET_INCOMING_CONTAINER: 'fp-project-incoming'
+      PROJECT_ASSET_QUARANTINE_CONTAINER: 'fp-project-quarantine'
+      PROJECT_ASSET_TRUSTED_CONTAINER: 'fp-project-trusted'
+      PROJECT_ASSET_SCAN_MODE: 'MicrosoftDefender'
+      PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED: 'false'
       OFFICIAL_RSS_ENABLED: 'false'
       SEMANTIC_ENABLED: 'false'
       OPENAI_ENABLED: 'false'

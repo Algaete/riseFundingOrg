@@ -305,7 +305,7 @@ static async Task<int> ConfigureDefenderEventGridTrustAsync(
         throw new InvalidOperationException(
             "An interactive terminal is required for trust-policy configuration.");
     var values = ParseNamedOptions(arguments,
-        "--superadmin-user-id", "--policy-id", "--etag", "--tenant-id",
+        "--superadmin-user-id", "--policy-id", "--etag", "--workload", "--tenant-id",
         "--principal-object-id", "--application-client-id", "--topic-resource-id",
         "--event-subscription-name", "--storage-account-resource-id",
         "--storage-account-host", "--quarantine-container", "--valid-from-utc",
@@ -319,6 +319,7 @@ static async Task<int> ConfigureDefenderEventGridTrustAsync(
         RequiredGuid(values, "--superadmin-user-id"),
         policyId,
         rowVersion,
+        ParseEventIngressWorkload(Required(values, "--workload")),
         RequiredGuid(values, "--tenant-id"),
         RequiredGuid(values, "--principal-object-id"),
         RequiredGuid(values, "--application-client-id"),
@@ -884,6 +885,15 @@ static string ForConsole(string? value)
     return string.Concat(value.Select(character => char.IsControl(character) ? ' ' : character));
 }
 
+static EventIngressWorkloadKind ParseEventIngressWorkload(string value) =>
+    value.Trim().ToLowerInvariant() switch
+    {
+        "source-document" => EventIngressWorkloadKind.SourceDocument,
+        "project-asset" => EventIngressWorkloadKind.ProjectAsset,
+        _ => throw new ArgumentException(
+            "--workload must be either 'source-document' or 'project-asset'.")
+    };
+
 static string RequireValue(string[] arguments, ref int index, string option)
 {
     if (index + 1 >= arguments.Length)
@@ -904,6 +914,7 @@ static void PrintUsage()
     Console.WriteLine("  grant-superadmin --email <existing-account-address>");
     Console.WriteLine(
         "  configure-defender-event-grid-trust --superadmin-user-id <guid> " +
+        "--workload <source-document|project-asset> " +
         "--tenant-id <guid> --principal-object-id <guid> --application-client-id <guid> " +
         "--topic-resource-id <azure-resource-id> --event-subscription-name <name> " +
         "--storage-account-resource-id <azure-resource-id> --storage-account-host <host> " +
