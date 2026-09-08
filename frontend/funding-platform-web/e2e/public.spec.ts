@@ -149,6 +149,73 @@ test('ofrece acceso usable en la navegación móvil', async ({ page }) => {
   await expect(page.getByLabel('Correo electrónico')).toBeVisible()
 })
 
+for (const width of [320, 390, 768, 1024, 1440]) {
+  test(`conserva el idioma y permite usar la cabecera a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/')
+    const selector = page.getByRole('combobox', { name: 'Idioma', exact: true })
+    await expect(selector).toBeVisible()
+    await selector.selectOption('en')
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Connect your project with the funding and partners it needs' })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.getByRole('combobox', { name: 'Change theme' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeInViewport()
+    const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    expect(fits).toBe(true)
+    await expectNoSeriousAccessibilityViolations(page)
+
+    // Full reload exercises the persisted preference, not just React's in-memory state.
+    await page.reload()
+    await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveValue('en')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await page.getByRole('link', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveValue('en')
+    await expect(page.getByRole('main')).toHaveAttribute('lang', 'es')
+
+    await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('es')
+    await expect(page.getByRole('combobox', { name: 'Cambiar tema' })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es')
+  })
+}
+
+for (const roles of [['Professional'], ['Admin']]) {
+  for (const width of [320, 640, 768, 1024, 1440]) {
+    test(`mantiene la cabecera usable con sesión simulada ${roles[0]} a ${width}px`, async ({ page }) => {
+      await page.route('**/api/v1/auth/refresh', route => route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'authenticated',
+          accessToken: 'synthetic-ui-test-not-a-credential',
+          accessTokenExpiresAtUtc: new Date(Date.now() + 600_000).toISOString(),
+          user: {
+            publicId: '11111111-1111-1111-1111-111111111111',
+            email: 'interface@example.invalid', displayName: 'Organización de prueba',
+            preferredLocale: 'es-CL', roles, mfaEnabled: true,
+          },
+        }),
+      }))
+      await page.setViewportSize({ width, height: 844 })
+      await page.goto('/account')
+      await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
+      await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toBeInViewport()
+      await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeInViewport()
+      const fits = await page.locator('header').evaluate(header => header.scrollWidth <= header.clientWidth)
+      expect(fits).toBe(true)
+      await expect(page.getByRole('main')).toHaveAttribute('lang', 'es')
+      // An admin entry point must remain available on mobile without exposing it to members.
+      const mobileAdminLink = page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Administration', exact: true })
+      if (roles.includes('Admin') && width < 640) await expect(mobileAdminLink).toBeVisible()
+      else await expect(mobileAdminLink).toHaveCount(0)
+      if (roles.includes('Admin') && width >= 640) {
+        await expect(page.getByRole('link', { name: 'Go to the admin panel', exact: true })).toBeInViewport()
+      }
+    })
+  }
+}
+
 test('cumple accesibilidad automatizada básica en inicio, acceso y registro', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()

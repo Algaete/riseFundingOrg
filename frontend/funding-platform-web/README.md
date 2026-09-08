@@ -24,11 +24,28 @@ ejemplo, `FUNDING_PLATFORM_API_PROXY_TARGET=http://localhost:5080 npm run dev`.
 
 Instala Chromium una vez con `npx playwright install chromium`. La suite
 `npm run test:e2e:public` construye un preview aislado, simula únicamente los
-contratos públicos necesarios y valida navegación, guards, vista móvil y reglas axe
+contratos necesarios y valida navegación, guards, vista móvil y reglas axe
 etiquetadas WCAG 2.0/2.1 A/AA. Es una comprobación automática, no una certificación
 de conformidad WCAG. CI la ejecuta sin credenciales Azure ni de usuarios. El workflow
 `Azure dev frontend` repite la misma suite después de publicar y comprueba además el
 SHA de `deploy-meta.json`.
+
+## Idiomas: primer bloque local
+
+Español e inglés están disponibles en el selector, portada y navegación pública/de organización/
+administrativa, opciones de tema y pie de página. La elección se guarda sólo en este navegador;
+español sigue siendo el valor por defecto. No cambia la preferencia de la cuenta ni traduce datos
+de proyectos/fondos. Los recursos en `src/i18n/` comparten un contrato tipado y pruebas de paridad.
+
+Las páginas internas y formularios aún no están traducidos; sus contenidos mantienen `lang="es"`
+para lectores de pantalla aunque la cabecera esté en inglés. La suite pública verifica recarga,
+navegación y accesibilidad del selector en anchos de 320, 390, 768, 1024 y 1440 píxeles.
+También comprueba la cabecera del espacio de trabajo con sesiones **sintéticas** de miembro y
+administrador, sin credenciales ni acceso a la API real. No sustituye las pruebas autenticadas.
+El [tablero de feedback](../../docs/MVP-FEEDBACK-ROADMAP.md) separa los siguientes bloques de idioma,
+los nuevos módulos y el despliegue. No se considera terminada la traducción completa de la web.
+
+## Pruebas autenticadas
 
 `npm run test:e2e:authenticated` queda separado del CI ordinario y sólo se activa con
 `E2E_REQUIRE_AUTHENTICATED=true`. Una vez activado falla, en vez de omitir pruebas, si

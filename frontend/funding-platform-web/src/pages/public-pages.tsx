@@ -1,6 +1,7 @@
 import { ArrowRight, Handshake, SearchCheck, Target } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { PublicPricingPage } from '@/features/billing/billing-pages'
 import { Button } from '@/components/ui/button'
@@ -19,23 +20,21 @@ import { useAuth } from '@/features/auth/use-auth'
 
 const benefits = [
   {
-    title: 'Publica tu proyecto',
-    description: 'Ordena su propósito, impacto y necesidades para presentarlo con claridad.',
+    key: 'projects',
     icon: Target,
   },
   {
-    title: 'Encuentra financiamiento',
-    description: 'Explora oportunidades y entiende por qué coinciden con tu proyecto.',
+    key: 'funding',
     icon: SearchCheck,
   },
   {
-    title: 'Conecta con aliados',
-    description: 'Descubre organizaciones y crea vínculos para colaborar o formar alianzas.',
+    key: 'partners',
     icon: Handshake,
   },
-]
+] as const
 
 export function HomePage() {
+  const { t } = useTranslation()
   const auth = useAuth()
   const isAuthenticated = auth.status === 'authenticated' && auth.session !== null
   const workspaceUrl = auth.session?.user.roles.some(role => role === 'Admin' || role === 'SuperAdmin')
@@ -48,43 +47,42 @@ export function HomePage() {
         <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-72 max-w-3xl rounded-full bg-accent/70 blur-3xl" />
         <div className="mx-auto max-w-4xl text-center">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
-            Proyectos que encuentran oportunidades
+            {t('home.eyebrow')}
           </p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Conecta tu proyecto con el financiamiento y los aliados que necesita
+            {t('home.title')}
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Publica tus iniciativas, descubre fondos compatibles y organiza
-            alianzas para avanzar desde la idea hasta la ejecución.
+            {t('home.description')}
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button size="default" asChild>
               <Link to="/funding">
-                Encontrar financiamiento <ArrowRight className="size-4" />
+                {t('actions.findFunding')} <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to={isAuthenticated ? '/projects' : '/register'}>Publicar mi proyecto</Link>
+              <Link to={isAuthenticated ? '/projects' : '/register'}>{t('actions.publishProject')}</Link>
             </Button>
           </div>
           {isAuthenticated && (
             <Link className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline" to={workspaceUrl}>
-              Ir a mi espacio
+              {t('actions.workspace')}
             </Link>
           )}
         </div>
       </section>
       <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-20 sm:px-6 md:grid-cols-3">
-        {benefits.map(({ title, description, icon: Icon }) => (
-          <Card key={title}>
+        {benefits.map(({ key, icon: Icon }) => (
+          <Card key={key}>
             <CardHeader>
               <span className="mb-2 grid size-10 place-items-center rounded-xl bg-accent text-accent-foreground">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
-              <CardTitle>{title}</CardTitle>
+              <CardTitle>{t(`home.benefits.${key}.title`)}</CardTitle>
             </CardHeader>
             <CardContent className="text-sm leading-6 text-muted-foreground">
-              {description}
+              {t(`home.benefits.${key}.description`)}
             </CardContent>
           </Card>
         ))}
@@ -197,13 +195,14 @@ export function MfaSetupPage() {
 }
 
 export function NotFoundPage() {
+  const { t } = useTranslation()
   return (
     <div className="grid min-h-screen place-items-center px-4 text-center">
       <div>
         <p className="text-sm font-bold text-primary">404</p>
-        <h1 className="mt-2 text-3xl font-bold">Página no encontrada</h1>
+        <h1 className="mt-2 text-3xl font-bold">{t('status.notFound')}</h1>
         <Button className="mt-6" asChild>
-          <Link to="/">Volver al inicio</Link>
+          <Link to="/">{t('actions.backToHome')}</Link>
         </Button>
       </div>
     </div>

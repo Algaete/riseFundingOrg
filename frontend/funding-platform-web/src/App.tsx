@@ -1,6 +1,7 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { Suspense } from 'react'
 import { RouterProvider, type createBrowserRouter } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { appQueryClient } from '@/api/query-client'
 import { ThemeProvider } from '@/components/theme/theme-provider'
@@ -15,6 +16,11 @@ interface AppProps {
   queryClient?: QueryClient
 }
 
+function LoadingFallback() {
+  const { t } = useTranslation()
+  return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">{t('status.loading')}</div>
+}
+
 export function App({
   router = appRouter,
   queryClient = appQueryClient,
@@ -23,7 +29,7 @@ export function App({
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <Suspense fallback={<div className="grid min-h-screen place-items-center text-sm text-muted-foreground">Cargando…</div>}>
+          <Suspense fallback={<LoadingFallback />}>
             <RouterProvider router={router} />
           </Suspense>
         </AuthProvider>

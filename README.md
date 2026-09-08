@@ -66,6 +66,10 @@ en SQL y Blob reales, aplicar `036`→`039`, provisionar Defender/Event Grid y v
 malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
+El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
+pendiente y el despliegue. El bloque local I18N-01 incorpora selector español/inglés, portada y
+navegación bilingües; **la traducción de formularios y páginas internas sigue pendiente**.
+
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
 workers. El worker general ya fue publicado mediante One Deploy y su canary Grants.gov completó

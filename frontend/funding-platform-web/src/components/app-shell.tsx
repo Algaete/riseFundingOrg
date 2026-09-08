@@ -19,48 +19,52 @@ import {
 } from 'lucide-react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { BrandMark } from '@/components/brand-mark'
+import { LanguageSelector } from '@/components/language-selector'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@/features/auth/auth-api'
 import { clearAuthSession } from '@/features/auth/auth-session'
 import { useAuth } from '@/features/auth/use-auth'
 import { cn } from '@/utils/cn'
+import type { es } from '@/i18n/es'
 
 interface NavigationItem {
-  label: string
+  label: keyof typeof es.translation.navigation
   to: string
   icon: LucideIcon
 }
 
 const memberNavigation: NavigationItem[] = [
-  { label: 'Resumen', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Concursos disponibles', to: '/opportunities', icon: Radar },
-  { label: 'Compatibilidad', to: '/matching', icon: Gauge },
-  { label: 'Favoritos', to: '/favorites', icon: Heart },
-  { label: 'Postulaciones', to: '/applications', icon: ClipboardList },
-  { label: 'Calendario', to: '/calendar', icon: CalendarDays },
-  { label: 'Alertas', to: '/alerts', icon: Bell },
-  { label: 'Conexiones', to: '/network', icon: Users },
-  { label: 'Organización', to: '/organization/profile', icon: Building2 },
-  { label: 'Proyectos', to: '/projects', icon: Target },
+  { label: 'overview', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'availableFunding', to: '/opportunities', icon: Radar },
+  { label: 'recommended', to: '/matching', icon: Gauge },
+  { label: 'favorites', to: '/favorites', icon: Heart },
+  { label: 'applications', to: '/applications', icon: ClipboardList },
+  { label: 'calendar', to: '/calendar', icon: CalendarDays },
+  { label: 'alerts', to: '/alerts', icon: Bell },
+  { label: 'connections', to: '/network', icon: Users },
+  { label: 'profile', to: '/organization/profile', icon: Building2 },
+  { label: 'projects', to: '/projects', icon: Target },
 ]
 
 const adminNavigation: NavigationItem[] = [
-  { label: 'Resumen', to: '/admin', icon: ShieldCheck },
-  { label: 'Revisión de proyectos', to: '/admin/projects', icon: Target },
-  { label: 'Fondos', to: '/admin/funding', icon: WalletCards },
-  { label: 'Financiadores', to: '/admin/funders', icon: Building2 },
-  { label: 'Importaciones', to: '/admin/imports', icon: Upload },
-  { label: 'Fuentes', to: '/admin/sources', icon: Radar },
-  { label: 'Usuarios', to: '/admin/users', icon: Users },
-  { label: 'Organizaciones', to: '/admin/organizations', icon: Building2 },
-  { label: 'Suscripciones', to: '/admin/subscriptions', icon: ClipboardList },
-  { label: 'Errores', to: '/admin/errors', icon: Bell },
+  { label: 'overview', to: '/admin', icon: ShieldCheck },
+  { label: 'projectReview', to: '/admin/projects', icon: Target },
+  { label: 'funds', to: '/admin/funding', icon: WalletCards },
+  { label: 'funders', to: '/admin/funders', icon: Building2 },
+  { label: 'imports', to: '/admin/imports', icon: Upload },
+  { label: 'sources', to: '/admin/sources', icon: Radar },
+  { label: 'users', to: '/admin/users', icon: Users },
+  { label: 'organizations', to: '/admin/organizations', icon: Building2 },
+  { label: 'subscriptions', to: '/admin/subscriptions', icon: ClipboardList },
+  { label: 'errors', to: '/admin/errors', icon: Bell },
 ]
 
 function NavigationLink({ item }: { item: NavigationItem }) {
+  const { t } = useTranslation()
   const Icon = item.icon
   return (
     <NavLink
@@ -74,12 +78,13 @@ function NavigationLink({ item }: { item: NavigationItem }) {
       }
     >
       <Icon className="size-4" aria-hidden="true" />
-      <span>{item.label}</span>
+      <span>{t(`navigation.${item.label}`)}</span>
     </NavLink>
   )
 }
 
 export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
+  const { t } = useTranslation()
   const navigation = mode === 'admin' ? adminNavigation : memberNavigation
   const auth = useAuth()
   const isPlatformAdministrator = auth.session?.user.roles.some(
@@ -111,7 +116,7 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
         </div>
         <nav
           className="flex flex-1 flex-col gap-1 overflow-y-auto p-3"
-          aria-label={mode === 'admin' ? 'Administración' : 'Aplicación'}
+          aria-label={t(mode === 'admin' ? 'navigation.administration' : 'navigation.application')}
         >
           {navigation.map((item) => (
             <NavigationLink item={item} key={item.to} />
@@ -120,14 +125,14 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
         <div className="border-t p-3">
           <NavigationLink
             item={{
-              label: mode === 'admin' ? 'Volver a la plataforma' : 'Mi cuenta',
+              label: mode === 'admin' ? 'backToPlatform' : 'account',
               to: mode === 'admin' ? '/dashboard' : '/account',
               icon: mode === 'admin' ? LayoutDashboard : CircleUserRound,
             }}
           />
           {mode === 'member' && (
             <NavigationLink
-              item={{ label: 'Suscripción', to: '/subscription', icon: Settings }}
+              item={{ label: 'subscription', to: '/subscription', icon: Settings }}
             />
           )}
         </div>
@@ -138,22 +143,23 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
           <div className="md:hidden">
             <BrandMark compact />
           </div>
-          <p className="hidden text-sm text-muted-foreground md:block">
-            {mode === 'admin' ? 'Consola administrativa' : 'Espacio de organización'}
+          <p className="hidden text-sm text-muted-foreground xl:block">
+            {t(mode === 'admin' ? 'layout.adminWorkspace' : 'layout.organizationWorkspace')}
           </p>
-          <div className="flex items-center gap-2">
-            {mode === 'member' && isPlatformAdministrator && <Button asChild size="sm" variant="outline">
-              <Link aria-label="Ir al panel administrativo" to="/admin"><ShieldCheck className="size-4" /><span className="hidden sm:inline">Panel administrativo</span></Link>
+          <div className="ml-auto flex items-center gap-2">
+            {mode === 'member' && isPlatformAdministrator && <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
+              <Link aria-label={t('actions.goToAdminPanel')} to="/admin"><ShieldCheck className="size-4" /><span className="hidden sm:inline">{t('actions.adminPanel')}</span></Link>
             </Button>}
-            <span className="hidden text-sm font-medium sm:inline">
+            <span className="hidden max-w-40 truncate text-sm font-medium lg:inline">
               {auth.session?.user.displayName}
             </span>
+            <LanguageSelector />
             <ThemeToggle />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              aria-label="Cerrar sesión"
+              aria-label={t('actions.signOut')}
               onClick={() => void logout()}
             >
               <LogOut className="size-4" aria-hidden="true" />
@@ -163,14 +169,20 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
 
         <nav
           className="flex gap-1 overflow-x-auto border-b bg-card p-2 md:hidden"
-          aria-label="Navegación móvil"
+          aria-label={t('navigation.mobile')}
         >
+          {mode === 'member' && isPlatformAdministrator && (
+            <div className="shrink-0 sm:hidden">
+              <NavigationLink item={{ label: 'administration', to: '/admin', icon: ShieldCheck }} />
+            </div>
+          )}
           {navigation.map((item) => (
             <NavigationLink item={item} key={item.to} />
           ))}
         </nav>
 
-        <main className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+        {/* Navigation is bilingual; workspace page translations follow in separate blocks. */}
+        <main lang="es" className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
