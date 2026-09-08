@@ -38,7 +38,9 @@ Los incrementos de feedback del MVP están preparados localmente mediante
 `033_project_impact_profile.sql`, `034_organization_funding_experience_types.sql` y
 `035_organization_custom_taxonomy.sql`, junto con la base gobernada de adjuntos
 `036_project_assets.sql` y su pipeline Defender
-`037_project_asset_defender_pipeline.sql`. Amplían los catálogos del perfil, evitan que “Otros” genere coincidencias
+`037_project_asset_defender_pipeline.sql`, extendido por
+`038_project_asset_image_sanitization.sql`. Amplían los catálogos del perfil, evitan que “Otros”
+genere coincidencias
 automáticas y agregan al proyecto una
 etapa independiente junto con los 17 ODS oficiales, permiten registrar de forma opcional los tipos
 de financiadores con los que la organización tiene experiencia y agregan opciones privadas en áreas
@@ -46,14 +48,19 @@ de impacto, poblaciones, tipos de proyecto e idiomas. El incremento `036A` admit
 JPG/PNG/WebP y documentos PDF privados mediante carga directa gobernada, cuarentena, scan y promoción
 al container confiable; video queda reservado para una fase posterior. `037` agrega recepción
 Event Grid autenticada, recibos idempotentes, rehash acotado, revocación de confianza ante un
-resultado tardío y watchdog de scans pendientes. Estas siete migraciones y sus
+resultado tardío y watchdog de scans pendientes. `038` decodifica y vuelve a codificar con Skia las
+imágenes JPEG/PNG/WebP limpias, elimina sus metadatos y conserva los PDF como copias byte-exactas.
+La copia confiable queda descrita por un manifiesto `Trusted*` propio y el resultado observado por
+Defender se conserva separado del estado efectivo que decide la plataforma. Las imágenes históricas
+que hubieran llegado al container confiable sin esta transformación se revocan de forma fail-closed,
+con el manifiesto exacto necesario para retirar esa versión. Estas ocho migraciones y sus
 interfaces todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
 continúa siendo `001`→`030`. El rollout debe respetar el orden base de datos → 100 % del tráfico API
 nuevo → infraestructura de seguridad → frontend, activando `VITE_PROJECT_ASSETS_ENABLED` al final.
 La infraestructura como código ya declara containers privados, CORS exacto y lifecycle, pero no se
-ha aplicado. La funcionalidad de adjuntos permanece apagada hasta implementar decode/reencode real
-con eliminación de EXIF y provisionar y validar Defender/Event Grid con pruebas E2E limpia y
-maliciosa. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
+ha aplicado. La funcionalidad de adjuntos permanece apagada hasta incorporar la retención física
+DB-driven, aplicar `036`→`038`, provisionar Defender/Event Grid y validar casos E2E limpio y
+malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
@@ -251,7 +258,7 @@ Variables agrupadas:
   TTL/lease/timeout y `PROJECT_ASSET_SCAN_MODE`. Backend y frontend permanecen apagados con
   `PROJECT_ASSETS_ENABLED=false` y `VITE_PROJECT_ASSETS_ENABLED=false` hasta completar los gates de
   sanitización, Defender/Event Grid y Storage; el navegador nunca recibe account keys.
-- Pipeline 036B/037: `PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED`,
+- Pipeline Defender 037/038: `PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED`,
   `PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME`,
   `PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES` y
   `PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE`. Sus dos Functions y el feature principal salen
@@ -1068,31 +1075,51 @@ su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producció
 el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
 incluyeron una llamada a OpenAI o a otro proveedor externo.
 
-## Adjuntos gobernados de proyectos — incrementos 036A/036B
+## Adjuntos gobernados de proyectos — incrementos 036A/036B/038
 
-La base local permite que un Admin de la organización prepare imágenes JPG, PNG o WebP y documentos
+La base local permite que un Admin de la organización prepare imágenes JPEG, PNG o WebP y documentos
 PDF para un proyecto. La carga usa una autorización SAS HTTPS create-only de cinco minutos sobre un
 objeto opaco; la API vuelve a transmitir y verificar longitud, MIME, firma, dimensiones y SHA-256,
 mantiene el archivo en cuarentena y solo sirve contenido cuyo estado sea confiable y limpio. Los
 listados no exponen rutas Blob, hashes ni SAS. Los miembros activos pueden consultar; intents y
 mutaciones requieren Admin, ETag del proyecto y, cuando corresponde, ETag del adjunto.
 
+El incremento `038` hace que un resultado `Clean` del proveedor sea necesario pero no suficiente.
+Las imágenes se decodifican y re-encodifican con SkiaSharp, aplicando la orientación y eliminando
+EXIF y demás metadatos no requeridos; sólo el resultado derivado se escribe en el container
+confiable. Los PDF se copian byte por byte y su MIME, longitud y SHA-256 deben coincidir con el
+original verificado. SQL registra para cada copia un manifiesto `Trusted*` con container, objeto,
+ETag/versión, MIME, longitud, hash, dimensiones cuando corresponden, versión de procesamiento y
+fecha de creación.
+
+`ProviderObservedStatus`/`ProviderResultCode` conservan el hecho informado por Defender, mientras
+el estado y código efectivos reflejan también el resultado del procesamiento local. Por ejemplo,
+una imagen que Defender observó limpia pero que Skia no puede decodificar termina bloqueada, sin
+reescribir la evidencia del proveedor. Una revocación tardía conserva el manifiesto confiable
+completo para retirar el blob exacto. La migración también revoca de forma fail-closed cualquier
+imagen histórica confiable que no pruebe haber pasado por este pipeline; los PDF históricos sólo se
+mantienen si cumplen la identidad byte-exacta.
+
 La publicación, revisión administrativa y proyección al marketplace fallan cerradas mientras exista
 un adjunto activo que no esté `Trusted` + `Clean`; una imagen de portada también exige texto
 alternativo. Video no está habilitado en 036A. Aunque contratos, API e interfaz están preparados,
 `ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false` son obligatorios hasta completar:
 
-- decodificación y re-encode real de cada imagen, eliminando EXIF y otros metadatos no necesarios;
 - retención física gobernada por base de datos para purgar blobs de adjuntos eliminados y
   cuarentenas terminales sin afectar contenido confiable todavía activo;
 - provisión de Microsoft Defender for Storage/Event Grid y prueba E2E limpia y maliciosa del worker
   ya implementado localmente;
 - aplicación y verificación en Azure de los containers privados `fp-project-incoming`,
   `fp-project-quarantine` y `fp-project-trusted`, RBAC mínimo, CORS exacto para el origen web y
-  lifecycle de cargas abandonadas/versiones, ya declarados en Bicep.
+  lifecycle de cargas abandonadas/versiones, ya declarados en Bicep;
+- aplicación de las migraciones `036`→`038` y publicación coordinada de la API y del worker general.
 
-El orden de rollout es base de datos `036`→`037` → API nueva en todo el tráfico → infraestructura de
+La API y el worker general se restauran/publican para `linux-x64`, RID que contiene la dependencia
+nativa de Skia usada por la sanitización; el ZIP del worker exige `libSkiaSharp.so` en su manifiesto.
+El orden de rollout es base de datos `036`→`038` → API nueva en todo el tráfico → infraestructura de
 seguridad validada → frontend con el feature flag habilitado al final. No se debe activar parcialmente.
+Hasta este corte `038` no se ejecutó contra SQL Server/Azure SQL, no hubo deploy y los flags de
+backend, frontend y recepción Defender/Event Grid continúan deshabilitados.
 
 Endpoints principales del backend hasta este cierre:
 

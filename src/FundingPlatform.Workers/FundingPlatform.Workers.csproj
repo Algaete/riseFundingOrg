@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../FundingPlatform.Application/FundingPlatform.Application.csproj" />
+    <ProjectReference Include="../FundingPlatform.ImageProcessing/FundingPlatform.ImageProcessing.csproj" />
     <ProjectReference Include="../FundingPlatform.Infrastructure/FundingPlatform.Infrastructure.csproj" />
   </ItemGroup>
 

@@ -30,6 +30,7 @@ using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
 using FundingPlatform.Infrastructure.ProjectAssets.Configuration;
 using FundingPlatform.Infrastructure.ProjectAssets.Storage;
+using FundingPlatform.ImageProcessing.ProjectAssets;
 using FundingPlatform.Infrastructure.Semantics;
 using FundingPlatform.Infrastructure.Notifications;
 using FundingPlatform.Infrastructure.Identity.Configuration;
@@ -54,6 +55,7 @@ Activity.ForceDefaultIdFormat = true;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddFundingPlatformAliases();
+var projectAssetImageSanitizationProbe = new ProjectAssetImageSanitizationProbe();
 
 var applicationInsightsConnectionString =
     builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.Trim();
@@ -143,7 +145,9 @@ builder.Services.AddOptions<ProjectAssetDefenderWorkerOptions>()
             builder.Configuration[
                 ProjectAssetDefenderWorkerOptions.EventGridFunctionDisabledSetting],
             builder.Configuration[
-                ProjectAssetDefenderWorkerOptions.ScanWatchdogFunctionDisabledSetting]),
+                ProjectAssetDefenderWorkerOptions.ScanWatchdogFunctionDisabledSetting],
+            imageSanitizationAvailable:
+                options.Enabled && projectAssetImageSanitizationProbe.IsAvailable()),
         "Project-asset Defender configuration must be complete and real image " +
         "sanitization must be available and both triggers must have the exact disable " +
         "setting 'false' when enabled; when disabled outside local " +
@@ -263,6 +267,8 @@ builder.Services.AddSingleton<IProjectAssetBlobStore>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureProjectAssetBlobStore>());
 builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
     ProjectAssetTrustedContentPromoter>();
+builder.Services.AddSingleton<IProjectAssetImageSanitizationProbe>(
+    projectAssetImageSanitizationProbe);
 builder.Services.AddSingleton(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value;

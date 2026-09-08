@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="../FundingPlatform.Application/FundingPlatform.Application.csproj" />
     <ProjectReference Include="../FundingPlatform.Contracts/FundingPlatform.Contracts.csproj" />
+    <ProjectReference Include="../FundingPlatform.ImageProcessing/FundingPlatform.ImageProcessing.csproj" />
     <ProjectReference Include="../FundingPlatform.Infrastructure/FundingPlatform.Infrastructure.csproj" />
   </ItemGroup>
 

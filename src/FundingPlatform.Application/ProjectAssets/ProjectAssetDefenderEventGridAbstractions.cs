@@ -12,6 +12,7 @@ public sealed record ProjectAssetDefenderEventGridPolicy(
     string TrustedContainer,
     long MaxImageBytes,
     long MaxDocumentBytes,
+    int MaxImagePixels,
     TimeSpan MaximumFutureClockSkew);
 
 public sealed record ProjectAssetDefenderReceiptWork(
@@ -94,22 +95,56 @@ public sealed class ProjectAssetDefenderScanWatchdogService(
     }
 }
 
+public enum ProjectAssetTrustedPromotionOutcome
+{
+    Promoted,
+    Rejected,
+    Retry
+}
+
+public sealed record ProjectAssetTrustedContentManifest(
+    string MimeType,
+    long ContentLength,
+    byte[] ContentHash,
+    int? PixelWidth,
+    int? PixelHeight,
+    string ProcessingVersion);
+
+public sealed record ProjectAssetTrustedContentRequest(
+    ProjectAssetKind Kind,
+    ProtectedProjectAssetBlobLocation QuarantineLocation,
+    string QuarantineETag,
+    ProtectedProjectAssetBlobLocation TrustedLocation,
+    string SourceMimeType,
+    long SourceContentLength,
+    byte[] SourceContentHash,
+    long MaximumOutputLength,
+    int MaximumImagePixels);
+
+public sealed record ProjectAssetTrustedBlob(
+    ProtectedProjectAssetBlobLocation Location,
+    ProjectAssetBlobReceipt Receipt,
+    ProjectAssetTrustedContentManifest Manifest);
+
 public sealed record ProjectAssetTrustedContentPromotion(
-    bool Succeeded,
+    ProjectAssetTrustedPromotionOutcome Outcome,
     string Code,
-    ProjectAssetBlobReceipt? Receipt = null);
+    ProjectAssetTrustedBlob? Content = null)
+{
+    public bool Succeeded => Outcome == ProjectAssetTrustedPromotionOutcome.Promoted;
+    public bool IsRetryable => Outcome == ProjectAssetTrustedPromotionOutcome.Retry;
+}
 
 public interface IProjectAssetTrustedContentPromoter
 {
     Task<ProjectAssetTrustedContentPromotion> PromoteAsync(
-        ProjectAssetKind kind,
-        ProtectedProjectAssetBlobLocation quarantineLocation,
-        string quarantineETag,
-        ProtectedProjectAssetBlobLocation trustedLocation,
-        string contentType,
-        long expectedLength,
-        byte[] expectedContentHash,
+        ProjectAssetTrustedContentRequest request,
         CancellationToken cancellationToken);
+}
+
+public interface IProjectAssetImageSanitizationProbe
+{
+    bool IsAvailable();
 }
 
 public enum ProjectAssetDefenderEventGridOutcome

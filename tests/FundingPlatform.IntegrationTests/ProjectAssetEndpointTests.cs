@@ -458,6 +458,10 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
             "application/pdf",
             payload.Length,
             SHA256.HashData(payload),
+            null,
+            null,
+            "pdf-copy-v1",
+            DateTimeOffset.UtcNow,
             new ProtectedProjectAssetBlobLocation("fp-project-trusted", "private/evidence.pdf"),
             "\"trusted-etag\"",
             "trusted-version");
@@ -844,6 +848,20 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
                 EnsureCopyCalls == 1 ? "quarantine-version" : "trusted-version"));
         }
 
+        public Task<ProjectAssetBlobReceipt> EnsureUploadAsync(
+            ProtectedProjectAssetBlobLocation destination,
+            ReadOnlyMemory<byte> content,
+            string contentType,
+            byte[] expectedContentHash,
+            byte[] sourceContentHash,
+            string processingVersion,
+            CancellationToken cancellationToken)
+        {
+            EnsureCopyCalls++;
+            return Task.FromResult(new ProjectAssetBlobReceipt(
+                "\"trusted-etag\"", "trusted-version"));
+        }
+
         public Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
             ProtectedProjectAssetBlobLocation location,
             string contentType,
@@ -1023,10 +1041,11 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
             byte[]? reportedContentHash,
             ProjectAssetScanStatus status,
             string resultCode,
-            ProtectedProjectAssetBlobLocation? trustedLocation,
-            ProjectAssetBlobReceipt? trustedReceipt,
+            ProjectAssetTrustedBlob? trustedContent,
             DateTimeOffset occurredAtUtc,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ProjectAssetScanStatus? providerObservedStatus = null,
+            string? providerResultCode = null)
         {
             Calls++;
             ApplyScanCalls++;

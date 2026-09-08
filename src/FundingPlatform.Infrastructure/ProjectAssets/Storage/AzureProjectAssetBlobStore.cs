@@ -15,6 +15,8 @@ namespace FundingPlatform.Infrastructure.ProjectAssets.Storage;
 public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDisposable
 {
     private const string ContentHashMetadata = "fp-content-sha256";
+    private const string SourceHashMetadata = "fp-source-sha256";
+    private const string ProcessingVersionMetadata = "fp-processing-version";
     private readonly BlobServiceClient? serviceClient;
     private readonly TimeProvider timeProvider;
     private readonly SemaphoreSlim delegationKeyLock = new(1, 1);
@@ -172,6 +174,91 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
         expectedContentHash,
         cancellationToken);
 
+    public async Task<ProjectAssetBlobReceipt> EnsureUploadAsync(
+        ProtectedProjectAssetBlobLocation destination,
+        ReadOnlyMemory<byte> content,
+        string contentType,
+        byte[] expectedContentHash,
+        byte[] sourceContentHash,
+        string processingVersion,
+        CancellationToken cancellationToken)
+    {
+        if (content.Length < 1 || expectedContentHash is not { Length: 32 } ||
+            sourceContentHash is not { Length: 32 } ||
+            processingVersion.Length is < 1 or > 100 ||
+            processingVersion.Any(character =>
+                !(character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '.')))
+            throw new ProjectAssetStorageException(
+                "sanitized-upload", "invalid-sanitized-content", 409);
+
+        var actualHash = SHA256.HashData(content.Span);
+        if (!CryptographicOperations.FixedTimeEquals(actualHash, expectedContentHash))
+            throw new ProjectAssetStorageException(
+                "sanitized-upload", "sanitized-content-hash-mismatch", 409);
+
+        var client = RequireClient();
+        var existing = await GetVerifiedSanitizedReceiptAsync(
+            client,
+            destination,
+            contentType,
+            content.Length,
+            expectedContentHash,
+            sourceContentHash,
+            processingVersion,
+            cancellationToken);
+        if (existing is not null) return existing;
+
+        try
+        {
+            await using var stream = new MemoryStream(content.ToArray(), writable: false);
+            var response = await GetBlobClient(client, destination).UploadAsync(
+                stream,
+                new BlobUploadOptions
+                {
+                    HttpHeaders = new BlobHttpHeaders
+                    {
+                        ContentType = contentType,
+                        ContentDisposition = "attachment"
+                    },
+                    Metadata = new Dictionary<string, string>
+                    {
+                        [ContentHashMetadata] = Convert.ToHexString(expectedContentHash),
+                        [SourceHashMetadata] = Convert.ToHexString(sourceContentHash),
+                        [ProcessingVersionMetadata] = processingVersion
+                    },
+                    Conditions = new BlobRequestConditions { IfNoneMatch = ETag.All },
+                    TransferOptions = new StorageTransferOptions
+                    {
+                        InitialTransferSize = 4 * 1024 * 1024,
+                        MaximumTransferSize = 4 * 1024 * 1024,
+                        MaximumConcurrency = 1
+                    }
+                },
+                cancellationToken);
+            return new ProjectAssetBlobReceipt(
+                NormalizeETag(response.Value.ETag.ToString()),
+                response.Value.VersionId);
+        }
+        catch (RequestFailedException exception) when (exception.Status is 409 or 412)
+        {
+            return await GetVerifiedSanitizedReceiptAsync(
+                       client,
+                       destination,
+                       contentType,
+                       content.Length,
+                       expectedContentHash,
+                       sourceContentHash,
+                       processingVersion,
+                       cancellationToken)
+                   ?? throw new ProjectAssetStorageException(
+                       "sanitized-upload", "content-conflict", 409);
+        }
+        catch (RequestFailedException exception)
+        {
+            throw StorageFailure("sanitized-upload", exception);
+        }
+    }
+
     public Task<ProjectAssetBlobReceipt?> GetVerifiedVersionReceiptAsync(
         ProtectedProjectAssetBlobLocation location,
         string versionId,
@@ -303,6 +390,54 @@ public sealed class AzureProjectAssetBlobStore : IProjectAssetBlobStore, IDispos
             throw StorageFailure("verify-copy", exception);
         }
     }
+
+    private static async Task<ProjectAssetBlobReceipt?> GetVerifiedSanitizedReceiptAsync(
+        BlobServiceClient client,
+        ProtectedProjectAssetBlobLocation location,
+        string contentType,
+        long expectedLength,
+        byte[] expectedContentHash,
+        byte[] sourceContentHash,
+        string processingVersion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var properties = (await GetBlobClient(client, location).GetPropertiesAsync(
+                cancellationToken: cancellationToken)).Value;
+            var storedHash = MetadataValue(properties.Metadata, ContentHashMetadata);
+            var storedSourceHash = MetadataValue(properties.Metadata, SourceHashMetadata);
+            var storedProcessingVersion = MetadataValue(
+                properties.Metadata, ProcessingVersionMetadata);
+            if (properties.ContentLength != expectedLength ||
+                !string.Equals(
+                    properties.ContentType, contentType, StringComparison.OrdinalIgnoreCase) ||
+                !TryReadHash(storedHash, out var actualHash) ||
+                !TryReadHash(storedSourceHash, out var actualSourceHash) ||
+                !CryptographicOperations.FixedTimeEquals(actualHash, expectedContentHash) ||
+                !CryptographicOperations.FixedTimeEquals(actualSourceHash, sourceContentHash) ||
+                !string.Equals(
+                    storedProcessingVersion, processingVersion, StringComparison.Ordinal))
+                throw new ProjectAssetStorageException(
+                    "verify-sanitized-upload", "content-conflict", 409);
+            return new ProjectAssetBlobReceipt(
+                NormalizeETag(properties.ETag.ToString()),
+                properties.VersionId);
+        }
+        catch (RequestFailedException exception) when (exception.Status == 404)
+        {
+            return null;
+        }
+        catch (RequestFailedException exception)
+        {
+            throw StorageFailure("verify-sanitized-upload", exception);
+        }
+    }
+
+    private static string? MetadataValue(
+        IDictionary<string, string> metadata,
+        string key) => metadata.FirstOrDefault(pair => string.Equals(
+            pair.Key, key, StringComparison.OrdinalIgnoreCase)).Value;
 
     private static BlobClient GetBlobClient(
         BlobServiceClient client,

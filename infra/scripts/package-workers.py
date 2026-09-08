@@ -31,6 +31,10 @@ PROJECTS = (
         "key": "general-workers",
         "project": "src/FundingPlatform.Workers/FundingPlatform.Workers.csproj",
         "assembly": "FundingPlatform.Workers.dll",
+        "runtime": "linux-x64",
+        "required_files": {
+            "libSkiaSharp.so",
+        },
         "functions": {
             "AiExplanationProcessingFunction": "timerTrigger",
             "AlertDeliveryFunction": "timerTrigger",
@@ -134,11 +138,19 @@ def publish_project(dotnet: str, root: Path, spec: dict, output: Path) -> None:
         "--output",
         str(output),
         "--disable-build-servers",
+    ]
+    runtime = spec.get("runtime")
+    if runtime:
+        command.extend(["--runtime", runtime, "--self-contained", "false"])
+    command.extend([
+        "--maxcpucount:1",
+        "--nodeReuse:false",
+        "-p:UseSharedCompilation=false",
         "-p:UseAppHost=false",
         "-p:ContinuousIntegrationBuild=true",
         "-p:DebugSymbols=false",
         "-p:DebugType=None",
-    ]
+    ])
     environment = os.environ.copy()
     environment.update(
         {
@@ -248,6 +260,7 @@ def validate_published_output(root: Path, spec: dict, directory: Path) -> list[t
         assembly.removesuffix(".dll") + ".runtimeconfig.json",
         ".azurefunctions/Microsoft.Azure.Functions.Worker.Extensions.dll",
     }
+    required.update(spec.get("required_files", set()))
     missing = sorted(required - paths.keys())
     if missing:
         raise PackagingError(f"{spec['key']} is missing required publish files: {', '.join(missing)}")
@@ -346,6 +359,7 @@ def write_manifest(path: Path, spec: dict, revision: str, archive: Path, files: 
         "files": files,
         "functions": sorted(spec["functions"]),
         "project": spec["project"],
+        "runtimeIdentifier": spec.get("runtime"),
         "schemaVersion": 1,
         "sourceRevision": revision,
         "targetFramework": "net10.0",
@@ -434,6 +448,7 @@ def verify_artifacts(directory: Path, expected_revision: str) -> None:
                     manifest.get("application") != spec["key"],
                     manifest.get("assembly") != spec["assembly"],
                     manifest.get("project") != spec["project"],
+                    manifest.get("runtimeIdentifier") != spec.get("runtime"),
                     manifest.get("targetFramework") != "net10.0",
                     manifest.get("functions") != sorted(spec["functions"]),
                 )

@@ -111,15 +111,18 @@ gate propio de 12B.
 
 No habilitar acceso público anónimo en Blob. No usar account keys en App Settings.
 
-Los incrementos locales `036A/036B` no activan automáticamente sus adjuntos de proyecto. Bicep ya
+Los incrementos locales `036`→`038` no activan automáticamente sus adjuntos de proyecto. Bicep ya
 declara los containers privados `fp-project-incoming`, `fp-project-quarantine` y
 `fp-project-trusted`, CORS exacto y lifecycle, y el código incluye el worker autenticado de
 resultados Defender/Event Grid; nada de eso se ha aplicado o activado en Azure. Antes de habilitar se
-deben validar RBAC mínimo, provisionar Defender/Event Grid, completar la decodificación/re-encode de
-imágenes con eliminación de EXIF, incorporar retención DB-driven para adjuntos eliminados y
-cuarentenas terminales, y ejecutar E2E limpio y malicioso. Hasta entonces mantener
-`ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false`; video corresponde a una fase
-posterior.
+deben validar RBAC mínimo, provisionar Defender/Event Grid, incorporar retención DB-driven para
+adjuntos eliminados y cuarentenas terminales, y ejecutar E2E limpio y malicioso. `038` ya prepara
+localmente imágenes JPEG/PNG/WebP decodificadas y re-encodificadas sin metadatos, PDF byte-exactos,
+manifiestos `Trusted*`, separación del estado observado/efectivo y revocación exacta fail-closed.
+La API y el worker general quedan dirigidos a `linux-x64` por la dependencia nativa de Skia, pero no
+se publicaron. `038` tampoco se ejecutó contra SQL Server/Azure SQL. Hasta entonces mantener
+`ProjectAssets:Enabled=false`, `ProjectAssetDefenderEventGrid:Enabled=false` y
+`VITE_PROJECT_ASSETS_ENABLED=false`; video corresponde a una fase posterior.
 
 ## 5. Crear las aplicaciones
 
@@ -336,7 +339,7 @@ El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API.
 refresh/login persistente entre hosts cross-site ni PUT directo a Blob; esas pruebas esperan dominios
 same-site y CORS/Functions/Defender para importación.
 
-Para `036A/036B`, desplegar en este orden: base de datos `036`→`037` → API en el 100 % del tráfico → containers,
+Para `036`→`038`, desplegar en este orden: base de datos `036`→`038` → API en el 100 % del tráfico → containers,
 RBAC, CORS, lifecycle, sanitización y worker Defender/Event Grid verificados → frontend. Cambiar
 `VITE_PROJECT_ASSETS_ENABLED=true` únicamente en el último paso y solo si el backend ya está
 habilitado; no exponer la interfaz durante un rollout parcial.

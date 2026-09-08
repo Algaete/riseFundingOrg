@@ -290,7 +290,7 @@ public sealed class ProjectAssetSecurityTests
             enabled: false,
             inspector,
             scanner,
-            tokens);
+            tokens: tokens);
 
         var create = await service.CreateUploadIntentAsync(
             UserId,
@@ -668,11 +668,13 @@ public sealed class ProjectAssetSecurityTests
         bool enabled = true,
         IProjectAssetContentInspector? inspector = null,
         IProjectAssetScanner? scanner = null,
+        IProjectAssetTrustedContentPromoter? promoter = null,
         IProjectAssetCompletionTokenService? tokens = null) => new(
         repository,
         blobs,
         inspector ?? new RecordingInspector(),
         scanner ?? new RecordingScanner(),
+        promoter ?? new RecordingPromoter(),
         tokens ?? new RecordingTokenService(),
         Policy(enabled),
         new FixedTimeProvider(Now));
@@ -892,6 +894,19 @@ public sealed class ProjectAssetSecurityTests
             throw new NotSupportedException();
         }
 
+        public Task<ProjectAssetBlobReceipt> EnsureUploadAsync(
+            ProtectedProjectAssetBlobLocation destination,
+            ReadOnlyMemory<byte> content,
+            string contentType,
+            byte[] expectedContentHash,
+            byte[] sourceContentHash,
+            string processingVersion,
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+            throw new NotSupportedException();
+        }
+
         public Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
             ProtectedProjectAssetBlobLocation location,
             string contentType,
@@ -1038,10 +1053,11 @@ public sealed class ProjectAssetSecurityTests
             byte[]? reportedContentHash,
             ProjectAssetScanStatus status,
             string resultCode,
-            ProtectedProjectAssetBlobLocation? trustedLocation,
-            ProjectAssetBlobReceipt? trustedReceipt,
+            ProjectAssetTrustedBlob? trustedContent,
             DateTimeOffset occurredAtUtc,
-            CancellationToken cancellationToken) => Mutation();
+            CancellationToken cancellationToken,
+            ProjectAssetScanStatus? providerObservedStatus = null,
+            string? providerResultCode = null) => Mutation();
 
         public Task<ProjectAssetCollection> ListAsync(
             Guid userPublicId,
@@ -1111,6 +1127,16 @@ public sealed class ProjectAssetSecurityTests
             Calls++;
             return Task.FromResult(new ProjectAssetMutation(false, "unexpected-mutation"));
         }
+    }
+
+    private sealed class RecordingPromoter : IProjectAssetTrustedContentPromoter
+    {
+        public Task<ProjectAssetTrustedContentPromotion> PromoteAsync(
+            ProjectAssetTrustedContentRequest request,
+            CancellationToken cancellationToken) => Task.FromResult(
+            new ProjectAssetTrustedContentPromotion(
+                ProjectAssetTrustedPromotionOutcome.Retry,
+                "test-promotion-not-configured"));
     }
 
     private sealed record CapturedCreate(

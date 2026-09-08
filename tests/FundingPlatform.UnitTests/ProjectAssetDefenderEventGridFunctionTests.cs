@@ -327,6 +327,7 @@ public sealed class ProjectAssetDefenderEventGridFunctionTests
                     "fp-project-trusted",
                     10_485_760,
                     26_214_400,
+                    25_000_000,
                     TimeSpan.FromMinutes(5)),
                 new FixedTimeProvider(Now));
             Function = new ProjectAssetDefenderEventGridFunction(

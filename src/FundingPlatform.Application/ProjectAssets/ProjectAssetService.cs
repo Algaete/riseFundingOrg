@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Core.ProjectAssets;
 
 namespace FundingPlatform.Application.ProjectAssets;
@@ -10,6 +11,7 @@ public sealed class ProjectAssetService(
     IProjectAssetBlobStore blobStore,
     IProjectAssetContentInspector inspector,
     IProjectAssetScanner scanner,
+    IProjectAssetTrustedContentPromoter promoter,
     IProjectAssetCompletionTokenService completionTokenService,
     ProjectAssetPolicy policy,
     TimeProvider timeProvider)
@@ -215,6 +217,7 @@ public sealed class ProjectAssetService(
                 userPublicId,
                 organizationPublicId,
                 projectPublicId,
+                work.Kind,
                 work.IncomingLocation,
                 source.ETag,
                 work.QuarantineLocation,
@@ -479,6 +482,7 @@ public sealed class ProjectAssetService(
                 userPublicId,
                 organizationPublicId,
                 projectPublicId,
+                work.Kind,
                 work.IncomingLocation,
                 source.ETag,
                 work.QuarantineLocation,
@@ -498,6 +502,7 @@ public sealed class ProjectAssetService(
             return FromWork(ProjectAssetOutcome.Conflict, work, "invalid-storage-state");
         return await ObserveAndApplyScanAsync(
             work.AssetPublicId.Value,
+            work.Kind,
             work.QuarantineLocation,
             work.TrustedLocation,
             new ProjectAssetBlobReceipt(
@@ -514,6 +519,7 @@ public sealed class ProjectAssetService(
         Guid userPublicId,
         Guid organizationPublicId,
         Guid projectPublicId,
+        ProjectAssetKind kind,
         ProtectedProjectAssetBlobLocation incomingLocation,
         string incomingETag,
         ProtectedProjectAssetBlobLocation quarantineLocation,
@@ -548,6 +554,7 @@ public sealed class ProjectAssetService(
         await DeleteBestEffortAsync(incomingLocation, incomingETag);
         return await ObserveAndApplyScanAsync(
             assetPublicId,
+            kind,
             quarantineLocation,
             trustedLocation,
             receipt,
@@ -561,6 +568,7 @@ public sealed class ProjectAssetService(
 
     private async Task<ProjectAssetOperationResult> ObserveAndApplyScanAsync(
         Guid assetPublicId,
+        ProjectAssetKind kind,
         ProtectedProjectAssetBlobLocation quarantineLocation,
         ProtectedProjectAssetBlobLocation trustedLocation,
         ProjectAssetBlobReceipt quarantineReceipt,
@@ -584,17 +592,76 @@ public sealed class ProjectAssetService(
                 ProjectRowVersion: projectRowVersion,
                 WasReplay: wasReplay);
 
-        ProjectAssetBlobReceipt? trustedReceipt = null;
+        ProjectAssetTrustedBlob? trustedContent = null;
+        var effectiveStatus = observation.Status;
+        var effectiveResultCode = observation.ResultCode;
         if (observation.Status == ProjectAssetScanStatus.Clean)
         {
-            trustedReceipt = await blobStore.EnsureCopyAsync(
-                quarantineLocation,
-                quarantineReceipt.ETag,
-                trustedLocation,
-                mimeType,
-                contentLength,
-                contentHash,
+            var promotion = await promoter.PromoteAsync(
+                new ProjectAssetTrustedContentRequest(
+                    kind,
+                    quarantineLocation,
+                    quarantineReceipt.ETag,
+                    trustedLocation,
+                    mimeType,
+                    contentLength,
+                    contentHash,
+                    MaximumFor(kind),
+                    policy.MaxImagePixels),
                 cancellationToken);
+            if (promotion.IsRetryable)
+                return new ProjectAssetOperationResult(
+                    ProjectAssetOutcome.Unavailable,
+                    promotion.Code,
+                    AssetPublicId: assetPublicId,
+                    StorageStatus: ProjectAssetStorageStatus.Quarantined,
+                    ScanStatus: ProjectAssetScanStatus.Pending,
+                    ScanProvider: policy.ScanProvider,
+                    ProjectRowVersion: projectRowVersion,
+                    WasReplay: wasReplay);
+            if (!promotion.Succeeded)
+            {
+                if (!IsSanitizationRejectionCode(promotion.Code) ||
+                    promotion.Content is not null)
+                    return new ProjectAssetOperationResult(
+                        ProjectAssetOutcome.Unavailable,
+                        "trusted-promotion-materialization-invalid",
+                        AssetPublicId: assetPublicId,
+                        StorageStatus: ProjectAssetStorageStatus.Quarantined,
+                        ScanStatus: ProjectAssetScanStatus.Pending,
+                        ScanProvider: policy.ScanProvider,
+                        ProjectRowVersion: projectRowVersion,
+                        WasReplay: wasReplay);
+                effectiveStatus = ProjectAssetScanStatus.Failed;
+                effectiveResultCode = promotion.Code;
+            }
+            else if (promotion.Content is null ||
+                     !SameLocation(promotion.Content.Location, trustedLocation) ||
+                     !BlobETagNormalizer.TryNormalize(
+                         promotion.Content.Receipt.ETag, out _) ||
+                     !ProjectAssetTrustedContentRules.IsValid(
+                         kind,
+                         promotion.Content.Manifest,
+                         mimeType,
+                         contentLength,
+                         contentHash,
+                         MaximumFor(kind),
+                         policy.MaxImagePixels))
+            {
+                return new ProjectAssetOperationResult(
+                    ProjectAssetOutcome.Unavailable,
+                    "trusted-promotion-materialization-invalid",
+                    AssetPublicId: assetPublicId,
+                    StorageStatus: ProjectAssetStorageStatus.Quarantined,
+                    ScanStatus: ProjectAssetScanStatus.Pending,
+                    ScanProvider: policy.ScanProvider,
+                    ProjectRowVersion: projectRowVersion,
+                    WasReplay: wasReplay);
+            }
+            else
+            {
+                trustedContent = promotion.Content;
+            }
         }
 
         var payloadHash = SHA256.HashData(Encoding.UTF8.GetBytes(
@@ -607,12 +674,31 @@ public sealed class ProjectAssetService(
             payloadHash,
             quarantineReceipt.ETag,
             contentHash,
-            observation.Status,
-            observation.ResultCode,
-            observation.Status == ProjectAssetScanStatus.Clean ? trustedLocation : null,
-            trustedReceipt,
+            effectiveStatus,
+            effectiveResultCode,
+            trustedContent,
             observation.ObservedAtUtc,
-            cancellationToken);
+            cancellationToken,
+            observation.Status,
+            observation.ResultCode);
+
+        if (trustedContent is not null &&
+            mutation.ScanStatus != ProjectAssetScanStatus.Clean)
+        {
+            var removed = await DeleteTrustedAndVerifyAsync(
+                trustedContent, CancellationToken.None);
+            if (!removed)
+                return new ProjectAssetOperationResult(
+                    ProjectAssetOutcome.Unavailable,
+                    "trusted-promotion-cleanup-incomplete",
+                    AssetPublicId: assetPublicId,
+                    StorageStatus: mutation.StorageStatus,
+                    ScanStatus: mutation.ScanStatus,
+                    ScanProvider: mutation.ScanProvider,
+                    AssetRowVersion: mutation.AssetRowVersion,
+                    ProjectRowVersion: mutation.ProjectRowVersion ?? projectRowVersion,
+                    WasReplay: mutation.WasReplay || wasReplay);
+        }
         var result = FromMutation(mutation);
         return result with
         {
@@ -620,6 +706,60 @@ public sealed class ProjectAssetService(
             WasReplay = result.WasReplay || wasReplay
         };
     }
+
+    private async Task<bool> DeleteTrustedAndVerifyAsync(
+        ProjectAssetTrustedBlob trusted,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!BlobETagNormalizer.TryNormalize(
+                    trusted.Receipt.ETag, out var normalizedTrustedETag))
+                return false;
+
+            await blobStore.DeleteIfMatchAsync(
+                trusted.Location, normalizedTrustedETag, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(trusted.Receipt.VersionId))
+            {
+                await blobStore.DeleteVersionIfMatchAsync(
+                    trusted.Location,
+                    trusted.Receipt.VersionId,
+                    normalizedTrustedETag,
+                    cancellationToken);
+                if (await blobStore.GetVerifiedVersionReceiptAsync(
+                        trusted.Location,
+                        trusted.Receipt.VersionId,
+                        trusted.Manifest.MimeType,
+                        trusted.Manifest.ContentLength,
+                        trusted.Manifest.ContentHash,
+                        cancellationToken) is not null)
+                    return false;
+            }
+            return await blobStore.GetVerifiedReceiptAsync(
+                trusted.Location,
+                trusted.Manifest.MimeType,
+                trusted.Manifest.ContentLength,
+                trusted.Manifest.ContentHash,
+                cancellationToken) is null;
+        }
+        catch (ProjectAssetStorageException)
+        {
+            return false;
+        }
+    }
+
+    private static bool SameLocation(
+        ProtectedProjectAssetBlobLocation left,
+        ProtectedProjectAssetBlobLocation right) =>
+        string.Equals(left.Container, right.Container, StringComparison.Ordinal) &&
+        string.Equals(left.ObjectName, right.ObjectName, StringComparison.Ordinal);
+
+    private static bool IsSanitizationRejectionCode(string code) => code is
+        "image-format-rejected" or
+        "image-decode-rejected" or
+        "image-frame-count-rejected" or
+        "image-dimensions-rejected" or
+        "image-output-too-large";
 
     private async Task<ProjectAssetOperationResult> RejectInvalidUploadAsync(
         Guid userPublicId,

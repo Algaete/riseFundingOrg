@@ -6,13 +6,17 @@ COPY src/FundingPlatform.Api/FundingPlatform.Api.csproj src/FundingPlatform.Api/
 COPY src/FundingPlatform.Application/FundingPlatform.Application.csproj src/FundingPlatform.Application/
 COPY src/FundingPlatform.Contracts/FundingPlatform.Contracts.csproj src/FundingPlatform.Contracts/
 COPY src/FundingPlatform.Core/FundingPlatform.Core.csproj src/FundingPlatform.Core/
+COPY src/FundingPlatform.ImageProcessing/FundingPlatform.ImageProcessing.csproj src/FundingPlatform.ImageProcessing/
 COPY src/FundingPlatform.Infrastructure/FundingPlatform.Infrastructure.csproj src/FundingPlatform.Infrastructure/
-RUN dotnet restore src/FundingPlatform.Api/FundingPlatform.Api.csproj
+RUN dotnet restore src/FundingPlatform.Api/FundingPlatform.Api.csproj \
+    --runtime linux-x64
 
 COPY src/ src/
 RUN dotnet publish src/FundingPlatform.Api/FundingPlatform.Api.csproj \
     --configuration Release \
     --no-restore \
+    --runtime linux-x64 \
+    --self-contained false \
     --output /app/publish \
     /p:UseAppHost=false
 

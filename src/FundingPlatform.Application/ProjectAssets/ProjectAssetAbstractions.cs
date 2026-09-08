@@ -131,6 +131,10 @@ public sealed record ProjectAssetTrustedContent(
     string MimeType,
     long ContentLength,
     byte[] ContentHash,
+    int? PixelWidth,
+    int? PixelHeight,
+    string ProcessingVersion,
+    DateTimeOffset TrustedCreatedAtUtc,
     ProtectedProjectAssetBlobLocation Location,
     string BlobETag,
     string? BlobVersionId);
@@ -161,6 +165,15 @@ public interface IProjectAssetBlobStore
         string contentType,
         long expectedLength,
         byte[] expectedContentHash,
+        CancellationToken cancellationToken);
+
+    Task<ProjectAssetBlobReceipt> EnsureUploadAsync(
+        ProtectedProjectAssetBlobLocation destination,
+        ReadOnlyMemory<byte> content,
+        string contentType,
+        byte[] expectedContentHash,
+        byte[] sourceContentHash,
+        string processingVersion,
         CancellationToken cancellationToken);
 
     Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
@@ -290,10 +303,11 @@ public interface IProjectAssetRepository
         byte[]? reportedContentHash,
         ProjectAssetScanStatus status,
         string resultCode,
-        ProtectedProjectAssetBlobLocation? trustedLocation,
-        ProjectAssetBlobReceipt? trustedReceipt,
+        ProjectAssetTrustedBlob? trustedContent,
         DateTimeOffset occurredAtUtc,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        ProjectAssetScanStatus? providerObservedStatus = null,
+        string? providerResultCode = null);
 
     Task<ProjectAssetCollection> ListAsync(
         Guid userPublicId,

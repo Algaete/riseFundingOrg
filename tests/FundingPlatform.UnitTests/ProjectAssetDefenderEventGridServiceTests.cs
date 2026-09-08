@@ -3,7 +3,7 @@ using System.Text.Json;
 using FundingPlatform.Application.ProjectAssets;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Core.ProjectAssets;
-using FundingPlatform.Infrastructure.ProjectAssets.Storage;
+using FundingPlatform.ImageProcessing.ProjectAssets;
 
 namespace FundingPlatform.UnitTests;
 
@@ -291,7 +291,7 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
     }
 
     [Fact]
-    public async Task Clean_image_fails_closed_until_sanitization_is_available()
+    public async Task Clean_image_retries_when_sanitization_is_temporarily_unavailable()
     {
         var fixture = new Fixture();
         fixture.Receipts.Work = DefaultWork() with
@@ -300,17 +300,45 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             MimeType = "image/png"
         };
         fixture.Promoter.Result = new ProjectAssetTrustedContentPromotion(
-            false, "image-sanitization-unavailable");
+            ProjectAssetTrustedPromotionOutcome.Retry,
+            "image-processing-retry");
 
         var result = await fixture.Service.HandleAsync(
             Event("No threats found"), "Notification", "project-asset-defender-results",
             Caller(), CancellationToken.None);
 
         Assert.Equal(ProjectAssetDefenderEventGridOutcome.Retry, result.Outcome);
-        Assert.Equal("image-sanitization-unavailable", result.Code);
+        Assert.Equal("image-processing-retry", result.Code);
         Assert.Equal(["record", "open", "promote"], fixture.Trace);
         Assert.Equal(0, fixture.Assets.ApplyCalls);
         Assert.Equal(0, fixture.Receipts.FinalizeCalls);
+    }
+
+    [Fact]
+    public async Task Clean_image_rejection_is_persisted_as_a_terminal_derived_failure()
+    {
+        var fixture = new Fixture();
+        fixture.Receipts.Work = DefaultWork() with
+        {
+            Kind = ProjectAssetKind.Image,
+            MimeType = "image/png"
+        };
+        fixture.Promoter.Result = new ProjectAssetTrustedContentPromotion(
+            ProjectAssetTrustedPromotionOutcome.Rejected,
+            "image-decode-rejected");
+
+        var result = await fixture.Service.HandleAsync(
+            Event("No threats found"), "Notification", "project-asset-defender-results",
+            Caller(), CancellationToken.None);
+
+        Assert.Equal(ProjectAssetDefenderEventGridOutcome.Applied, result.Outcome);
+        Assert.Equal("scan-result-applied", result.Code);
+        Assert.Equal(ProjectAssetScanStatus.Failed, fixture.Assets.Status);
+        Assert.Equal(ProjectAssetScanStatus.Clean, fixture.Assets.ProviderObservedStatus);
+        Assert.Equal("defender-clean", fixture.Assets.ProviderResultCode);
+        Assert.Null(fixture.Assets.TrustedLocation);
+        Assert.Equal(["record", "open", "promote", "apply", "finalize"], fixture.Trace);
+        Assert.True(fixture.Receipts.FinalizedApplied);
     }
 
     [Fact]
@@ -318,9 +346,9 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
     {
         var fixture = new Fixture();
         fixture.Promoter.Result = new ProjectAssetTrustedContentPromotion(
-            true,
+            ProjectAssetTrustedPromotionOutcome.Promoted,
             "promoted",
-            new ProjectAssetBlobReceipt("\"trusted-etag\"", null));
+            TrustedPdf(versionId: null));
 
         var result = await fixture.Service.HandleAsync(
             Event("No threats found"), "Notification", "project-asset-defender-results",
@@ -417,7 +445,12 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             RevokedTrustedBlobContainer: "fp-project-trusted",
             RevokedTrustedBlobObjectName: "uploads/test.pdf",
             RevokedTrustedBlobETag: "trusted-etag",
-            RevokedTrustedBlobVersionId: "trusted-version");
+            RevokedTrustedBlobVersionId: "trusted-version",
+            RevokedTrustedMimeType: "application/pdf",
+            RevokedTrustedContentLength: Pdf.Length,
+            RevokedTrustedContentHash: ContentHash,
+            RevokedTrustedProcessingVersion: "pdf-copy-v1",
+            RevokedTrustedCreatedAtUtc: Now);
 
         var result = await fixture.Service.HandleAsync(
             Event("Malicious"), "Notification", "project-asset-defender-results",
@@ -447,7 +480,12 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             RevokedTrustedBlobContainer: "fp-project-trusted",
             RevokedTrustedBlobObjectName: "uploads/test.pdf",
             RevokedTrustedBlobETag: "\"trusted-etag\"",
-            RevokedTrustedBlobVersionId: "trusted-version");
+            RevokedTrustedBlobVersionId: "trusted-version",
+            RevokedTrustedMimeType: "application/pdf",
+            RevokedTrustedContentLength: Pdf.Length,
+            RevokedTrustedContentHash: ContentHash,
+            RevokedTrustedProcessingVersion: "pdf-copy-v1",
+            RevokedTrustedCreatedAtUtc: Now);
         fixture.Blobs.VerifiedVersionReceipt =
             new ProjectAssetBlobReceipt("\"trusted-etag\"", "trusted-version");
 
@@ -472,7 +510,12 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             ScanStatus: ProjectAssetScanStatus.Malicious,
             RevokedTrustedBlobContainer: "fp-project-trusted",
             RevokedTrustedBlobObjectName: "uploads/test.pdf",
-            RevokedTrustedBlobETag: "\"trusted-etag\"");
+            RevokedTrustedBlobETag: "\"trusted-etag\"",
+            RevokedTrustedMimeType: "application/pdf",
+            RevokedTrustedContentLength: Pdf.Length,
+            RevokedTrustedContentHash: ContentHash,
+            RevokedTrustedProcessingVersion: "pdf-copy-v1",
+            RevokedTrustedCreatedAtUtc: Now);
 
         var result = await fixture.Service.HandleAsync(
             Event("Malicious"), "Notification", "project-asset-defender-results",
@@ -496,7 +539,13 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             ScanStatus: ProjectAssetScanStatus.Malicious,
             RevokedTrustedBlobContainer: "other-container",
             RevokedTrustedBlobObjectName: "uploads/test.pdf",
-            RevokedTrustedBlobETag: "\"trusted-etag\"");
+            RevokedTrustedBlobETag: "\"trusted-etag\"",
+            RevokedTrustedBlobVersionId: "trusted-version",
+            RevokedTrustedMimeType: "application/pdf",
+            RevokedTrustedContentLength: Pdf.Length,
+            RevokedTrustedContentHash: ContentHash,
+            RevokedTrustedProcessingVersion: "pdf-copy-v1",
+            RevokedTrustedCreatedAtUtc: Now);
 
         var result = await fixture.Service.HandleAsync(
             Event("Malicious"), "Notification", "project-asset-defender-results",
@@ -540,7 +589,7 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
     }
 
     [Fact]
-    public async Task Concrete_promoter_copies_only_PDF_documents()
+    public async Task Concrete_promoter_copies_PDF_with_a_separate_trusted_manifest()
     {
         var trace = new List<string>();
         var blobs = new FakeBlobs(trace);
@@ -549,29 +598,26 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             "fp-project-trusted", "uploads/test.pdf");
 
         var document = await subject.PromoteAsync(
-            ProjectAssetKind.Document,
-            Quarantine,
-            "\"0x1\"",
-            trusted,
-            "application/pdf",
-            Pdf.Length,
-            ContentHash,
-            CancellationToken.None);
-        var image = await subject.PromoteAsync(
-            ProjectAssetKind.Image,
-            Quarantine,
-            "\"0x1\"",
-            trusted,
-            "image/png",
-            Pdf.Length,
-            ContentHash,
+            new ProjectAssetTrustedContentRequest(
+                ProjectAssetKind.Document,
+                Quarantine,
+                "\"0x1\"",
+                trusted,
+                "application/pdf",
+                Pdf.Length,
+                ContentHash,
+                26_214_400,
+                25_000_000),
             CancellationToken.None);
 
         Assert.True(document.Succeeded);
         Assert.Equal("promoted", document.Code);
+        Assert.NotNull(document.Content);
+        Assert.Equal("application/pdf", document.Content!.Manifest.MimeType);
+        Assert.Equal(Pdf.Length, document.Content.Manifest.ContentLength);
+        Assert.Equal(ContentHash, document.Content.Manifest.ContentHash);
+        Assert.Equal("pdf-copy-v1", document.Content.Manifest.ProcessingVersion);
         Assert.Equal(["copy"], trace);
-        Assert.False(image.Succeeded);
-        Assert.Equal("image-sanitization-unavailable", image.Code);
     }
 
     [Fact]
@@ -690,6 +736,7 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
                     "fp-project-trusted",
                     10_485_760,
                     26_214_400,
+                    25_000_000,
                     TimeSpan.FromMinutes(5)),
                 new FixedTimeProvider(Now));
         }
@@ -761,6 +808,8 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
         public bool ApplyFails { get; set; }
         public int ApplyCalls { get; private set; }
         public ProjectAssetScanStatus? Status { get; private set; }
+        public ProjectAssetScanStatus? ProviderObservedStatus { get; private set; }
+        public string? ProviderResultCode { get; private set; }
         public ProtectedProjectAssetBlobLocation? TrustedLocation { get; private set; }
 
         public Task<ProjectAssetMutation> ApplyScanResultAsync(
@@ -772,15 +821,18 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
             byte[]? reportedContentHash,
             ProjectAssetScanStatus status,
             string resultCode,
-            ProtectedProjectAssetBlobLocation? trustedLocation,
-            ProjectAssetBlobReceipt? trustedReceipt,
+            ProjectAssetTrustedBlob? trustedContent,
             DateTimeOffset occurredAtUtc,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            ProjectAssetScanStatus? providerObservedStatus = null,
+            string? providerResultCode = null)
         {
             trace.Add("apply");
             ApplyCalls++;
             Status = status;
-            TrustedLocation = trustedLocation;
+            ProviderObservedStatus = providerObservedStatus;
+            ProviderResultCode = providerResultCode;
+            TrustedLocation = trustedContent?.Location;
             if (ApplyFails) return Task.FromException<ProjectAssetMutation>(DataFailure("apply"));
             var storageStatus = status == ProjectAssetScanStatus.Clean
                 ? ProjectAssetStorageStatus.Trusted
@@ -843,6 +895,20 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
                 new ProjectAssetBlobReceipt("\"trusted-etag\"", "trusted-version"));
         }
 
+        public Task<ProjectAssetBlobReceipt> EnsureUploadAsync(
+            ProtectedProjectAssetBlobLocation destination,
+            ReadOnlyMemory<byte> content,
+            string contentType,
+            byte[] expectedContentHash,
+            byte[] sourceContentHash,
+            string processingVersion,
+            CancellationToken cancellationToken)
+        {
+            trace.Add("upload");
+            return Task.FromResult(
+                new ProjectAssetBlobReceipt("\"trusted-etag\"", "trusted-version"));
+        }
+
         public Task<ProjectAssetBlobReceipt?> GetVerifiedReceiptAsync(
             ProtectedProjectAssetBlobLocation location,
             string contentType,
@@ -894,24 +960,31 @@ public sealed class ProjectAssetDefenderEventGridServiceTests
     private sealed class FakePromoter(List<string> trace) : IProjectAssetTrustedContentPromoter
     {
         public ProjectAssetTrustedContentPromotion Result { get; set; } = new(
-            true,
+            ProjectAssetTrustedPromotionOutcome.Promoted,
             "promoted",
-            new ProjectAssetBlobReceipt("\"trusted-etag\"", "trusted-version"));
+            TrustedPdf());
 
         public Task<ProjectAssetTrustedContentPromotion> PromoteAsync(
-            ProjectAssetKind kind,
-            ProtectedProjectAssetBlobLocation quarantineLocation,
-            string quarantineETag,
-            ProtectedProjectAssetBlobLocation trustedLocation,
-            string contentType,
-            long expectedLength,
-            byte[] expectedContentHash,
+            ProjectAssetTrustedContentRequest request,
             CancellationToken cancellationToken)
         {
             trace.Add("promote");
             return Task.FromResult(Result);
         }
     }
+
+    private static ProjectAssetTrustedBlob TrustedPdf(
+        string? versionId = "trusted-version") => new(
+        new ProtectedProjectAssetBlobLocation(
+            "fp-project-trusted", "uploads/test.pdf"),
+        new ProjectAssetBlobReceipt("\"trusted-etag\"", versionId),
+        new ProjectAssetTrustedContentManifest(
+            "application/pdf",
+            Pdf.Length,
+            ContentHash,
+            null,
+            null,
+            "pdf-copy-v1"));
 
     private sealed class FakeWatchdog : IProjectAssetDefenderScanWatchdogRepository
     {

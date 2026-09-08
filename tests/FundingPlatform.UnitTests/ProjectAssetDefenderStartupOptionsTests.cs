@@ -123,6 +123,7 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
         Assert.Equal("fp-project-trusted", policy.TrustedContainer);
         Assert.Equal(10_485_760, policy.MaxImageBytes);
         Assert.Equal(26_214_400, policy.MaxDocumentBytes);
+        Assert.Equal(25_000_000, policy.MaxImagePixels);
         Assert.Equal(TimeSpan.FromMinutes(5), policy.MaximumFutureClockSkew);
     }
 

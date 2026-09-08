@@ -24,8 +24,9 @@ principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
 La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
 `032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
 `034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
-`036_project_assets.sql` y `037_project_asset_defender_pipeline.sql`, con sus smokes
-transaccionales. Los siete incrementos están preparados
+`036_project_assets.sql`, `037_project_asset_defender_pipeline.sql` y
+`038_project_asset_image_sanitization.sql`, con sus smokes transaccionales. Los ocho incrementos
+están preparados
 para el siguiente release y todavía
 no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
 datos → 100 % del tráfico API nuevo → frontend; las guardas `51011` y `51013` impiden que una
@@ -61,7 +62,11 @@ Huellas locales del incremento:
 - migración `037` (1899 líneas/13 lotes):
   `41a80202ddfe3183d2ce712d07dc7efb0edf0c86447b328b735505b923c041fd`;
 - smoke `037` (1015 líneas/un lote):
-  `6eeb417d3eec03b97328cd711be8ccfd436b614cb5aeff0274f7612ea585590c`.
+  `6eeb417d3eec03b97328cd711be8ccfd436b614cb5aeff0274f7612ea585590c`;
+- migración `038` (1762 líneas/8 lotes):
+  `f258f9868c31798d5d3a5ff99d663f508927ac761c1e0dfa96e3e1f9ee56d23c`;
+- smoke `038` (1002 líneas/un lote):
+  `bb4c34fd3014716b775855be3951eafebcef09f38c7ff276c9b98bb871967507`.
 
 `036` agrega adjuntos privados de proyecto con intents de carga y finalización durable, cuarentena,
 escaneo fail-closed, ETags de proyecto/asset, portada única accesible sólo si está limpia/confiable y
@@ -72,12 +77,30 @@ rol administrador. La publicación, la aprobación administrativa y la proyecci�
 revalidan que cada adjunto activo siga limpio y confiable.
 
 `037` separa el ingreso Event Grid de adjuntos y documentos fuente mediante `WorkloadKind`, registra
-receipts antes de aceptar resultados Defender, promueve sólo copias PDF limpias y revoca por versión
+receipts antes de aceptar resultados Defender, promueve sólo contenido limpio y revoca por versión
 exacta un resultado limpio que posteriormente se vuelva malicioso, fallido o vencido. Su watchdog
 cierra scans pendientes sin abrir acceso al blob y el wrapper del outbox reconoce únicamente los
-diez eventos de adjuntos conocidos, con ACK por lotes, validación estricta e idempotencia. El worker
-queda bloqueado por configuración hasta incorporar sanitización real de imágenes y el retiro físico
-DB-driven de blobs terminales; `037` no se ha ejecutado todavía contra Azure SQL real.
+diez eventos de adjuntos conocidos, con ACK por lotes, validación estricta e idempotencia.
+
+`038` completa la materialización confiable: las imágenes JPEG/PNG/WebP se decodifican y
+re-encodifican con SkiaSharp, sin EXIF ni otros metadatos innecesarios, y los PDF se conservan como
+copias byte-exactas con MIME, longitud y SHA-256 idénticos al original verificado. Cada asset limpio
+debe tener un manifiesto `Trusted*` coherente —ubicación y versión Blob, ETag, MIME, longitud, hash,
+dimensiones para imágenes, versión de procesamiento y fecha— antes de poder leerse o participar en
+publicación. El estado/código observado del proveedor se persiste separado del estado/código
+efectivo, de modo que un `Clean` de Defender no oculte un rechazo posterior del sanitizador.
+
+La migración falla cerrada ante imágenes históricas marcadas como confiables pero no sanitizadas:
+retira su confianza y genera la evidencia de revocación con el manifiesto exacto del blob. Una
+revocación posterior también conserva ese manifiesto completo para no borrar por nombre una versión
+distinta. El worker continúa bloqueado por configuración hasta incorporar el retiro físico
+DB-driven de blobs terminales y completar el E2E real limpio/malicioso. `031`→`038` y sus smokes son
+artefactos locales: **`038` no se ha ejecutado contra SQL Server/Azure SQL y no se desplegó en
+Azure**.
+
+El parser ScriptDom T-SQL 170 aceptó los ocho lotes de la migración y el lote único del smoke; los
+tests estáticos focales de arquitectura SQL pasaron 6/6. Son gates locales y no sustituyen una
+ejecución transaccional contra SQL Server o Azure SQL.
 
 Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
 revisión compatible de 945 líneas con SHA-256

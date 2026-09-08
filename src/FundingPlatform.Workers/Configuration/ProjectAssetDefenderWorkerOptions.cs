@@ -69,6 +69,7 @@ public sealed class ProjectAssetDefenderWorkerOptions
             projectAssets.TrustedContainer,
             projectAssets.MaxImageBytes,
             projectAssets.MaxDocumentBytes,
+            projectAssets.MaxImagePixels,
             TimeSpan.FromMinutes(5));
     }
 

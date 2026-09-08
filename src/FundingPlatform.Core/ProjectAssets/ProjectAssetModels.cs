@@ -106,7 +106,14 @@ public sealed record ProjectAssetMutation(
     string? RevokedTrustedBlobContainer = null,
     string? RevokedTrustedBlobObjectName = null,
     string? RevokedTrustedBlobETag = null,
-    string? RevokedTrustedBlobVersionId = null);
+    string? RevokedTrustedBlobVersionId = null,
+    string? RevokedTrustedMimeType = null,
+    long? RevokedTrustedContentLength = null,
+    byte[]? RevokedTrustedContentHash = null,
+    int? RevokedTrustedPixelWidth = null,
+    int? RevokedTrustedPixelHeight = null,
+    string? RevokedTrustedProcessingVersion = null,
+    DateTimeOffset? RevokedTrustedCreatedAtUtc = null);
 
 public enum ProjectAssetOutcome
 {

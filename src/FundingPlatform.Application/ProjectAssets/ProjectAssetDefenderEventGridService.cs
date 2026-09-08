@@ -220,43 +220,74 @@ public sealed class ProjectAssetDefenderEventGridService(
                 }
             }
 
-            ProtectedProjectAssetBlobLocation? trustedLocation = null;
-            ProjectAssetBlobReceipt? trustedReceipt = null;
+            ProjectAssetTrustedBlob? trustedContent = null;
+            var effectiveStatus = status.Value;
+            var effectiveResultCode = resultCode;
             if (status == ProjectAssetScanStatus.Clean)
             {
-                trustedLocation = new ProtectedProjectAssetBlobLocation(
+                var trustedLocation = new ProtectedProjectAssetBlobLocation(
                     policy.TrustedContainer, work.QuarantineLocation!.ObjectName);
                 var promotion = await promoter.PromoteAsync(
-                    work.Kind!.Value,
-                    work.QuarantineLocation,
-                    work.QuarantineETag!,
-                    trustedLocation,
-                    work.MimeType!,
-                    work.ContentLength!.Value,
-                    work.ContentHash!,
-                    cancellationToken);
-                if (!promotion.Succeeded || promotion.Receipt is null)
-                    return Retry(NormalizePromotionCode(promotion.Code));
-                trustedReceipt = promotion.Receipt;
-                if (!BlobETagNormalizer.TryNormalize(
-                        trustedReceipt.ETag, out var normalizedTrustedETag))
-                    return Retry("trusted-promotion-materialization-invalid");
-                if (!IsSafeVersionId(trustedReceipt.VersionId))
-                {
-                    // Defender promotion requires Blob Versioning. If infrastructure is
-                    // misconfigured, remove the unreferenced current blob and keep the
-                    // receipt retryable instead of persisting trust that cannot be revoked.
-                    await blobStore.DeleteIfMatchAsync(
-                        trustedLocation, normalizedTrustedETag, cancellationToken);
-                    var remaining = await blobStore.GetVerifiedReceiptAsync(
+                    new ProjectAssetTrustedContentRequest(
+                        work.Kind!.Value,
+                        work.QuarantineLocation,
+                        work.QuarantineETag!,
                         trustedLocation,
                         work.MimeType!,
                         work.ContentLength!.Value,
                         work.ContentHash!,
-                        cancellationToken);
-                    return Retry(remaining is null
-                        ? "trusted-promotion-materialization-invalid"
-                        : "trusted-promotion-cleanup-incomplete");
+                        maximumLength,
+                        policy.MaxImagePixels),
+                    cancellationToken);
+                if (promotion.IsRetryable)
+                    return Retry(NormalizePromotionCode(promotion.Code));
+                if (!promotion.Succeeded)
+                {
+                    if (!IsSanitizationRejectionCode(promotion.Code) ||
+                        promotion.Content is not null)
+                        return Retry("trusted-promotion-materialization-invalid");
+                    effectiveStatus = ProjectAssetScanStatus.Failed;
+                    effectiveResultCode = promotion.Code;
+                }
+                else if (promotion.Content is null ||
+                         !ValidTrustedContent(
+                             promotion.Content,
+                             work.Kind.Value,
+                             trustedLocation,
+                             work.MimeType!,
+                             work.ContentLength!.Value,
+                             work.ContentHash!,
+                             maximumLength))
+                {
+                    return Retry("trusted-promotion-materialization-invalid");
+                }
+                else
+                {
+                    trustedContent = promotion.Content;
+                }
+
+                if (trustedContent is not null)
+                {
+                    if (!BlobETagNormalizer.TryNormalize(
+                            trustedContent.Receipt.ETag, out var normalizedTrustedETag))
+                        return Retry("trusted-promotion-materialization-invalid");
+                    if (!IsSafeVersionId(trustedContent.Receipt.VersionId))
+                    {
+                        // Defender promotion requires Blob Versioning. If infrastructure is
+                        // misconfigured, remove the unreferenced current blob and keep the
+                        // receipt retryable instead of persisting trust that cannot be revoked.
+                        await blobStore.DeleteIfMatchAsync(
+                            trustedLocation, normalizedTrustedETag, cancellationToken);
+                        var remaining = await blobStore.GetVerifiedReceiptAsync(
+                            trustedLocation,
+                            trustedContent.Manifest.MimeType,
+                            trustedContent.Manifest.ContentLength,
+                            trustedContent.Manifest.ContentHash,
+                            cancellationToken);
+                        return Retry(remaining is null
+                            ? "trusted-promotion-materialization-invalid"
+                            : "trusted-promotion-cleanup-incomplete");
+                    }
                 }
             }
 
@@ -267,24 +298,19 @@ public sealed class ProjectAssetDefenderEventGridService(
                 payloadHash,
                 work.QuarantineETag!,
                 reportedHash,
-                status.Value,
-                resultCode,
-                trustedLocation,
-                trustedReceipt,
+                effectiveStatus,
+                effectiveResultCode,
+                trustedContent,
                 finishedAt,
-                cancellationToken);
+                cancellationToken,
+                status.Value,
+                resultCode);
 
-            if (status == ProjectAssetScanStatus.Clean &&
-                trustedLocation is not null && trustedReceipt is not null &&
+            if (trustedContent is not null &&
                 mutation.ScanStatus != ProjectAssetScanStatus.Clean)
             {
                 var cleanup = await DeleteAndVerifyAsync(
-                    trustedLocation,
-                    trustedReceipt.ETag,
-                    trustedReceipt.VersionId,
-                    work.MimeType!,
-                    work.ContentLength!.Value,
-                    work.ContentHash!,
+                    trustedContent,
                     "trusted-copy",
                     cancellationToken);
                 if (cleanup is not null) return cleanup;
@@ -299,22 +325,21 @@ public sealed class ProjectAssetDefenderEventGridService(
 
             if (IsSupersededCode(mutation.Code))
             {
-                if (!TryRevokedLocation(
-                        mutation, work.QuarantineLocation!.ObjectName,
-                        out var revokedLocation) ||
-                    !BlobETagNormalizer.TryNormalize(
-                        mutation.RevokedTrustedBlobETag, out var revokedETag))
+                if (!TryRevokedTrustedContent(
+                        mutation,
+                        work.Kind!.Value,
+                        work.QuarantineLocation!.ObjectName,
+                        work.MimeType!,
+                        work.ContentLength!.Value,
+                        work.ContentHash!,
+                        maximumLength,
+                        out var revokedContent))
                 {
                     return Retry("trusted-revocation-materialization-invalid");
                 }
 
                 var cleanup = await DeleteAndVerifyAsync(
-                    revokedLocation!,
-                    revokedETag,
-                    mutation.RevokedTrustedBlobVersionId,
-                    work.MimeType!,
-                    work.ContentLength!.Value,
-                    work.ContentHash!,
+                    revokedContent!,
                     "trusted-revocation",
                     cancellationToken);
                 if (cleanup is not null) return cleanup;
@@ -349,29 +374,33 @@ public sealed class ProjectAssetDefenderEventGridService(
     }
 
     private async Task<ProjectAssetDefenderEventGridResult?> DeleteAndVerifyAsync(
-        ProtectedProjectAssetBlobLocation location,
-        string eTag,
-        string? versionId,
-        string contentType,
-        long contentLength,
-        byte[] contentHash,
+        ProjectAssetTrustedBlob trusted,
         string codePrefix,
         CancellationToken cancellationToken)
     {
-        if (!BlobETagNormalizer.TryNormalize(eTag, out var normalizedETag) ||
-            !IsSafeVersionId(versionId))
+        if (!BlobETagNormalizer.TryNormalize(
+                trusted.Receipt.ETag, out var normalizedETag) ||
+            !IsSafeVersionId(trusted.Receipt.VersionId))
             return Retry($"{codePrefix}-materialization-invalid");
-        await blobStore.DeleteIfMatchAsync(location, normalizedETag, cancellationToken);
+        await blobStore.DeleteIfMatchAsync(
+            trusted.Location, normalizedETag, cancellationToken);
         await blobStore.DeleteVersionIfMatchAsync(
-            location, versionId!, normalizedETag, cancellationToken);
+            trusted.Location,
+            trusted.Receipt.VersionId!,
+            normalizedETag,
+            cancellationToken);
         var remaining = await blobStore.GetVerifiedReceiptAsync(
-            location, contentType, contentLength, contentHash, cancellationToken);
+            trusted.Location,
+            trusted.Manifest.MimeType,
+            trusted.Manifest.ContentLength,
+            trusted.Manifest.ContentHash,
+            cancellationToken);
         var remainingVersion = await blobStore.GetVerifiedVersionReceiptAsync(
-            location,
-            versionId!,
-            contentType,
-            contentLength,
-            contentHash,
+            trusted.Location,
+            trusted.Receipt.VersionId!,
+            trusted.Manifest.MimeType,
+            trusted.Manifest.ContentLength,
+            trusted.Manifest.ContentHash,
             cancellationToken);
         return remaining is null && remainingVersion is null
             ? null
@@ -424,6 +453,32 @@ public sealed class ProjectAssetDefenderEventGridService(
                MimeMatchesKind(work.Kind.Value, work.MimeType);
     }
 
+    private bool ValidTrustedContent(
+        ProjectAssetTrustedBlob content,
+        ProjectAssetKind kind,
+        ProtectedProjectAssetBlobLocation expectedLocation,
+        string sourceMimeType,
+        long sourceContentLength,
+        byte[] sourceContentHash,
+        long maximumLength) =>
+        SameLocation(content.Location, expectedLocation) &&
+        BlobETagNormalizer.TryNormalize(content.Receipt.ETag, out _) &&
+        ProjectAssetTrustedContentRules.IsValid(
+            kind,
+            content.Manifest,
+            sourceMimeType,
+            sourceContentLength,
+            sourceContentHash,
+            maximumLength,
+            policy.MaxImagePixels);
+
+    private static bool IsSanitizationRejectionCode(string code) => code is
+        "image-format-rejected" or
+        "image-decode-rejected" or
+        "image-frame-count-rejected" or
+        "image-dimensions-rejected" or
+        "image-output-too-large";
+
     private static (bool IsValid, byte[]? Hash) ReadReportedHash(JsonElement data)
     {
         if (!data.TryGetProperty("scanResultDetails", out var details))
@@ -449,14 +504,21 @@ public sealed class ProjectAssetDefenderEventGridService(
         _ => false
     };
 
-    private bool TryRevokedLocation(
+    private bool TryRevokedTrustedContent(
         ProjectAssetMutation mutation,
+        ProjectAssetKind kind,
         string expectedObjectName,
-        out ProtectedProjectAssetBlobLocation? location)
+        string sourceMimeType,
+        long sourceContentLength,
+        byte[] sourceContentHash,
+        long maximumLength,
+        out ProjectAssetTrustedBlob? content)
     {
-        location = null;
+        content = null;
         if (string.IsNullOrWhiteSpace(mutation.RevokedTrustedBlobContainer) ||
             string.IsNullOrWhiteSpace(mutation.RevokedTrustedBlobObjectName) ||
+            string.IsNullOrWhiteSpace(mutation.RevokedTrustedBlobETag) ||
+            !IsSafeVersionId(mutation.RevokedTrustedBlobVersionId) ||
             !string.Equals(
                 mutation.RevokedTrustedBlobContainer,
                 policy.TrustedContainer,
@@ -464,11 +526,60 @@ public sealed class ProjectAssetDefenderEventGridService(
             !string.Equals(
                 mutation.RevokedTrustedBlobObjectName,
                 expectedObjectName,
-                StringComparison.Ordinal))
+                StringComparison.Ordinal) ||
+            !TryRevokedManifest(
+                mutation,
+                kind,
+                sourceMimeType,
+                sourceContentLength,
+                sourceContentHash,
+                maximumLength,
+                out var manifest))
             return false;
-        location = new ProtectedProjectAssetBlobLocation(
-            mutation.RevokedTrustedBlobContainer,
-            mutation.RevokedTrustedBlobObjectName);
+        content = new ProjectAssetTrustedBlob(
+            new ProtectedProjectAssetBlobLocation(
+                mutation.RevokedTrustedBlobContainer,
+                mutation.RevokedTrustedBlobObjectName),
+            new ProjectAssetBlobReceipt(
+                mutation.RevokedTrustedBlobETag,
+                mutation.RevokedTrustedBlobVersionId),
+            manifest!);
+        return true;
+    }
+
+    private bool TryRevokedManifest(
+        ProjectAssetMutation mutation,
+        ProjectAssetKind kind,
+        string sourceMimeType,
+        long sourceContentLength,
+        byte[] sourceContentHash,
+        long maximumLength,
+        out ProjectAssetTrustedContentManifest? manifest)
+    {
+        manifest = null;
+        if (string.IsNullOrWhiteSpace(mutation.RevokedTrustedMimeType) ||
+            mutation.RevokedTrustedContentLength is not > 0 ||
+            mutation.RevokedTrustedContentHash is not { Length: 32 } ||
+            string.IsNullOrWhiteSpace(mutation.RevokedTrustedProcessingVersion) ||
+            mutation.RevokedTrustedCreatedAtUtc is null)
+            return false;
+        var value = new ProjectAssetTrustedContentManifest(
+            mutation.RevokedTrustedMimeType,
+            mutation.RevokedTrustedContentLength.Value,
+            mutation.RevokedTrustedContentHash,
+            mutation.RevokedTrustedPixelWidth,
+            mutation.RevokedTrustedPixelHeight,
+            mutation.RevokedTrustedProcessingVersion);
+        if (!ProjectAssetTrustedContentRules.IsValid(
+                kind,
+                value,
+                sourceMimeType,
+                sourceContentLength,
+                sourceContentHash,
+                maximumLength,
+                policy.MaxImagePixels))
+            return false;
+        manifest = value;
         return true;
     }
 
@@ -494,7 +605,10 @@ public sealed class ProjectAssetDefenderEventGridService(
 
     private static string NormalizePromotionCode(string? code) => code switch
     {
-        "image-sanitization-unavailable" => code,
+        "image-storage-retry" or
+        "image-native-retry" or
+        "image-processing-retry" or
+        "pdf-storage-retry" => code,
         _ => "trusted-promotion-unavailable"
     };
 

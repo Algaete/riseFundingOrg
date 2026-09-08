@@ -227,10 +227,11 @@ public sealed class SqlProjectAssetRepository(
         byte[]? reportedContentHash,
         ProjectAssetScanStatus status,
         string resultCode,
-        ProtectedProjectAssetBlobLocation? trustedLocation,
-        ProjectAssetBlobReceipt? trustedReceipt,
+        ProjectAssetTrustedBlob? trustedContent,
         DateTimeOffset occurredAtUtc,
-        CancellationToken cancellationToken) => ExecuteMutationAsync(
+        CancellationToken cancellationToken,
+        ProjectAssetScanStatus? providerObservedStatus = null,
+        string? providerResultCode = null) => ExecuteMutationAsync(
         "dbo.FundingPlatform_usp_ProjectAsset_ApplyScanResult",
         "apply project asset scan result",
         new
@@ -243,11 +244,19 @@ public sealed class SqlProjectAssetRepository(
             ReportedContentHash = reportedContentHash,
             ToStatus = (byte)status,
             ResultCode = resultCode,
+            ProviderObservedStatus = (byte)(providerObservedStatus ?? status),
+            ProviderResultCode = providerResultCode ?? resultCode,
             OccurredAtUtc = occurredAtUtc.UtcDateTime,
-            TrustedBlobContainer = trustedLocation?.Container,
-            TrustedBlobObjectName = trustedLocation?.ObjectName,
-            TrustedBlobETag = trustedReceipt?.ETag,
-            TrustedBlobVersionId = trustedReceipt?.VersionId
+            TrustedBlobContainer = trustedContent?.Location.Container,
+            TrustedBlobObjectName = trustedContent?.Location.ObjectName,
+            TrustedBlobETag = trustedContent?.Receipt.ETag,
+            TrustedBlobVersionId = trustedContent?.Receipt.VersionId,
+            TrustedMimeType = trustedContent?.Manifest.MimeType,
+            TrustedContentLength = trustedContent?.Manifest.ContentLength,
+            TrustedContentHash = trustedContent?.Manifest.ContentHash,
+            TrustedPixelWidth = trustedContent?.Manifest.PixelWidth,
+            TrustedPixelHeight = trustedContent?.Manifest.PixelHeight,
+            TrustedProcessingVersion = trustedContent?.Manifest.ProcessingVersion
         },
         cancellationToken);
 
@@ -358,17 +367,23 @@ public sealed class SqlProjectAssetRepository(
             if (!row.Succeeded || string.IsNullOrWhiteSpace(row.TrustedBlobContainer) ||
                 string.IsNullOrWhiteSpace(row.TrustedBlobObjectName) ||
                 string.IsNullOrWhiteSpace(row.TrustedBlobETag) ||
-                row.ContentHash is not { Length: 32 } ||
-                string.IsNullOrWhiteSpace(row.VerifiedMimeType) ||
-                string.IsNullOrWhiteSpace(row.OriginalFileName) || row.ContentLength is null)
+                row.TrustedContentHash is not { Length: 32 } ||
+                string.IsNullOrWhiteSpace(row.TrustedMimeType) ||
+                string.IsNullOrWhiteSpace(row.TrustedProcessingVersion) ||
+                string.IsNullOrWhiteSpace(row.OriginalFileName) ||
+                row.TrustedContentLength is null || row.TrustedCreatedAtUtc is null)
                 return null;
             return new ProjectAssetTrustedContent(
                 row.AssetPublicId,
                 (ProjectAssetKind)(row.Kind ?? 0),
                 row.OriginalFileName,
-                row.VerifiedMimeType,
-                row.ContentLength.Value,
-                row.ContentHash,
+                row.TrustedMimeType,
+                row.TrustedContentLength.Value,
+                row.TrustedContentHash,
+                row.TrustedPixelWidth,
+                row.TrustedPixelHeight,
+                row.TrustedProcessingVersion,
+                ToUtc(row.TrustedCreatedAtUtc.Value),
                 new ProtectedProjectAssetBlobLocation(
                     row.TrustedBlobContainer, row.TrustedBlobObjectName),
                 row.TrustedBlobETag,
@@ -485,7 +500,14 @@ public sealed class SqlProjectAssetRepository(
                 RevokedTrustedBlobContainer: row.RevokedTrustedBlobContainer,
                 RevokedTrustedBlobObjectName: row.RevokedTrustedBlobObjectName,
                 RevokedTrustedBlobETag: row.RevokedTrustedBlobETag,
-                RevokedTrustedBlobVersionId: row.RevokedTrustedBlobVersionId);
+                RevokedTrustedBlobVersionId: row.RevokedTrustedBlobVersionId,
+                RevokedTrustedMimeType: row.RevokedTrustedMimeType,
+                RevokedTrustedContentLength: row.RevokedTrustedContentLength,
+                RevokedTrustedContentHash: row.RevokedTrustedContentHash,
+                RevokedTrustedPixelWidth: row.RevokedTrustedPixelWidth,
+                RevokedTrustedPixelHeight: row.RevokedTrustedPixelHeight,
+                RevokedTrustedProcessingVersion: row.RevokedTrustedProcessingVersion,
+                RevokedTrustedCreatedAtUtc: ToUtc(row.RevokedTrustedCreatedAtUtc));
         }
         catch (SqlException exception)
         {
@@ -560,6 +582,13 @@ public sealed class SqlProjectAssetRepository(
         public string? RevokedTrustedBlobObjectName { get; init; }
         public string? RevokedTrustedBlobETag { get; init; }
         public string? RevokedTrustedBlobVersionId { get; init; }
+        public string? RevokedTrustedMimeType { get; init; }
+        public long? RevokedTrustedContentLength { get; init; }
+        public byte[]? RevokedTrustedContentHash { get; init; }
+        public int? RevokedTrustedPixelWidth { get; init; }
+        public int? RevokedTrustedPixelHeight { get; init; }
+        public string? RevokedTrustedProcessingVersion { get; init; }
+        public DateTime? RevokedTrustedCreatedAtUtc { get; init; }
     }
 
     private sealed class FinalizeRow
@@ -655,9 +684,13 @@ public sealed class SqlProjectAssetRepository(
         public string? TrustedBlobObjectName { get; init; }
         public string? TrustedBlobETag { get; init; }
         public string? TrustedBlobVersionId { get; init; }
-        public byte[]? ContentHash { get; init; }
-        public string? VerifiedMimeType { get; init; }
-        public long? ContentLength { get; init; }
+        public byte[]? TrustedContentHash { get; init; }
+        public string? TrustedMimeType { get; init; }
+        public long? TrustedContentLength { get; init; }
+        public int? TrustedPixelWidth { get; init; }
+        public int? TrustedPixelHeight { get; init; }
+        public string? TrustedProcessingVersion { get; init; }
+        public DateTime? TrustedCreatedAtUtc { get; init; }
         public string? OriginalFileName { get; init; }
     }
 }

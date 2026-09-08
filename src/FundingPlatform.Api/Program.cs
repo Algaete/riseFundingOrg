@@ -61,6 +61,7 @@ using FundingPlatform.Infrastructure.ProjectAssets.Cryptography;
 using FundingPlatform.Infrastructure.ProjectAssets.Inspection;
 using FundingPlatform.Infrastructure.ProjectAssets.Scanning;
 using FundingPlatform.Infrastructure.ProjectAssets.Storage;
+using FundingPlatform.ImageProcessing.ProjectAssets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -83,6 +84,7 @@ Activity.DefaultIdFormat = ActivityIdFormat.W3C;
 Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
+var projectAssetImageSanitizationProbe = new ProjectAssetImageSanitizationProbe();
 // Use one application-log destination: Azure Monitor when configured, otherwise local JSON.
 // Container Apps also ingests console output, so forwarding to both would duplicate ingestion.
 builder.Logging.ClearProviders();
@@ -237,6 +239,10 @@ builder.Services.AddSingleton<IProjectAssetContentInspector,
     StreamingProjectAssetContentInspector>();
 builder.Services.AddSingleton<IProjectAssetScanner, ConfiguredProjectAssetScanner>();
 builder.Services.AddSingleton<IProjectAssetBlobStore, AzureProjectAssetBlobStore>();
+builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
+    ProjectAssetTrustedContentPromoter>();
+builder.Services.AddSingleton<IProjectAssetImageSanitizationProbe>(
+    projectAssetImageSanitizationProbe);
 builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
@@ -367,8 +373,15 @@ builder.Services
     .AddOptions<ProjectAssetOptions>()
     .Bind(builder.Configuration.GetSection(ProjectAssetOptions.SectionName))
     .Validate(
-        options => ProjectAssetOptions.IsValid(options, builder.Environment.EnvironmentName),
-        "La configuración ProjectAssets no es válida.")
+        options => ProjectAssetOptions.IsValid(options, builder.Environment.EnvironmentName) &&
+                   (!options.Enabled ||
+                    !string.Equals(options.ScanMode, "DevelopmentFake",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(options.DevelopmentFakeResult, "Clean",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    projectAssetImageSanitizationProbe.IsAvailable()),
+        "La configuración ProjectAssets no es válida o el sanitizador de imágenes no " +
+        "está disponible para un resultado DevelopmentFake limpio.")
     .ValidateOnStart();
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<ProjectAssetOptions>>().Value.ToPolicy());

@@ -262,6 +262,7 @@ public sealed class Phase12AInfrastructureTests
         var extractionProject = Read(
             "src", "FundingPlatform.ExtractionWorkers",
             "FundingPlatform.ExtractionWorkers.csproj");
+        var apiDockerfile = Read("src", "FundingPlatform.Api", "Dockerfile");
 
         Assert.Contains("package-workers.py build", workflow, StringComparison.Ordinal);
         Assert.Contains("package-workers.py verify", workflow, StringComparison.Ordinal);
@@ -275,7 +276,15 @@ public sealed class Phase12AInfrastructureTests
         Assert.Contains("functions.metadata", packager, StringComparison.Ordinal);
         Assert.Contains("local.settings.json", packager, StringComparison.Ordinal);
         Assert.Contains("--no-restore", packager, StringComparison.Ordinal);
+        Assert.Contains("\"runtime\": \"linux-x64\"", packager, StringComparison.Ordinal);
+        Assert.Contains("libSkiaSharp.so", packager, StringComparison.Ordinal);
+        Assert.Contains("--maxcpucount:1", packager, StringComparison.Ordinal);
+        Assert.Contains("UseSharedCompilation=false", packager, StringComparison.Ordinal);
         Assert.Contains("UseAppHost=false", packager, StringComparison.Ordinal);
+        Assert.Contains("<RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>", generalProject,
+            StringComparison.Ordinal);
+        Assert.Contains("--runtime linux-x64", apiDockerfile, StringComparison.Ordinal);
+        Assert.Contains("--self-contained false", apiDockerfile, StringComparison.Ordinal);
         Assert.All(new[] { generalProject, extractionProject }, project =>
         {
             Assert.Contains("<None Update=\"local.settings.json\">", project,
