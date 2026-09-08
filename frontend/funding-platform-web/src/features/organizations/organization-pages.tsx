@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, Check, ChevronLeft, ChevronRight, LoaderCircle, Save } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { Building2, Check, ChevronLeft, ChevronRight, LoaderCircle, Plus, Save, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type FieldPath } from 'react-hook-form'
 
 import { ApiError } from '@/api/http-client'
@@ -104,6 +104,11 @@ const profileErrorFields: Record<string, FieldPath<OrganizationProfileUpdate>> =
   beneficiarytypeids: 'beneficiaryTypeIds',
   projecttypeids: 'projectTypeIds',
   languages: 'languages',
+  customimpactareas: 'customImpactAreas',
+  custombeneficiarytypes: 'customBeneficiaryTypes',
+  customprojecttypes: 'customProjectTypes',
+  customlanguages: 'customLanguages',
+  customtaxonomyvalues: 'customImpactAreas',
 }
 
 const profileErrorTargets: Record<string, string> = {
@@ -134,6 +139,11 @@ const profileErrorTargets: Record<string, string> = {
   beneficiarytypeids: 'organization-beneficiaries',
   projecttypeids: 'organization-project-types',
   languages: 'organization-languages',
+  customimpactareas: 'organization-custom-impact-areas',
+  custombeneficiarytypes: 'organization-custom-beneficiary-types',
+  customprojecttypes: 'organization-custom-project-types',
+  customlanguages: 'organization-custom-languages',
+  customtaxonomyvalues: 'organization-custom-impact-areas',
 }
 
 const createErrorFields: Record<string, FieldPath<CreateOrganizationValues>> = {
@@ -252,11 +262,12 @@ function selectedPreset(
 
 function profileStepForError(key: string) {
   const normalized = normalizedErrorKey(key)
-  if (['countryids', 'regionids', 'categoryids', 'beneficiarytypeids', 'projecttypeids'].includes(normalized)) return 1
+  if (['countryids', 'regionids', 'categoryids', 'beneficiarytypeids', 'projecttypeids',
+    'customimpactareas', 'custombeneficiarytypes', 'customprojecttypes', 'customtaxonomyvalues'].includes(normalized)) return 1
   if (
     normalized.startsWith('annualbudget') ||
     normalized.startsWith('desiredfunding') ||
-    ['previousfundingexperience', 'fundingexperiencetypeids', 'experiencesummary', 'languages'].includes(normalized)
+    ['previousfundingexperience', 'fundingexperiencetypeids', 'experiencesummary', 'languages', 'customlanguages'].includes(normalized)
   ) return 2
   return 0
 }
@@ -406,6 +417,149 @@ function MultiChoice({
   )
 }
 
+function customComparison(value: string) {
+  return value.trim().replace(/\s+/g, ' ').normalize('NFD')
+    .replace(/\p{M}/gu, '').toLocaleUpperCase('es')
+}
+
+function CustomTaxonomyChoice({
+  label,
+  items,
+  selected,
+  onSelectedChange,
+  customValues,
+  onCustomChange,
+  officialError,
+  customError,
+  id,
+  inputId,
+  otherCode,
+}: {
+  label: string
+  items: CatalogOption<number>[]
+  selected: number[]
+  onSelectedChange: (value: number[]) => void
+  customValues: string[]
+  onCustomChange: (value: string[]) => void
+  officialError?: string
+  customError?: string
+  id: string
+  inputId: string
+  otherCode: string
+}) {
+  const [draft, setDraft] = useState('')
+  const [localError, setLocalError] = useState<string>()
+  const [editorOpen, setEditorOpen] = useState(false)
+  const input = useRef<HTMLInputElement>(null)
+  const other = items.find(item => item.code.toLocaleLowerCase() === otherCode.toLocaleLowerCase())
+  const otherSelected = other ? selected.includes(other.id) : false
+  const showCustomEditor = editorOpen || customValues.length > 0 || otherSelected || Boolean(customError)
+  const errorId = `${inputId}-error`
+
+  function toggle(item: CatalogOption<number>) {
+    if (item.id === other?.id) {
+      if (selected.includes(item.id)) {
+        onSelectedChange(selected.filter(value => value !== item.id))
+        setEditorOpen(customValues.length > 0)
+        return
+      }
+      setEditorOpen(value => !value)
+      window.setTimeout(() => input.current?.focus(), 0)
+      return
+    }
+    const willSelect = !selected.includes(item.id)
+    onSelectedChange(willSelect ? [...selected, item.id] : selected.filter(value => value !== item.id))
+  }
+
+  function addCustom() {
+    const name = draft.trim().replace(/\s+/g, ' ')
+    if (name.length < 2 || name.length > 100) {
+      setLocalError('Escribe una opción de entre 2 y 100 caracteres.')
+      return
+    }
+    if (customValues.length >= 5) {
+      setLocalError('Puedes agregar hasta cinco opciones personalizadas en esta sección.')
+      return
+    }
+    const normalized = customComparison(name)
+    if (customValues.some(value => customComparison(value) === normalized)) {
+      setLocalError('Esta opción ya fue agregada.')
+      return
+    }
+    if (items.some(item => customComparison(item.name) === normalized)) {
+      setLocalError('Esa opción ya existe en la lista. Selecciónala allí.')
+      return
+    }
+    onCustomChange([...customValues, name])
+    if (other) onSelectedChange(selected.filter(value => value !== other.id))
+    setEditorOpen(true)
+    setDraft('')
+    setLocalError(undefined)
+  }
+
+  return (
+    <fieldset aria-invalid={Boolean(officialError || customError || localError)} className="space-y-2" id={id} tabIndex={-1}>
+      <legend className="text-sm font-semibold">{label}{requirementLabel('recommended')}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {items.map(item => item.id === other?.id && !otherSelected
+          ? <button
+              aria-controls={inputId}
+              aria-expanded={showCustomEditor}
+              className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-left text-sm"
+              key={item.id}
+              onClick={() => toggle(item)}
+              type="button"
+            ><Plus className="size-4" /> Agregar otra opción</button>
+          : <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
+              <input checked={selected.includes(item.id)} onChange={() => toggle(item)} type="checkbox" />
+              {item.name}{item.id === other?.id ? ' (valor anterior)' : ''}
+            </label>)}
+      </div>
+      {officialError && <span className="block text-xs text-destructive" role="alert">{officialError}</span>}
+      {showCustomEditor && <div className="grid gap-2 rounded-lg border border-dashed bg-muted/30 p-3">
+        {otherSelected && customValues.length === 0 &&
+          <p className="text-xs font-medium text-muted-foreground">Otro sin especificar</p>}
+        <label className="text-xs font-semibold" htmlFor={inputId}>Agregar otra opción en {label.toLocaleLowerCase()}</label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            aria-describedby={localError || customError ? errorId : undefined}
+            aria-invalid={Boolean(localError || customError)}
+            id={inputId}
+            maxLength={100}
+            onChange={event => {
+              setDraft(event.target.value)
+              setLocalError(undefined)
+            }}
+            onKeyDown={event => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              addCustom()
+            }}
+            placeholder="Escribe una opción"
+            ref={input}
+            value={draft}
+          />
+          <Button disabled={!draft.trim() || customValues.length >= 5} onClick={addCustom} type="button" variant="outline">
+            <Plus className="size-4" /> Agregar
+          </Button>
+        </div>
+        {customValues.length > 0 && <div aria-label={`Opciones personalizadas de ${label}`} className="flex flex-wrap gap-2">
+          {customValues.map(value => <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary" key={value}>
+            {value}
+            <button
+              aria-label={`Quitar ${value}`}
+              className="rounded-full p-0.5 hover:bg-primary/15"
+              onClick={() => onCustomChange(customValues.filter(item => item !== value))}
+              type="button"
+            ><X className="size-3" /></button>
+          </span>)}
+        </div>}
+      </div>}
+      {(localError || customError) && <span className="block text-xs text-destructive" id={errorId} role="alert">{localError ?? customError}</span>}
+    </fieldset>
+  )
+}
+
 function ProfileEditor({ profile, catalogs, onboarding }: {
   profile: OrganizationProfile
   catalogs: OrganizationCatalogs
@@ -426,10 +580,24 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
     annualBudgetPresets,
   ))
   const { register, handleSubmit, reset, watch, setValue, setError, clearErrors, formState } = useForm<OrganizationProfileUpdate>({
-    defaultValues: { ...profile, fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [] },
+    defaultValues: {
+      ...profile,
+      fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [],
+      customImpactAreas: profile.customImpactAreas ?? [],
+      customBeneficiaryTypes: profile.customBeneficiaryTypes ?? [],
+      customProjectTypes: profile.customProjectTypes ?? [],
+      customLanguages: profile.customLanguages ?? [],
+    },
   })
   useEffect(() => {
-    reset({ ...profile, fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [] })
+    reset({
+      ...profile,
+      fundingExperienceTypeIds: profile.fundingExperienceTypeIds ?? [],
+      customImpactAreas: profile.customImpactAreas ?? [],
+      customBeneficiaryTypes: profile.customBeneficiaryTypes ?? [],
+      customProjectTypes: profile.customProjectTypes ?? [],
+      customLanguages: profile.customLanguages ?? [],
+    })
     setDesiredFundingPreset(selectedPreset(
       profile.desiredFundingMin,
       profile.desiredFundingMax,
@@ -479,6 +647,10 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
   const categories = watch('categoryIds') ?? []
   const beneficiaries = watch('beneficiaryTypeIds') ?? []
   const projectTypes = watch('projectTypeIds') ?? []
+  const customImpactAreas = watch('customImpactAreas') ?? []
+  const customBeneficiaryTypes = watch('customBeneficiaryTypes') ?? []
+  const customProjectTypes = watch('customProjectTypes') ?? []
+  const customLanguages = watch('customLanguages') ?? []
   const regions = watch('regionIds') ?? []
   const desiredFundingMin = watch('desiredFundingMin')
   const desiredFundingMax = watch('desiredFundingMax')
@@ -761,18 +933,66 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 setValue('regionIds', value, { shouldDirty: true })
                 clearErrors('regionIds')
               }} />}
-              <MultiChoice error={formErrorMessage(formState.errors.categoryIds)} id="organization-categories" label="Áreas de impacto" items={catalogs.fundingCategories} requirement="recommended" selected={categories} onChange={value => {
-                setValue('categoryIds', value, { shouldDirty: true })
-                clearErrors('categoryIds')
-              }} />
-              <MultiChoice error={formErrorMessage(formState.errors.beneficiaryTypeIds)} id="organization-beneficiaries" label="Poblaciones beneficiarias" items={catalogs.beneficiaryTypes} requirement="recommended" selected={beneficiaries} onChange={value => {
-                setValue('beneficiaryTypeIds', value, { shouldDirty: true })
-                clearErrors('beneficiaryTypeIds')
-              }} />
-              <MultiChoice error={formErrorMessage(formState.errors.projectTypeIds)} id="organization-project-types" label="Tipos de proyecto" items={visibleProjectTypes} requirement="recommended" selected={projectTypes} onChange={value => {
-                setValue('projectTypeIds', value, { shouldDirty: true })
-                clearErrors('projectTypeIds')
-              }} />
+              <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+                Las opciones que agregues son privadas para tu organización y todavía no influyen en las recomendaciones.
+              </p>
+              <CustomTaxonomyChoice
+                customValues={customImpactAreas}
+                customError={formErrorMessage(formState.errors.customImpactAreas)}
+                id="organization-categories"
+                inputId="organization-custom-impact-areas"
+                items={catalogs.fundingCategories}
+                label="Áreas de impacto"
+                officialError={formErrorMessage(formState.errors.categoryIds)}
+                onCustomChange={value => {
+                  setValue('customImpactAreas', value, { shouldDirty: true })
+                  clearErrors('customImpactAreas')
+                }}
+                onSelectedChange={value => {
+                  setValue('categoryIds', value, { shouldDirty: true })
+                  clearErrors('categoryIds')
+                }}
+                otherCode="OTHER"
+                selected={categories}
+              />
+              <CustomTaxonomyChoice
+                customValues={customBeneficiaryTypes}
+                customError={formErrorMessage(formState.errors.customBeneficiaryTypes)}
+                id="organization-beneficiaries"
+                inputId="organization-custom-beneficiary-types"
+                items={catalogs.beneficiaryTypes}
+                label="Poblaciones beneficiarias"
+                officialError={formErrorMessage(formState.errors.beneficiaryTypeIds)}
+                onCustomChange={value => {
+                  setValue('customBeneficiaryTypes', value, { shouldDirty: true })
+                  clearErrors('customBeneficiaryTypes')
+                }}
+                onSelectedChange={value => {
+                  setValue('beneficiaryTypeIds', value, { shouldDirty: true })
+                  clearErrors('beneficiaryTypeIds')
+                }}
+                otherCode="OTHER"
+                selected={beneficiaries}
+              />
+              <CustomTaxonomyChoice
+                customValues={customProjectTypes}
+                customError={formErrorMessage(formState.errors.customProjectTypes)}
+                id="organization-project-types"
+                inputId="organization-custom-project-types"
+                items={visibleProjectTypes}
+                label="Tipos de proyecto"
+                officialError={formErrorMessage(formState.errors.projectTypeIds)}
+                onCustomChange={value => {
+                  setValue('customProjectTypes', value, { shouldDirty: true })
+                  clearErrors('customProjectTypes')
+                }}
+                onSelectedChange={value => {
+                  setValue('projectTypeIds', value, { shouldDirty: true })
+                  clearErrors('projectTypeIds')
+                }}
+                otherCode="OTHER"
+                selected={projectTypes}
+              />
             </>}
 
             {step === 2 && <>
@@ -900,10 +1120,28 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
               </section>
 
               <Field error={formState.errors.experienceSummary?.message} label="Resumen de experiencia"><textarea {...register('experienceSummary')} aria-invalid={Boolean(formState.errors.experienceSummary)} className={textareaClass} id="organization-experience-summary" placeholder="Cuéntanos brevemente sobre tu experiencia obteniendo financiamiento." /></Field>
-              <MultiChoice error={formErrorMessage(formState.errors.languages)} id="organization-languages" label="Idiomas de trabajo" items={catalogs.languages} requirement="recommended" selected={(watch('languages') ?? []).map(item => item.languageId)} onChange={value => {
-                setValue('languages', value.map(languageId => ({ languageId, proficiency: null })), { shouldDirty: true })
-                clearErrors('languages')
-              }} />
+              <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+                Los idiomas que agregues son privados para tu organización y todavía no influyen en las recomendaciones.
+              </p>
+              <CustomTaxonomyChoice
+                customValues={customLanguages}
+                customError={formErrorMessage(formState.errors.customLanguages)}
+                id="organization-languages"
+                inputId="organization-custom-languages"
+                items={catalogs.languages}
+                label="Idiomas de trabajo"
+                officialError={formErrorMessage(formState.errors.languages)}
+                onCustomChange={value => {
+                  setValue('customLanguages', value, { shouldDirty: true })
+                  clearErrors('customLanguages')
+                }}
+                onSelectedChange={value => {
+                  setValue('languages', value.map(languageId => ({ languageId, proficiency: null })), { shouldDirty: true })
+                  clearErrors('languages')
+                }}
+                otherCode="und"
+                selected={(watch('languages') ?? []).map(item => item.languageId)}
+              />
             </>}
 
             {update.isError && <ValidationSummary

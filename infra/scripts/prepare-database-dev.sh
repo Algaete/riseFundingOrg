@@ -276,8 +276,8 @@ fi
 
 final_status="$("${migrator[@]}" --status)"
 printf '%s\n' "$final_status"
-if ! grep -Fq 'Migraciones registradas: 34' <<<"$final_status" ||
-   ! grep -Fq 'Migraciones locales: 34' <<<"$final_status" ||
+if ! grep -Fq 'Migraciones registradas: 35' <<<"$final_status" ||
+   ! grep -Fq 'Migraciones locales: 35' <<<"$final_status" ||
    ! grep -Fq 'Full-Text 8A: listo' <<<"$final_status"; then
   echo "Final database status is incomplete" >&2
   exit 5

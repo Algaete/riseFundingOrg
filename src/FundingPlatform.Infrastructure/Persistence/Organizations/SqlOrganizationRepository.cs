@@ -139,8 +139,12 @@ public sealed class SqlOrganizationRepository(
                 .Select(value => new OrganizationLanguage(value.LanguageId, value.Proficiency)).ToArray();
             var fundingExperienceTypeIds = (await reader.ReadAsync<ShortIdRow>())
                 .Select(value => value.Id).ToArray();
+            var customTaxonomyValues = (await reader.ReadAsync<CustomTaxonomyRow>())
+                .Select(value => new OrganizationCustomTaxonomyValue(
+                    (OrganizationCustomTaxonomyKind)value.Kind, value.Name, value.NormalizedName))
+                .ToArray();
             return MapProfile(row, role, countries, regions, categories, beneficiaries, projectTypes,
-                tags, languages, fundingExperienceTypeIds);
+                tags, languages, fundingExperienceTypeIds, customTaxonomyValues);
         }
         catch (SqlException exception) when (exception.Number is 51003 or 51203)
         {
@@ -198,6 +202,13 @@ public sealed class SqlOrganizationRepository(
         parameters.Add("Languages", ToLanguageTable(profile.Languages).AsTableValuedParameter("dbo.FundingPlatform_OrganizationLanguageList"));
         parameters.Add("PreviousFunderTypeIdsJson",
             JsonSerializer.Serialize(profile.FundingExperienceTypeIds ?? []));
+        parameters.Add("CustomTaxonomyValuesJson", JsonSerializer.Serialize(
+            (profile.CustomTaxonomyValues ?? []).Select(value => new
+            {
+                kind = (byte)value.Kind,
+                name = value.Name,
+                normalizedName = value.NormalizedName
+            })));
 
         await using var connection = connectionFactory.CreateConnection();
         try
@@ -244,7 +255,8 @@ public sealed class SqlOrganizationRepository(
         IReadOnlyList<int> regions, IReadOnlyList<int> categories,
         IReadOnlyList<int> beneficiaries, IReadOnlyList<int> projectTypes,
         IReadOnlyList<long> tags, IReadOnlyList<OrganizationLanguage> languages,
-        IReadOnlyList<short> fundingExperienceTypeIds) =>
+        IReadOnlyList<short> fundingExperienceTypeIds,
+        IReadOnlyList<OrganizationCustomTaxonomyValue> customTaxonomyValues) =>
         new(row.PublicId, row.Name, row.LegalName, row.TaxIdentifier, row.HomeCountryId,
             row.OrganizationTypeId, row.LegalEntityTypeId, row.OrganizationSizeId,
             row.EstablishedYear, row.WebsiteUrl, row.Description, row.PreviousFundingExperience,
@@ -252,7 +264,8 @@ public sealed class SqlOrganizationRepository(
             row.AnnualBudgetCurrency?.Trim(), row.DesiredFundingMin, row.DesiredFundingMax,
             row.DesiredFundingCurrency?.Trim(), row.ProfileStatus, row.ProfileCompleteness,
             row.ProfileVersion, role, row.RowVersion, countries, regions, categories,
-            beneficiaries, projectTypes, tags, languages, fundingExperienceTypeIds);
+            beneficiaries, projectTypes, tags, languages, fundingExperienceTypeIds,
+            customTaxonomyValues);
 
     private static OrganizationDataException Wrap(string operation, SqlException exception) =>
         new(operation, exception.Number, exception);
@@ -267,6 +280,7 @@ public sealed class SqlOrganizationRepository(
     private sealed class IntIdRow { public int Id { get; set; } }
     private sealed class LongIdRow { public long Id { get; set; } }
     private sealed class LanguageRow { public short LanguageId { get; set; } public byte? Proficiency { get; set; } }
+    private sealed class CustomTaxonomyRow { public byte Kind { get; set; } public string Name { get; set; } = ""; public string NormalizedName { get; set; } = ""; }
     private sealed class PersistedOrganizationRow { public Guid PublicId { get; set; } public int ProfileVersion { get; set; } public byte[] RowVersion { get; set; } = []; }
     private sealed class OrganizationSummaryRow { public Guid PublicId { get; set; } public string Name { get; set; } = ""; public byte MembershipRole { get; set; } public byte ProfileStatus { get; set; } public decimal ProfileCompleteness { get; set; } public int ProfileVersion { get; set; } public DateTime UpdatedAtUtc { get; set; } }
     private sealed class OrganizationProfileRow

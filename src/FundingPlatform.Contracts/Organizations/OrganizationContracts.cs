@@ -73,7 +73,11 @@ public sealed record UpdateOrganizationProfileRequest(
     IReadOnlyList<int>? ProjectTypeIds = null,
     IReadOnlyList<long>? TagIds = null,
     IReadOnlyList<OrganizationLanguageRequest>? Languages = null,
-    IReadOnlyList<short>? FundingExperienceTypeIds = null);
+    IReadOnlyList<short>? FundingExperienceTypeIds = null,
+    IReadOnlyList<string>? CustomImpactAreas = null,
+    IReadOnlyList<string>? CustomBeneficiaryTypes = null,
+    IReadOnlyList<string>? CustomProjectTypes = null,
+    IReadOnlyList<string>? CustomLanguages = null);
 
 public sealed record OrganizationProfileResponse(
     Guid PublicId,
@@ -108,7 +112,11 @@ public sealed record OrganizationProfileResponse(
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
     IReadOnlyList<OrganizationLanguageResponse> Languages,
-    IReadOnlyList<short> FundingExperienceTypeIds);
+    IReadOnlyList<short> FundingExperienceTypeIds,
+    IReadOnlyList<string> CustomImpactAreas,
+    IReadOnlyList<string> CustomBeneficiaryTypes,
+    IReadOnlyList<string> CustomProjectTypes,
+    IReadOnlyList<string> CustomLanguages);
 
 public sealed record ProfileCompletenessResponse(
     decimal Percentage,

@@ -86,6 +86,10 @@ export interface OrganizationProfile {
   tagIds: number[]
   languages: OrganizationLanguage[]
   fundingExperienceTypeIds?: number[]
+  customImpactAreas?: string[]
+  customBeneficiaryTypes?: string[]
+  customProjectTypes?: string[]
+  customLanguages?: string[]
 }
 
 export type OrganizationProfileUpdate = Omit<

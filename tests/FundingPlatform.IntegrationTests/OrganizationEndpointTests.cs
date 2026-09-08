@@ -144,6 +144,73 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
         Assert.Empty(repository.UpdatedProfile!.FundingExperienceTypeIds!);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Put_profile_preserves_each_omitted_or_null_custom_taxonomy_dimension(bool sendNulls)
+    {
+        repository.ExistingCustomTaxonomyValues =
+        [
+            new(OrganizationCustomTaxonomyKind.ImpactArea, "Economía circular", "ECONOMIA CIRCULAR"),
+            new(OrganizationCustomTaxonomyKind.Language, "Mapudungun", "MAPUDUNGUN")
+        ];
+        var custom = sendNulls
+            ? """
+              ,"customImpactAreas":null,"customBeneficiaryTypes":null,
+              "customProjectTypes":null,"customLanguages":null
+              """
+            : string.Empty;
+        using var request = AuthenticatedPut($$"""
+            {
+              "name":"Fundación Demo",
+              "homeCountryId":152,
+              "organizationTypeId":2,
+              "previousFundingExperience":0
+              {{custom}}
+            }
+            """);
+
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, repository.UpdatedProfile!.CustomTaxonomyValues!.Count);
+        Assert.Equal(["Economía circular"], payload.RootElement.GetProperty("customImpactAreas")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray());
+        Assert.Equal(["Mapudungun"], payload.RootElement.GetProperty("customLanguages")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray());
+        Assert.Empty(payload.RootElement.GetProperty("customBeneficiaryTypes").EnumerateArray());
+        Assert.Empty(payload.RootElement.GetProperty("customProjectTypes").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task Put_profile_clears_only_explicit_empty_custom_dimension_and_preserves_omitted_ones()
+    {
+        repository.ExistingCustomTaxonomyValues =
+        [
+            new(OrganizationCustomTaxonomyKind.ImpactArea, "Economía circular", "ECONOMIA CIRCULAR"),
+            new(OrganizationCustomTaxonomyKind.Language, "Mapudungun", "MAPUDUNGUN")
+        ];
+        using var request = AuthenticatedPut("""
+            {
+              "name":"Fundación Demo",
+              "homeCountryId":152,
+              "organizationTypeId":2,
+              "previousFundingExperience":0,
+              "customImpactAreas":[]
+            }
+            """);
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Collection(repository.UpdatedProfile!.CustomTaxonomyValues!, value =>
+        {
+            Assert.Equal(OrganizationCustomTaxonomyKind.Language, value.Kind);
+            Assert.Equal("Mapudungun", value.Name);
+        });
+    }
+
     [Fact]
     public async Task Put_profile_reports_each_missing_required_field_without_calling_repository()
     {
@@ -201,11 +268,13 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
         public int UpdateCalls { get; private set; }
         public OrganizationProfileData? UpdatedProfile { get; private set; }
         public IReadOnlyList<short> ExistingFundingExperienceTypeIds { get; set; } = [];
+        public IReadOnlyList<OrganizationCustomTaxonomyValue> ExistingCustomTaxonomyValues { get; set; } = [];
         private byte ProfileStatus { get; set; }
         private decimal ProfileCompleteness { get; set; }
 
         public Task<OrganizationCatalogs> GetCatalogsAsync(CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            Task.FromResult(new OrganizationCatalogs(
+                [], [], [], [], [], [], [], [], [], [], [], [], [], []));
 
         public Task<IReadOnlyList<OrganizationSummary>> ListForUserAsync(
             Guid userPublicId, CancellationToken cancellationToken) =>
@@ -226,7 +295,7 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
                 "Fundación Demo", null, null, 152, 2, null, null, null, null, null,
                 ExistingFundingExperienceTypeIds.Count > 0 ? (byte)2 : (byte)0, null,
                 null, null, null, null, null, null, [], [], [], [], [], [], [],
-                ExistingFundingExperienceTypeIds);
+                ExistingFundingExperienceTypeIds, ExistingCustomTaxonomyValues);
             return Task.FromResult<OrganizationProfile?>(new OrganizationProfile(
                 organizationPublicId, profile.Name, profile.LegalName, profile.TaxIdentifier,
                 profile.HomeCountryId, profile.OrganizationTypeId, profile.LegalEntityTypeId,
@@ -237,7 +306,8 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
                 ProfileStatus, ProfileCompleteness, 2, 1, [8, 7, 6, 5, 4, 3, 2, 1],
                 profile.CountryIds, profile.RegionIds, profile.CategoryIds,
                 profile.BeneficiaryTypeIds, profile.ProjectTypeIds, profile.TagIds,
-                profile.Languages, profile.FundingExperienceTypeIds ?? []));
+                profile.Languages, profile.FundingExperienceTypeIds ?? [],
+                profile.CustomTaxonomyValues ?? []));
         }
 
         public Task<PersistedOrganization> UpdateProfileAsync(

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -28,7 +29,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             Normalize(name), null, null, homeCountryId, organizationTypeId,
             null, null, null, null, null, 0, null,
             null, null, null, null, null, null,
-            [], [], [], [], [], [], [], []);
+            [], [], [], [], [], [], [], [], []);
         var errors = Validate(profile);
         if (errors.Count > 0)
         {
@@ -77,6 +78,12 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             errors["ifMatch"] = ["If-Match no contiene una versión válida."];
         }
 
+        if (errors.Count == 0 && profile.CustomTaxonomyValues is { Count: > 0 })
+        {
+            var catalogs = await repository.GetCatalogsAsync(cancellationToken);
+            ValidateCustomTaxonomyAgainstCatalogs(profile.CustomTaxonomyValues, catalogs, errors);
+        }
+
         if (errors.Count > 0)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors: errors);
@@ -108,6 +115,10 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.Conflict);
         }
+        catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51013)
+        {
+            return new OrganizationWriteResult(OrganizationWriteOutcome.Conflict);
+        }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 51006 or 51204)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.NotFound);
@@ -119,6 +130,15 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
                 {
                     ["fundingExperienceTypeIds"] =
                         ["Revisa los tipos de financiadores seleccionados."]
+                });
+        }
+        catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51014)
+        {
+            return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
+                new Dictionary<string, string[]>
+                {
+                    ["customTaxonomyValues"] =
+                        ["Revisa las opciones personalizadas de la organización."]
                 });
         }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 51004 or 51007 or 51010 or 547)
@@ -136,13 +156,16 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         completed += profile.LegalEntityTypeId.HasValue && profile.EstablishedYear.HasValue ? 1 : 0;
         completed += !string.IsNullOrWhiteSpace(profile.Description) ? 1 : 0;
         completed += profile.CountryIds?.Count > 0 ? 1 : 0;
-        completed += profile.CategoryIds?.Count > 0 ? 1 : 0;
-        completed += profile.BeneficiaryTypeIds?.Count > 0 ? 1 : 0;
-        completed += profile.ProjectTypeIds?.Count > 0 ? 1 : 0;
+        completed += profile.CategoryIds?.Count > 0 || HasCustom(profile, OrganizationCustomTaxonomyKind.ImpactArea) ? 1 : 0;
+        completed += profile.BeneficiaryTypeIds?.Count > 0 || HasCustom(profile, OrganizationCustomTaxonomyKind.BeneficiaryType) ? 1 : 0;
+        completed += profile.ProjectTypeIds?.Count > 0 || HasCustom(profile, OrganizationCustomTaxonomyKind.ProjectType) ? 1 : 0;
         completed += profile.DesiredFundingMin.HasValue || profile.DesiredFundingMax.HasValue ? 1 : 0;
-        completed += profile.Languages?.Count > 0 ? 1 : 0;
+        completed += profile.Languages?.Count > 0 || HasCustom(profile, OrganizationCustomTaxonomyKind.Language) ? 1 : 0;
         return completed * 10m;
     }
+
+    private static bool HasCustom(OrganizationProfileData profile, OrganizationCustomTaxonomyKind kind) =>
+        profile.CustomTaxonomyValues?.Any(value => value.Kind == kind) == true;
 
     private static Dictionary<string, string[]> Validate(OrganizationProfileData profile)
     {
@@ -179,8 +202,68 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             errors["websiteUrl"] = ["Ingresa un dominio válido, por ejemplo onara.org."];
         if (profile.Languages.Any(language => language.Proficiency is < 1 or > 5))
             errors["languages"] = ["El dominio de idioma debe estar entre 1 y 5."];
+        ValidateCustomTaxonomy(profile.CustomTaxonomyValues ?? [], errors);
         return errors;
     }
+
+    private static void ValidateCustomTaxonomy(
+        IReadOnlyList<OrganizationCustomTaxonomyValue> values,
+        IDictionary<string, string[]> errors)
+    {
+        if (values.Count > 20)
+            errors["customTaxonomyValues"] = ["Puedes agregar hasta 20 opciones personalizadas en total."];
+
+        foreach (var group in values.GroupBy(value => value.Kind))
+        {
+            var field = CustomField(group.Key);
+            if (!Enum.IsDefined(group.Key))
+            {
+                errors["customTaxonomyValues"] = ["Una dimensión personalizada no es válida."];
+                continue;
+            }
+            if (group.Count() > 5)
+                errors[field] = ["Puedes agregar hasta cinco opciones personalizadas en esta sección."];
+            if (group.Any(value => value.Name.Length is < 2 or > 100 || value.NormalizedName.Length is < 2 or > 100))
+                errors[field] = ["Cada opción debe tener entre 2 y 100 caracteres."];
+            if (group.Any(value => value.Name.Any(character => char.GetUnicodeCategory(character) is
+                    UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.Surrogate or
+                    UnicodeCategory.PrivateUse or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator)))
+                errors[field] = ["Las opciones contienen caracteres no permitidos."];
+            if (group.GroupBy(value => value.NormalizedName, StringComparer.Ordinal).Any(items => items.Count() > 1))
+                errors[field] = ["No agregues la misma opción más de una vez."];
+        }
+    }
+
+    private static void ValidateCustomTaxonomyAgainstCatalogs(
+        IReadOnlyList<OrganizationCustomTaxonomyValue> values,
+        OrganizationCatalogs catalogs,
+        IDictionary<string, string[]> errors)
+    {
+        foreach (var group in values.GroupBy(value => value.Kind))
+        {
+            IEnumerable<string> officialNames = group.Key switch
+            {
+                OrganizationCustomTaxonomyKind.ImpactArea => catalogs.FundingCategories.Select(item => item.Name),
+                OrganizationCustomTaxonomyKind.BeneficiaryType => catalogs.BeneficiaryTypes.Select(item => item.Name),
+                OrganizationCustomTaxonomyKind.ProjectType => catalogs.ProjectTypes.Select(item => item.Name),
+                OrganizationCustomTaxonomyKind.Language => catalogs.Languages.Select(item => item.Name),
+                _ => []
+            };
+            var official = officialNames.Select(NormalizeComparison).ToHashSet(StringComparer.Ordinal);
+            if (group.Any(value => official.Contains(value.NormalizedName)))
+                errors[CustomField(group.Key)] =
+                    ["Esa opción ya existe en el catálogo. Selecciónala en la lista."];
+        }
+    }
+
+    private static string CustomField(OrganizationCustomTaxonomyKind kind) => kind switch
+    {
+        OrganizationCustomTaxonomyKind.ImpactArea => "customImpactAreas",
+        OrganizationCustomTaxonomyKind.BeneficiaryType => "customBeneficiaryTypes",
+        OrganizationCustomTaxonomyKind.ProjectType => "customProjectTypes",
+        OrganizationCustomTaxonomyKind.Language => "customLanguages",
+        _ => "customTaxonomyValues"
+    };
 
     private static void ValidateRange(decimal? minimum, decimal? maximum, string? currency, string key,
         IDictionary<string, string[]> errors)
@@ -225,7 +308,17 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             .GroupBy(language => language.LanguageId)
             .Select(group => group.Last()).OrderBy(language => language.LanguageId).ToArray(),
         FundingExperienceTypeIds = (profile.FundingExperienceTypeIds ?? [])
-            .Distinct().Order().ToArray()
+            .Distinct().Order().ToArray(),
+        CustomTaxonomyValues = (profile.CustomTaxonomyValues ?? [])
+            .OfType<OrganizationCustomTaxonomyValue>()
+            .Select(value =>
+            {
+                var name = NormalizeCustomDisplay(value.Name);
+                return new OrganizationCustomTaxonomyValue(value.Kind, name, NormalizeComparison(name));
+            })
+            .OrderBy(value => value.Kind)
+            .ThenBy(value => value.NormalizedName, StringComparer.Ordinal)
+            .ToArray()
     };
 
     private static (string Json, byte[] Hash) CreateSnapshot(OrganizationProfileData profile)
@@ -255,4 +348,39 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
     }
     private static string? NormalizeCurrency(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
+
+    private static string NormalizeCustomDisplay(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var source = value.Normalize(NormalizationForm.FormKC);
+        var builder = new StringBuilder(source.Length);
+        var pendingSpace = false;
+        foreach (var character in source)
+        {
+            if (char.IsWhiteSpace(character))
+            {
+                pendingSpace = builder.Length > 0;
+                continue;
+            }
+            if (pendingSpace) builder.Append(' ');
+            pendingSpace = false;
+            builder.Append(character);
+        }
+        return builder.ToString();
+    }
+
+    private static string NormalizeComparison(string? value)
+    {
+        var display = NormalizeCustomDisplay(value);
+        var decomposed = display.Normalize(NormalizationForm.FormKD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var character in decomposed)
+        {
+            var category = char.GetUnicodeCategory(character);
+            if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or
+                UnicodeCategory.EnclosingMark) continue;
+            builder.Append(char.ToUpperInvariant(character));
+        }
+        return builder.ToString().Normalize(NormalizationForm.FormKC);
+    }
 }

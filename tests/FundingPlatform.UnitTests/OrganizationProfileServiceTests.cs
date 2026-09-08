@@ -195,6 +195,95 @@ public sealed class OrganizationProfileServiceTests
     }
 
     [Fact]
+    public async Task Update_normalizes_orders_and_snapshots_private_custom_taxonomy()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            CompleteProfile() with
+            {
+                CustomTaxonomyValues =
+                [
+                    new(OrganizationCustomTaxonomyKind.Language, "  Mapudungun  ", "ignored"),
+                    new(OrganizationCustomTaxonomyKind.ImpactArea, "Economía   circular", "ignored")
+                ]
+            }, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.Success, result.Outcome);
+        Assert.Collection(repository.UpdatedProfile!.CustomTaxonomyValues!,
+            value =>
+            {
+                Assert.Equal(OrganizationCustomTaxonomyKind.ImpactArea, value.Kind);
+                Assert.Equal("Economía circular", value.Name);
+                Assert.Equal("ECONOMIA CIRCULAR", value.NormalizedName);
+            },
+            value => Assert.Equal(OrganizationCustomTaxonomyKind.Language, value.Kind));
+        using var snapshot = System.Text.Json.JsonDocument.Parse(repository.SnapshotJson!);
+        var firstCustom = snapshot.RootElement.GetProperty("customTaxonomyValues")[0];
+        Assert.Equal(1, firstCustom.GetProperty("kind").GetByte());
+        Assert.Equal("Economía circular", firstCustom.GetProperty("name").GetString());
+        Assert.DoesNotContain("normalizedName", repository.SnapshotJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Update_rejects_accent_insensitive_equivalent_of_official_option()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            CompleteProfile() with
+            {
+                CustomTaxonomyValues =
+                [new(OrganizationCustomTaxonomyKind.ImpactArea, " educacion ", "ignored")]
+            }, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("customImpactAreas", result.Errors!.Keys);
+        Assert.Null(repository.UpdatedProfile);
+    }
+
+    [Fact]
+    public async Task Update_rejects_more_than_five_custom_values_in_one_dimension()
+    {
+        var repository = new StubRepository();
+        var service = new OrganizationProfileService(repository);
+        var custom = Enumerable.Range(1, 6)
+            .Select(index => new OrganizationCustomTaxonomyValue(
+                OrganizationCustomTaxonomyKind.Language, $"Idioma {index}", "ignored"))
+            .ToArray();
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8],
+            CompleteProfile() with { CustomTaxonomyValues = custom }, CancellationToken.None);
+
+        Assert.Equal(OrganizationWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("customLanguages", result.Errors!.Keys);
+        Assert.Null(repository.UpdatedProfile);
+    }
+
+    [Fact]
+    public void Completeness_accepts_custom_values_in_the_four_taxonomy_dimensions()
+    {
+        var profile = CompleteProfile() with
+        {
+            CategoryIds = [], BeneficiaryTypeIds = [], ProjectTypeIds = [], Languages = [],
+            CustomTaxonomyValues =
+            [
+                new(OrganizationCustomTaxonomyKind.ImpactArea, "Área propia", "AREA PROPIA"),
+                new(OrganizationCustomTaxonomyKind.BeneficiaryType, "Población propia", "POBLACION PROPIA"),
+                new(OrganizationCustomTaxonomyKind.ProjectType, "Proyecto propio", "PROYECTO PROPIO"),
+                new(OrganizationCustomTaxonomyKind.Language, "Idioma propio", "IDIOMA PROPIO")
+            ]
+        };
+
+        Assert.Equal(100m, OrganizationProfileService.CalculateCompleteness(profile));
+    }
+
+    [Fact]
     public async Task Create_maps_owned_limit_without_leaking_database_detail()
     {
         var repository = new StubRepository { CreateErrorNumber = 51202 };
@@ -234,6 +323,21 @@ public sealed class OrganizationProfileServiceTests
         Assert.Contains("fundingExperienceTypeIds", result.Errors!.Keys);
     }
 
+    [Theory]
+    [InlineData(51013, OrganizationWriteOutcome.Conflict)]
+    [InlineData(51014, OrganizationWriteOutcome.ValidationFailed)]
+    public async Task Update_maps_custom_taxonomy_database_errors_without_leaking_details(
+        int errorNumber, OrganizationWriteOutcome expected)
+    {
+        var repository = new StubRepository { UpdateErrorNumber = errorNumber };
+        var service = new OrganizationProfileService(repository);
+
+        var result = await service.UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], CompleteProfile(), CancellationToken.None);
+
+        Assert.Equal(expected, result.Outcome);
+    }
+
     private static OrganizationProfileData CompleteProfile() => new(
         "Fundación Demo", "Fundación Demo", "TEST-1", 152, 2, 1, 1, 2020,
         "https://example.org", "Descripción de impacto", 2, "Experiencia previa",
@@ -251,7 +355,9 @@ public sealed class OrganizationProfileServiceTests
         public byte[]? ContentHash { get; private set; }
 
         public Task<OrganizationCatalogs> GetCatalogsAsync(CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            Task.FromResult(new OrganizationCatalogs(
+                [], [], [], [new CatalogOption<int>(1, "EDUCATION", "Educación")], [], [], [],
+                [], [], [], [], [new CatalogOption<short>(1, "es", "Español")], [], []));
 
         public Task<IReadOnlyList<OrganizationSummary>> ListForUserAsync(Guid userPublicId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

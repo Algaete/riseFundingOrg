@@ -280,7 +280,7 @@ bash infra/scripts/prepare-database-dev.sh
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
 interactiva para la contraseña del SuperAdmin. La autenticación del operador queda fijada a la
 sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, aplica las
-migraciones pendientes, confirma 34 migraciones registradas sin pendientes y luego ejecuta los 34
+migraciones pendientes, confirma 35 migraciones registradas sin pendientes y luego ejecuta los 35
 smokes con rollback, verifica
 `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y vincula las tres UAMI SQL por
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en

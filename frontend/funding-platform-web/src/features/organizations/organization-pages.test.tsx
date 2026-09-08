@@ -15,7 +15,10 @@ const catalogs = {
     { code: 'CLP', name: 'Peso chileno', minorUnits: 0 },
     { code: 'USD', name: 'Dólar estadounidense', minorUnits: 2 },
   ],
-  fundingCategories: [{ id: 1, code: 'ENVIRONMENT', name: 'Medio ambiente' }],
+  fundingCategories: [
+    { id: 1, code: 'ENVIRONMENT', name: 'Medio ambiente' },
+    { id: 16, code: 'OTHER', name: 'Otros' },
+  ],
   fundingTypes: [{ id: 1, code: 'GRANT', name: 'Subvención' }],
   organizationTypes: [{ id: 2, code: 'FOUNDATION', name: 'Fundación' }],
   legalEntityTypes: [{ id: 1, countryId: 152, code: 'CL_FOUNDATION', name: 'Fundación' }],
@@ -26,7 +29,10 @@ const catalogs = {
     { id: 12, code: 'EMPLOYEES_51_100', name: '51–100 personas' },
     { id: 13, code: 'EMPLOYEES_101_PLUS', name: '101+ personas' },
   ],
-  beneficiaryTypes: [{ id: 1, code: 'CHILDREN', name: 'Niños, niñas y adolescentes' }],
+  beneficiaryTypes: [
+    { id: 1, code: 'CHILDREN', name: 'Niños, niñas y adolescentes' },
+    { id: 12, code: 'OTHER', name: 'Otros' },
+  ],
   projectTypes: [
     { id: 1, code: 'PROGRAM', name: 'Programa' },
     { id: 13, code: 'OTHER', name: 'Otros' },
@@ -43,7 +49,10 @@ const catalogs = {
     { id: 10, code: 'ENTREPRENEURSHIP_PRODUCTIVE_DEVELOPMENT', name: 'Emprendimiento y desarrollo productivo' },
   ],
   tags: [],
-  languages: [{ id: 1, code: 'es', name: 'Español' }],
+  languages: [
+    { id: 1, code: 'es', name: 'Español' },
+    { id: 5, code: 'und', name: 'Otro' },
+  ],
   fundingExperienceTypes: [
     { id: 1, code: 'GOVERNMENTS_PUBLIC_FUNDS', name: 'Gobiernos / fondos públicos' },
     { id: 2, code: 'FOUNDATIONS_GRANTMAKERS', name: 'Fundaciones / grantmakers' },
@@ -93,6 +102,10 @@ const profile: OrganizationProfile = {
   tagIds: [],
   languages: [],
   fundingExperienceTypeIds: [],
+  customImpactAreas: [],
+  customBeneficiaryTypes: [],
+  customProjectTypes: [],
+  customLanguages: [],
 }
 
 function authenticate() {
@@ -297,8 +310,8 @@ describe('perfil de organización', () => {
       'Conservación y restauración ambiental',
       'Ayuda humanitaria y respuesta a emergencias',
       'Prevención y reducción de riesgos de desastres',
-      'Otros',
     ])
+    expect(within(group).getByRole('button', { name: 'Agregar otra opción' })).toBeInTheDocument()
     expect(within(group).queryByRole('checkbox', { name: 'Programa' })).not.toBeInTheDocument()
   })
 
@@ -347,6 +360,117 @@ describe('perfil de organización', () => {
       'Incidencia',
       'Respuesta a emergencias',
     ])
+  })
+
+  it('agrega una opción privada con Enter sin persistir el identificador OTHER', async () => {
+    authenticate()
+    let submittedBody: Record<string, unknown> | undefined
+    renderExistingProfile({
+      onUpdate: async (init) => {
+        submittedBody = JSON.parse(String(init.body)) as Record<string, unknown>
+        return (await json({ ...profile, ...submittedBody, profileVersion: 2 }))
+      },
+    })
+    const user = userEvent.setup()
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /2\.\s*Impacto/i }))
+    const impact = screen.getByRole('group', { name: /Áreas de impacto.*Recomendado/i })
+    await user.click(within(impact).getByRole('button', { name: 'Agregar otra opción' }))
+    const input = screen.getByLabelText('Agregar otra opción en áreas de impacto')
+    await waitFor(() => expect(document.activeElement).toBe(input))
+    await user.type(input, 'Economía circular{Enter}')
+
+    expect(submittedBody).toBeUndefined()
+    expect(screen.getByRole('button', { name: 'Quitar Economía circular' })).toBeInTheDocument()
+    expect(within(impact).queryByRole('checkbox', { name: 'Otros' })).not.toBeInTheDocument()
+    expect(screen.getByText(/privadas para tu organización.*no influyen en las recomendaciones/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => expect(submittedBody).toMatchObject({
+      categoryIds: [],
+      customImpactAreas: ['Economía circular'],
+    }))
+    expect(submittedBody?.categoryIds).not.toContain(16)
+  })
+
+  it('muestra y permite limpiar opciones existentes aunque OTHER no esté seleccionado', async () => {
+    authenticate()
+    let submittedBody: Record<string, unknown> | undefined
+    renderExistingProfile({
+      profileData: { ...profile, customImpactAreas: ['Economía circular'] },
+      onUpdate: async (init) => {
+        submittedBody = JSON.parse(String(init.body)) as Record<string, unknown>
+        return (await json({ ...profile, ...submittedBody }))
+      },
+    })
+    const user = userEvent.setup()
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /2\.\s*Impacto/i }))
+    await user.click(screen.getByRole('button', { name: 'Quitar Economía circular' }))
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => expect(submittedBody?.customImpactAreas).toEqual([]))
+  })
+
+  it('conserva visible un OTHER histórico sin detalle hasta que el usuario lo edite', async () => {
+    authenticate()
+    const user = userEvent.setup()
+    renderExistingProfile({ profileData: { ...profile, categoryIds: [16] } })
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /2\.\s*Impacto/i }))
+
+    expect(screen.getByRole('checkbox', { name: 'Otros (valor anterior)' })).toBeChecked()
+    expect(screen.getByText('Otro sin especificar')).toBeInTheDocument()
+  })
+
+  it('usa und como acción para agregar un idioma privado sin persistir el id Otro', async () => {
+    authenticate()
+    let submittedBody: Record<string, unknown> | undefined
+    renderExistingProfile({
+      onUpdate: async (init) => {
+        submittedBody = JSON.parse(String(init.body)) as Record<string, unknown>
+        return (await json({ ...profile, ...submittedBody }))
+      },
+    })
+    const user = userEvent.setup()
+
+    await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.click(screen.getByRole('button', { name: /3\.\s*Financiamiento/i }))
+    const languages = screen.getByRole('group', { name: /Idiomas de trabajo.*Recomendado/i })
+    await user.click(within(languages).getByRole('button', { name: 'Agregar otra opción' }))
+    await user.type(screen.getByLabelText('Agregar otra opción en idiomas de trabajo'), 'Mapudungun{Enter}')
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    await waitFor(() => expect(submittedBody).toMatchObject({
+      languages: [],
+      customImpactAreas: [],
+      customBeneficiaryTypes: [],
+      customProjectTypes: [],
+      customLanguages: ['Mapudungun'],
+    }))
+    expect(submittedBody?.languages).not.toContainEqual({ languageId: 5, proficiency: null })
+  })
+
+  it('navega y enfoca el editor cuando el API rechaza una opción personalizada', async () => {
+    authenticate()
+    renderExistingProfile({
+      onUpdate: async () => (await json({
+        title: 'La solicitud contiene errores.',
+        status: 400,
+        errors: { customImpactAreas: ['La opción personalizada ya existe.'] },
+      }, 400)),
+    })
+    const user = userEvent.setup()
+
+    const name = await screen.findByLabelText(/Nombre público.*obligatorio/i)
+    await user.type(name, ' actualizada')
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    await screen.findByText('No pudimos guardar. Revisa lo siguiente:')
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('id', 'organization-custom-impact-areas'))
   })
 
   it('aplica presets financieros y vuelve a rango personalizado ante cambios manuales', async () => {

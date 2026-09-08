@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace FundingPlatform.Core.Organizations;
 
 public sealed record CatalogOption<TId>(TId Id, string Code, string Name);
@@ -35,6 +37,19 @@ public sealed record OrganizationSummary(
 
 public sealed record OrganizationLanguage(short LanguageId, byte? Proficiency);
 
+public enum OrganizationCustomTaxonomyKind : byte
+{
+    ImpactArea = 1,
+    BeneficiaryType = 2,
+    ProjectType = 3,
+    Language = 4
+}
+
+public sealed record OrganizationCustomTaxonomyValue(
+    OrganizationCustomTaxonomyKind Kind,
+    string Name,
+    [property: JsonIgnore] string NormalizedName);
+
 public sealed record OrganizationProfile(
     Guid PublicId,
     string Name,
@@ -67,7 +82,8 @@ public sealed record OrganizationProfile(
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
     IReadOnlyList<OrganizationLanguage> Languages,
-    IReadOnlyList<short> FundingExperienceTypeIds);
+    IReadOnlyList<short> FundingExperienceTypeIds,
+    IReadOnlyList<OrganizationCustomTaxonomyValue> CustomTaxonomyValues);
 
 public sealed record OrganizationProfileData(
     string Name,
@@ -95,7 +111,8 @@ public sealed record OrganizationProfileData(
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
     IReadOnlyList<OrganizationLanguage> Languages,
-    IReadOnlyList<short>? FundingExperienceTypeIds = null);
+    IReadOnlyList<short>? FundingExperienceTypeIds = null,
+    IReadOnlyList<OrganizationCustomTaxonomyValue>? CustomTaxonomyValues = null);
 
 public sealed record PersistedOrganization(
     Guid PublicId,

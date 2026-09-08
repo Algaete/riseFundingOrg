@@ -124,6 +124,15 @@ public static class OrganizationEndpoints
             return Problem(StatusCodes.Status428PreconditionRequired, "Versión requerida",
                 "Vuelve a cargar el perfil e intenta nuevamente.", "if-match-required");
 
+        var needsCurrentProfile =
+            (request.PreviousFundingExperience == 2 && request.FundingExperienceTypeIds is null) ||
+            request.CustomImpactAreas is null || request.CustomBeneficiaryTypes is null ||
+            request.CustomProjectTypes is null || request.CustomLanguages is null;
+        var current = needsCurrentProfile
+            ? await service.GetAsync(userId, organizationId, cancellationToken)
+            : null;
+        if (needsCurrentProfile && current is null) return NotFound();
+
         IReadOnlyList<short> fundingExperienceTypeIds = [];
         if (request.PreviousFundingExperience == 2 && request.FundingExperienceTypeIds is not null)
         {
@@ -131,10 +140,18 @@ public static class OrganizationEndpoints
         }
         else if (request.PreviousFundingExperience == 2)
         {
-            var current = await service.GetAsync(userId, organizationId, cancellationToken);
-            if (current is null) return NotFound();
-            fundingExperienceTypeIds = current.FundingExperienceTypeIds;
+            fundingExperienceTypeIds = current!.FundingExperienceTypeIds;
         }
+
+        var customTaxonomyValues = new List<OrganizationCustomTaxonomyValue>();
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.ImpactArea,
+            request.CustomImpactAreas, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.BeneficiaryType,
+            request.CustomBeneficiaryTypes, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.ProjectType,
+            request.CustomProjectTypes, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.Language,
+            request.CustomLanguages, current);
 
         var profile = new OrganizationProfileData(
             request.Name ?? string.Empty, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
@@ -147,7 +164,7 @@ public static class OrganizationEndpoints
             request.BeneficiaryTypeIds ?? [], request.ProjectTypeIds ?? [], request.TagIds ?? [],
             (request.Languages ?? []).OfType<OrganizationLanguageRequest>().Select(language =>
                 new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray(),
-            fundingExperienceTypeIds);
+            fundingExperienceTypeIds, customTaxonomyValues);
         var result = await service.UpdateAsync(
             userId, organizationId, rowVersion, profile, cancellationToken);
 
@@ -200,7 +217,31 @@ public static class OrganizationEndpoints
         profile.CategoryIds, profile.BeneficiaryTypeIds, profile.ProjectTypeIds,
         profile.TagIds, profile.Languages.Select(language =>
             new OrganizationLanguageResponse(language.LanguageId, language.Proficiency)).ToArray(),
-        profile.FundingExperienceTypeIds);
+        profile.FundingExperienceTypeIds,
+        CustomNames(profile, OrganizationCustomTaxonomyKind.ImpactArea),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.BeneficiaryType),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.ProjectType),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.Language));
+
+    private static void AddCustom(
+        ICollection<OrganizationCustomTaxonomyValue> target,
+        OrganizationCustomTaxonomyKind kind,
+        IReadOnlyList<string>? requested,
+        OrganizationProfile? current)
+    {
+        if (requested is not null)
+        {
+            foreach (var name in requested)
+                target.Add(new OrganizationCustomTaxonomyValue(kind, name ?? string.Empty, string.Empty));
+            return;
+        }
+
+        foreach (var value in current?.CustomTaxonomyValues.Where(value => value.Kind == kind) ?? [])
+            target.Add(value);
+    }
+
+    private static string[] CustomNames(OrganizationProfile profile, OrganizationCustomTaxonomyKind kind) =>
+        profile.CustomTaxonomyValues.Where(value => value.Kind == kind).Select(value => value.Name).ToArray();
 
     private static string FormatETag(byte[] rowVersion) => $"\"{Convert.ToHexString(rowVersion)}\"";
 
