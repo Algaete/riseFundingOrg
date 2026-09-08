@@ -1,5 +1,7 @@
 import type { es } from '@/i18n/es'
 import { authEn } from '@/i18n/auth/en'
+import { dashboardEn } from '@/i18n/dashboard/en'
+import { accountEn } from '@/i18n/account/en'
 import { organizationEn } from '@/i18n/organization/en'
 import { projectsEn } from '@/i18n/projects/en'
 import { projectAssetsEn } from '@/i18n/project-assets/en'
@@ -9,6 +11,8 @@ import type { TranslationShape } from '@/i18n/resource-types'
 export const en = {
   translation: {
     auth: authEn,
+    dashboard: dashboardEn,
+    account: accountEn,
     organization: organizationEn,
     projects: projectsEn,
     projectAssets: projectAssetsEn,

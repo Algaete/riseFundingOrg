@@ -93,13 +93,43 @@ inglés y conserva el diagnóstico original en español, hasta incorporar códig
 La revisión administrativa de proyectos sigue en español. Sin cambios de backend, SQL,
 `preferredLocale`, políticas de seguridad, habilitación de adjuntos ni despliegue Azure.
 
+### I18N-04A: Resumen y Mi cuenta
+
+Implementado localmente:
+
+- Resumen: métricas, próximos hitos, postulaciones recientes, estados de postulación, cargas,
+  estados vacíos, fallos parciales y reintentos en español e inglés. Contadores y fechas se
+  formatean con el idioma elegido; las fechas sin hora mantienen el día informado.
+- Cambiar idioma conserva la organización seleccionada, los parámetros de URL, enlaces y
+  títulos originales. No cambia el rango de 60 días, paginación, claves de caché ni permisos;
+  no introduce consultas adicionales por idioma ni escrituras en módulos de seguimiento.
+- Mi cuenta separada en `features/account/account-page.tsx`, con recursos propios en
+  `src/i18n/account`; el resumen tiene recursos independientes en `src/i18n/dashboard`.
+- Textos y resultados de vinculación Microsoft bilingües, conservando identidad local, sesión,
+  preferencia de cuenta y URL. Una vinculación pendiente no se reinicia al cambiar idioma.
+- La consulta de proveedores distingue carga, fallo de conexión y configuración pendiente.
+  El botón de reintento sólo consulta proveedores; no inicia una vinculación ni habilita SSO.
+- Límites de idioma actualizados para ambas rutas; selector de organización, correos largos y
+  botón de vinculación adaptados a móvil, con contraste legible en los avisos de error.
+
+Validación del corte I18N-04A: build, lint y typecheck E2E aprobados; 315 pruebas de frontend y
+50 pruebas de navegador aprobadas. Se omite la comprobación del SHA de Azure en local.
+Las nuevas pruebas cubren estados de proveedores y vinculación pendiente, seis estados de
+postulación, fallos parciales, selección de organización, no repetición de solicitudes,
+accesibilidad claro/oscuro y pantallas de 320/1024px. Sesiones, proveedores y datos son simulados.
+
+Límites: este corte no agrega edición de datos personales ni métodos de seguridad nuevos; traduce
+las funciones existentes de Mi cuenta. No habilita SSO ni modifica autenticación, MFA, roles,
+backend o SQL. Los títulos recibidos de la API se conservan, sin traducción automática.
+Las páginas completas de postulaciones, calendario y alertas siguen pendientes en I18N-04D,
+aunque sus indicadores del resumen ya son bilingües. Sin push ni despliegue Azure.
+
 La traducción completa de la aplicación NO está terminada. Siguientes bloques:
 
-1. I18N-04A: resumen y Mi cuenta.
-2. I18N-04B: catálogo público y marketplace.
-3. I18N-04C: matching y red de organizaciones.
-4. I18N-04D: postulaciones, calendario, alertas y planes.
-5. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
+1. I18N-04B: catálogo público y marketplace.
+2. I18N-04C: matching y red de organizaciones.
+3. I18N-04D: postulaciones, calendario, alertas y planes.
+4. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -120,7 +150,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03 no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

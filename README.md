@@ -67,10 +67,12 @@ malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
-pendiente y el despliegue. Los bloques locales I18N-01/02/03 incorporan selector español/inglés,
+pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A incorporan selector español/inglés,
 portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
-y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos.
-Cambiar el idioma conserva borradores, selecciones, confirmaciones y cargas pendientes.
+y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos. También
+incluyen Resumen y Mi cuenta, con estados de carga, fallos parciales y avisos de vinculación.
+Cambiar el idioma conserva borradores, organización seleccionada, confirmaciones y cargas pendientes;
+no inicia ni repite vinculaciones Microsoft. Mi cuenta distingue fallos de consulta de SSO deshabilitado.
 **La traducción completa sigue pendiente**: catálogos, administración y las demás páginas internas
 se abordan en los siguientes bloques; los textos ingresados por usuarios no se traducen.
 No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.

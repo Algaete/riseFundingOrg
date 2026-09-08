@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { registerWorkspaceLanguageTests } from './workspace-checks'
+import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -81,6 +82,7 @@ test.afterEach(async ({ page }) => {
 })
 
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
+registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')
@@ -216,7 +218,10 @@ for (const roles of [['Professional'], ['Admin']]) {
       await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeInViewport()
       const fits = await page.locator('header').evaluate(header => header.scrollWidth <= header.clientWidth)
       expect(fits).toBe(true)
-      await expect(page.getByRole('main')).toHaveAttribute('lang', 'es')
+      // Mi cuenta is bilingual since I18N-04A and now inherits the selected language.
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+      await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
+      await expect(page.getByRole('heading', { name: 'My account', exact: true })).toBeVisible()
       // An admin entry point must remain available on mobile without exposing it to members.
       const mobileAdminLink = page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Administration', exact: true })
       if (roles.includes('Admin') && width < 640) await expect(mobileAdminLink).toBeVisible()

@@ -2,18 +2,18 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { workspaceCatalogs, workspaceOrganizationId, workspaceProfile, workspaceProject, workspaceProjectId, workspacePublicProject } from '../src/test/fixtures/project-workspace'
 
 // Registered inside public.spec.ts so its deny-by-default API guard also applies.
-function readOnlyJson(data: unknown) {
+export function readOnlyJson(data: unknown) {
   return (route: Route) => {
     expect(route.request().method()).toBe('GET')
     return route.fulfill({ json: data })
   }
 }
 
-async function mockWorkspace(page: Page, { empty = false, publicationStatus = 0 } = {}) {
+export async function mockWorkspace(page: Page, { empty = false, publicationStatus = 0, email = 'synthetic@example.invalid' } = {}) {
   await page.route('**/api/v1/auth/refresh', route => route.fulfill({
     json: {
       status: 'authenticated', accessToken: 'synthetic-ui-only', accessTokenExpiresAtUtc: new Date(Date.now() + 600_000).toISOString(),
-      user: { publicId: '33333333-3333-3333-3333-333333333333', email: 'synthetic@example.invalid', displayName: 'Prueba', preferredLocale: 'es-CL', roles: ['Professional'], mfaEnabled: false },
+      user: { publicId: '33333333-3333-3333-3333-333333333333', email, displayName: 'Prueba', preferredLocale: 'es-CL', roles: ['Professional'], mfaEnabled: false },
     },
   }))
   await page.route('**/api/v1/catalogs', readOnlyJson(workspaceCatalogs))
@@ -24,11 +24,11 @@ async function mockWorkspace(page: Page, { empty = false, publicationStatus = 0 
   await page.route('**/api/v1/projects/proyecto-sintetico', readOnlyJson(workspacePublicProject))
 }
 
-async function english(page: Page) {
+export async function english(page: Page) {
   await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
 }
 
-async function fits(page: Page) {
+export async function fits(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
 
