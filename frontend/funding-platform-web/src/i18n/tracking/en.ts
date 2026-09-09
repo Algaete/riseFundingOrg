@@ -1,0 +1,36 @@
+import type { TranslationShape } from '@/i18n/resource-types'
+import type { trackingEs } from './es'
+
+export const trackingEn = {
+  "organizationLoading": "Loading organization…",
+  "organizationFailed": "We could not load your organization.",
+  "organizationRequired": "Create your organization first",
+  "createOrganization": "Create organization",
+  "start": "Get started",
+  "retry": "Retry",
+  "close": "Close",
+  "open": "Open",
+  "save": "Save",
+  "cancel": "Cancel",
+  "all": "All",
+  "status": "Status",
+  "project": "Project",
+  "currency": "Currency",
+  "notProvided": "Not provided",
+  "updating": " · Updating…",
+  "previous": "Previous",
+  "next": "Next",
+  "page": "Page {{page}} of {{total}}",
+  "unknown": "Unknown status",
+  "loadHelp": "Check your connection and try again.",
+  "writeUncertain": "We could not confirm the operation. Retry without changing the request.",
+  "sessionExpired": "Your session expired. Sign in again to continue.",
+  "forbidden": "You do not have permission to perform this operation in this organization.",
+  "notFound": "This record is no longer available to your organization.",
+  "invalid": "Check the fields and try again.",
+  "conflict": "The record changed or the operation was already processed. Check its status before retrying.",
+  "precondition": "The record version is missing. Reload it before saving.",
+  "rateLimited": "Too many requests. Wait a moment before retrying.",
+  "unavailable": "The service is temporarily unavailable. Try again later.",
+  "idempotency": "This request key was already used with different data. Check the status before starting another operation."
+} satisfies TranslationShape<typeof trackingEs>

@@ -125,7 +125,8 @@ describe('postulaciones de la organización', () => {
     await user.selectOptions(screen.getByLabelText('Proyecto para postular'), projectId)
     expect(submit).toBeEnabled()
     await user.click(submit)
-    expect(await screen.findByText(/No sabemos si el servidor/)).toBeInTheDocument()
+    expect(await screen.findByText(/No pudimos confirmar la operación/)).toBeInTheDocument()
+    expect(screen.queryByText(/No sabemos si el servidor/)).not.toBeInTheDocument()
     await user.click(submit)
 
     expect(await screen.findByText(/Postulación iniciada con éxito/)).toBeInTheDocument()

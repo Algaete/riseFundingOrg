@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/use-auth'
 const translatedPaths = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password',
   '/verify-email', '/mfa', '/mfa/setup', '/auth/external/callback',
+  '/pricing', '/alerts/unsubscribe',
 ])
 
 export function PublicLayout() {

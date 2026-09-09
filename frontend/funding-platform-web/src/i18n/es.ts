@@ -1,4 +1,9 @@
 import { authEs } from '@/i18n/auth/es'
+import { trackingEs } from '@/i18n/tracking/es'
+import { applicationsEs } from '@/i18n/applications/es'
+import { calendarEs } from '@/i18n/calendar/es'
+import { alertsEs } from '@/i18n/alerts/es'
+import { billingEs } from '@/i18n/billing/es'
 import { matchingEs } from '@/i18n/matching/es'
 import { networkEs } from '@/i18n/network/es'
 import { collaborationFeedbackEs } from '@/i18n/collaboration-feedback/es'
@@ -16,6 +21,11 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 export const es = {
   translation: {
     auth: authEs,
+    tracking: trackingEs,
+    applications: applicationsEs,
+    calendar: calendarEs,
+    alerts: alertsEs,
+    billing: billingEs,
     matching: matchingEs,
     network: networkEs,
     collaborationFeedback: collaborationFeedbackEs,

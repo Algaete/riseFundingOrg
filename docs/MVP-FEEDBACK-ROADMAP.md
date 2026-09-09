@@ -121,8 +121,8 @@ accesibilidad claro/oscuro y pantallas de 320/1024px. Sesiones, proveedores y da
 Límites: este corte no agrega edición de datos personales ni métodos de seguridad nuevos; traduce
 las funciones existentes de Mi cuenta. No habilita SSO ni modifica autenticación, MFA, roles,
 backend o SQL. Los títulos recibidos de la API se conservan, sin traducción automática.
-Las páginas completas de postulaciones, calendario y alertas siguen pendientes en I18N-04D,
-aunque sus indicadores del resumen ya son bilingües. Sin push ni despliegue Azure.
+En este corte solo se tradujeron sus indicadores del resumen; las páginas completas de
+postulaciones, calendario y alertas se completaron después en I18N-04D. Sin push ni despliegue Azure.
 
 ### I18N-04B: catálogo público y marketplace
 
@@ -246,10 +246,59 @@ Nombres de organizaciones, proyectos, mensajes y catálogos permanecen originale
 catálogos bilingües y códigos de validación por campo siguen en I18N-05.
 Sin cambios de backend, SQL, roles, `preferredLocale`, SSO, flags de adjuntos, push ni despliegue.
 
-La traducción completa de la aplicación NO está terminada. Siguientes bloques:
+### I18N-04D: postulaciones, calendario, alertas y planes
 
-1. I18N-04D: postulaciones, calendario, alertas y planes.
-2. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
+Implementado localmente:
+
+- Postulaciones: creación, edición, filtros, paginación, estados, avisos y campos ES/EN.
+  Se conservan borradores, IDs, estado cero, URL, fechas, montos y moneda al cambiar idioma.
+  Las escrituras siguen siendo explícitas; se preservan claves idempotentes, ETags y permisos
+  del responsable. HTTP 412 conserva la política de solicitar la versión vigente y exigir revisarla.
+- Calendario: meses, agrupación, tipos de evento, estados y avisos bilingües. Las fechas sin hora
+  conservan su día, rango y agrupación; las horas exactas siguen en UTC, incluida medianoche
+  como 00:00. Cambiar idioma no cambia mes, enlaces de entidad ni provoca consultas extra.
+- Alertas: búsquedas privadas, formulario, hora local, historial, estados de notificación y
+  confirmación de baja ES/EN. El idioma no cambia filtros, zona horaria, hora ni genera envíos.
+  El token de baja permanece en el fragmento de la URL y se envía solo tras confirmación explícita.
+- Corregido el éxito de búsqueda sin correo: ya no afirma haber activado una alerta.
+  Un error del correo conserva la búsqueda y explica el resultado parcial. Solo el código conocido
+  `alerts-disabled` indica envío deshabilitado; otro HTTP 503 se presenta como resultado incierto.
+- Planes públicos y Suscripción: precios sin conversión, periodicidad, uso/límites, renovación y
+  estados de checkout/suscripción bilingües. Se traducen únicamente textos de catálogo que
+  coinciden exactamente con los seeds conocidos; contenido personalizado se conserva.
+- El botón público sin acción se reemplaza por un enlace al espacio de Suscripción. La etiqueta
+  pública Free deja de afirmar que es el plan actual del visitante. En el espacio privado el
+  checkout exige administración y lectura correcta de la suscripción, sin cambiar permisos backend.
+- Checkout, cancelación y reanudación siguen siendo explícitos. El idioma conserva la clave de
+  reintento y el ETag; la consulta periódica pendiente sigue siendo de solo lectura. Un retorno del
+  navegador no activa planes. Estados fallido/vencido ya no se etiquetan como “en verificación”.
+- Se agregan cargas, errores, vacíos y reintentos de lectura en planes/suscripción, y fallos de
+  catálogos del formulario de postulación. Alertas y Suscripción distinguen error de organización
+  de una organización inexistente. Se ajustan paginación y encabezados para pantallas estrechas.
+- Recursos separados en `src/i18n/applications`, `calendar`, `alerts`, `billing` y `tracking`;
+  presentación de protocolo en `tracking-messages.ts` y catálogo/formatos en `billing-messages.ts`.
+  Los errores arbitrarios de API no se imprimen como textos de interfaz.
+  Las seis rutas terminadas heredan el idioma elegido; administración permanece en español.
+
+Validación del corte I18N-04D: build, lint y typecheck E2E aprobados; 448 pruebas de frontend
+(53 archivos) y 90 pruebas de navegador aprobadas. Se omite únicamente la comprobación de SHA
+de Azure en local. Los 17 escenarios nuevos de navegador cubren ES/EN, 320/1024px, claro/oscuro,
+accesibilidad automatizada, borradores, creación sintética sin correo, error de organización y
+consulta periódica del checkout. La guarda de API bloquea cualquier solicitud no simulada.
+Las pruebas de componentes cubren además HTTP 412, ETag vigente, reintentos idempotentes,
+resultados parciales, roles y confirmación explícita de baja. No se usan cuentas ni cobros reales.
+El build emite un aviso no bloqueante por el chunk principal mayor a 500 kB sin comprimir;
+queda pendiente optimizar la carga de recursos por módulo/idioma, sin ocultar el umbral del aviso.
+
+Límites: no cambia backend, contratos, SQL, motor de matching, roles, precios, proveedores,
+plantillas/envíos de correo, `preferredLocale`, SSO ni flags de adjuntos. Conserva la primera
+organización de la lista: no incorpora selector global. No presenta postulaciones al financiador.
+Los códigos de validación por campo y catálogos bilingües generales siguen en I18N-05.
+Sin push ni despliegue Azure; migraciones `031`–`039` y rollout de adjuntos siguen pendientes.
+
+La traducción completa de la aplicación NO está terminada. Siguiente bloque:
+
+1. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.

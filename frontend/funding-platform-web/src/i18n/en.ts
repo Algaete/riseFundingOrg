@@ -1,5 +1,10 @@
 import type { es } from '@/i18n/es'
 import { authEn } from '@/i18n/auth/en'
+import { trackingEn } from '@/i18n/tracking/en'
+import { applicationsEn } from '@/i18n/applications/en'
+import { calendarEn } from '@/i18n/calendar/en'
+import { alertsEn } from '@/i18n/alerts/en'
+import { billingEn } from '@/i18n/billing/en'
 import { matchingEn } from '@/i18n/matching/en'
 import { networkEn } from '@/i18n/network/en'
 import { collaborationFeedbackEn } from '@/i18n/collaboration-feedback/en'
@@ -18,6 +23,11 @@ import type { TranslationShape } from '@/i18n/resource-types'
 export const en = {
   translation: {
     auth: authEn,
+    tracking: trackingEn,
+    applications: applicationsEn,
+    calendar: calendarEn,
+    alerts: alertsEn,
+    billing: billingEn,
     matching: matchingEn,
     network: networkEn,
     collaborationFeedback: collaborationFeedbackEn,

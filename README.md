@@ -67,7 +67,7 @@ malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
-pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2/04C incorporan selector español/inglés,
+pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2/04C/04D incorporan selector español/inglés,
 portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
 y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos. También
 incluyen Resumen y Mi cuenta, con estados de carga, fallos parciales y avisos de vinculación;
@@ -75,15 +75,23 @@ catálogo público de fondos, marketplace y perfiles públicos de organizaciones
 También oportunidades internas, detalle y Favoritos, con condiciones de elegibilidad, acciones y avisos.
 Matching incluye historial, reglas, cobertura y puntajes ES/EN sin cambiar el motor ni recalcular;
 la red incluye directorio, privacidad, invitaciones y acciones, conservando borradores y permisos.
+Postulaciones, calendario, búsquedas/alertas, baja pública de alertas, planes y suscripción también
+son ES/EN. Se mantienen fechas sin hora, horas UTC, montos y monedas originales; el idioma no
+guarda postulaciones, envía correos, da de baja alertas ni inicia/cancela/reanuda pagos.
+Guardar una búsqueda sin correo ya no confirma una alerta inexistente; los estados del checkout
+distinguen pendiente, confirmado, fallido y vencido, sin activar planes desde el retorno del navegador.
+Planes públicos enlaza a Suscripción en lugar de ofrecer un checkout sin acción. No se habilitan
+precios, proveedores ni cobros. Se muestran fallos de lectura y reintentos explícitos de suscripción.
 Cambiar el idioma conserva borradores, organización seleccionada, confirmaciones y cargas pendientes;
 no inicia ni repite vinculaciones Microsoft. Mi cuenta distingue fallos de consulta de SSO deshabilitado.
-**La traducción completa sigue pendiente**: nombres de catálogos, administración y las demás páginas
-internas de postulaciones, calendario, alertas y planes. Se conservan el contenido original
+**La traducción completa sigue pendiente**: nombres de catálogos, administración y códigos de
+validación por campo de la API (I18N-05). Se conservan el contenido original
 y las atribuciones de fuentes, los parámetros de búsqueda y la confirmación de salida externa.
 No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.
 Favoritos conserva la intención del clic mientras responde la API y revierte el estado ante fallos;
 ordenar por monto sin moneda muestra un aviso visible, sin aparentar una búsqueda infinita.
-Las pantallas de oportunidades, matching y red mantienen su organización previa (la primera de la lista);
+Las pantallas de oportunidades, matching, red, postulaciones, calendario, alertas y suscripción
+mantienen su organización previa (la primera de la lista);
 no se agrega un selector global de organización en este bloque. Todo sigue local, sin despliegue.
 La red distingue errores de carga de organización/configuración de sus estados vacíos y permite
 reintentar lecturas sin activar visibilidad. Cambiar idioma no inicia cálculos ni solicitudes de conexión.
