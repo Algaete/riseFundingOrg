@@ -144,8 +144,8 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
       </aside>
 
       <div className="md:pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/90 px-4 backdrop-blur sm:px-6">
-          <div className="md:hidden">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b bg-background/90 px-4 py-2 backdrop-blur sm:px-6">
+          <div className="shrink-0 md:hidden">
             <BrandMark compact />
           </div>
           <p className="hidden text-sm text-muted-foreground xl:block">

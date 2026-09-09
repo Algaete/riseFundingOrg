@@ -9,10 +9,10 @@ export function LanguageSelector() {
   const [pending, setPending] = useState(false)
 
   return (
-    <span className="inline-flex max-w-40 flex-col gap-1">
+    <span className="inline-flex w-24 min-w-0 shrink-0 flex-col gap-1">
     <select
       aria-label={t('language.label')}
-      className="h-10 max-w-28 cursor-pointer rounded-lg border bg-card px-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="h-10 w-full min-w-0 cursor-pointer rounded-lg border bg-card px-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       value={i18n.resolvedLanguage ?? 'es'}
       aria-busy={pending}
       disabled={pending}

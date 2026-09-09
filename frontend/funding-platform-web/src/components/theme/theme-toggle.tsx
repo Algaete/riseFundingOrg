@@ -12,7 +12,7 @@ export function ThemeToggle() {
   return (
     <select
       aria-label={t('actions.changeTheme')}
-      className="h-10 cursor-pointer rounded-lg border bg-card px-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent"
+      className="h-10 w-24 min-w-0 shrink-0 cursor-pointer rounded-lg border bg-card px-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-accent"
       onChange={(event) => setTheme(event.target.value as ThemePreference)}
       value={theme}
     >

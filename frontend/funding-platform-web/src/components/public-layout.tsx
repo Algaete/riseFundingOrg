@@ -28,11 +28,11 @@ export function PublicLayout() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <div className="hidden xl:block">
             <BrandMark />
           </div>
-          <div className="xl:hidden">
+          <div className="shrink-0 xl:hidden">
             <BrandMark compact />
           </div>
           <nav className="hidden items-center gap-1 lg:flex" aria-label={t('navigation.main')}>

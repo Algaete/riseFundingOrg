@@ -200,7 +200,7 @@ type OpportunityFormValues = z.infer<typeof opportunitySchema>
 function Field({ children, error, hint, label }: { children: ReactNode; error?: string; hint?: string; label: string }) {
   useTranslation()
   return (
-    <label className="grid min-w-0 gap-1.5 text-sm font-semibold [&_input]:min-w-0">
+    <label className="grid min-w-0 grid-cols-1 gap-1.5 text-sm font-semibold [&_input]:min-w-0">
       <span>{label}</span>
       {children}
       {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
@@ -808,7 +808,7 @@ function AdminOpportunityForm({
               <Field error={form.formState.errors.deadlineTimeZoneId?.message} hint={i18n.t('adminFunding.closingZoneHelp')} label={i18n.t('adminFunding.closingZone')}><Input {...form.register('deadlineTimeZoneId')} placeholder="America/Santiago" /></Field>
             </div>}
             <Field error={form.formState.errors.lastVerifiedAtUtc?.message} hint={i18n.t('adminFunding.verifiedHelp')} label={i18n.t('adminFunding.verified')}>
-              <span className="flex flex-col gap-2 sm:flex-row">
+              <span className="flex min-w-0 flex-col gap-2 sm:flex-row">
                 <Input {...form.register('lastVerifiedAtUtc')} className="flex-1" max={currentLocalDateTimeInput()} step="0.001" type="datetime-local" />
                 <Button onClick={() => {
                   form.setValue('lastVerifiedAtUtc', currentLocalDateTimeInput(), { shouldDirty: true, shouldValidate: true })

@@ -32,7 +32,7 @@ export async function fits(page: Page) {
   const layout = await page.evaluate(() => ({
     width: window.innerWidth,
     scrollWidth: document.documentElement.scrollWidth,
-    overflow: [...document.querySelectorAll<HTMLElement>('main *')]
+    overflow: [...document.querySelectorAll<HTMLElement>('body *')]
       .filter(element => element.getBoundingClientRect().right > window.innerWidth + 1)
       .slice(0, 12).map(element => ({ tag: element.tagName, classes: element.className,
         text: element.innerText?.slice(0, 80), right: element.getBoundingClientRect().right })),
