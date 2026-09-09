@@ -14,6 +14,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.database_permissions
       AND class = 1 AND major_id = OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search')
       AND permission_name = N'EXECUTE' AND state = 'G')
     THROW 55421, N'Public map runtime permission is missing.', 1;
+SET XACT_ABORT OFF;
 BEGIN TRY
     EXEC dbo.FundingPlatform_usp_ProjectMap_Search @PageSize = 201;
     THROW 55422, N'Unbounded map page was accepted.', 1;
@@ -21,5 +22,7 @@ END TRY
 BEGIN CATCH
     IF ERROR_NUMBER() <> 52102 THROW;
 END CATCH;
+SET XACT_ABORT ON;
+IF XACT_STATE() = -1 THROW 55423, N'Map validation damaged the caller transaction.', 1;
 EXEC dbo.FundingPlatform_usp_ProjectMap_Search @PageSize = 1;
 EXEC dbo.FundingPlatform_usp_ProjectMap_Search @CountryId = 152, @ProjectStage = 0, @PageSize = 1;

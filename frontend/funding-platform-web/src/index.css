@@ -74,6 +74,8 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
+  /* Long translated labels, identifiers and user content must not widen mobile layouts. */
+  overflow-wrap: anywhere;
   text-rendering: optimizeLegibility;
 }
 

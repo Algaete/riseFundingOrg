@@ -145,7 +145,10 @@ catch (MigrationException exception)
             .Select(error => $" Línea SQL: {error.LineNumber}." +
                 (System.Text.RegularExpressions.Regex.IsMatch(error.Procedure ?? string.Empty,
                     @"\A(?:dbo\.)?FundingPlatform_[A-Za-z0-9_]+\z")
-                    ? $" Objeto SQL: {error.Procedure}." : string.Empty))
+                    ? $" Objeto SQL: {error.Procedure}." : string.Empty) +
+                (System.Text.RegularExpressions.Regex.Match(error.Message,
+                    @"\bFundingPlatform_(?:CK|FK|UQ|PK)_[A-Za-z0-9_]+\b") is { Success: true } constraint
+                    ? $" Restricción SQL: {constraint.Value}." : string.Empty))
             .FirstOrDefault() ?? string.Empty
         : string.Empty;
     Console.Error.WriteLine(

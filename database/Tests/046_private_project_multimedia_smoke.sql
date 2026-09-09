@@ -218,10 +218,20 @@ BEGIN TRY
             THROW 55963, N'Private original trusted download contract drifted.', 1;
         DECLARE @Stranger UNIQUEIDENTIFIER = NEWID();
         DELETE @TrustedResult;
-        INSERT @TrustedResult EXEC dbo.FundingPlatform_usp_ProjectAsset_GetTrustedContent
-            @OrganizationPublicId, @ProjectPublicId, @Stranger, @AssetPublicId;
-        IF EXISTS (SELECT 1 FROM @TrustedResult WHERE Succeeded = 1 OR TrustedBlobObjectName IS NOT NULL)
+        /* Membership denial intentionally throws the same not-found as an absent project.
+           Keep the enclosing rollback fixture usable after this expected read failure. */
+        SET XACT_ABORT OFF;
+        BEGIN TRY
+            INSERT @TrustedResult EXEC dbo.FundingPlatform_usp_ProjectAsset_GetTrustedContent
+                @OrganizationPublicId, @ProjectPublicId, @Stranger, @AssetPublicId;
             THROW 55964, N'Private original leaked outside membership.', 1;
+        END TRY
+        BEGIN CATCH
+            IF ERROR_NUMBER() <> 55604 THROW;
+        END CATCH;
+        SET XACT_ABORT ON;
+        IF XACT_STATE() <> 1 OR EXISTS (SELECT 1 FROM @TrustedResult)
+            THROW 55964, N'Membership denial changed the fixture or exposed a result.', 1;
         SET @Iteration += 1;
     END;
     IF EXISTS (SELECT 1 FROM dbo.FundingPlatform_Projects WHERE Id = @ProjectId AND PublicationStatus <> 0)

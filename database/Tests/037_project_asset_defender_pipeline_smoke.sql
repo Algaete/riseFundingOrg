@@ -976,7 +976,7 @@ BEGIN TRY
     DECLARE @InvalidKindPayload NVARCHAR(MAX) =
         (SELECT @InvalidKindIntentPublicId AS intentPublicId,
                 @ProjectPublicId AS projectPublicId,
-                CAST(2 AS TINYINT) AS kind, CAST(0 AS TINYINT) AS status
+                CAST(9 AS TINYINT) AS kind, CAST(0 AS TINYINT) AS status
          FOR JSON PATH, WITHOUT_ARRAY_WRAPPER);
     INSERT INTO dbo.FundingPlatform_OutboxMessages
         (MessageType, AggregateType, AggregateId, PayloadJson,

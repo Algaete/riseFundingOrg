@@ -42,6 +42,24 @@ public sealed class ForwardReleaseRegressionTests
         Assert.DoesNotContain("RF_DEV_ADMIN_EMAIL", script, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Worker_release_preserves_imports_and_disables_new_triggers_before_upload()
+    {
+        var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
+        var script = File.ReadAllText(Path.Combine(root, "infra", "scripts", "release-general-worker-dev.sh"));
+        Assert.Contains("DEPLOY-DEV-GENERAL-WORKER", script, StringComparison.Ordinal);
+        Assert.Contains("package-workers.py\" verify", script, StringComparison.Ordinal);
+        Assert.Contains("ls-remote --heads origin main", script, StringComparison.Ordinal);
+        Assert.Contains("ci.yml/runs?branch=main&event=push", script, StringComparison.Ordinal);
+        Assert.Contains("def imports: [\"ImportSchedulerFunction\", \"ImportOutboxDispatcherFunction\", \"ImportQueueFunction\"]", script, StringComparison.Ordinal);
+        var disabled = script.IndexOf("AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled=true", StringComparison.Ordinal);
+        var upload = script.IndexOf("az functionapp deployment source config-zip", StringComparison.Ordinal);
+        Assert.True(disabled >= 0 && upload > disabled);
+        Assert.Contains("PROJECT_ASSETS_ENABLED=false", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("role assignment create", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("ImportQueueFunction.Disabled=false", script, StringComparison.Ordinal);
+    }
+
     private sealed class TableVisitor : TSqlFragmentVisitor
     {
         public List<CreateTableStatement> Tables { get; } = [];

@@ -46,8 +46,10 @@ La bandera de Azure permanece apagada hasta comprobar Defender y permisos reales
 
 ## Bloque 9 en curso
 
-Suite local: 871 unitarias .NET, 298 HTTP, 937 frontend y 185 E2E aprobadas;
+Suite local: 874 unitarias .NET, 298 HTTP, 937 frontend y 185 E2E aprobadas;
 se omite únicamente el metadato de revisión Azure en la ejecución local. Build, lint y tipos
-aprobados. Las migraciones 031–046 compilan en preflight de Azure SQL sobre la base dev
-con 30 migraciones aplicadas; sigue la validación de todos los smokes con rollback.
+aprobados. Preflight real completo aprobado: 16 migraciones (031–046), 144 lotes y
+46 smokes sobre la base dev con 30 migraciones aplicadas; todo revertido y firewall limpiado.
+CI Linux detectó desbordes móviles que no aparecieron en macOS: se corrigen en los
+componentes compartidos sin ocultar contenido ni reducir las comprobaciones de accesibilidad.
 No se ha aplicado la actualización ni publicado este corte.

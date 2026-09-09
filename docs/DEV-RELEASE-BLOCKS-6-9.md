@@ -7,6 +7,7 @@ En curso. No confundir los commits locales con una versión publicada.
 - Repositorio: `Algaete/riseFundingOrg`; release desde `main` con CI aprobado.
 - Grupo: `rg-rf-dev-ag26rf01`; Azure SQL: `sql-rf-dev-ag26rf01-centralus/risefunding-dev`.
 - Preflight real iniciado desde 30 migraciones aplicadas; cadena local 001–046.
+- Preflight completo aprobado: 16 migraciones, 144 lotes y 46 pruebas SQL; sin aplicar cambios.
 - Recuperación PITR de siete días verificada. Cada preflight revierte todos sus cambios
   y elimina su propia regla de firewall de una sola IP; no modifica cuentas.
 
@@ -29,8 +30,11 @@ sujetos al flujo editorial, no se publican ni completan artificialmente para pas
 3. Desde checkout limpio de ese SHA ejecutar `infra/scripts/check-dev-database.sh --release`
    con `RF_DEV_RELEASE_SHA` y `RF_DEV_DATABASE_CONFIRMATION=DEPLOY-DEV-DATABASE`.
    El wrapper valida destino, CI, recuperación, preflight, apply idempotente y smokes.
-4. Ejecutar el release existente de API por SHA/digest; publicar paquetes verificados del
-   worker manteniendo las restricciones de triggers y después el frontend del mismo SHA.
+4. Ejecutar el release existente de API por SHA/digest. Publicar el artefacto validado de CI
+   con `release-general-worker-dev.sh <directorio>` y
+   `RF_DEV_WORKER_CONFIRMATION=DEPLOY-DEV-GENERAL-WORKER`: conserva los tres imports existentes
+   y exige apagar los tres triggers nuevos antes de indexar el código. No publica el host de
+   extracción ni habilita otros trabajos. Después, frontend del mismo SHA.
 5. Verificar API, catálogo, rutas nuevas y metadatos de revisión del sitio publicado.
 
 `--release` no es el bootstrap `prepare-database-dev.sh`: no solicita ni configura contraseñas,

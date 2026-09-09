@@ -29,7 +29,15 @@ export async function english(page: Page) {
 }
 
 export async function fits(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  const layout = await page.evaluate(() => ({
+    width: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    overflow: [...document.querySelectorAll<HTMLElement>('main *')]
+      .filter(element => element.getBoundingClientRect().right > window.innerWidth + 1)
+      .slice(0, 12).map(element => ({ tag: element.tagName, classes: element.className,
+        text: element.innerText?.slice(0, 80), right: element.getBoundingClientRect().right })),
+  }))
+  expect(layout.scrollWidth, JSON.stringify(layout)).toBeLessThanOrEqual(layout.width)
 }
 
 export function registerWorkspaceLanguageTests(checkAccessibility: (page: Page) => Promise<void>) {

@@ -7,7 +7,7 @@ ELSE SAVE TRANSACTION FP_Smoke039;
 BEGIN TRY
     DECLARE @Now DATETIME2(3) = SYSUTCDATETIME();
     DECLARE @Old DATETIME2(3) = '2000-01-01';
-    DECLARE @User UNIQUEIDENTIFIER = NEWID(), @Suffix NVARCHAR(32) = REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N'');
+    DECLARE @User UNIQUEIDENTIFIER = NEWID(), @Suffix NVARCHAR(32) = LOWER(REPLACE(CONVERT(NVARCHAR(36), NEWID()), N'-', N''));
     DECLARE @Email NVARCHAR(320) = N'retention-' + @Suffix + N'@example.invalid';
     INSERT dbo.FundingPlatform_Users
         (PublicId, Email, NormalizedEmail, DisplayName, PasswordHash, SecurityStamp,
