@@ -28,4 +28,3 @@ export const adminUsersEn = {
   "pagination": "User pagination",
   "table": "Accounts and security"
 } satisfies TranslationShape<typeof adminUsersEs>
-

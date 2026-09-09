@@ -86,4 +86,3 @@ export const sourceDocumentsEn = {
   "extractionStarted": "Document extraction started successfully.",
   "noDocument": "There is no verified document for this upload yet."
 } satisfies TranslationShape<typeof sourceDocumentsEs>
-

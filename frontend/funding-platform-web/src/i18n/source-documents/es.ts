@@ -83,4 +83,3 @@ export const sourceDocumentsEs = {
   "extractionStarted": "La extracción documental se inició correctamente.",
   "noDocument": "Todavía no existe un documento verificado para esta carga."
 } as const
-

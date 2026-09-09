@@ -48,4 +48,3 @@ export const adminOrganizationsEn = {
   "lastUpdate": "Last updated",
   "table": "Institutional profiles and activity"
 } satisfies TranslationShape<typeof adminOrganizationsEs>
-

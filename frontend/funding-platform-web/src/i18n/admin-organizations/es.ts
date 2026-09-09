@@ -45,4 +45,3 @@ export const adminOrganizationsEs = {
   "lastUpdate": "Última actualización",
   "table": "Perfiles y actividad institucional"
 } as const
-

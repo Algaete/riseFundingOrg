@@ -26,4 +26,3 @@ export const operationalLabelsEs = {
   "titleSponsor": "Título y organismo normalizados",
   "suggested": "Coincidencia sugerida"
 } as const
-

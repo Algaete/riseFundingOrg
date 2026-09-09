@@ -25,4 +25,3 @@ export const adminUsersEs = {
   "pagination": "Paginación de usuarios",
   "table": "Cuentas y seguridad"
 } as const
-

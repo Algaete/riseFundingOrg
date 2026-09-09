@@ -26,4 +26,3 @@ export const adminIncidentsEn = {
   "context": "Open context",
   "pagination": "Error pagination"
 } satisfies TranslationShape<typeof adminIncidentsEs>
-

@@ -18,4 +18,3 @@ export const adminBillingEn = {
   "failed": "Subscriptions could not be loaded.",
   "empty": "No subscriptions match this search."
 } satisfies TranslationShape<typeof adminBillingEs>
-

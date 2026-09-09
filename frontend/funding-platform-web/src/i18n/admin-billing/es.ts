@@ -15,4 +15,3 @@ export const adminBillingEs = {
   "failed": "No fue posible cargar las suscripciones.",
   "empty": "No hay suscripciones con esta búsqueda."
 } as const
-

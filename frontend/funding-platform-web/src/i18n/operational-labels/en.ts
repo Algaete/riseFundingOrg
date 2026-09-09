@@ -29,4 +29,3 @@ export const operationalLabelsEn = {
   "titleSponsor": "Normalized title and organization",
   "suggested": "Suggested match"
 } satisfies TranslationShape<typeof operationalLabelsEs>
-

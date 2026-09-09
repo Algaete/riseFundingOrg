@@ -23,4 +23,3 @@ export const adminIncidentsEs = {
   "context": "Abrir contexto",
   "pagination": "Paginación de errores"
 } as const
-
