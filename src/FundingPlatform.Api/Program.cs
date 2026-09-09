@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using FundingPlatform.Application.Collaboration;
+using FundingPlatform.Infrastructure.Persistence.Collaboration;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Azure.Communication.Email;
@@ -222,6 +224,10 @@ builder.Services.AddKeyedScoped<FunderEditorialService>("funder-workspace", (ser
 builder.Services.AddKeyedScoped<FundingOpportunityEditorialService>("funder-workspace", (services, _) =>
     new FundingOpportunityEditorialService(new SqlFundingOpportunityEditorialRepository(services.GetRequiredService<ISqlConnectionFactory>(), ownerWorkspace: true), services.GetRequiredService<TimeProvider>()));
 builder.Services.AddScoped<IFunderWorkspaceSourceRepository, SqlFunderWorkspaceSourceRepository>();
+builder.Services.AddScoped<IProfessionalProfileRepository, SqlProfessionalProfileRepository>();
+builder.Services.AddScoped<IConsortiumRepository, SqlConsortiumRepository>();
+builder.Services.AddScoped<ProfessionalProfileService>();
+builder.Services.AddScoped<ConsortiumService>();
 builder.Services.AddScoped<IFundingOpportunityEditorialRepository,
     SqlFundingOpportunityEditorialRepository>();
 builder.Services.AddScoped<FundingOpportunityEditorialService>();
@@ -818,6 +824,8 @@ app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();
 app.MapAdminFundingEditorialEndpoints();
 app.MapFunderWorkspaceEndpoints();
+app.MapProfessionalProfileEndpoints();
+app.MapConsortiumEndpoints();
 app.MapAdminImportRunEndpoints();
 app.MapAdminSourceDocumentEndpoints();
 app.MapAdminFundingDuplicateEndpoints();

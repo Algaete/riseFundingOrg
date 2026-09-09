@@ -17,7 +17,9 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
   Contrato y pruebas: [mapa de proyectos](PROJECT-MAP.md).
 - Bloque 4, financiadores, implementado localmente: propiedad explícita, espacio propio
   y oportunidades con revisión. Contrato: [espacio financiador](FUNDER-WORKSPACE.md).
-- Quedan cuatro bloques funcionales (5–8), empezando por profesionales/consorcios, más validación integrada y despliegue.
+- Bloque 5, profesionales/consorcios, implementado localmente: perfiles opt-in, invitaciones
+  y participación explícita. Contrato: [profesionales y consorcios](PROFESSIONALS-AND-CONSORTIA.md).
+- Quedan tres bloques funcionales (6–8), empezando por matching ampliado, más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
 ## Base implementada localmente
@@ -561,14 +563,14 @@ Sin push, despliegue ni activación de adjuntos en este corte.
 | --- | --- |
 | 3. Mapa — local completo | Descubrimiento publicado con filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`; aún no desplegado. |
 | 4. Financiadores — local completo | Registro de perfiles nuevos y oportunidades propias con revisión administrativa, sin conceder Admin. Ver `FUNDER-WORKSPACE.md`; aún no desplegado. |
-| 5. Profesionales y alianzas | Perfiles profesionales, capacidades, necesidades de colaboración y gestión de consorcios sobre la base del directorio/conexiones. |
+| 5. Profesionales y alianzas — local completo | Perfiles opt-in, capacidades y consorcios por proyecto con invitación, aceptación y permisos. Ver `PROFESSIONALS-AND-CONSORTIA.md`; aún no desplegado. |
 | 6. Matching ampliado | Financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. Depende de los nuevos perfiles y datos. |
 | 7. Oportunidades e ingesta | Tipos de financiador, filtros faltantes (idioma y socios/consorcios, entre otros), conectores nuevos y actualización/deduplicación. FundsforNGOs depende de acceso autorizado. |
 | 8. Multimedia adicional | Video y otros formatos requieren políticas propias de límites, seguridad, procesamiento y costes. No basta con agregarlos al selector de archivos. |
 
 ## Validación y despliegue — trabajo diferente
 
-Las migraciones locales `031`–`040`, infraestructura y adjuntos necesitan preflight SQL, pruebas
+Las migraciones locales `031`–`043`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
 [activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E tampoco

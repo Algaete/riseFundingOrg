@@ -21,6 +21,7 @@ export const coreEs = {
     profile: 'Organización',
     administration: 'Administración',
     connections: 'Conexiones',
+    collaboration: 'Profesionales y consorcios',
     projectReview: 'Revisión de proyectos',
     funds: 'Fondos',
     funders: 'Financiadores',

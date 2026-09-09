@@ -4,6 +4,7 @@ import { registerWorkspaceLanguageTests } from './workspace-checks'
 import { registerProjectEnrichmentTests } from './project-enrichment-checks'
 import { registerProjectMapTests } from './project-map-checks'
 import { registerFunderWorkspaceTests } from './funder-workspace-checks'
+import { registerCollaborationTests } from './collaboration-checks'
 import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
@@ -94,7 +95,7 @@ test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
   // Missing lazy dependencies otherwise look like valid text to accessibility tools.
   const missing = await page.locator('body').evaluate(body => {
-    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback)\.[\w.-]+$/
+    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration)\.[\w.-]+$/
     const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
     const keys: string[] = []
     while (walker.nextNode()) {
@@ -108,6 +109,7 @@ test.afterEach(async ({ page }) => {
 
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
 registerProjectEnrichmentTests(expectNoSeriousAccessibilityViolations)
+registerCollaborationTests(expectNoSeriousAccessibilityViolations)
 registerProjectMapTests(expectNoSeriousAccessibilityViolations)
 registerFunderWorkspaceTests(expectNoSeriousAccessibilityViolations)
 registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)

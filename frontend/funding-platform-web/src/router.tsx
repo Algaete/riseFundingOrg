@@ -78,6 +78,11 @@ function LegacyMatchingRedirect() {
 
 const FunderWorkspaceLayout = localizedLazy(() => import('@/features/funder-workspace/funder-workspace-layout').then(module => ({ default: module.FunderWorkspaceLayout })), ['funderWorkspace'])
 
+const ProfessionalProfilePage = localizedLazy(() => import('@/features/collaboration/professional-profile-page').then(module => ({ default: module.ProfessionalProfilePage })), ['collaboration', 'catalogs', 'validation'])
+const ProfessionalDirectoryPage = localizedLazy(() => import('@/features/collaboration/professional-directory-page').then(module => ({ default: module.ProfessionalDirectoryPage })), ['collaboration', 'catalogs', 'validation'])
+const ConsortiumListPage = localizedLazy(() => import('@/features/collaboration/consortium-list-page').then(module => ({ default: module.ConsortiumListPage })), ['collaboration', 'validation'])
+const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboration/consortium-detail-page').then(module => ({ default: module.ConsortiumDetailPage })), ['collaboration', 'validation'])
+
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -116,6 +121,10 @@ export const appRoutes: RouteObject[] = [
       { path: '/calendar', element: <CalendarPage /> },
       { path: '/alerts', element: <AlertsPage /> },
       { path: '/network', element: <NetworkPage /> },
+      { path: '/professional/profile', element: <ProfessionalProfilePage /> },
+      { path: '/professionals', element: <ProfessionalDirectoryPage /> },
+      { path: '/collaboration/consortia', element: <ConsortiumListPage /> },
+      { path: '/collaboration/consortia/:id', element: <ConsortiumDetailPage /> },
       { path: '/organization/profile', element: <OrganizationProfilePage /> },
       { path: '/projects', element: <ProjectsPage /> },
       { path: '/projects/:projectId', element: <ProjectDetailPage /> },

@@ -90,6 +90,19 @@ IF OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NOT NULL
 IF OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NOT NULL
     INSERT @LaterProcedurePermissions VALUES
         (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_FunderWorkspace_Sources'), N'FundingPlatform_usp_FunderWorkspace_Sources');
+IF OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_ProfessionalProfile_GetOwn'),
+        (N'FundingPlatform_usp_ProfessionalProfile_Search'),
+        (N'FundingPlatform_usp_ProfessionalProfile_Save'),
+        (N'FundingPlatform_usp_Consortium_List'),
+        (N'FundingPlatform_usp_Consortium_Get'),
+        (N'FundingPlatform_usp_Consortium_Create'),
+        (N'FundingPlatform_usp_Consortium_Update'),
+        (N'FundingPlatform_usp_Consortium_Invite'),
+        (N'FundingPlatform_usp_Consortium_ParticipantAction')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions

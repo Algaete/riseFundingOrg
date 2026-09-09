@@ -21,6 +21,7 @@ export const coreEn = {
     profile: 'Organization',
     administration: 'Administration',
     connections: 'Connections',
+    collaboration: 'Professionals and consortia',
     projectReview: 'Project review',
     funds: 'Funding opportunities',
     funders: 'Funders',
