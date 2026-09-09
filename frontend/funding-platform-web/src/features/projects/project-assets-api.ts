@@ -1,7 +1,7 @@
 import { fieldValidationEntries } from '@/i18n/validation-issues'
 import { ApiError, apiClient } from '@/api/http-client'
 
-export type ProjectAssetKind = 0 | 1
+export type ProjectAssetKind = 0 | 1 | 2
 export type ProjectAssetUploadIntentStatus = 0 | 1 | 2 | 3 | 4
 export type ProjectAssetStorageStatus = 0 | 1 | 2 | 3
 export type ProjectAssetScanStatus = 0 | 1 | 2 | 3 | 4

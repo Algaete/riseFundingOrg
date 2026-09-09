@@ -19,7 +19,9 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
   y oportunidades con revisión. Contrato: [espacio financiador](FUNDER-WORKSPACE.md).
 - Bloque 5, profesionales/consorcios, implementado localmente: perfiles opt-in, invitaciones
   y participación explícita. Contrato: [profesionales y consorcios](PROFESSIONALS-AND-CONSORTIA.md).
-- Quedan tres bloques funcionales (6–8), empezando por matching ampliado, más validación integrada y despliegue.
+- Bloques 6–8 implementados localmente: matching ampliado, explorador/clasificación de fondos
+  y multimedia privada MP4/TXT. Queda validar la actualización SQL completa y desplegar dev;
+  ver [bloques 6–9](BLOCKS-6-9-EXECUTION.md).
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
 ## Base implementada localmente
@@ -31,7 +33,7 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
   y brecha ya disponibles.
 - Portada orientada a proyectos, financiamiento y alianzas, con sus dos CTA principales.
 - Imágenes JPEG/PNG/WebP y PDF privados: carga, escaneo, sanitización, portada, permisos,
-  revocación y retención exacta. Video no está implementado.
+  revocación y retención exacta. MP4 y TXT privados añadidos en `046`, sin reproducción pública.
 - Ya existían matching proyecto → fondos explicable, directorio de organizaciones, solicitudes de
   conexión, catálogo de financiadores administrado internamente e ingesta Grants.gov/RSS gobernada.
 

@@ -11,6 +11,8 @@ public static class ProjectAssetTrustedContentRules
 {
     public const string ImageProcessingVersion = "skia-4.151.2-image-v1";
     public const string PdfProcessingVersion = "pdf-copy-v1";
+    public const string VideoProcessingVersion = "mp4-copy-v1";
+    public const string TextProcessingVersion = "utf8-copy-v1";
     public const int MaximumImageDimension = 32_768;
     public const long AbsoluteMaximumImagePixels = 25_000_000;
 
@@ -34,17 +36,18 @@ public static class ProjectAssetTrustedContentRules
                 manifest.MimeType, sourceMimeType, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        if (kind == ProjectAssetKind.Document)
+        if (kind is ProjectAssetKind.Document or ProjectAssetKind.Video)
         {
-            return string.Equals(
-                       manifest.MimeType, "application/pdf", StringComparison.Ordinal) &&
+            var expectedVersion = CopyVersion(kind, manifest.MimeType);
+            return expectedVersion is not null && sourceContentLength <= 26_214_400 &&
+                   (manifest.MimeType != "text/plain" || sourceContentLength <= 1_048_576) &&
                    manifest.ContentLength == sourceContentLength &&
                    CryptographicOperations.FixedTimeEquals(
                        manifest.ContentHash, sourceContentHash) &&
                    manifest.PixelWidth is null && manifest.PixelHeight is null &&
                    string.Equals(
                        manifest.ProcessingVersion,
-                       PdfProcessingVersion,
+                       expectedVersion,
                        StringComparison.Ordinal);
         }
 
@@ -66,4 +69,12 @@ public static class ProjectAssetTrustedContentRules
                    ImageProcessingVersion,
                    StringComparison.Ordinal);
     }
+
+    public static string? CopyVersion(ProjectAssetKind kind, string? mimeType) => (kind, mimeType) switch
+    {
+        (ProjectAssetKind.Document, "application/pdf") => PdfProcessingVersion,
+        (ProjectAssetKind.Document, "text/plain") => TextProcessingVersion,
+        (ProjectAssetKind.Video, "video/mp4") => VideoProcessingVersion,
+        _ => null
+    };
 }

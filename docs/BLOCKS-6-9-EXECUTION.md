@@ -9,7 +9,7 @@ acceso a fuentes restringidas ni ampliación de privilegios permanentes.
   organizaciones y profesionales; criterios, brechas y datos desconocidos explícitos.
 - [x] 7. Oportunidades e ingesta: clasificación/filtros ampliados, fuente/actualización,
   conector de feed autorizado y revisión editorial; ninguna autopublicación ni scraping restringido.
-- [ ] 8. Multimedia: video y documentos adicionales privados con formatos/límites explícitos,
+- [x] 8. Multimedia: video y documentos adicionales privados con formatos/límites explícitos,
   inspección, cuarentena/scan, descarga segura y retención; sin publicación automática.
 - [ ] 9. Verificación integrada y despliegue dev: pruebas, preflight SQL/infraestructura,
   release reproducible API/worker/frontend y comprobación real de funciones habilitadas.
@@ -36,3 +36,18 @@ Explorador público y clasificación administrativa versionada; ver `FUNDING-DIS
 66 pruebas focalizadas de backend/migraciones/RSS, 10 HTTP y 4 E2E ES/EN/móvil/escritorio.
 Conector RSS/Atom existente reforzado; activación de otra fuente condicionada a acceso autorizado.
 No se configura ni promete acceso a FundsforNGOs sin esa información.
+
+## Cierre local del bloque 8
+
+MP4 privado y TXT UTF-8, sin reproducción pública ni transcodificación. Contrato y límites:
+`PROJECT-PRIVATE-MULTIMEDIA.md`. Integrados en el flujo existente de cuarentena, análisis,
+copia exacta, descarga autenticada y retención; comparten la cuota de documentos.
+La bandera de Azure permanece apagada hasta comprobar Defender y permisos reales.
+
+## Bloque 9 en curso
+
+Suite local: 871 unitarias .NET, 298 HTTP, 937 frontend y 185 E2E aprobadas;
+se omite únicamente el metadato de revisión Azure en la ejecución local. Build, lint y tipos
+aprobados. Las migraciones 031–046 compilan en preflight de Azure SQL sobre la base dev
+con 30 migraciones aplicadas; sigue la validación de todos los smokes con rollback.
+No se ha aplicado la actualización ni publicado este corte.

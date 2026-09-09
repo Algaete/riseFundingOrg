@@ -262,7 +262,7 @@ public sealed class ProjectAssetContentRetentionService(
             !IsSafeVersionId(claim.BlobVersionId) ||
             !IsSupportedMimeType(claim.MimeType) ||
             claim.ContentLength < 1 ||
-            claim.ContentLength > (claim.MimeType == "application/pdf" ? 26_214_400 : 10_485_760) ||
+            claim.ContentLength > (claim.MimeType is "application/pdf" or "video/mp4" ? 26_214_400 : claim.MimeType == "text/plain" ? 1_048_576 : 10_485_760) ||
             claim.ContentHash is not { Length: 32 } ||
             claim.IdentityHash is not { Length: 32 } ||
             claim.RetentionUntilUtc.Offset != TimeSpan.Zero ||
@@ -322,6 +322,8 @@ public sealed class ProjectAssetContentRetentionService(
             "image/png" => extension == ".png",
             "image/webp" => extension == ".webp",
             "application/pdf" => extension == ".pdf",
+            "text/plain" => extension == ".txt",
+            "video/mp4" => extension == ".mp4",
             _ => false
         };
     }
@@ -334,7 +336,7 @@ public sealed class ProjectAssetContentRetentionService(
          !value.Contains('&') && !value.Contains('#') && !value.Contains('?'));
 
     private static bool IsSupportedMimeType(string? value) => value is
-        "image/jpeg" or "image/png" or "image/webp" or "application/pdf";
+        "image/jpeg" or "image/png" or "image/webp" or "application/pdf" or "text/plain" or "video/mp4";
 
     private static bool IsSafeProcessingVersion(string? value) =>
         value is null ||

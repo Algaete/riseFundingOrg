@@ -33,10 +33,10 @@ public sealed class ProjectAssetService(
         var errors = ValidateCreate(
             expectedProjectRowVersion, kind, fileName, normalizedMimeType, contentLength);
         if (errors.Count > 0)
-            return ProjectAssetCreateResult.Invalid(MaximumFor(kind), errors);
+            return ProjectAssetCreateResult.Invalid(MaximumFor(kind, normalizedMimeType), errors);
 
         var normalizedName = fileName!.Trim().Normalize(NormalizationForm.FormKC);
-        var maximum = MaximumFor(kind);
+        var maximum = MaximumFor(kind, normalizedMimeType);
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.Add(policy.UploadTimeToLive);
         var extension = CanonicalExtension(normalizedMimeType!);
@@ -816,8 +816,8 @@ public sealed class ProjectAssetService(
         var errors = new FieldValidationErrors();
         if (projectRowVersion.Length != 8)
             errors.Set("projectETag", "api-validation-152", "El ETag del proyecto es obligatorio.");
-        if (kind is not (ProjectAssetKind.Image or ProjectAssetKind.Document))
-            errors.Set("kind", "api-validation-153", "En esta fase sólo se admiten imágenes y documentos PDF.");
+        if (kind is not (ProjectAssetKind.Image or ProjectAssetKind.Document or ProjectAssetKind.Video))
+            errors.Set("kind", "api-validation-153", "Sólo se admiten imágenes, PDF, texto UTF-8 y video MP4.");
         var normalizedName = fileName?.Trim().Normalize(NormalizationForm.FormKC);
         if (string.IsNullOrWhiteSpace(normalizedName) || normalizedName.Length > 260 ||
             normalizedName.Any(char.IsControl) || normalizedName.Contains('/') ||
@@ -825,7 +825,7 @@ public sealed class ProjectAssetService(
             errors.Set("fileName", "api-validation-154", "Usa un nombre de archivo válido de hasta 260 caracteres.");
         if (!MimeMatchesName(kind, normalizedName, mimeType))
             errors.Set("mimeType", "api-validation-155", "La extensión y el tipo del archivo no coinciden o no están permitidos.");
-        var maximum = MaximumFor(kind);
+        var maximum = MaximumFor(kind, mimeType);
         if (contentLength < 1 || contentLength > maximum)
             errors.Set("contentLength", "api-validation-156", $"El archivo debe pesar entre 1 byte y {maximum} bytes.", max: maximum);
         return errors;
@@ -850,10 +850,11 @@ public sealed class ProjectAssetService(
         return errors;
     }
 
-    private long MaximumFor(ProjectAssetKind kind) => kind switch
+    private long MaximumFor(ProjectAssetKind kind, string? mimeType = null) => kind switch
     {
         ProjectAssetKind.Image => policy.MaxImageBytes,
-        ProjectAssetKind.Document => policy.MaxDocumentBytes,
+        ProjectAssetKind.Document => mimeType == "text/plain" ? Math.Min(policy.MaxDocumentBytes, 1_048_576) : policy.MaxDocumentBytes,
+        ProjectAssetKind.Video => policy.MaxDocumentBytes,
         _ => 0
     };
 
@@ -870,6 +871,8 @@ public sealed class ProjectAssetService(
             (ProjectAssetKind.Image, "image/png", ".png") => true,
             (ProjectAssetKind.Image, "image/webp", ".webp") => true,
             (ProjectAssetKind.Document, "application/pdf", ".pdf") => true,
+            (ProjectAssetKind.Document, "text/plain", ".txt") => true,
+            (ProjectAssetKind.Video, "video/mp4", ".mp4") => true,
             _ => false
         };
     }
@@ -880,6 +883,8 @@ public sealed class ProjectAssetService(
         "image/png" => ".png",
         "image/webp" => ".webp",
         "application/pdf" => ".pdf",
+        "text/plain" => ".txt",
+        "video/mp4" => ".mp4",
         _ => throw new ArgumentOutOfRangeException(nameof(mimeType))
     };
 

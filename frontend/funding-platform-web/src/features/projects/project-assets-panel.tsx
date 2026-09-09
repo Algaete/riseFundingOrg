@@ -91,7 +91,7 @@ function isAssetStillProcessing(asset: ProjectAsset) {
   return asset.storageStatus < 2 && asset.storageStatus !== 3 && asset.scanStatus === 0
 }
 
-function fileKind(file: File): 0 | 1 | null {
+function fileKind(file: File): 0 | 1 | 2 | null {
   const name = file.name.toLocaleLowerCase('en-US')
   if (
     (file.type === 'image/jpeg' && (name.endsWith('.jpg') || name.endsWith('.jpeg'))) ||
@@ -99,6 +99,8 @@ function fileKind(file: File): 0 | 1 | null {
     (file.type === 'image/webp' && name.endsWith('.webp'))
   ) return 0
   if (file.type === 'application/pdf' && name.endsWith('.pdf')) return 1
+  if (file.type === 'text/plain' && name.endsWith('.txt')) return 1
+  if (file.type === 'video/mp4' && name.endsWith('.mp4')) return 2
   return null
 }
 
@@ -111,19 +113,19 @@ function validateFiles(files: File[], current: ProjectAsset[]): AssetFeedback | 
   const oversized = files.find((file, index) => {
     const maximum = kinds[index] === 0
       ? projectAssetLimits.imageBytes
-      : projectAssetLimits.documentBytes
+      : file.type === 'text/plain' ? projectAssetLimits.textBytes : projectAssetLimits.documentBytes
     return file.size < 1 || file.size > maximum
   })
   if (oversized) {
     const maximum = fileKind(oversized) === 0
       ? projectAssetLimits.imageBytes
-      : projectAssetLimits.documentBytes
+      : oversized.type === 'text/plain' ? projectAssetLimits.textBytes : projectAssetLimits.documentBytes
     return { key: 'projectAssets.fileSize', values: { name: oversized.name, maximum } }
   }
   const currentImages = current.filter(item => item.kind === 0).length
-  const currentDocuments = current.filter(item => item.kind === 1).length
+  const currentDocuments = current.filter(item => item.kind !== 0).length
   const newImages = kinds.filter(kind => kind === 0).length
-  const newDocuments = kinds.filter(kind => kind === 1).length
+  const newDocuments = kinds.filter(kind => kind !== 0).length
   if (current.length + files.length > projectAssetLimits.totalPerProject) {
     return { key: 'projectAssets.maxAttachments', values: { count: projectAssetLimits.totalPerProject } }
   }
@@ -310,7 +312,7 @@ function AssetCard({
     <div className="border-b bg-muted/30">
       {asset.kind === 0 && ready && <SecureProjectImage asset={asset} organizationId={organizationId} projectId={projectId} />}
       {asset.kind === 0 && !ready && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><ImageIcon aria-hidden className="size-5" /> {t('projectAssets.noPreview')}</div>}
-      {asset.kind === 1 && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><FileText aria-hidden className="size-7" /> {t('projectAssets.pdf')}</div>}
+      {asset.kind !== 0 && <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground"><FileText aria-hidden className="size-7" /> {t(asset.kind === 2 ? 'projectAssets.video' : asset.mimeType === 'text/plain' ? 'projectAssets.text' : 'projectAssets.pdf')}</div>}
     </div>
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -340,7 +342,7 @@ function AssetCard({
         <Button aria-label={t('projectAssets.moveUp', { name: asset.displayName })} disabled={!editable || busy || first} onClick={() => onMove(asset, -1)} size="icon" type="button" variant="outline"><ArrowUp aria-hidden className="size-4" /></Button>
         <Button aria-label={t('projectAssets.moveDown', { name: asset.displayName })} disabled={!editable || busy || last} onClick={() => onMove(asset, 1)} size="icon" type="button" variant="outline"><ArrowDown aria-hidden className="size-4" /></Button>
         <Button disabled={!editable || busy || !changed} onClick={saveMetadata} type="button" variant="outline"><Save aria-hidden className="size-4" /> {t('projectAssets.saveMetadata')}</Button>
-        {asset.kind === 1 && ready && <Button disabled={downloading} onClick={() => void downloadDocument()} type="button" variant="outline">{downloading ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />} {t('projectAssets.downloadPdf')}</Button>}
+        {asset.kind !== 0 && ready && <Button disabled={downloading} onClick={() => void downloadDocument()} type="button" variant="outline">{downloading ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />} {t(asset.mimeType === 'application/pdf' ? 'projectAssets.downloadPdf' : 'projectAssets.downloadFile')}</Button>}
         {!deleting && <Button disabled={!editable || busy} onClick={() => onDelete(asset)} type="button" variant="ghost"><Trash2 aria-hidden className="size-4" /> {t('projectAssets.delete')}</Button>}
       </div>
     </div>

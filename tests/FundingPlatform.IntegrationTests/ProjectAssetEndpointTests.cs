@@ -447,20 +447,23 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
         Assert.Equal(0, blobs.OpenReadCalls);
     }
 
-    [Fact]
-    public async Task Clean_PDF_content_is_an_attachment_with_nosniff_and_no_store()
+    [Theory]
+    [InlineData(ProjectAssetKind.Document, "evidence.pdf", "application/pdf", "pdf-copy-v1")]
+    [InlineData(ProjectAssetKind.Document, "evidence.txt", "text/plain", "utf8-copy-v1")]
+    [InlineData(ProjectAssetKind.Video, "evidence.mp4", "video/mp4", "mp4-copy-v1")]
+    public async Task Clean_private_original_is_an_attachment_with_nosniff_and_no_store(ProjectAssetKind kind, string fileName, string mime, string version)
     {
         var payload = "%PDF-1.7\nproject evidence\n%%EOF"u8.ToArray();
         repository.TrustedContent = new ProjectAssetTrustedContent(
             AssetId,
-            ProjectAssetKind.Document,
-            "evidence.pdf",
-            "application/pdf",
+            kind,
+            fileName,
+            mime,
             payload.Length,
             SHA256.HashData(payload),
             null,
             null,
-            "pdf-copy-v1",
+            version,
             DateTimeOffset.UtcNow,
             new ProtectedProjectAssetBlobLocation("fp-project-trusted", "private/evidence.pdf"),
             "\"trusted-etag\"",
@@ -468,7 +471,7 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
         blobs.OpenReadFactory = () => new ProjectAssetBlobRead(
             new MemoryStream(payload, writable: false),
             payload.Length,
-            "application/pdf",
+            mime,
             "\"trusted-etag\"",
             "trusted-version");
         using var request = AuthenticatedRequest(
@@ -478,9 +481,9 @@ public sealed class ProjectAssetEndpointTests : IClassFixture<ApiFactory>, IDisp
         var downloaded = await response.Content.ReadAsByteArrayAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(mime, response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("attachment", response.Content.Headers.ContentDisposition?.DispositionType);
-        Assert.Equal("evidence.pdf",
+        Assert.Equal(fileName,
             response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
         Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());

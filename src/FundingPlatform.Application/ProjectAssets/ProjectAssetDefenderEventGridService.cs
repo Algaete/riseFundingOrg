@@ -439,11 +439,12 @@ public sealed class ProjectAssetDefenderEventGridService(
         {
             ProjectAssetKind.Image => policy.MaxImageBytes,
             ProjectAssetKind.Document => policy.MaxDocumentBytes,
+            ProjectAssetKind.Video => policy.MaxDocumentBytes,
             _ => 0
         };
         return work.ReceiptId is not null &&
                work.ProjectAssetId is not null &&
-               work.Kind is ProjectAssetKind.Image or ProjectAssetKind.Document &&
+               work.Kind is ProjectAssetKind.Image or ProjectAssetKind.Document or ProjectAssetKind.Video &&
                work.ScanProvider == ProjectAssetScanProvider.MicrosoftDefender &&
                work.QuarantineLocation is not null &&
                work.QuarantineETag is not null &&
@@ -500,7 +501,8 @@ public sealed class ProjectAssetDefenderEventGridService(
              mimeType.Equals("image/png", StringComparison.OrdinalIgnoreCase) ||
              mimeType.Equals("image/webp", StringComparison.OrdinalIgnoreCase)),
         ProjectAssetKind.Document =>
-            string.Equals(mimeType, "application/pdf", StringComparison.OrdinalIgnoreCase),
+            string.Equals(mimeType, "application/pdf", StringComparison.OrdinalIgnoreCase) || string.Equals(mimeType, "text/plain", StringComparison.OrdinalIgnoreCase),
+        ProjectAssetKind.Video => string.Equals(mimeType, "video/mp4", StringComparison.OrdinalIgnoreCase),
         _ => false
     };
 

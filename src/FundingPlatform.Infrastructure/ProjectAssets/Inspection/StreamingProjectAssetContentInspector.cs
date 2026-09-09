@@ -32,6 +32,8 @@ public sealed class StreamingProjectAssetContentInspector : IProjectAssetContent
         var normalizedMimeType = source.ContentType?.Trim().ToLowerInvariant();
         if (!IsAllowedMimeType(kind, normalizedMimeType))
             return Invalid(ProjectAssetInspectionFailure.InvalidContentType, source.ContentLength);
+        if (normalizedMimeType is "text/plain" or "video/mp4")
+            return await PrivateAttachmentInspector.InspectAsync(source, expectedLength, maximumLength, normalizedMimeType, cancellationToken);
 
         var rented = ArrayPool<byte>.Shared.Rent(64 * 1024);
         var header = new byte[(int)Math.Min(source.ContentLength, HeaderCaptureBytes)];
@@ -114,7 +116,8 @@ public sealed class StreamingProjectAssetContentInspector : IProjectAssetContent
         kind switch
         {
             ProjectAssetKind.Image => mimeType is "image/jpeg" or "image/png" or "image/webp",
-            ProjectAssetKind.Document => mimeType == "application/pdf",
+            ProjectAssetKind.Document => mimeType is "application/pdf" or "text/plain",
+            ProjectAssetKind.Video => mimeType == "video/mp4",
             _ => false
         };
 

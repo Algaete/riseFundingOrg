@@ -258,7 +258,7 @@ public sealed class ProjectAssetSecurityTests
     }
 
     [Fact]
-    public async Task Streaming_inspector_rejects_video_content()
+    public async Task Streaming_inspector_rejects_invalid_video_envelopes()
     {
         var bytes = Encoding.ASCII.GetBytes("....ftypmp42");
         await using var source = BlobRead(bytes, "video/mp4");
@@ -272,7 +272,7 @@ public sealed class ProjectAssetSecurityTests
             CancellationToken.None);
 
         Assert.False(result.IsValid);
-        Assert.Equal(ProjectAssetInspectionFailure.InvalidContentType, result.Failure);
+        Assert.Equal(ProjectAssetInspectionFailure.InvalidFile, result.Failure);
         Assert.Null(result.ContentHash);
     }
 
@@ -480,7 +480,7 @@ public sealed class ProjectAssetSecurityTests
                 10_485_761,
                 "contentLength"
             },
-            { RowVersion, ProjectAssetKind.Video, "clip.mp4", "video/mp4", 100, "kind" }
+            { RowVersion, (ProjectAssetKind)9, "clip.mp4", "video/mp4", 100, "kind" }
         };
 
     [Theory]

@@ -115,10 +115,10 @@ describe('panel de adjuntos del proyecto', () => {
     const fetchMock = vi.fn().mockImplementation(() => json(collection([])))
     vi.stubGlobal('fetch', fetchMock)
     renderPanel()
-    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeEnabled())
+    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos, videos o documentos')).toBeEnabled())
     const file = new File(['synthetic'], 'imagen-grande.png', { type: 'image/png' })
     Object.defineProperty(file, 'size', { value: 11 * 1024 * 1024 })
-    await userEvent.upload(screen.getByLabelText('Seleccionar fotos o documentos'), file)
+    await userEvent.upload(screen.getByLabelText('Seleccionar fotos, videos o documentos'), file)
     expect(await screen.findByRole('alert')).toHaveTextContent('imagen-grande.png debe pesar entre 1 byte y')
     await act(() => setInterfaceLanguage('en'))
     expect(screen.getByRole('alert')).toHaveTextContent('imagen-grande.png must be between 1 byte and 10 MB.')
@@ -141,8 +141,8 @@ describe('panel de adjuntos del proyecto', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     renderPanel()
-    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeEnabled())
-    await userEvent.upload(screen.getByLabelText('Seleccionar fotos o documentos'), new File(['synthetic'], 'Río.png', { type: 'image/png' }))
+    await waitFor(() => expect(screen.getByLabelText('Seleccionar fotos, videos o documentos')).toBeEnabled())
+    await userEvent.upload(screen.getByLabelText('Seleccionar fotos, videos o documentos'), new File(['synthetic'], 'Río.png', { type: 'image/png' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))
     expect(await screen.findByText('Solicitando una autorización de corta duración.')).toBeVisible()
     await act(() => setInterfaceLanguage('en'))
@@ -155,6 +155,47 @@ describe('panel de adjuntos del proyecto', () => {
     expect(screen.queryByText('synthetic-only')).not.toBeInTheDocument()
   })
 
+  it.each([
+    ['evidencia.mp4', 'video/mp4', 2],
+    ['informe.txt', 'text/plain', 1],
+  ] as const)('solicita %s con su tipo y no lo reproduce automáticamente', async (name, mime, kind) => {
+    const commands: Record<string, unknown>[] = []
+    vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/assets')) return json(collection([]))
+      if (url.endsWith('/asset-upload-intents')) {
+        commands.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+        return json({ intentId: 'synthetic-intent', projectETag: '"0000000000000002"', uploadUrl: 'https://synthetic.example.invalid/upload', uploadMethod: 'PUT', requiredHeaders: {}, completionToken: 'synthetic-only' })
+      }
+      if (url === 'https://synthetic.example.invalid/upload') return Promise.resolve(new Response(null, { status: 201 }))
+      if (url.endsWith('/synthetic-intent/complete')) return json({ projectETag: '"0000000000000003"', storageStatus: 1, scanStatus: 0, intentStatus: 2 })
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+    renderPanel()
+    const input = screen.getByLabelText('Seleccionar fotos, videos o documentos')
+    await waitFor(() => expect(input).toBeEnabled())
+    await userEvent.upload(input, new File(['synthetic'], name, { type: mime }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))
+    await waitFor(() => expect(commands).toHaveLength(1))
+    expect(commands[0]).toMatchObject({ kind, fileName: name, mimeType: mime })
+    expect(document.querySelector('video, iframe, object, embed')).not.toBeInTheDocument()
+    expect(screen.getByText(/conservan el contenido y los metadatos originales/)).toBeVisible()
+  })
+
+  it('limita TXT a 1 MB sin crear una autorización ni cargar bytes', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => json(collection([])))
+    vi.stubGlobal('fetch', fetchMock)
+    renderPanel()
+    const input = screen.getByLabelText('Seleccionar fotos, videos o documentos')
+    await waitFor(() => expect(input).toBeEnabled())
+    const file = new File(['synthetic'], 'informe.txt', { type: 'text/plain' })
+    Object.defineProperty(file, 'size', { value: 1_048_577 })
+    await userEvent.upload(input, file)
+    expect(await screen.findByRole('alert')).toHaveTextContent('1 MB')
+    expect(screen.getByRole('button', { name: 'Cargar y verificar archivo' })).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
   it('permanece ausente y no consulta la API cuando la bandera está apagada', async () => {
     vi.stubEnv('VITE_PROJECT_ASSETS_ENABLED', 'false')
     const fetchMock = vi.fn()
@@ -162,7 +203,7 @@ describe('panel de adjuntos del proyecto', () => {
 
     renderPanel()
 
-    expect(screen.queryByRole('heading', { name: 'Fotos y documentos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Fotos, videos y documentos' })).not.toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -172,12 +213,12 @@ describe('panel de adjuntos del proyecto', () => {
 
     renderPanel({ hasUnsavedChanges: true })
 
-    expect(await screen.findByRole('heading', { name: 'Fotos y documentos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Fotos, videos y documentos' })).toBeInTheDocument()
     expect(await screen.findByText('Sin vista previa hasta completar el análisis')).toBeInTheDocument()
     expect(document.querySelector('img')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Seleccionar fotos o documentos')).toBeDisabled()
+    expect(screen.getByLabelText('Seleccionar fotos, videos o documentos')).toBeDisabled()
     expect(screen.getByRole('button', { name: /Cargar y verificar/ })).toBeDisabled()
-    expect(screen.getByText(/Videos: próxima fase/)).toBeInTheDocument()
+    expect(screen.getByText(/MP4 privado, sin reproducción pública/)).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
@@ -238,7 +279,7 @@ describe('panel de adjuntos del proyecto', () => {
 
     const user = userEvent.setup()
     const { onProjectChanged, queryClient } = renderPanel()
-    const input = await screen.findByLabelText('Seleccionar fotos o documentos')
+    const input = await screen.findByLabelText('Seleccionar fotos, videos o documentos')
     await vi.waitFor(() => expect(input).toBeEnabled())
     await user.upload(input, new File(['png'], 'photo.png', { type: 'image/png' }))
     await user.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))

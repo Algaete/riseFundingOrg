@@ -22,27 +22,30 @@ public sealed class ProjectAssetImageSanitizerTests
         Assert.True(probe.IsAvailable());
     }
 
-    [Fact]
-    public async Task Pdf_is_copied_with_an_explicit_identity_manifest()
+    [Theory]
+    [InlineData(ProjectAssetKind.Document, "application/pdf", "pdf-copy-v1")]
+    [InlineData(ProjectAssetKind.Document, "text/plain", "utf8-copy-v1")]
+    [InlineData(ProjectAssetKind.Video, "video/mp4", "mp4-copy-v1")]
+    public async Task Private_original_is_copied_with_an_explicit_identity_manifest(ProjectAssetKind kind, string mime, string version)
     {
         var pdf = "%PDF-1.7\n%%EOF"u8.ToArray();
-        var blobs = new FakeBlobStore(pdf, "application/pdf");
+        var blobs = new FakeBlobStore(pdf, mime);
         using var promoter = new ProjectAssetTrustedContentPromoter(blobs);
 
         var result = await promoter.PromoteAsync(
-            Request(ProjectAssetKind.Document, "application/pdf", pdf),
+            Request(kind, mime, pdf),
             CancellationToken.None);
 
         Assert.Equal(ProjectAssetTrustedPromotionOutcome.Promoted, result.Outcome);
         Assert.NotNull(result.Content);
         Assert.Same(Trusted, result.Content.Location);
-        Assert.Equal("application/pdf", result.Content.Manifest.MimeType);
+        Assert.Equal(mime, result.Content.Manifest.MimeType);
         Assert.Equal(pdf.Length, result.Content.Manifest.ContentLength);
         Assert.Equal(SHA256.HashData(pdf), result.Content.Manifest.ContentHash);
         Assert.Null(result.Content.Manifest.PixelWidth);
         Assert.Null(result.Content.Manifest.PixelHeight);
         Assert.Equal(
-            ProjectAssetTrustedContentPromoter.PdfProcessingVersion,
+            version,
             result.Content.Manifest.ProcessingVersion);
         Assert.Equal(1, blobs.CopyCalls);
         Assert.Empty(blobs.Uploads);

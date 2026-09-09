@@ -1,6 +1,7 @@
 export const projectAssetLimits = {
   imageBytes: 10 * 1024 * 1024,
   documentBytes: 25 * 1024 * 1024,
+  textBytes: 1024 * 1024,
   imagesPerProject: 8,
   documentsPerProject: 4,
   totalPerProject: 12,
@@ -11,6 +12,8 @@ export const projectAssetAccept = [
   'image/png',
   'image/webp',
   'application/pdf',
+  'text/plain',
+  'video/mp4',
 ].join(',')
 
 export function isProjectAssetsEnabled() {

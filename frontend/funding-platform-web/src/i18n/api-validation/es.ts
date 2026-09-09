@@ -148,7 +148,7 @@ export const apiValidationEs = {
   'api-validation-150': "El orden debe contener hasta 12 adjuntos distintos con ETag válido.",
   'api-validation-151': "Los ETag del adjunto y del proyecto son obligatorios.",
   'api-validation-152': "El ETag del proyecto es obligatorio.",
-  'api-validation-153': "En esta fase sólo se admiten imágenes y documentos PDF.",
+  'api-validation-153': "Sólo se admiten imágenes, PDF, texto UTF-8 y video MP4.",
   'api-validation-154': "Usa un nombre de archivo válido de hasta 260 caracteres.",
   'api-validation-155': "La extensión y el tipo del archivo no coinciden o no están permitidos.",
   'api-validation-156': "El archivo debe pesar entre 1 byte y {{max}} bytes.",

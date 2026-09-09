@@ -150,7 +150,7 @@ export const apiValidationEn = {
   'api-validation-150': "The order must contain up to 12 distinct attachments with valid ETags.",
   'api-validation-151': "Attachment and project ETags are required.",
   'api-validation-152': "The project ETag is required.",
-  'api-validation-153': "Only images and PDF documents are supported in this phase.",
+  'api-validation-153': "Only images, PDF, UTF-8 text and MP4 video are supported.",
   'api-validation-154': "Use a valid file name of up to 260 characters.",
   'api-validation-155': "The file extension and type do not match or are not allowed.",
   'api-validation-156': "The file must be between 1 and {{max}} bytes.",

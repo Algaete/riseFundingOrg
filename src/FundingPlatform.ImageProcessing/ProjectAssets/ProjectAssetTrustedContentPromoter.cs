@@ -29,7 +29,7 @@ public sealed class ProjectAssetTrustedContentPromoter(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Kind == ProjectAssetKind.Document)
+        if (request.Kind is ProjectAssetKind.Document or ProjectAssetKind.Video)
             return await PromotePdfAsync(request, cancellationToken);
         if (request.Kind != ProjectAssetKind.Image)
             return Rejected("trusted-promotion-not-supported");
@@ -79,11 +79,12 @@ public sealed class ProjectAssetTrustedContentPromoter(
         ProjectAssetTrustedContentRequest request,
         CancellationToken cancellationToken)
     {
-        if (!string.Equals(
-                request.SourceMimeType,
-                "application/pdf",
-                StringComparison.OrdinalIgnoreCase) ||
+        var mime = request.SourceMimeType.ToLowerInvariant();
+        var version = ProjectAssetTrustedContentRules.CopyVersion(request.Kind, mime);
+        if (version is null ||
             request.SourceContentLength is < 1 ||
+            request.SourceContentLength > 26_214_400 ||
+            (mime == "text/plain" && request.SourceContentLength > 1_048_576) ||
             request.SourceContentHash is not { Length: 32 } ||
             request.SourceContentLength > request.MaximumOutputLength)
         {
@@ -97,7 +98,7 @@ public sealed class ProjectAssetTrustedContentPromoter(
                 request.QuarantineLocation,
                 request.QuarantineETag,
                 request.TrustedLocation,
-                "application/pdf",
+                mime,
                 request.SourceContentLength,
                 sourceHash,
                 cancellationToken);
@@ -105,12 +106,12 @@ public sealed class ProjectAssetTrustedContentPromoter(
                 request.TrustedLocation,
                 receipt,
                 new ProjectAssetTrustedContentManifest(
-                    "application/pdf",
+                    mime,
                     request.SourceContentLength,
                     sourceHash,
                     null,
                     null,
-                    PdfProcessingVersion));
+                    version));
         }
         catch (ProjectAssetStorageException)
         {

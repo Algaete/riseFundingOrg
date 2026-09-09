@@ -58,7 +58,8 @@ las tablas y la vista de candidatos no tienen permisos runtime directos. El time
   intento vuelve a verificar ausencia y completa bajo su propio lease.
 - `incoming` abandonado corresponde al lifecycle ya declarado. Promociones huérfanas sin un
   manifiesto persistido y snapshots no identificados requieren una política específica; `039`
-  no los descubre ni purga. Video sigue diferido.
+  no los descubre ni purga. `046` añade MP4/TXT privados; ver
+  [contrato multimedia](../PROJECT-PRIVATE-MULTIMEDIA.md). No habilita reproducción pública.
 - Para detener el flujo, deshabilitar primero la recepción/carga y los triggers correspondientes.
   No restaurar confianza en archivos revocados ni revertir migraciones publicadas con un `down`.
 

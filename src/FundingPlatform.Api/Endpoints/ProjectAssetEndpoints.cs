@@ -312,7 +312,7 @@ public static class ProjectAssetEndpoints
 
         context.Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
         context.Response.Headers.CacheControl = "private, no-store";
-        var downloadName = result.Claim.Kind == ProjectAssetKind.Document
+        var downloadName = result.Claim.Kind != ProjectAssetKind.Image
             ? result.Claim.FileName
             : null;
         return Results.Stream(
