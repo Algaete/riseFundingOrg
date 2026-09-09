@@ -2,6 +2,7 @@ import type { adminFundingEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const adminFundingEn = {
+  "classification": "Review classification",
   "optionsEmpty": "No options are configured.",
   "associatedFunders": "Associated funders",
   "primaryHelp": "Select exactly one primary funder before saving.",

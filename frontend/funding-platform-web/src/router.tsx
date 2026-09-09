@@ -85,6 +85,9 @@ const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboratio
 
 const DiscoveryMatchingPage = localizedLazy(() => import('@/features/matching/discovery-matching-page').then(module => ({ default: module.DiscoveryMatchingPage })), ['ecosystem', 'collaboration', 'projects', 'catalogs', 'validation'])
 
+const FundingExplorerPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingExplorerPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
+const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'validation'])
+
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -92,6 +95,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/', element: <HomePage /> },
       { path: '/pricing', element: <PricingPage /> },
       { path: '/funding', element: <FundingPage /> },
+      { path: '/funding/explore', element: <FundingExplorerPage /> },
       { path: '/funding/:slug', element: <FundingDetailPage /> },
       { path: '/marketplace', element: <MarketplacePage /> },
       { path: '/marketplace/map', element: <ProjectMapPage /> },
@@ -150,6 +154,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/admin/projects/:projectId', element: <AdminProjectReviewDetailPage /> },
       { path: '/admin/funding', element: <AdminFundingPage /> },
       { path: '/admin/funding/:id', element: <AdminFundingDetailPage /> },
+      { path: '/admin/funding/:id/discovery', element: <FundingClassificationPage /> },
       { path: '/admin/funders', element: <AdminFundersPage /> },
       { path: '/admin/funders/:id', element: <AdminFunderDetailPage /> },
       { path: '/admin/imports', element: <AdminImportsPage /> },

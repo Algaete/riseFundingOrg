@@ -1,6 +1,7 @@
 // Complete resource shape for type checking and parity tests. Runtime loading
 // imports individual modules via resource-loader.ts, never this aggregate.
 import { coreEn } from './core/en'
+import { fundingDiscoveryEn } from './funding-discovery/en'
 import { ecosystemEn } from './ecosystem/en'
 import { collaborationEn } from './collaboration/en'
 import { validationEn } from './validation/en'
@@ -45,6 +46,7 @@ export const en = {
   translation: {
     ...coreEn,
     ecosystem: ecosystemEn,
+    fundingDiscovery: fundingDiscoveryEn,
     collaboration: collaborationEn,
     validation: validationEn,
     operations: operationsEn,

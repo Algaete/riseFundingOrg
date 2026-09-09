@@ -83,6 +83,7 @@ public sealed partial class OfficialRssFundingSourceProvider : IFundingSourcePro
             Math.Min(options.MaximumBytes, response.MaximumResponseBytes),
             cancellationToken);
         var observations = new List<FundingSourceObservation>();
+        var seen = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var item in EnumerateItems(document))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -102,6 +103,12 @@ public sealed partial class OfficialRssFundingSourceProvider : IFundingSourcePro
                 link = link.AbsoluteUri,
                 publishedAtUtc = item.PublishedAtUtc
             });
+            if (seen.TryGetValue(externalId, out var previous))
+            {
+                if (previous != raw) throw new FundingSourceImportException("Conflicting duplicate identities in the official feed require review.");
+                continue;
+            }
+            seen.Add(externalId, raw);
             var opportunity = new ExternalFundingOpportunity(
                 Code,
                 externalId,
@@ -204,7 +211,8 @@ public sealed partial class OfficialRssFundingSourceProvider : IFundingSourcePro
     private static IEnumerable<FeedItem> EnumerateItems(XDocument document)
     {
         var root = document.Root;
-        if (root is null) yield break;
+        if (root is null || root.Name.LocalName is not ("rss" or "feed"))
+            throw new FundingSourceImportException("The official feed format is unsupported.");
         var entries = root.Name.LocalName.Equals("feed", StringComparison.OrdinalIgnoreCase)
             ? root.Elements().Where(element => element.Name.LocalName == "entry")
             : root.Descendants().Where(element => element.Name.LocalName == "item");
@@ -214,7 +222,9 @@ public sealed partial class OfficialRssFundingSourceProvider : IFundingSourcePro
             var description = Value(entry, "description") ?? Value(entry, "summary") ??
                               Value(entry, "content");
             var id = Value(entry, "guid") ?? Value(entry, "id");
-            var linkElement = entry.Elements().FirstOrDefault(element => element.Name.LocalName == "link");
+            // Atom self/enclosure links are not the canonical opportunity page.
+            var linkElement = entry.Elements().FirstOrDefault(element => element.Name.LocalName == "link" &&
+                (element.Attribute("rel") is null || element.Attribute("rel")?.Value == "alternate"));
             var link = linkElement?.Attribute("href")?.Value ?? linkElement?.Value;
             var date = Value(entry, "pubDate") ?? Value(entry, "published") ?? Value(entry, "updated");
             DateTimeOffset? published = DateTimeOffset.TryParse(

@@ -413,6 +413,7 @@ export function FundingCatalogPage() {
         <div className="max-w-3xl space-y-3">
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('fundingCatalog.eyebrow')}</p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('fundingCatalog.title')}</h1>
+          <Link className="font-medium underline" to="/funding/explore">{t('fundingCatalog.advanced')}</Link>
           <p className="text-base leading-7 text-muted-foreground">{t('fundingCatalog.description')}</p>
         </div>
         <form className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row" onSubmit={submitSearch}>

@@ -7,7 +7,7 @@ acceso a fuentes restringidas ni ampliación de privilegios permanentes.
 
 - [x] 6. Matching ampliado: financiador/oportunidad → proyectos; proyecto/organización →
   organizaciones y profesionales; criterios, brechas y datos desconocidos explícitos.
-- [ ] 7. Oportunidades e ingesta: clasificación/filtros ampliados, fuente/actualización,
+- [x] 7. Oportunidades e ingesta: clasificación/filtros ampliados, fuente/actualización,
   conector de feed autorizado y revisión editorial; ninguna autopublicación ni scraping restringido.
 - [ ] 8. Multimedia: video y documentos adicionales privados con formatos/límites explícitos,
   inspección, cuarentena/scan, descarga segura y retención; sin publicación automática.
@@ -29,3 +29,10 @@ Validación focalizada: 18 pruebas .NET unitarias/permisos, 4 HTTP, 7 frontend y
 320/1024 px, accesibilidad, build y tipos aprobados. Migración/smoke 044 preparados; ejecución
 SQL y disponibilidad en Azure pendientes del bloque 9. La búsqueda desde financiador requiere
 prioridades explícitas; la elegibilidad legal/regional definitiva y el consentimiento siguen siendo humanos.
+
+## Cierre local del bloque 7
+
+Explorador público y clasificación administrativa versionada; ver `FUNDING-DISCOVERY.md`.
+66 pruebas focalizadas de backend/migraciones/RSS, 10 HTTP y 4 E2E ES/EN/móvil/escritorio.
+Conector RSS/Atom existente reforzado; activación de otra fuente condicionada a acceso autorizado.
+No se configura ni promete acceso a FundsforNGOs sin esa información.

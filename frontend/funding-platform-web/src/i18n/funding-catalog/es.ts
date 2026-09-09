@@ -1,4 +1,5 @@
 export const fundingCatalogEs = {
+  "advanced": "Búsqueda avanzada",
   "visualHealth": "Salud y bienestar",
   "visualInformation": "Información y periodismo",
   "visualRights": "Derechos y democracia",

@@ -90,6 +90,13 @@ IF OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NOT NULL
 IF OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NOT NULL
     INSERT @LaterProcedurePermissions VALUES
         (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_FunderWorkspace_Sources'), N'FundingPlatform_usp_FunderWorkspace_Sources');
+IF OBJECT_ID(N'dbo.FundingPlatform_FundingDiscovery', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_FundingDiscovery_Search'),
+        (N'FundingPlatform_usp_FundingDiscovery_AdminGet'),
+        (N'FundingPlatform_usp_FundingDiscovery_Review')) AS names(ProcedureName);
 IF OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NOT NULL
     INSERT @LaterProcedurePermissions
     SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName

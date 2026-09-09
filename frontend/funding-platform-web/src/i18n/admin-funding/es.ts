@@ -1,4 +1,5 @@
 export const adminFundingEs = {
+  "classification": "Revisar clasificación",
   "optionsEmpty": "No hay opciones configuradas.",
   "associatedFunders": "Financiadores asociados",
   "primaryHelp": "Selecciona exactamente un financiador principal para guardar.",

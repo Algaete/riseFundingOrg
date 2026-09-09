@@ -2,6 +2,7 @@ import type { fundingCatalogEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const fundingCatalogEn = {
+  "advanced": "Advanced search",
   "visualHealth": "Health and well-being",
   "visualInformation": "Information and journalism",
   "visualRights": "Rights and democracy",
