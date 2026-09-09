@@ -162,6 +162,8 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         Assert.Equal(
             "El presupuesto total es obligatorio para publicar.",
             problem.RootElement.GetProperty("errors").GetProperty("budgetTotal")[0].GetString());
+        Assert.Equal("project-ready-budget-required",
+            problem.RootElement.GetProperty("validationIssues").GetProperty("budgetTotal")[0].GetProperty("code").GetString());
         Assert.Equal(1, repository.RequestPublicationCalls);
     }
 

@@ -1,3 +1,4 @@
+import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -147,47 +148,33 @@ function formatDate(value: string | null) {
   if (!value) return i18n.t('fundingCatalog.noDate')
   const date = parseDate(value)
   if (Number.isNaN(date.getTime())) return i18n.t('fundingCatalog.invalidDate')
-  return new Intl.DateTimeFormat(workspaceLocale(), {
+  return formatDateValue(value, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(date)
+  })
 }
 
 function formatDateTime(value: string | null) {
   if (!value) return i18n.t('fundingCatalog.noVerification')
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return i18n.t('fundingCatalog.invalidDate')
-  return new Intl.DateTimeFormat(workspaceLocale(), {
+  return formatDateValue(value, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(date)
+  })
 }
 
 function formatAmount(opportunity: FundingOpportunityListItem) {
-  if (!opportunity.currency) return i18n.t('fundingCatalog.noAmount')
-
-  try {
-    const formatter = new Intl.NumberFormat(workspaceLocale(), {
-      style: 'currency',
-      currency: opportunity.currency,
-      maximumFractionDigits: 0,
-    })
-
-    if (opportunity.minimumAmount !== null && opportunity.maximumAmount !== null) {
-      return `${formatter.format(opportunity.minimumAmount)} – ${formatter.format(opportunity.maximumAmount)}`
-    }
-    if (opportunity.maximumAmount !== null) {
-      return i18n.t('fundingCatalog.upTo', { amount: formatter.format(opportunity.maximumAmount) })
-    }
-    if (opportunity.minimumAmount !== null) {
-      return i18n.t('fundingCatalog.fromAmount', { amount: formatter.format(opportunity.minimumAmount) })
-    }
-  } catch {
-    return i18n.t('fundingCatalog.noAmount')
-  }
-  return i18n.t('fundingCatalog.noAmount')
+  const { minimumAmount, maximumAmount, currency } = opportunity
+  const missing = i18n.t('fundingCatalog.noAmount')
+  const minimum = formatMoneyValue(minimumAmount, currency, missing)
+  const maximum = formatMoneyValue(maximumAmount, currency, missing)
+  if (minimum !== missing && maximum !== missing) return `${minimum} – ${maximum}`
+  if (maximum !== missing) return i18n.t('fundingCatalog.upTo', { amount: maximum })
+  if (minimum !== missing) return i18n.t('fundingCatalog.fromAmount', { amount: minimum })
+  return missing
 }
 
 function availability(opportunity: FundingOpportunityListItem) {

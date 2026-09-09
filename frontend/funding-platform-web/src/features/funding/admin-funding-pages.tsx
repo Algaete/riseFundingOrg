@@ -1,3 +1,4 @@
+import { formatMoneyValue } from '@/i18n/formats'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -22,11 +23,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
+import { fieldValidationEntries } from '@/i18n/validation-issues'
 import { ApiError } from '@/api/http-client'
 import i18n from '@/i18n'
 import { editorialFieldMessage } from '@/i18n/editorial-messages'
 import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
-import { workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
+import { formatWorkspaceDate } from '@/i18n/workspace-messages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -610,7 +612,7 @@ function AdminOpportunityForm({
         'lastVerifiedAtUtc',
       ] as const
       for (const field of serverFields) {
-        const message = error.problem.errors?.[field]?.[0]
+        const message = fieldValidationEntries(error.problem).find(entry => entry.key === field)?.message
         if (message) form.setError(field, { type: 'server', message })
       }
     },
@@ -884,10 +886,13 @@ function AdminOpportunityForm({
 }
 
 function formatAmount(minimum: number | null, maximum: number | null, currency: string | null) {
-  if (!currency || (minimum === null && maximum === null)) return i18n.t('adminFunding.noAmount')
-  const formatter = new Intl.NumberFormat(workspaceLocale(), { style: 'currency', currency, maximumFractionDigits: 0 })
-  if (minimum !== null && maximum !== null) return `${formatter.format(minimum)} – ${formatter.format(maximum)}`
-  return maximum !== null ? i18n.t('adminFunding.upTo', { amount: formatter.format(maximum) }) : i18n.t('adminFunding.fromAmount', { amount: formatter.format(minimum!) })
+  const missing = i18n.t('adminFunding.noAmount')
+  const lower = formatMoneyValue(minimum, currency, missing)
+  const upper = formatMoneyValue(maximum, currency, missing)
+  if (lower !== missing && upper !== missing) return `${lower} – ${upper}`
+  if (upper !== missing) return i18n.t('adminFunding.upTo', { amount: upper })
+  if (lower !== missing) return i18n.t('adminFunding.fromAmount', { amount: lower })
+  return missing
 }
 
 export function AdminFundingPage() {

@@ -48,7 +48,7 @@ describe('editorial diagnostics and locale', () => {
     await language('en')
     expect(formatAdminDate(value)).toBe(new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)))
     expect(formatAdminDate(null)).toBe('No date')
-    expect(formatAdminDate('bad')).toBe('Date unavailable')
+    expect(formatAdminDate('bad')).toBe('Invalid date')
     expect(adminValidationMessages(new Error('PRIVATE'))).toEqual([])
     expect(adminErrorMessage(new Error('PRIVATE'))).toBe(i18n.t('editorial.genericError'))
   })

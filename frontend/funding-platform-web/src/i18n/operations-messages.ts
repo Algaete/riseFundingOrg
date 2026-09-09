@@ -1,4 +1,5 @@
 import { ApiError } from '@/api/http-client'
+import { requestValidationToken, validationMessage, type ValidationMessageToken } from '@/i18n/validation-issues'
 import i18n from '@/i18n'
 import { DirectUploadError } from '@/features/source-documents/source-document-api'
 import { operationsEs } from '@/i18n/operations/es'
@@ -11,7 +12,7 @@ import { adminImportsEs } from '@/i18n/admin-imports/es'
 import { sourceDocumentsEs } from '@/i18n/source-documents/es'
 import { operationalLabelsEs } from '@/i18n/operational-labels/es'
 
-export type OperationsKey = `operations.${keyof typeof operationsEs}`
+export type OperationsKey = ValidationMessageToken | `operations.${keyof typeof operationsEs}`
   | `adminDashboard.${keyof typeof adminDashboardEs}`
   | `adminUsers.${keyof typeof adminUsersEs}`
   | `adminOrganizations.${keyof typeof adminOrganizationsEs}`
@@ -31,12 +32,16 @@ for (const [namespace, resource] of Object.entries({ operations: operationsEs, a
 // Feedback stays language-independent in component state. Only bundled keys or
 // recognized local messages are displayed; unknown HTTP diagnostics never leak.
 export function operationsMessage(value: string, options: Record<string, string | number> = {}) {
+  const structured = validationMessage(value)
+  if (structured) return structured
   return i18n.t(feedbackKeys.get(value) ?? 'operations.genericError', {
     ...options, defaultValue: i18n.t('operations.genericError'),
   })
 }
 
 export function importOperationsErrorKey(error: unknown): OperationsKey {
+  const structured = requestValidationToken(error)
+  if (structured) return structured
   if (error instanceof ApiError) {
     switch (error.response.status) {
       case 401: return 'operations.expired'
@@ -50,6 +55,8 @@ export function importOperationsErrorKey(error: unknown): OperationsKey {
 }
 
 export function documentOperationsErrorKey(error: unknown): OperationsKey {
+  const structured = requestValidationToken(error)
+  if (structured) return structured
   if (error instanceof DirectUploadError) return 'operations.directUploadError'
   if (error instanceof ApiError) {
     switch (error.response.status) {

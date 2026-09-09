@@ -87,7 +87,7 @@ describe('funding catalog language changes', () => {
     expect(notice).toHaveAttribute('lang', 'en')
     await act(() => setInterfaceLanguage('en'))
     expect(screen.getByText('Jan 1, 2030')).toBeVisible()
-    expect(screen.getByText('Up to $100,000')).toBeVisible()
+    expect(screen.getByText('Up to $100,000.00')).toBeVisible()
     expect(notice).toBeVisible()
   })
 

@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Globalization;
@@ -202,9 +203,9 @@ public sealed class SavedSearchAlertService(
     {
         if (!ValidIdentity(userPublicId, organizationPublicId) ||
             savedSearchPublicId == Guid.Empty || expectedRowVersion?.Length != 8)
-            return Invalid(new Dictionary<string, string[]>
+            return Invalid(new FieldValidationErrors
             {
-                ["ifMatch"] = ["Envía el ETag fuerte vigente."]
+                { "ifMatch", "api-validation-048", "Envía el ETag fuerte vigente." }
             });
         return Map(await repository.DeleteSavedSearchAsync(
             userPublicId, organizationPublicId, savedSearchPublicId, expectedRowVersion,
@@ -221,9 +222,9 @@ public sealed class SavedSearchAlertService(
         if (!ValidIdentity(userPublicId, organizationPublicId) ||
             savedSearchPublicId == Guid.Empty || preferredHourLocal > 23 ||
             !AlertScheduleCalculator.TryFindTimeZone(normalizedZone, out _))
-            return Invalid(new Dictionary<string, string[]>
+            return Invalid(new FieldValidationErrors
             {
-                ["alert"] = ["La hora o zona IANA de la alerta no es válida."]
+                { "alert", "api-validation-132", "La hora o zona IANA de la alerta no es válida." }
             });
         var nowUtc = timeProvider.GetUtcNow();
         var nextRun = AlertScheduleCalculator.NextDailyRun(
@@ -278,7 +279,7 @@ public sealed class SavedSearchAlertService(
         })
     };
 
-    private static Dictionary<string, string[]> Validate(
+    private static FieldValidationErrors Validate(
         SavedSearchWriteCommand value, bool requireIdempotencyKey, bool requireRowVersion)
     {
         var errors = FundingOpportunityWorkspaceService.Validate(value.Filters);
@@ -286,13 +287,13 @@ public sealed class SavedSearchAlertService(
         errors.Remove("pageSize");
         if (!ValidIdentity(value.UserPublicId, value.OrganizationPublicId) ||
             (value.SavedSearchPublicId.HasValue && value.SavedSearchPublicId == Guid.Empty))
-            errors["resource"] = ["El recurso no existe."];
+            errors.Set("resource", "api-validation-133", "El recurso no existe.");
         if (value.Name.Length is < 1 or > 150)
-            errors["name"] = ["El nombre debe tener entre 1 y 150 caracteres."];
+            errors.Set("name", "api-validation-134", "El nombre debe tener entre 1 y 150 caracteres.");
         if (requireIdempotencyKey && !ValidIdempotencyKey(value.IdempotencyKey))
-            errors["idempotencyKey"] = ["Idempotency-Key debe tener entre 16 y 128 caracteres ASCII."];
+            errors.Set("idempotencyKey", "api-validation-122", "Idempotency-Key debe tener entre 16 y 128 caracteres ASCII.");
         if (requireRowVersion && value.ExpectedRowVersion?.Length != 8)
-            errors["ifMatch"] = ["Envía el ETag fuerte vigente."];
+            errors.Set("ifMatch", "api-validation-048", "Envía el ETag fuerte vigente.");
         return errors;
     }
 

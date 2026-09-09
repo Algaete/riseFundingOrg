@@ -1,4 +1,4 @@
-import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { catalogName, catalogLanguage } from '@/i18n/catalog-labels'
 import { useTranslation } from 'react-i18next'
@@ -29,9 +29,9 @@ function positiveInteger(value: string | null, fallback: number) {
 }
 
 function formatDate(value: string | null) {
-  return value ? new Intl.DateTimeFormat(workspaceLocale(), {
+  return value ? formatDateValue(value, {
     dateStyle: 'medium', timeStyle: 'short',
-  }).format(new Date(value)) : i18n.t('editorial.noDate')
+  }) : i18n.t('editorial.noDate')
 }
 
 function errorMessage(error: unknown) {

@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.ProjectAssets;
 using FundingPlatform.Contracts.ProjectAssets;
@@ -258,9 +259,9 @@ public static class ProjectAssetEndpoints
                     422,
                     "Orden inválido",
                     "project-asset-order-invalid",
-                    new Dictionary<string, string[]>
+                    new FieldValidationErrors
                     {
-                        ["items"] = ["Cada adjunto necesita su ETag vigente."]
+                        { "items", "api-validation-044", "Cada adjunto necesita su ETag vigente." }
                     });
             items.Add((item.AssetId, rowVersion));
         }

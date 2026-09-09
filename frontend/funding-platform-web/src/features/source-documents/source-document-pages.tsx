@@ -1,4 +1,5 @@
 import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { documentOperationsErrorKey, operationsMessage, operationStatus, type OperationsKey } from '@/i18n/operations-messages'
 import { useTranslation } from 'react-i18next'
@@ -256,7 +257,7 @@ function DocumentStatusCard({
               </dl>
               {document.isContentRedacted && document.redactedAtUtc && (
                 <p className="text-xs text-muted-foreground">
-                  {i18n.t('sourceDocuments.redactedAt', { date: new Date(document.redactedAtUtc).toLocaleString(workspaceLocale()) })}
+                  {i18n.t('sourceDocuments.redactedAt', { date: formatDateValue(document.redactedAtUtc, { dateStyle: 'medium', timeStyle: 'short' }) })}
                 </p>
               )}
             </div>

@@ -11,10 +11,10 @@ function problem(validationIssues: unknown, errors: unknown = { title: ['PRIVATE
 }
 
 it.each(Object.keys(validationEs) as (keyof typeof validationEs)[])('renders stable code %s in both languages without using server text', async code => {
-  const [entry] = fieldValidationEntries(problem({ title: [{ code, max: 1000, message: 'PRIVATE-SERVER-DIAGNOSTIC' }] }))
-  expect(workspaceMessage(entry.message)).toBe(validationEs[code].replace('{{max}}', '1000'))
+  const [entry] = fieldValidationEntries(problem({ title: [{ code, min: 16, max: 1000, message: 'PRIVATE-SERVER-DIAGNOSTIC' }] }))
+  expect(workspaceMessage(entry.message)).toBe(validationEs[code].replace('{{max}}', '1000').replace('{{min}}', '16'))
   await setInterfaceLanguage('en')
-  expect(workspaceMessage(entry.message)).toBe(validationEn[code].replace('{{max}}', '1000'))
+  expect(workspaceMessage(entry.message)).toBe(validationEn[code].replace('{{max}}', '1000').replace('{{min}}', '16'))
   expect(entry.message).not.toContain('PRIVATE')
   expect(Object.keys(validationEs)).toEqual(Object.keys(validationEn))
 })
@@ -22,7 +22,7 @@ it.each(Object.keys(validationEs) as (keyof typeof validationEs)[])('renders sta
 it.each([
   null, 'PRIVATE', [], [null], [42], [{ code: 'constructor' }], [{ code: '__proto__' }],
   [{ code: 'future-rule', message: 'PRIVATE' }], [{ code: 'text-max-length' }],
-  ...[0, -1, 1.2, 10001, Infinity, 'PRIVATE', {}].map(max => [{ code: 'text-max-length', max }]),
+  ...[0, -1, 1.2, Number.MAX_SAFE_INTEGER + 1, Infinity, 'PRIVATE', {}].map(max => [{ code: 'text-max-length', max }]),
 ])('uses a safe fallback for malformed or unknown issues: %j', async issues => {
   const [entry] = fieldValidationEntries(problem({ title: issues }))
   expect(workspaceMessage(entry.message)).toBe('Revisa los campos indicados e intenta nuevamente.')
@@ -54,4 +54,11 @@ it('does not treat raw legacy strings as structured descriptors', () => {
   expect(workspaceMessage(entry.message)).toBe('Revisa los campos indicados e intenta nuevamente.')
   expect(readValidationMessage('@field-validation:{')).toBeUndefined()
   expect(readValidationMessage('@field-validation:' + 'x'.repeat(201))).toBeUndefined()
+})
+
+it('accepts the actual 50000-character editorial limit without borrowing project limits', async () => {
+  const [entry] = fieldValidationEntries(problem({ description: [{ code: 'text-max-length', max: 50000 }] }, {}))
+  expect(workspaceMessage(entry.message)).toBe('Admite hasta 50000 caracteres.')
+  await setInterfaceLanguage('en')
+  expect(workspaceMessage(entry.message)).toBe('Must not exceed 50000 characters.')
 })

@@ -1,4 +1,5 @@
 import { ApiError } from '@/api/http-client'
+import { requestValidationMessage } from '@/i18n/validation-issues'
 import type { ApplicationStatus } from '@/features/applications/application-api'
 import i18n from '@/i18n'
 import { alertsEs } from '@/i18n/alerts/es'
@@ -36,6 +37,8 @@ export function checkoutStatusLabel(status: string) {
 }
 
 export function trackingErrorMessage(error: unknown, scope: 'applications' | 'calendar' | 'alerts' | 'billing', operation: 'read' | 'write' = 'read') {
+  const structured = requestValidationMessage(error)
+  if (structured) return structured
   if (error instanceof ApiError) {
     const { status } = error.response
     const type = error.problem.type

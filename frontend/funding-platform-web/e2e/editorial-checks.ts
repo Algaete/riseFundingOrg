@@ -97,6 +97,11 @@ export function registerEditorialTests(accessibility: (page: Page) => Promise<vo
         return route.fulfill({ status: 422, json: {
           type: 'https://fundingplatform.local/problems/opportunity-not-ready', title: 'PRIVATE SQL DETAIL',
           errors: { readiness: ['A published primary funder is required.', 'Unknown geographic scope cannot be published.', 'PRIVATE SQL DETAIL'] },
+          ...(width === 1024 ? { validationIssues: { readiness: [
+            { code: 'funding-ready-primaryFunder' },
+            { code: 'funding-ready-geographicScope' },
+            { code: 'future-unknown-code', message: 'PRIVATE SQL DETAIL' },
+          ] } } : {}),
         } })
       })
       await page.setViewportSize({ width, height: 900 })
@@ -105,7 +110,8 @@ export function registerEditorialTests(accessibility: (page: Page) => Promise<vo
       await expect(page.getByRole('alert')).toContainText('Publica el financiador principal')
       await english(page)
       await expect(page.getByRole('alert')).toContainText('Publish the primary funder')
-      await expect(page.getByRole('alert')).toContainText('Set the geographic scope to specific or global.')
+      await expect(page.getByRole('alert')).toContainText(width === 1024
+        ? 'Set the geographic scope to explicit or global.' : 'Set the geographic scope to specific or global.')
       await expect(page.getByText('PRIVATE SQL DETAIL')).toHaveCount(0)
       await expect(page.getByRole('link', { name: 'Correct funder and scope' })).toHaveAttribute('href', '#financiadores-alcance')
       await bothThemes(page)

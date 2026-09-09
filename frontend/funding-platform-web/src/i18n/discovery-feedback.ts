@@ -1,9 +1,11 @@
 import { ApiError } from '@/api/http-client'
+import { requestValidationMessage } from '@/i18n/validation-issues'
 import i18n from '@/i18n'
 
 export function discoveryErrorMessage(error: unknown, fallback: 'fundingCatalog.loadHelp' | 'marketplace.loadHelp') {
-  // Public pages never render arbitrary server diagnostics. Per-rule API error codes
-  // remain part of I18N-05; only stable HTTP semantics are interpreted here.
+  const structured = requestValidationMessage(error)
+  if (structured) return structured
+  // Public pages never render arbitrary server diagnostics.
   if (error instanceof ApiError) {
     const status = error.response.status
     if ([401, 403, 404, 410].includes(status)) return i18n.t('discoveryFeedback.notFound')

@@ -1,4 +1,4 @@
-import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
@@ -29,8 +29,7 @@ function positiveInteger(value: string | null, fallback: number) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-    .format(new Date(value))
+  return formatDateValue(value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 function message(error: unknown) {
   return adminErrorMessage(error)

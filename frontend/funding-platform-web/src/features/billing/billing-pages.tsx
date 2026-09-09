@@ -1,3 +1,4 @@
+import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, CreditCard, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react'
@@ -15,7 +16,7 @@ import { workspaceLocale } from '@/i18n/workspace-messages'
 import { billingApi, billingCommandId, type SubscriptionPlan } from './billing-api'
 
 function date(value: string | null) {
-  return value ? new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'long' }).format(new Date(value)) : i18n.t('editorial.noDate')
+  return value ? formatDateValue(value, { dateStyle: 'long' }) : i18n.t('editorial.noDate')
 }
 
 function ReadState({ pending, error, loading, failed, onRetry }: {

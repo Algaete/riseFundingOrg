@@ -1,6 +1,7 @@
 import i18n from '@/i18n'
 import { billingEs } from '@/i18n/billing/es'
 import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
 
 function ownKey<T extends object>(object: T, key: string): key is Extract<keyof T, string> {
   return Object.prototype.hasOwnProperty.call(object, key)
@@ -25,16 +26,9 @@ export function usageAmount(value: number, unit: string | null) {
 }
 
 export function billingMoney(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat(workspaceLocale(), {
-      style: 'currency', currency, maximumFractionDigits: currency === 'CLP' ? 0 : 2,
-    }).format(amount)
-  } catch {
-    return `${amount.toLocaleString(workspaceLocale())} ${currency}`
-  }
+  return formatMoneyValue(amount, currency)
 }
 
 export function billingDate(value: string | null) {
-  if (!value || Number.isNaN(new Date(value).getTime())) return i18n.t('billing.noDate')
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'long' }).format(new Date(value))
+  return formatDateValue(value, { dateStyle: 'long' }, i18n.t('billing.noDate'))
 }

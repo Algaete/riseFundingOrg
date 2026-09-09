@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -337,12 +338,12 @@ public sealed class ProjectAssetService(
         CancellationToken cancellationToken)
     {
         if (!policy.Enabled) return DisabledOperation();
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (expectedProjectRowVersion.Length != 8)
-            errors["projectETag"] = ["El ETag del proyecto no es válido."];
+            errors.Set("projectETag", "api-validation-149", "El ETag del proyecto no es válido.");
         if (items.Count > 12 || items.Select(item => item.AssetPublicId).Distinct().Count() != items.Count ||
             items.Any(item => item.AssetPublicId == Guid.Empty || item.RowVersion.Length != 8))
-            errors["items"] = ["El orden debe contener hasta 12 adjuntos distintos con ETag válido."];
+            errors.Set("items", "api-validation-150", "El orden debe contener hasta 12 adjuntos distintos con ETag válido.");
         if (errors.Count > 0)
             return new ProjectAssetOperationResult(
                 ProjectAssetOutcome.ValidationFailed, "invalid-order", Errors: errors);
@@ -379,9 +380,9 @@ public sealed class ProjectAssetService(
                 ProjectAssetOutcome.ValidationFailed,
                 "invalid-etag",
                 AssetPublicId: assetPublicId,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["ifMatch"] = ["Los ETag del adjunto y del proyecto son obligatorios."]
+                    { "ifMatch", "api-validation-151", "Los ETag del adjunto y del proyecto son obligatorios." }
                 });
         try
         {
@@ -799,53 +800,53 @@ public sealed class ProjectAssetService(
             IntentStatus: rejected.IntentStatus ?? ProjectAssetUploadIntentStatus.Rejected,
             IntentRowVersion: rejected.IntentRowVersion,
             ProjectRowVersion: rejected.ProjectRowVersion,
-            Errors: new Dictionary<string, string[]>
+            Errors: new FieldValidationErrors
             {
-                ["file"] = [InspectionMessage(failure)]
+                { "file", code, InspectionMessage(failure) }
             });
     }
 
-    private Dictionary<string, string[]> ValidateCreate(
+    private FieldValidationErrors ValidateCreate(
         byte[] projectRowVersion,
         ProjectAssetKind kind,
         string? fileName,
         string? mimeType,
         long contentLength)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (projectRowVersion.Length != 8)
-            errors["projectETag"] = ["El ETag del proyecto es obligatorio."];
+            errors.Set("projectETag", "api-validation-152", "El ETag del proyecto es obligatorio.");
         if (kind is not (ProjectAssetKind.Image or ProjectAssetKind.Document))
-            errors["kind"] = ["En esta fase sólo se admiten imágenes y documentos PDF."];
+            errors.Set("kind", "api-validation-153", "En esta fase sólo se admiten imágenes y documentos PDF.");
         var normalizedName = fileName?.Trim().Normalize(NormalizationForm.FormKC);
         if (string.IsNullOrWhiteSpace(normalizedName) || normalizedName.Length > 260 ||
             normalizedName.Any(char.IsControl) || normalizedName.Contains('/') ||
             normalizedName.Contains('\\'))
-            errors["fileName"] = ["Usa un nombre de archivo válido de hasta 260 caracteres."];
+            errors.Set("fileName", "api-validation-154", "Usa un nombre de archivo válido de hasta 260 caracteres.");
         if (!MimeMatchesName(kind, normalizedName, mimeType))
-            errors["mimeType"] = ["La extensión y el tipo del archivo no coinciden o no están permitidos."];
+            errors.Set("mimeType", "api-validation-155", "La extensión y el tipo del archivo no coinciden o no están permitidos.");
         var maximum = MaximumFor(kind);
         if (contentLength < 1 || contentLength > maximum)
-            errors["contentLength"] = [$"El archivo debe pesar entre 1 byte y {maximum} bytes."];
+            errors.Set("contentLength", "api-validation-156", $"El archivo debe pesar entre 1 byte y {maximum} bytes.", max: maximum);
         return errors;
     }
 
-    private static Dictionary<string, string[]> ValidateMetadata(
+    private static FieldValidationErrors ValidateMetadata(
         byte[] assetRowVersion,
         byte[] projectRowVersion,
         ProjectAssetMetadata metadata)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (assetRowVersion.Length != 8 || projectRowVersion.Length != 8)
-            errors["ifMatch"] = ["Los ETag del adjunto y del proyecto son obligatorios."];
+            errors.Set("ifMatch", "api-validation-151", "Los ETag del adjunto y del proyecto son obligatorios.");
         if (metadata.DisplayName.Length is < 1 or > 200)
-            errors["displayName"] = ["El nombre visible debe tener entre 1 y 200 caracteres."];
+            errors.Set("displayName", "api-validation-157", "El nombre visible debe tener entre 1 y 200 caracteres.");
         if (metadata.AltText?.Length > 300)
-            errors["altText"] = ["El texto alternativo admite hasta 300 caracteres."];
+            errors.Set("altText", "api-validation-158", "El texto alternativo admite hasta 300 caracteres.");
         if (metadata.Caption?.Length > 1000)
-            errors["caption"] = ["La descripción admite hasta 1000 caracteres."];
+            errors.Set("caption", "api-validation-159", "La descripción admite hasta 1000 caracteres.");
         if (metadata.IsCover && string.IsNullOrWhiteSpace(metadata.AltText))
-            errors["altText"] = ["La portada necesita texto alternativo."];
+            errors.Set("altText", "api-validation-160", "La portada necesita texto alternativo.");
         return errors;
     }
 

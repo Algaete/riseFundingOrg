@@ -1,3 +1,4 @@
+import { formatDateValue } from '@/i18n/formats'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
@@ -10,7 +11,6 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { workspaceLocale } from '@/i18n/workspace-messages'
 import { trackingErrorMessage, applicationStatusLabel } from '@/i18n/tracking-messages'
 
 import { Link, useSearchParams } from 'react-router-dom'
@@ -48,20 +48,16 @@ function moveMonth(date: Date, offset: number) {
 }
 
 function formatDateOnly(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) return value
-  return new Intl.DateTimeFormat(workspaceLocale(), {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12))
+  return formatDateValue(value, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function formatUtcTime(value: string | null) {
   if (!value) return null
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return `${new Intl.DateTimeFormat(workspaceLocale(), {
+  return `${formatDateValue(date, {
     hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hourCycle: 'h23',
-  }).format(date)} UTC`
+  })} UTC`
 }
 
 function errorMessage(error: unknown) {
@@ -133,7 +129,7 @@ export function CalendarWorkspacePage() {
 
   return <div className="space-y-6">
     <header><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('calendar.eyebrow')}</p><h1 className="mt-1 text-3xl font-bold">{t('calendar.title')}</h1><p className="mt-2 text-muted-foreground">{t('calendar.help', { name: organization.name })}</p></header>
-    <nav aria-label={t('calendar.month')} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3"><Button onClick={() => setMonth(moveMonth(month, -1))} variant="outline"><ChevronLeft className="size-4" />{t('calendar.previousMonth')}</Button><h2 className="text-lg font-bold capitalize">{new Intl.DateTimeFormat(workspaceLocale(), { month: 'long', year: 'numeric' }).format(month)}</h2><Button onClick={() => setMonth(moveMonth(month, 1))} variant="outline">{t('calendar.nextMonth')}<ChevronRight className="size-4" /></Button></nav>
+    <nav aria-label={t('calendar.month')} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3"><Button onClick={() => setMonth(moveMonth(month, -1))} variant="outline"><ChevronLeft className="size-4" />{t('calendar.previousMonth')}</Button><h2 className="text-lg font-bold capitalize">{formatDateValue(month, { month: 'long', year: 'numeric' })}</h2><Button onClick={() => setMonth(moveMonth(month, 1))} variant="outline">{t('calendar.nextMonth')}<ChevronRight className="size-4" /></Button></nav>
     <p aria-live="polite" className="text-sm text-muted-foreground">{calendar.data ? t('calendar.count', { count: calendar.data.items.length }) : t('calendar.preparing')}{calendar.isFetching && <span>{t('tracking.updating')}</span>}</p>
     {calendar.isPending && <Card><CardContent className="flex items-center gap-2 p-8" role="status"><LoaderCircle className="size-5 animate-spin" /> {t('calendar.loadingEvents')}</CardContent></Card>}
     {calendar.isError && <Card className="border-destructive/40"><CardContent className="space-y-3 p-8" role="alert"><CircleAlert className="size-8 text-destructive" /><h2 className="text-xl font-bold">{t('calendar.loadFailed')}</h2><p className="text-sm text-muted-foreground">{errorMessage(calendar.error)}</p><Button onClick={() => void calendar.refetch()} variant="outline">{t('tracking.retry')}</Button></CardContent></Card>}

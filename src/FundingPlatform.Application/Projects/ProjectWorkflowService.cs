@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.Projects;
@@ -244,10 +245,9 @@ public sealed class ProjectWorkflowService(IProjectRepository repository)
             mutation.RowVersion,
             mutation.WasReplay,
             mutation.Code == "organization-not-ready" && mutation.Issues.Count == 0
-                ? new Dictionary<string, string[]>
+                ? new FieldValidationErrors
                 {
-                    ["organizationProfile"] =
-                        ["La organización debe completar y publicar su perfil antes de aprobar el proyecto."]
+                    { "organizationProfile", "api-validation-127", "La organización debe completar y publicar su perfil antes de aprobar el proyecto." }
                 }
                 : ToErrors(mutation.Issues),
             mutation.SubmittedAtUtc,
@@ -266,22 +266,21 @@ public sealed class ProjectWorkflowService(IProjectRepository repository)
         string? payload,
         out byte[] idempotencyKeyHash,
         out byte[] requestHash,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         idempotencyKeyHash = [];
         requestHash = [];
 
         if (expectedRowVersion is not { Length: 8 })
         {
-            errors["ifMatch"] = ["If-Match no contiene una versión válida."];
+            errors.Set("ifMatch", "version-invalid", "If-Match no contiene una versión válida.");
         }
 
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
         {
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         }
 
         if (errors.Count > 0)
@@ -300,49 +299,47 @@ public sealed class ProjectWorkflowService(IProjectRepository repository)
         return true;
     }
 
-    private static Dictionary<string, string[]> ValidateReview(
+    private static FieldValidationErrors ValidateReview(
         ProjectReviewDecision decision,
         string? reason)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (decision is not ProjectReviewDecision.Approve and not ProjectReviewDecision.Reject)
         {
-            errors["decision"] = ["La decisión debe ser approve o reject."];
+            errors.Set("decision", "api-validation-105", "La decisión debe ser approve o reject.");
         }
         else if (decision == ProjectReviewDecision.Reject && string.IsNullOrWhiteSpace(reason))
         {
-            errors["reason"] = ["El motivo es obligatorio al rechazar un proyecto."];
+            errors.Set("reason", "api-validation-128", "El motivo es obligatorio al rechazar un proyecto.");
         }
         else if (decision == ProjectReviewDecision.Approve && reason is not null)
         {
-            errors["reason"] = ["Una aprobación no admite motivo de rechazo."];
+            errors.Set("reason", "api-validation-107", "Una aprobación no admite motivo de rechazo.");
         }
 
         if (reason?.Length > MaximumRejectionReasonLength)
         {
-            errors["reason"] = [$"El motivo admite hasta {MaximumRejectionReasonLength} caracteres."];
+            errors.Set("reason", "api-validation-129", $"El motivo admite hasta {MaximumRejectionReasonLength} caracteres.", max: MaximumRejectionReasonLength);
         }
 
         return errors;
     }
 
     private static IReadOnlyDictionary<string, string[]> ToErrors(
-        IReadOnlyList<ProjectReadinessIssue> issues) =>
-        issues
-            .GroupBy(issue => string.IsNullOrWhiteSpace(issue.FieldPath) ? "project" : issue.FieldPath)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(issue => issue.Message).Distinct(StringComparer.Ordinal).ToArray(),
-                StringComparer.OrdinalIgnoreCase);
+        IReadOnlyList<ProjectReadinessIssue> issues)
+    {
+        var errors = new FieldValidationErrors();
+        foreach (var issue in issues)
+            errors.Add(string.IsNullOrWhiteSpace(issue.FieldPath) ? "project" : issue.FieldPath,
+                $"project-ready-{issue.Code}", issue.Message);
+        return errors;
+    }
 
     private static void Merge(
-        IDictionary<string, string[]> target,
+        FieldValidationErrors target,
         IReadOnlyDictionary<string, string[]> source)
     {
-        foreach (var (key, value) in source)
-        {
-            target[key] = value;
-        }
+        target.Merge(source);
     }
 
     private static ProjectWorkflowResult ValidationFailure(

@@ -267,7 +267,7 @@ describe('organization funding ES/EN', () => {
     await act(async () => { pending.resolve(); await pending.promise })
     await waitFor(() => expect(router.state.location.search).toBe('?context=original'))
     expect(organizationFundingApi.removeFavorite).toHaveBeenCalledExactlyOnceWith(fundingOrganizationId, organizationOpportunity.publicId)
-    expect(organizationFundingApi.favorites).toHaveBeenLastCalledWith(fundingOrganizationId, 1, 12, expect.any(AbortSignal))
+    await waitFor(() => expect(organizationFundingApi.favorites).toHaveBeenLastCalledWith(fundingOrganizationId, 1, 12, expect.any(AbortSignal)))
     expect(await screen.findByText(/saved favorites/)).toHaveTextContent('12 saved favorites')
     expect(screen.queryByText('You have not saved any opportunities yet')).not.toBeInTheDocument()
   })

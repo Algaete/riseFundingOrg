@@ -8,6 +8,7 @@ import type { z } from 'zod'
 import { Trans, useTranslation } from 'react-i18next'
 
 import { getAuthErrorKey, getExternalNoticeKey, type AuthOperation, type AuthErrorKey } from '@/features/auth/auth-feedback'
+import { requestValidationMessage } from '@/i18n/validation-issues'
 import { codeSchema, emailSchema, loginSchema, mfaSetupCodeSchema, registerSchema, resetSchema, type AuthValidationKey } from '@/features/auth/auth-validation'
 import { getExternalAuthBaseUrl } from '@/api/api-config'
 import { Button } from '@/components/ui/button'
@@ -43,7 +44,7 @@ function FieldError({ message, id }: { message?: string; id?: string }) {
 function RequestError({ error, operation, messageKey }: { error?: unknown; operation?: AuthOperation; messageKey?: AuthErrorKey }) {
   const { t } = useTranslation()
   if (!error && !messageKey) return null
-  return <p role="alert" className={requestErrorClassName}>{t(messageKey ?? getAuthErrorKey(error, operation))}</p>
+  return <p role="alert" className={requestErrorClassName}>{(!messageKey && requestValidationMessage(error)) || t(messageKey ?? getAuthErrorKey(error, operation))}</p>
 }
 
 function SuccessMessage({ message }: { message: string }) {

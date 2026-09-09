@@ -307,6 +307,10 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
         Assert.Equal(
             "Selecciona al menos un país elegible.",
             problem.RootElement.GetProperty("errors").GetProperty("/countryIds")[0].GetString());
+        var issues = problem.RootElement.GetProperty("validationIssues");
+        Assert.Equal("funding-ready-primaryFunder", issues.GetProperty("funderLinks")[0].GetProperty("code").GetString());
+        Assert.Equal("funding-ready-geographicScope", issues.GetProperty("geographicScope")[0].GetProperty("code").GetString());
+        Assert.False(issues.GetProperty("funderLinks")[0].TryGetProperty("message", out _));
         Assert.DoesNotContain("published primary funder", problem.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("connection", problem.RootElement.GetRawText(),
@@ -344,6 +348,8 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
         Assert.Equal(
             "Agrega el sitio web oficial del financiador.",
             problem.RootElement.GetProperty("errors").GetProperty("websiteUrl")[0].GetString());
+        Assert.Equal("funding-ready-websiteUrl",
+            problem.RootElement.GetProperty("validationIssues").GetProperty("websiteUrl")[0].GetProperty("code").GetString());
         Assert.DoesNotContain("official website", problem.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
     }

@@ -1,3 +1,4 @@
+import { formatDateValue } from '@/i18n/formats'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowRight,
@@ -54,21 +55,11 @@ function formatPercent(value: number) {
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return i18n.t('matching.noDate')
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat(workspaceLocale(), {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date)
+  return formatDateValue(value, { dateStyle: 'medium', timeStyle: 'short' }, i18n.t('matching.noDate'))
 }
 
 function formatDateOnly(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
-  if (!match) return value
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium' }).format(
-    new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12),
-  )
+  return formatDateValue(value)
 }
 
 function fundingDeadlineText(
@@ -77,12 +68,12 @@ function fundingDeadlineText(
   if (opportunity.deadlinePrecision === 2 && opportunity.closeAtUtc) {
     const instant = new Date(opportunity.closeAtUtc)
     if (!Number.isNaN(instant.getTime())) {
-      const formatted = new Intl.DateTimeFormat(workspaceLocale(), {
+      const formatted = formatDateValue(instant, {
         dateStyle: 'medium',
         timeStyle: 'short',
         timeZone: 'UTC',
         hourCycle: 'h23',
-      }).format(instant)
+      })
       return i18n.t('matching.exactDeadline', { date: formatted })
     }
   }

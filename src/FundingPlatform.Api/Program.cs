@@ -190,6 +190,7 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddSingleton<TokenCredential>(azureCredential);
@@ -763,6 +764,7 @@ app.UseSerilogRequestLogging(options =>
 });
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseMiddleware<RequestValidationMiddleware>();
 app.UseCors(policy => policy
     .WithOrigins(webOptions.AllowedCorsOrigins)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")

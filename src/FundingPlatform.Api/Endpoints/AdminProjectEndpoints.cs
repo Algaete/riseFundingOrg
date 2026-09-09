@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Projects;
 using FundingPlatform.Contracts.Projects;
@@ -71,10 +72,10 @@ public static class AdminProjectEndpoints
                 422,
                 "Paginación inválida",
                 "invalid-pagination",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    [page < 1 ? "page" : "pageSize"] =
-                        [page < 1 ? "page debe ser al menos 1." : "pageSize debe estar entre 1 y 100."]
+                    { page < 1 ? "page" : "pageSize", page < 1 ? "api-validation-091" : "api-validation-062",
+                        page < 1 ? "page debe ser al menos 1." : "pageSize debe estar entre 1 y 100." }
                 });
         }
 
@@ -108,9 +109,9 @@ public static class AdminProjectEndpoints
                 422,
                 "Decisión inválida",
                 "invalid-review-decision",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    ["decision"] = ["decision debe ser approve o reject."]
+                    { "decision", "api-validation-054", "decision debe ser approve o reject." }
                 });
         }
 

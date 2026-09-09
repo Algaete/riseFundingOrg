@@ -1,3 +1,4 @@
+import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -79,20 +80,11 @@ function formatDate(value: string | null) {
     ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12)
     : new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium' }).format(date)
+  return formatDateValue(value, { dateStyle: 'medium' })
 }
 
 function formatMoney(value: number | null, currency: string | null) {
-  if (value === null || !currency) return i18n.t('marketplace.noAmount')
-  try {
-    return new Intl.NumberFormat(workspaceLocale(), {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: currency === 'CLP' ? 0 : 2,
-    }).format(value)
-  } catch {
-    return `${value.toLocaleString(workspaceLocale())} ${currency}`
-  }
+  return formatMoneyValue(value, currency, i18n.t('marketplace.noAmount'))
 }
 
 function MarketplaceProjectCard({ project }: { project: MarketplaceProjectItem }) {

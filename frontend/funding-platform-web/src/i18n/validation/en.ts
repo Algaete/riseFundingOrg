@@ -1,5 +1,7 @@
 import type { validationEs } from '@/i18n/validation/es'
+import { apiValidationEn } from '@/i18n/api-validation/en'
 export const validationEn = {
+  ...apiValidationEn,
   'name-length': "Name is required and must not exceed 250 characters.",
   'country-invalid': "Select a valid country.",
   'organization-type-invalid': "Select a valid organization type.",

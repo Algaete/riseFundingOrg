@@ -1,3 +1,4 @@
+import { formatDateValue } from '@/i18n/formats'
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import i18n from '@/i18n'
 import { operationStatus } from '@/i18n/operations-messages'
@@ -45,10 +46,10 @@ const importStatusNames: Record<ImportRunStatus, string> = {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(workspaceLocale(), {
+  return formatDateValue(value, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value))
+  })
 }
 
 function MetricCard({

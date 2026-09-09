@@ -1,3 +1,4 @@
+import { formatMoneyValue, formatDateValue } from '@/i18n/formats'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CalendarDays,
@@ -17,7 +18,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import i18n from '@/i18n'
 import { useTranslation } from 'react-i18next'
 import { catalogName, catalogLanguage } from '@/i18n/catalog-labels'
-import { workspaceLocale } from '@/i18n/workspace-messages'
 import { trackingErrorMessage, applicationStatusLabel } from '@/i18n/tracking-messages'
 
 import { Link, useSearchParams } from 'react-router-dom'
@@ -57,22 +57,11 @@ function parseStatus(value: string | null): ApplicationStatus | undefined {
 }
 
 function formatDateOnly(value: string | null) {
-  if (!value) return null
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) return null
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium' })
-    .format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12))
+  return value ? formatDateValue(value) : null
 }
 
 function formatMoney(value: number | null, currency: string | null) {
-  if (value === null || !currency) return i18n.t('applications.noAmount')
-  try {
-    return new Intl.NumberFormat(workspaceLocale(), {
-      style: 'currency', currency, maximumFractionDigits: currency === 'CLP' ? 0 : 2,
-    }).format(value)
-  } catch {
-    return `${value.toLocaleString(workspaceLocale())} ${currency}`
-  }
+  return formatMoneyValue(value, currency, i18n.t('applications.noAmount'))
 }
 
 function mutationErrorMessage(error: unknown, operation: 'read' | 'write' = 'write') {

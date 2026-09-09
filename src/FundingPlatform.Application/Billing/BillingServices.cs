@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.Billing;
@@ -172,7 +173,7 @@ public sealed class BillingService(
             return new BillingMutation(BillingMutationOutcome.GatewayDisabled);
         if (!ValidIdentity(userPublicId, organizationPublicId) || planPriceId <= 0 ||
             !ValidIdempotencyKey(idempotencyKey))
-            return Invalid("checkout", "El precio o la Idempotency-Key no son válidos.");
+            return Invalid("checkout", "checkout-invalid", "El precio o la Idempotency-Key no son válidos.");
 
         var now = timeProvider.GetUtcNow();
         var preparation = await repository.BeginCheckoutAsync(userPublicId,
@@ -263,9 +264,8 @@ public sealed class BillingService(
         ? throw new ArgumentException("Invalid administrator identity.")
         : repository.GetAdminDashboardAsync(userPublicId, timeProvider.GetUtcNow(), cancellationToken);
 
-    private static BillingMutation Invalid(string key, string message) => new(
-        BillingMutationOutcome.ValidationFailed, Errors: new Dictionary<string, string[]>
-        { [key] = [message] });
+    private static BillingMutation Invalid(string key, string code, string message) => new(
+        BillingMutationOutcome.ValidationFailed, Errors: FieldValidationErrors.Single(key, code, message));
     private static bool ValidIdentity(Guid user, Guid organization) =>
         user != Guid.Empty && organization != Guid.Empty;
     private static bool ValidIdempotencyKey(string? value) => value is { Length: >= 16 and <= 128 } &&

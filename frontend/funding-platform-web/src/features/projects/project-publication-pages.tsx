@@ -1,3 +1,4 @@
+import { formatDateValue, formatMoneyValue, formatNumber } from '@/i18n/formats'
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -17,7 +18,7 @@ import {
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
-import { workspaceMessage, workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
+import { workspaceMessage, formatWorkspaceDate } from '@/i18n/workspace-messages'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import i18n from '@/i18n'
@@ -62,16 +63,11 @@ function errorMessage(error: unknown) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'long' }).format(new Date(value))
+  return formatDateValue(value, { dateStyle: 'long' })
 }
 
 function formatMoney(value: number | null, currency: string | null) {
-  if (value === null || !currency) return i18n.t('editorial.notReported')
-  return new Intl.NumberFormat(workspaceLocale(), {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: currency === 'CLP' ? 0 : 2,
-  }).format(value)
+  return formatMoneyValue(value, currency, i18n.t('editorial.notReported'))
 }
 
 function ReviewCard({ item }: { item: ProjectReviewQueueItem }) {
@@ -83,7 +79,7 @@ function ReviewCard({ item }: { item: ProjectReviewQueueItem }) {
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{item.organizationName}</p>
           <CardTitle className="mt-1 text-xl">{item.title}</CardTitle>
         </div>
-        <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">{i18n.t('adminProjects.complete', { value: item.completeness })}</span>
+        <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">{i18n.t('adminProjects.complete', { value: formatNumber(item.completeness) })}</span>
       </div>
     </CardHeader>
     <CardContent className="space-y-4">
@@ -191,10 +187,7 @@ function LocalizedTaxonomyList({ title, groups }: { title: string; groups: { cat
 }
 
 function formatPublicMoney(value: number | null, currency: string | null) {
-  if (value === null || !currency) return workspaceMessage('projects.notReported')
-  return new Intl.NumberFormat(workspaceLocale(), {
-    style: 'currency', currency, maximumFractionDigits: currency === 'CLP' ? 0 : 2,
-  }).format(value)
+  return formatMoneyValue(value, currency, i18n.t('projects.unspecified'))
 }
 
 export function PublicProjectView({

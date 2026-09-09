@@ -1,7 +1,8 @@
 import { ApiError } from '@/api/http-client'
+import { fieldValidationEntries, requestValidationMessage, validationMessage } from '@/i18n/validation-issues'
 import i18n from '@/i18n'
 import { editorialValidationEs } from '@/i18n/editorial-validation/es'
-import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue } from '@/i18n/formats'
 
 type ValidationKey = `editorialValidation.${keyof typeof editorialValidationEs}`
 const validationKeys = new Map<string, ValidationKey>()
@@ -35,6 +36,8 @@ export function problemHasCode(error: unknown, code: string) {
 // Only bundled, recognized diagnostics are displayed. Never echo unknown API
 // detail, SQL/provider exceptions or author-supplied content as UI translations.
 export function editorialFieldMessage(message: string): string {
+  const structured = validationMessage(message)
+  if (structured) return structured
   const normalized = message.trim().replace(/\s+/g, ' ').replace(/\.$/, '').toLowerCase()
   const readinessKey = Object.hasOwn(readinessMessageTranslations, normalized)
     ? readinessMessageTranslations[normalized]
@@ -44,6 +47,8 @@ export function editorialFieldMessage(message: string): string {
 }
 
 export function adminErrorMessage(error: unknown) {
+  const validation = requestValidationMessage(error)
+  if (validation) return validation
   if (!(error instanceof ApiError)) return i18n.t('editorial.genericError')
   const { status } = error.response
   if (status === 401) return i18n.t('editorial.unauthorized')
@@ -61,8 +66,8 @@ export function adminErrorMessage(error: unknown) {
 }
 
 export function adminValidationMessages(error: unknown) {
-  if (!(error instanceof ApiError) || !error.problem.errors) return []
-  const messages = Object.values(error.problem.errors).flat().filter((value): value is string => typeof value === 'string')
+  if (!(error instanceof ApiError)) return []
+  const messages = fieldValidationEntries(error.problem).map(entry => entry.message)
   return [...new Set(messages.map(editorialFieldMessage))]
 }
 
@@ -72,8 +77,5 @@ export function isConcurrencyConflict(error: unknown) {
 
 export function formatAdminDate(value: string | null | undefined) {
   if (!value) return i18n.t('editorial.noDate')
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? i18n.t('editorial.invalidDate')
-    : new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  return formatDateValue(value, { dateStyle: 'medium', timeStyle: 'short' })
 }

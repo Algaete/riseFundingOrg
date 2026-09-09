@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Administration;
 using FundingPlatform.Contracts.Administration;
@@ -51,7 +52,7 @@ public static class AdminOperationsEndpoints
             return ProjectEndpointResults.InvalidSession();
         var errors = ValidatePage(q, page, pageSize);
         if (profileStatus.HasValue && profileStatus.Value is < 0 or > 2)
-            errors["profileStatus"] = ["profileStatus debe estar entre 0 y 2."];
+            errors.Set("profileStatus", "api-validation-026", "profileStatus debe estar entre 0 y 2.");
         if (errors.Count > 0) return Validation(errors, "Filtros de organizaciones inválidos");
 
         try
@@ -113,7 +114,7 @@ public static class AdminOperationsEndpoints
             : category.Trim().ToLowerInvariant();
         var errors = ValidatePage(q, page, pageSize);
         if (normalizedCategory is not null && !ErrorCategories.Contains(normalizedCategory))
-            errors["category"] = ["category no es válida."];
+            errors.Set("category", "api-validation-027", "category no es válida.");
         if (errors.Count > 0) return Validation(errors, "Filtros de errores inválidos");
 
         try
@@ -130,17 +131,17 @@ public static class AdminOperationsEndpoints
         }
     }
 
-    private static Dictionary<string, string[]> ValidatePage(string? query, int page, int pageSize)
+    private static FieldValidationErrors ValidatePage(string? query, int page, int pageSize)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-        if (query?.Trim().Length > 200) errors["q"] = ["q no puede superar 200 caracteres."];
-        if (page is < 1 or > 10000) errors["page"] = ["page debe estar entre 1 y 10000."];
-        if (pageSize is < 1 or > 50) errors["pageSize"] = ["pageSize debe estar entre 1 y 50."];
+        var errors = new FieldValidationErrors();
+        if (query?.Trim().Length > 200) errors.Set("q", "api-validation-028", "q no puede superar 200 caracteres.");
+        if (page is < 1 or > 10000) errors.Set("page", "api-validation-029", "page debe estar entre 1 y 10000.");
+        if (pageSize is < 1 or > 50) errors.Set("pageSize", "api-validation-030", "pageSize debe estar entre 1 y 50.");
         return errors;
     }
 
-    private static IResult Validation(Dictionary<string, string[]> errors, string title) =>
-        Results.ValidationProblem(errors,
+    private static IResult Validation(FieldValidationErrors errors, string title) =>
+        FieldValidationResults.BadRequest(errors,
             statusCode: StatusCodes.Status422UnprocessableEntity, title: title);
 
     private static IResult Failure(AdminOperationsDataException exception) =>

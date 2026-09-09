@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,23 +24,22 @@ internal static class FundingEditorialServiceSupport
         out byte[] idempotencyKeyHash,
         out byte[] requestHash,
         out string canonicalPayload,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         idempotencyKeyHash = [];
         requestHash = [];
         canonicalPayload = JsonSerializer.Serialize(payload, SnapshotOptions);
 
         if (requiresRowVersion && expectedRowVersion is not { Length: 8 })
         {
-            errors["ifMatch"] = ["If-Match no contiene una versión válida."];
+            errors.Set("ifMatch", "version-invalid", "If-Match no contiene una versión válida.");
         }
 
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
         {
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         }
 
         if (errors.Count > 0)
@@ -62,14 +62,11 @@ internal static class FundingEditorialServiceSupport
         var errors = ToErrors(mutation.Issues);
         if (mutation.Code == "source-link-conflict" && errors is null)
         {
-            errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            errors = new FieldValidationErrors()
             {
-                ["fundingSourceId"] =
-                    ["La fuente seleccionada ya contiene otra oportunidad con la misma referencia de origen."],
-                ["externalId"] =
-                    ["El ID en la fuente debe identificar una única oportunidad. Revisa que corresponda al registro que estás editando."],
-                ["sourceUrl"] =
-                    ["Revisa que la URL oficial y el ID en la fuente correspondan al mismo registro del proveedor."]
+                { "fundingSourceId", "api-validation-102", "La fuente seleccionada ya contiene otra oportunidad con la misma referencia de origen." },
+                { "externalId", "api-validation-103", "El ID en la fuente debe identificar una única oportunidad. Revisa que corresponda al registro que estás editando." },
+                { "sourceUrl", "api-validation-104", "Revisa que la URL oficial y el ID en la fuente correspondan al mismo registro del proveedor." }
             };
         }
 
@@ -102,35 +99,34 @@ internal static class FundingEditorialServiceSupport
             NormalizeCode(mutation.Code));
     }
 
-    internal static Dictionary<string, string[]> ValidateReview(
+    internal static FieldValidationErrors ValidateReview(
         FundingReviewDecision decision,
         string? reason)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (decision is not FundingReviewDecision.Approve and not FundingReviewDecision.Reject)
         {
-            errors["decision"] = ["La decisión debe ser approve o reject."];
+            errors.Set("decision", "api-validation-105", "La decisión debe ser approve o reject.");
         }
         else if (decision == FundingReviewDecision.Reject && string.IsNullOrWhiteSpace(reason))
         {
-            errors["reason"] = ["El motivo es obligatorio al rechazar."];
+            errors.Set("reason", "api-validation-106", "El motivo es obligatorio al rechazar.");
         }
         else if (decision == FundingReviewDecision.Approve && reason is not null)
         {
-            errors["reason"] = ["Una aprobación no admite motivo de rechazo."];
+            errors.Set("reason", "api-validation-107", "Una aprobación no admite motivo de rechazo.");
         }
 
         ValidateLength(reason, MaximumReasonLength, "reason", errors);
         return errors;
     }
 
-    internal static Dictionary<string, string[]> ValidateCorrectionReason(string? reason)
+    internal static FieldValidationErrors ValidateCorrectionReason(string? reason)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (reason is null || reason.Length is < 3 or > MaximumReasonLength)
         {
-            errors["reason"] =
-                [$"El motivo debe tener entre 3 y {MaximumReasonLength} caracteres."];
+            errors.Set("reason", "api-validation-108", $"El motivo debe tener entre 3 y {MaximumReasonLength} caracteres.", max: MaximumReasonLength);
         }
 
         return errors;
@@ -140,11 +136,11 @@ internal static class FundingEditorialServiceSupport
         string? value,
         int maximum,
         string field,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (value?.Length > maximum)
         {
-            errors[field] = [$"Admite hasta {maximum} caracteres."];
+            errors.Set(field, "text-max-length", $"Admite hasta {maximum} caracteres.", max: maximum);
         }
     }
 
@@ -201,14 +197,11 @@ internal static class FundingEditorialServiceSupport
             return null;
         }
 
-        return issues
-            .GroupBy(issue => string.IsNullOrWhiteSpace(issue.FieldPath) ? "entity" : issue.FieldPath)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(TranslateReadinessMessage)
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray(),
-                StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
+        foreach (var issue in issues)
+            errors.Add(string.IsNullOrWhiteSpace(issue.FieldPath) ? "entity" : issue.FieldPath,
+                $"funding-ready-{issue.Code}", TranslateReadinessMessage(issue));
+        return errors;
     }
 
     private static string TranslateReadinessMessage(FundingReadinessIssue issue) => issue.Code switch

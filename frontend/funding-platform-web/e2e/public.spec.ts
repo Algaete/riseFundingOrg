@@ -11,6 +11,7 @@ import { registerCatalogConsumerTests } from './catalog-consumer-checks'
 import { registerEditorialTests } from './editorial-checks'
 import { registerOperationalTests } from './operations-checks'
 import { registerValidationTests } from './validation-checks'
+import { registerLazyLanguageTests } from './lazy-language-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -88,6 +89,18 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
+  // Missing lazy dependencies otherwise look like valid text to accessibility tools.
+  const missing = await page.locator('body').evaluate(body => {
+    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback)\.[\w.-]+$/
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
+    const keys: string[] = []
+    while (walker.nextNode()) {
+      const text = walker.currentNode.textContent?.trim() ?? ''
+      if (untranslated.test(text)) keys.push(text)
+    }
+    return keys
+  })
+  expect(missing, 'Visible translation keys reveal missing route resources').toEqual([])
 })
 
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
@@ -101,6 +114,7 @@ registerCatalogConsumerTests(expectNoSeriousAccessibilityViolations)
 registerEditorialTests(expectNoSeriousAccessibilityViolations)
 registerOperationalTests(expectNoSeriousAccessibilityViolations)
 registerValidationTests(expectNoSeriousAccessibilityViolations)
+registerLazyLanguageTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

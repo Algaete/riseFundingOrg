@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -47,9 +48,9 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
         {
             return new FundingApplicationPageResult(
                 FundingApplicationOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["filters"] = ["Los filtros de postulaciones no son válidos."]
+                    { "filters", "api-validation-001", "Los filtros de postulaciones no son válidos." }
                 });
         }
     }
@@ -97,19 +98,18 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
         var errors = Validate(application);
         if (projectPublicId == Guid.Empty)
         {
-            errors["projectId"] = ["Selecciona un proyecto válido."];
+            errors.Set("projectId", "api-validation-002", "Selecciona un proyecto válido.");
         }
 
         if (fundingOpportunityPublicId == Guid.Empty)
         {
-            errors["fundingOpportunityId"] = ["Selecciona un fondo válido."];
+            errors.Set("fundingOpportunityId", "api-validation-003", "Selecciona un fondo válido.");
         }
 
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
         {
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         }
 
         if (errors.Count > 0)
@@ -163,12 +163,12 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
         var errors = Validate(application);
         if (fundingApplicationPublicId == Guid.Empty)
         {
-            errors["applicationId"] = ["La postulación no es válida."];
+            errors.Set("applicationId", "api-validation-005", "La postulación no es válida.");
         }
 
         if (expectedRowVersion is not { Length: 8 })
         {
-            errors["ifMatch"] = ["If-Match no contiene una versión válida."];
+            errors.Set("ifMatch", "version-invalid", "If-Match no contiene una versión válida.");
         }
 
         if (errors.Count > 0)
@@ -208,14 +208,14 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
         DateOnly to,
         CancellationToken cancellationToken)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (to < from)
         {
-            errors["to"] = ["La fecha final no puede ser anterior a la inicial."];
+            errors.Set("to", "api-validation-007", "La fecha final no puede ser anterior a la inicial.");
         }
         else if (to.DayNumber - from.DayNumber > 365)
         {
-            errors["to"] = ["El calendario admite un intervalo máximo de 366 días."];
+            errors.Set("to", "api-validation-008", "El calendario admite un intervalo máximo de 366 días.");
         }
 
         if (errors.Count > 0)
@@ -257,9 +257,9 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
                 from,
                 to,
                 [],
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    ["range"] = ["El intervalo del calendario no es válido."]
+                    { "range", "api-validation-009", "El intervalo del calendario no es válido." }
                 });
         }
     }
@@ -300,32 +300,32 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
                 WasReplay: mutation.WasReplay);
     }
 
-    private static Dictionary<string, string[]> ValidateList(FundingApplicationListFilters filters)
+    private static FieldValidationErrors ValidateList(FundingApplicationListFilters filters)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (filters.Status.HasValue && !Enum.IsDefined(filters.Status.Value))
         {
-            errors["status"] = ["El estado de postulación no es válido."];
+            errors.Set("status", "api-validation-010", "El estado de postulación no es válido.");
         }
 
         if (filters.ProjectPublicId == Guid.Empty)
         {
-            errors["projectId"] = ["El filtro de proyecto no es válido."];
+            errors.Set("projectId", "api-validation-011", "El filtro de proyecto no es válido.");
         }
 
         if (filters.FundingOpportunityPublicId == Guid.Empty)
         {
-            errors["fundingOpportunityId"] = ["El filtro de fondo no es válido."];
+            errors.Set("fundingOpportunityId", "api-validation-012", "El filtro de fondo no es válido.");
         }
 
         if (filters.PageNumber is < 1 or > MaximumPageNumber)
         {
-            errors["page"] = [$"La página debe estar entre 1 y {MaximumPageNumber}."];
+            errors.Set("page", "api-validation-013", $"La página debe estar entre 1 y {MaximumPageNumber}.", max: MaximumPageNumber);
         }
 
         if (filters.PageSize is < 1 or > MaximumPageSize)
         {
-            errors["pageSize"] = [$"El tamaño de página debe estar entre 1 y {MaximumPageSize}."];
+            errors.Set("pageSize", "api-validation-014", $"El tamaño de página debe estar entre 1 y {MaximumPageSize}.", max: MaximumPageSize);
         }
 
         return errors;
@@ -338,24 +338,23 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
             Currency = NormalizeOptional(application.Currency)?.ToUpperInvariant()
         };
 
-    private static Dictionary<string, string[]> Validate(FundingApplicationData application)
+    private static FieldValidationErrors Validate(FundingApplicationData application)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (!Enum.IsDefined(application.Status))
         {
-            errors["status"] = ["El estado de postulación no es válido."];
+            errors.Set("status", "api-validation-010", "El estado de postulación no es válido.");
         }
 
         if (application.Notes?.Length > MaximumNotesLength)
         {
-            errors["notes"] = [$"Las notas admiten hasta {MaximumNotesLength} caracteres."];
+            errors.Set("notes", "api-validation-015", $"Las notas admiten hasta {MaximumNotesLength} caracteres.", max: MaximumNotesLength);
         }
 
         if (application.ApplicationDate.HasValue && application.ResultDate.HasValue &&
             application.ResultDate < application.ApplicationDate)
         {
-            errors["resultDate"] =
-                ["La fecha de resultado no puede ser anterior a la fecha de postulación."];
+            errors.Set("resultDate", "api-validation-016", "La fecha de resultado no puede ser anterior a la fecha de postulación.");
         }
 
         if (application.RequestedAmount.HasValue)
@@ -363,26 +362,24 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
             if (application.RequestedAmount <= 0 || application.RequestedAmount > MaximumAmount ||
                 decimal.Round(application.RequestedAmount.Value, 4) != application.RequestedAmount)
             {
-                errors["requestedAmount"] =
-                    ["El monto debe ser positivo y admitir como máximo cuatro decimales."];
+                errors.Set("requestedAmount", "api-validation-017", "El monto debe ser positivo y admitir como máximo cuatro decimales.");
             }
 
             if (application.Currency is null)
             {
-                errors["currency"] = ["Selecciona la moneda del monto solicitado."];
+                errors.Set("currency", "api-validation-018", "Selecciona la moneda del monto solicitado.");
             }
         }
         else if (application.Currency is not null)
         {
-            errors["requestedAmount"] =
-                ["Indica el monto solicitado antes de seleccionar una moneda."];
+            errors.Set("requestedAmount", "api-validation-019", "Indica el monto solicitado antes de seleccionar una moneda.");
         }
 
         if (application.Currency is not null &&
             (application.Currency.Length != 3 ||
              !application.Currency.All(character => character is >= 'A' and <= 'Z')))
         {
-            errors["currency"] = ["Selecciona una moneda ISO de tres letras."];
+            errors.Set("currency", "currency-invalid", "Selecciona una moneda ISO de tres letras.");
         }
 
         return errors;
@@ -416,10 +413,9 @@ public sealed class FundingApplicationService(IFundingApplicationRepository repo
         new(FundingApplicationOutcome.ValidationFailed, Errors: errors);
 
     private static FundingApplicationDetailsResult InvalidRelations() =>
-        ValidationFailure(new Dictionary<string, string[]>
+        ValidationFailure(new FieldValidationErrors
         {
-            ["application"] =
-                ["La postulación contiene relaciones o datos inválidos."]
+            { "application", "api-validation-021", "La postulación contiene relaciones o datos inválidos." }
         });
 
     private static string? NormalizeOptional(string? value) =>

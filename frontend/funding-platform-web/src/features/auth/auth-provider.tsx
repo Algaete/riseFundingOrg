@@ -29,7 +29,7 @@ export function ProtectedRoute({
   if (auth.status === 'initializing') {
     return (
       <div className="grid min-h-screen place-items-center" role="status">
-        <p className="text-sm text-muted-foreground">{t('auth.status.checkingSession')}</p>
+        <p className="text-sm text-muted-foreground">{t('status.checkingSession')}</p>
       </div>
     )
   }

@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Core.Marketplace;
 using FundingPlatform.Core.Projects;
 
@@ -40,9 +41,9 @@ public sealed class MarketplaceService(IMarketplaceRepository repository)
         {
             return new MarketplaceProjectPageResult(
                 MarketplaceOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["filters"] = ["Los filtros del marketplace no son válidos."]
+                    { "filters", "api-validation-097", "Los filtros del marketplace no son válidos." }
                 });
         }
     }
@@ -80,12 +81,12 @@ public sealed class MarketplaceService(IMarketplaceRepository repository)
             : new MarketplaceOrganizationResult(MarketplaceOutcome.Success, organization);
     }
 
-    private static Dictionary<string, string[]> Validate(MarketplaceProjectFilters filters)
+    private static FieldValidationErrors Validate(MarketplaceProjectFilters filters)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (filters.Query?.Length > MaximumQueryLength)
         {
-            errors["q"] = [$"La búsqueda admite hasta {MaximumQueryLength} caracteres."];
+            errors.Set("q", "api-validation-098", $"La búsqueda admite hasta {MaximumQueryLength} caracteres.", max: MaximumQueryLength);
         }
 
         ValidateIdentifiers(filters.CountryIds, "countryIds", errors);
@@ -94,36 +95,35 @@ public sealed class MarketplaceService(IMarketplaceRepository repository)
         if (filters.ProjectStatus.HasValue &&
             (byte)filters.ProjectStatus.Value > (byte)ProjectStatus.Completed)
         {
-            errors["projectStatus"] = ["El estado de proyecto no es válido."];
+            errors.Set("projectStatus", "project-status-invalid", "El estado de proyecto no es válido.");
         }
 
         if (filters.Currency is not null &&
             (filters.Currency.Length != 3 ||
              !filters.Currency.All(character => character is >= 'A' and <= 'Z')))
         {
-            errors["currency"] = ["Selecciona una moneda ISO de tres letras."];
+            errors.Set("currency", "currency-invalid", "Selecciona una moneda ISO de tres letras.");
         }
 
         if (filters.Sort == MarketplaceProjectSort.FundingGapDescending &&
             filters.Currency is null)
         {
-            errors["currency"] =
-                ["Selecciona una moneda para ordenar por brecha de financiamiento."];
+            errors.Set("currency", "api-validation-100", "Selecciona una moneda para ordenar por brecha de financiamiento.");
         }
 
         if (!Enum.IsDefined(filters.Sort))
         {
-            errors["sort"] = ["El orden solicitado no es válido."];
+            errors.Set("sort", "api-validation-101", "El orden solicitado no es válido.");
         }
 
         if (filters.PageNumber is < 1 or > MaximumPageNumber)
         {
-            errors["page"] = [$"La página debe estar entre 1 y {MaximumPageNumber}."];
+            errors.Set("page", "api-validation-013", $"La página debe estar entre 1 y {MaximumPageNumber}.", max: MaximumPageNumber);
         }
 
         if (filters.PageSize is < 1 or > MaximumPageSize)
         {
-            errors["pageSize"] = [$"El tamaño de página debe estar entre 1 y {MaximumPageSize}."];
+            errors.Set("pageSize", "api-validation-014", $"El tamaño de página debe estar entre 1 y {MaximumPageSize}.", max: MaximumPageSize);
         }
 
         return errors;
@@ -132,13 +132,12 @@ public sealed class MarketplaceService(IMarketplaceRepository repository)
     private static void ValidateIdentifiers<T>(
         IReadOnlyCollection<T> identifiers,
         string key,
-        IDictionary<string, string[]> errors) where T : struct, IComparable<T>
+        FieldValidationErrors errors) where T : struct, IComparable<T>
     {
         if (identifiers.Count > MaximumFilterValues ||
             identifiers.Any(identifier => identifier.CompareTo(default) <= 0))
         {
-            errors[key] =
-                [$"Admite hasta {MaximumFilterValues} identificadores positivos."];
+            errors.Set(key, "api-validation-043", $"Admite hasta {MaximumFilterValues} identificadores positivos.", max: MaximumFilterValues);
         }
     }
 

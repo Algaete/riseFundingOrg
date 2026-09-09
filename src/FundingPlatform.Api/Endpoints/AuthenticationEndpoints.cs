@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Api.Configuration;
 using FundingPlatform.Application.Authentication;
@@ -87,7 +88,7 @@ public static class AuthenticationEndpoints
 
         if (!result.Accepted)
         {
-            return Results.ValidationProblem(ToValidationDictionary(result.ValidationFailures));
+            return FieldValidationResults.BadRequest(ToValidationDictionary(result.ValidationFailures));
         }
 
         return Results.Accepted(value: new AcceptedResponse(
@@ -336,7 +337,7 @@ public static class AuthenticationEndpoints
             cancellationToken);
         if (result.ValidationFailures.Count > 0)
         {
-            return Results.ValidationProblem(ToValidationDictionary(result.ValidationFailures));
+            return FieldValidationResults.BadRequest(ToValidationDictionary(result.ValidationFailures));
         }
 
         return result.Succeeded
@@ -392,9 +393,9 @@ public static class AuthenticationEndpoints
             request.Code,
             cancellationToken);
         return result is null
-            ? Results.ValidationProblem(new Dictionary<string, string[]>
+            ? FieldValidationResults.BadRequest(new FieldValidationErrors
             {
-                ["code"] = ["El código de autenticación no es válido."]
+                { "code", "api-validation-046", "El código de autenticación no es válido." }
             })
             : Results.Ok(new MfaConfirmationResponse(result.RecoveryCodes));
     }
@@ -428,15 +429,13 @@ public static class AuthenticationEndpoints
             user.MfaEnabled);
     }
 
-    private static Dictionary<string, string[]> ToValidationDictionary(
+    private static FieldValidationErrors ToValidationDictionary(
         IReadOnlyCollection<PasswordValidationFailure> failures)
     {
-        return failures
-            .GroupBy(failure => failure.Code, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(failure => failure.Description).Distinct().ToArray(),
-                StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
+        foreach (var failure in failures)
+            errors.Add(failure.Code, $"auth-{failure.Code}", failure.Description);
+        return errors;
     }
 
     private static ClientRequestContext CreateClientContext(HttpContext context)

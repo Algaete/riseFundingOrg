@@ -2,8 +2,11 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
 import { resetAuthStateForTests } from '@/features/auth/auth-session'
-import i18n from '@/i18n'
+import i18n, { ensureInterfaceResources } from '@/i18n'
+import { allResourceModules } from '@/i18n/resource-loader'
 import { languageStorageKey } from '@/i18n/language'
+
+beforeAll(async () => { await ensureInterfaceResources(allResourceModules) })
 
 beforeEach(async () => {
   resetAuthStateForTests()

@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -178,24 +179,24 @@ public sealed class FundingDuplicateReviewService(
             "ignored" => (byte)3,
             _ => (byte)0
         };
-        var errors = new Dictionary<string, string[]>();
+        var errors = new FieldValidationErrors();
         if (adminUserId == Guid.Empty || candidateId == Guid.Empty)
-            errors["candidateId"] = ["El candidato no es válido."];
+            errors.Set("candidateId", "api-validation-047", "El candidato no es válido.");
         if (expectedRowVersion is not { Length: 8 })
-            errors["ifMatch"] = ["Envía el ETag fuerte vigente."];
+            errors.Set("ifMatch", "api-validation-048", "Envía el ETag fuerte vigente.");
         if (decision == 0)
-            errors["decision"] = ["Usa keep-separate, mark-duplicate o ignored."];
+            errors.Set("decision", "api-validation-049", "Usa keep-separate, mark-duplicate o ignored.");
         if (string.IsNullOrWhiteSpace(normalizedReason) || normalizedReason.Length is < 3 or > 300 ||
             normalizedReason.Contains('\r') || normalizedReason.Contains('\n') ||
             normalizedReason.Contains('\0'))
-            errors["reason"] = ["El motivo debe tener entre 3 y 300 caracteres y una sola línea."];
+            errors.Set("reason", "api-validation-050", "El motivo debe tener entre 3 y 300 caracteres y una sola línea.");
         if (decision == 2 && canonicalOpportunityId is null)
-            errors["canonicalOpportunityId"] = ["Selecciona la oportunidad canónica."];
+            errors.Set("canonicalOpportunityId", "api-validation-051", "Selecciona la oportunidad canónica.");
         if (decision is 1 or 3 && canonicalOpportunityId is not null)
-            errors["canonicalOpportunityId"] = ["Esta decisión no admite una oportunidad canónica."];
+            errors.Set("canonicalOpportunityId", "api-validation-052", "Esta decisión no admite una oportunidad canónica.");
         if (string.IsNullOrWhiteSpace(normalizedKey) || normalizedKey.Length is < 8 or > 128 ||
             normalizedKey.Contains('\r') || normalizedKey.Contains('\n'))
-            errors["idempotencyKey"] = ["Idempotency-Key debe tener entre 8 y 128 caracteres."];
+            errors.Set("idempotencyKey", "api-validation-053", "Idempotency-Key debe tener entre 8 y 128 caracteres.");
         if (errors.Count > 0)
             return new(FundingDuplicateReviewOutcome.Invalid, "invalid-duplicate-decision",
                 Errors: errors);
@@ -249,5 +250,5 @@ public sealed class FundingDuplicateReviewService(
         string message) => new(
             FundingDuplicateReviewOutcome.Invalid,
             code,
-            Errors: new Dictionary<string, string[]> { [field] = [message] });
+            Errors: FieldValidationErrors.Single(field, code, message));
 }

@@ -1,3 +1,4 @@
+import { formatDateValue } from '@/i18n/formats'
 import {
   keepPreviousData,
   useMutation,
@@ -339,11 +340,11 @@ function formatUtcDateTime(value: string | null) {
   if (!value) return null
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
-  return `${new Intl.DateTimeFormat(workspaceLocale(), {
+  return `${formatDateValue(date, {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'UTC',
-  }).format(date)} UTC`
+  })} UTC`
 }
 
 function OrganizationSpecificDetails({

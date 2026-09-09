@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Contracts.FundingOpportunities;
 using FundingPlatform.Core.FundingOpportunities;
@@ -45,17 +46,17 @@ public static class FundingOpportunityEndpoints
 
         if (requestedPageNumber < 1 || requestedPageSize is < 1 or > 50)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
             {
-                ["pagination"] = ["pageNumber must be at least 1 and pageSize must be between 1 and 50."]
+                { "pagination", "api-validation-093", "pageNumber must be at least 1 and pageSize must be between 1 and 50." }
             });
         }
 
         if (query?.Trim().Length > 300)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
             {
-                ["query"] = ["query must contain at most 300 characters."]
+                { "query", "api-validation-094", "query must contain at most 300 characters." }
             });
         }
 

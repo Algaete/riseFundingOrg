@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Imports;
 using FundingPlatform.Contracts.Imports;
@@ -113,9 +114,9 @@ public static class AdminImportRunEndpoints
                     422,
                     "Filtros inválidos",
                     "invalid-import-run-query",
-                    new Dictionary<string, string[]>
+                    new FieldValidationErrors
                     {
-                        ["status"] = ["El estado de la ejecución no es válido."]
+                        { "status", "api-validation-045", "El estado de la ejecución no es válido." }
                     });
             }
 

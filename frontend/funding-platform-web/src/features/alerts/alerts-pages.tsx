@@ -1,8 +1,8 @@
+import { formatDateValue } from '@/i18n/formats'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, BellOff, ExternalLink, LoaderCircle, Save, Trash2 } from 'lucide-react'
 import { type FormEvent, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { workspaceLocale } from '@/i18n/workspace-messages'
 import { trackingErrorMessage, notificationStatusLabel, type TrackingFeedback } from '@/i18n/tracking-messages'
 
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -70,8 +70,7 @@ function message(error: unknown, operation: 'read' | 'write' = 'write') {
 function formatDate(value: string | null) {
   if (!value) return '—'
   if (Number.isNaN(new Date(value).getTime())) return '—'
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium', timeStyle: 'short' })
-    .format(new Date(value))
+  return formatDateValue(value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 export function AlertsWorkspacePage() {

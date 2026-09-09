@@ -1,3 +1,4 @@
+import { fieldValidationEntries } from '@/i18n/validation-issues'
 import { ApiError, apiClient } from '@/api/http-client'
 
 export type ProjectAssetKind = 0 | 1
@@ -264,7 +265,7 @@ export function projectAssetErrorMessage(error: unknown) {
     if (error.response.status === 410) return 'La autorización de carga venció. Selecciona el archivo nuevamente.'
     if (error.response.status === 412) return 'La versión cambió. Recargaremos los adjuntos para que puedas reintentar.'
     if (error.response.status === 422) {
-      const firstValidation = Object.values(error.problem.errors ?? {}).flat()[0]
+      const firstValidation = fieldValidationEntries(error.problem)[0]?.message
       return safeProblemText(firstValidation ?? error.problem.detail ?? 'Revisa el archivo e intenta nuevamente.')
     }
     if (error.response.status === 503) return 'Los adjuntos todavía no están habilitados en este entorno.'

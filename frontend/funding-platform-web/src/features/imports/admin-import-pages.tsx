@@ -1,4 +1,4 @@
-import { workspaceLocale } from '@/i18n/workspace-messages'
+import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { importOperationsErrorKey, operationsMessage, operationalLabel, operationStatus, type OperationsKey } from '@/i18n/operations-messages'
 import { useTranslation } from 'react-i18next'
@@ -76,20 +76,14 @@ function formatDate(value: string | null) {
   if (!value) return i18n.t('operations.noInfo')
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return i18n.t('operations.noInfo')
-  return new Intl.DateTimeFormat(workspaceLocale(), {
+  return formatDateValue(value, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(date)
+  })
 }
 
 function formatCandidateDate(value: string | null) {
-  if (!value) return i18n.t('operations.noInfo')
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!dateOnly) return formatDate(value)
-  const [, year, month, day] = dateOnly
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'medium' }).format(
-    new Date(Number(year), Number(month) - 1, Number(day)),
-  )
+  return formatDateValue(value, { dateStyle: 'medium', timeStyle: 'short' }, i18n.t('operations.noInfo'))
 }
 
 function StatusBadge({ status }: { status: ImportRunStatus }) {

@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Claims;
 using FundingPlatform.Application.Alerts;
@@ -77,7 +78,7 @@ public static class SavedSearchAlertEndpoints
     {
         if (!TryUser(principal, out var userId)) return InvalidSession();
         if (!Pagination(request, out var page, out var pageSize, out var errors))
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         var result = await service.ListAsync(userId, organizationId, page, pageSize, cancellationToken);
         return result is null ? NotFound() : Results.Ok(new SavedSearchListResponse(
             result.Items.Select(MapSummary).ToArray(), result.TotalCount,
@@ -104,7 +105,7 @@ public static class SavedSearchAlertEndpoints
     {
         if (!TryUser(principal, out var userId)) return InvalidSession();
         if (!TryFilters(request, out var filters, out var errors))
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         var result = await service.CreateAsync(new SavedSearchWriteCommand(
             userId, organizationId, null, request.Name, filters!,
             context.Request.Headers["Idempotency-Key"].ToString(), null), cancellationToken);
@@ -122,7 +123,7 @@ public static class SavedSearchAlertEndpoints
             return Problem(StatusCodes.Status428PreconditionRequired,
                 "Versión requerida", "Envía If-Match con el ETag vigente.", "if-match-required");
         if (!TryFilters(request, out var filters, out var errors))
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         var result = await service.UpdateAsync(new SavedSearchWriteCommand(
             userId, organizationId, savedSearchId, request.Name, filters!, null, rowVersion),
             cancellationToken);
@@ -146,7 +147,7 @@ public static class SavedSearchAlertEndpoints
             SavedSearchServiceOutcome.Deleted => Results.NoContent(),
             SavedSearchServiceOutcome.PreconditionFailed => PreconditionFailed(),
             SavedSearchServiceOutcome.NotFound => NotFound(),
-            _ => Results.ValidationProblem(result.Errors ?? new Dictionary<string, string[]>())
+            _ => FieldValidationResults.BadRequest(result.Errors ?? new FieldValidationErrors())
         };
     }
 
@@ -163,7 +164,7 @@ public static class SavedSearchAlertEndpoints
             return Problem(StatusCodes.Status503ServiceUnavailable, "Alertas desactivadas",
                 "El envío de alertas todavía no está habilitado en este ambiente.", "alerts-disabled");
         if (result.Outcome == SavedSearchServiceOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == SavedSearchServiceOutcome.NotFound || result.Alert is null)
             return NotFound();
         context.Response.Headers.ETag = result.Alert.ETag;
@@ -187,7 +188,7 @@ public static class SavedSearchAlertEndpoints
     {
         if (!TryUser(principal, out var userId)) return InvalidSession();
         if (!Pagination(request, out var page, out var pageSize, out var errors))
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         var result = await service.ListNotificationsAsync(
             userId, organizationId, page, pageSize, cancellationToken);
         return result is null ? NotFound() : Results.Ok(new NotificationLogListResponse(
@@ -212,7 +213,7 @@ public static class SavedSearchAlertEndpoints
         Guid organizationId, int successStatus)
     {
         if (result.Outcome == SavedSearchServiceOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == SavedSearchServiceOutcome.PreconditionFailed)
             return PreconditionFailed();
         if (result.Outcome == SavedSearchServiceOutcome.IdempotencyConflict)
@@ -230,13 +231,13 @@ public static class SavedSearchAlertEndpoints
 
     private static bool TryFilters(SavedSearchWriteRequest request,
         out FundingOpportunitySearchFilters? filters,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         var defaultSort = string.IsNullOrWhiteSpace(request.Query) ? "closing-soon" : "relevance";
         if (!Sorts.TryGetValue((request.Sort ?? defaultSort).Trim(), out var sort))
         {
-            errors["sort"] = ["El orden solicitado no está permitido."];
+            errors.Set("sort", "api-validation-032", "El orden solicitado no está permitido.");
             filters = null;
             return false;
         }
@@ -252,23 +253,23 @@ public static class SavedSearchAlertEndpoints
     }
 
     private static bool Pagination(HttpRequest request, out int page, out int pageSize,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         page = ParseInt(request.Query["page"], 1, "page", errors);
         pageSize = ParseInt(request.Query["pageSize"], 20, "pageSize", errors);
-        if (page is < 1 or > 10_000) errors["page"] = ["La página debe estar entre 1 y 10000."];
-        if (pageSize is < 1 or > 50) errors["pageSize"] = ["El tamaño debe estar entre 1 y 50."];
+        if (page is < 1 or > 10_000) errors.Set("page", "api-validation-040", "La página debe estar entre 1 y 10000.");
+        if (pageSize is < 1 or > 50) errors.Set("pageSize", "api-validation-095", "El tamaño debe estar entre 1 y 50.");
         return errors.Count == 0;
     }
 
     private static int ParseInt(string? value, int fallback, string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         if (int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
             return parsed;
-        errors[key] = ["Debe ser un entero válido."];
+        errors.Set(key, "api-validation-096", "Debe ser un entero válido.");
         return fallback;
     }
 

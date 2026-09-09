@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Contracts.FundingOpportunities;
@@ -677,18 +678,20 @@ public static class AdminFundingEditorialEndpoints
         {
             error = ProjectEndpointResults.Validation(
                 422, "Filtros inválidos", "invalid-funding-editorial-filter",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    [query?.Trim().Length > 300
+                    { query?.Trim().Length > 300
                         ? "query"
                         : status > (byte)FundingPublicationStatus.Archived
                             ? "status"
-                            : "pagination"] =
-                        [query?.Trim().Length > 300
+                            : "pagination",
+                        query?.Trim().Length > 300 ? "api-validation-109"
+                            : status > (byte)FundingPublicationStatus.Archived ? "editorial-status-invalid" : "editorial-pagination-invalid",
+                        query?.Trim().Length > 300
                             ? "query admite hasta 300 caracteres."
                             : status > (byte)FundingPublicationStatus.Archived
                             ? "status debe estar entre 0 y 4."
-                            : "page debe ser al menos 1 y pageSize debe estar entre 1 y 100."]
+                            : "page debe ser al menos 1 y pageSize debe estar entre 1 y 100." }
                 });
             return false;
         }
@@ -719,9 +722,9 @@ public static class AdminFundingEditorialEndpoints
         decision = default;
         error = ProjectEndpointResults.Validation(
             422, "Decisión inválida", "invalid-review-decision",
-            new Dictionary<string, string[]>
+            new FieldValidationErrors
             {
-                ["decision"] = ["decision debe ser approve o reject."]
+                { "decision", "api-validation-054", "decision debe ser approve o reject." }
             });
         return false;
     }

@@ -1,5 +1,6 @@
 import { ApiError } from '@/api/http-client'
-import { readValidationMessage } from '@/i18n/validation-issues'
+import { requestValidationToken, validationMessage } from '@/i18n/validation-issues'
+import { interfaceLocale, formatDateValue } from '@/i18n/formats'
 import { validationEs } from '@/i18n/validation/es'
 import i18n from '@/i18n'
 import { organizationEs } from '@/i18n/organization/es'
@@ -28,9 +29,8 @@ for (const [namespace, values] of Object.entries(resources)) {
 
 export function workspaceMessage(message: string | null | undefined): string {
   if (!message) return ''
-  const issue = readValidationMessage(message)
-  if (issue?.code === 'text-max-length') return i18n.t('validation.text-max-length', { max: issue.max })
-  if (issue) return i18n.t(`validation.${issue.code}`)
+  const structured = validationMessage(message)
+  if (structured) return structured
   const key = keys.has(message) ? message as WorkspaceTextKey : legacyMessages.get(message)
   if (key) return i18n.t(key)
   // Unknown server diagnostics must not be shown in either language.
@@ -38,6 +38,8 @@ export function workspaceMessage(message: string | null | undefined): string {
 }
 
 export function workspaceRequestError(error: unknown, scope: 'organization' | 'project' = 'project'): string {
+  const structured = requestValidationToken(error)
+  if (structured) return structured
   if (!(error instanceof ApiError)) return scope === 'organization' ? 'organization.saveFailure' : 'projects.operationFailed'
   const { status } = error.response
   const type = error.problem.type
@@ -53,14 +55,9 @@ export function workspaceRequestError(error: unknown, scope: 'organization' | 'p
 }
 
 export function workspaceLocale() {
-  return i18n.resolvedLanguage === 'en' ? 'en-US' : 'es-CL'
+  return interfaceLocale()
 }
 
 export function formatWorkspaceDate(value: string, dateStyle: 'medium' | 'long' = 'medium') {
-  // Date-only fields have no timezone; do not shift them into the previous day.
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  const date = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(value)
-  return new Intl.DateTimeFormat(workspaceLocale(), { dateStyle }).format(date)
+  return formatDateValue(value, { dateStyle })
 }

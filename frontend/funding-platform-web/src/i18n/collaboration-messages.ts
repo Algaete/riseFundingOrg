@@ -1,4 +1,5 @@
 import { ApiError } from '@/api/http-client'
+import { requestValidationMessage } from '@/i18n/validation-issues'
 import type { MatchingRuleResult } from '@/features/matching/matching-api'
 import i18n from '@/i18n'
 import { matchingEs } from '@/i18n/matching/es'
@@ -39,6 +40,8 @@ export function isStandardMatchingDisclaimer(value: string) {
 }
 
 export function collaborationErrorMessage(error: unknown, scope: 'matching' | 'network', operation: 'read' | 'write' = 'read') {
+  const structured = requestValidationMessage(error)
+  if (structured) return structured
   if (error instanceof ApiError) {
     const { status } = error.response
     const type = error.problem.type

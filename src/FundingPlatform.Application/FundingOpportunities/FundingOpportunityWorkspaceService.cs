@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Core.FundingOpportunities;
 
 namespace FundingPlatform.Application.FundingOpportunities;
@@ -43,9 +44,9 @@ public sealed class FundingOpportunityWorkspaceService(
         {
             return new FundingOpportunityWorkspaceSearchResult(
                 FundingOpportunityWorkspaceSearchOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["filters"] = ["Uno o más filtros no son válidos."]
+                    { "filters", "api-validation-031", "Uno o más filtros no son válidos." }
                 });
         }
         return page is null
@@ -164,7 +165,7 @@ public sealed class FundingOpportunityWorkspaceService(
         FunderPublicIds = (input.FunderPublicIds ?? []).Distinct().Order().ToArray()
     };
 
-    public static Dictionary<string, string[]> Validate(
+    public static FieldValidationErrors Validate(
         FundingOpportunitySearchFilters filters)
     {
         var errors = ValidatePagination(filters.PageNumber, filters.PageSize);
@@ -173,44 +174,44 @@ public sealed class FundingOpportunityWorkspaceService(
 
         if (!Enum.IsDefined(filters.Sort))
         {
-            errors["sort"] = ["El orden solicitado no está permitido."];
+            errors.Set("sort", "api-validation-032", "El orden solicitado no está permitido.");
         }
 
         if (IsInvalidAmount(filters.MinimumAmount) || IsInvalidAmount(filters.MaximumAmount) ||
             (filters.MinimumAmount.HasValue && filters.MaximumAmount.HasValue &&
              filters.MaximumAmount < filters.MinimumAmount))
         {
-            errors["amount"] = ["El rango de montos no es válido."];
+            errors.Set("amount", "api-validation-033", "El rango de montos no es válido.");
         }
 
         if ((filters.MinimumAmount.HasValue || filters.MaximumAmount.HasValue) &&
             filters.Currency is null)
         {
-            errors["currency"] = ["Selecciona una moneda para filtrar por monto."];
+            errors.Set("currency", "api-validation-034", "Selecciona una moneda para filtrar por monto.");
         }
 
         if (filters.Currency is not null &&
             (filters.Currency.Length != 3 || filters.Currency.Any(character =>
                 character is < 'A' or > 'Z')))
         {
-            errors["currency"] = ["La moneda debe ser un código ISO de tres letras."];
+            errors.Set("currency", "api-validation-035", "La moneda debe ser un código ISO de tres letras.");
         }
 
         if (filters.ClosingFrom.HasValue && filters.ClosingTo.HasValue &&
             filters.ClosingTo < filters.ClosingFrom)
         {
-            errors["closingTo"] = ["La fecha final no puede ser anterior a la fecha inicial."];
+            errors.Set("closingTo", "api-validation-036", "La fecha final no puede ser anterior a la fecha inicial.");
         }
 
         if (filters.Sort == FundingOpportunitySearchSort.Relevance && filters.Query is null)
         {
-            errors["sort"] = ["El orden por relevancia requiere un texto de búsqueda."];
+            errors.Set("sort", "api-validation-037", "El orden por relevancia requiere un texto de búsqueda.");
         }
 
         if (filters.Sort is FundingOpportunitySearchSort.AmountAscending or
             FundingOpportunitySearchSort.AmountDescending && filters.Currency is null)
         {
-            errors["sort"] = ["Para ordenar por monto debes seleccionar una moneda."];
+            errors.Set("sort", "api-validation-038", "Para ordenar por monto debes seleccionar una moneda.");
         }
 
         ValidateIds(filters.CountryIds, "countryIds", errors);
@@ -224,24 +225,23 @@ public sealed class FundingOpportunityWorkspaceService(
         if (filters.FunderPublicIds.Count > MaximumFilterValues ||
             filters.FunderPublicIds.Any(id => id == Guid.Empty))
         {
-            errors["funderIds"] =
-                [$"Admite hasta {MaximumFilterValues} identificadores válidos."];
+            errors.Set("funderIds", "api-validation-039", $"Admite hasta {MaximumFilterValues} identificadores válidos.", max: MaximumFilterValues);
         }
 
         return errors;
     }
 
-    private static Dictionary<string, string[]> ValidatePagination(int pageNumber, int pageSize)
+    private static FieldValidationErrors ValidatePagination(int pageNumber, int pageSize)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (pageNumber is < 1 or > 10_000)
         {
-            errors["page"] = ["La página debe estar entre 1 y 10000."];
+            errors.Set("page", "api-validation-040", "La página debe estar entre 1 y 10000.");
         }
 
         if (pageSize is < 1 or > 50)
         {
-            errors["pageSize"] = ["El tamaño de página debe estar entre 1 y 50."];
+            errors.Set("pageSize", "api-validation-041", "El tamaño de página debe estar entre 1 y 50.");
         }
 
         return errors;
@@ -251,11 +251,11 @@ public sealed class FundingOpportunityWorkspaceService(
         string? value,
         int maximum,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (value?.Length > maximum)
         {
-            errors[key] = [$"Admite hasta {maximum} caracteres."];
+            errors.Set(key, "text-max-length", $"Admite hasta {maximum} caracteres.", max: maximum);
         }
     }
 
@@ -273,11 +273,11 @@ public sealed class FundingOpportunityWorkspaceService(
     private static void ValidateIds<T>(
         IReadOnlyCollection<T> ids,
         string key,
-        IDictionary<string, string[]> errors) where T : struct, IComparable<T>
+        FieldValidationErrors errors) where T : struct, IComparable<T>
     {
         if (ids.Count > MaximumFilterValues || ids.Any(id => id.CompareTo(default) <= 0))
         {
-            errors[key] = [$"Admite hasta {MaximumFilterValues} identificadores positivos."];
+            errors.Set(key, "api-validation-043", $"Admite hasta {MaximumFilterValues} identificadores positivos.", max: MaximumFilterValues);
         }
     }
 

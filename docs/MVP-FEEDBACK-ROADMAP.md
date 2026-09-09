@@ -9,10 +9,10 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 - Doce entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D,
   además de la base funcional descrita abajo. Son entregas de distinto tamaño, no doce módulos
   nuevos del producto ni un porcentaje del feedback completo.
-- Primer corte de I18N-05E terminado localmente: I18N-05E.1, contrato de códigos por campo
-  para crear/actualizar organizaciones y proyectos, con consumidores ES/EN compatibles.
-- Idiomas sigue en curso: faltan códigos de validación del resto de la API, formatos restantes
-  y carga diferida de recursos. Siguiente corte: validaciones editoriales y requisitos de publicación.
+- I18N-05E cerrado localmente: contrato de validación extendido a la API y sus consumidores,
+  formatos restantes y carga diferida de recursos por módulo/idioma. Los tres pendientes
+  técnicos se completan juntos, sobre el primer corte I18N-05E.1.
+- El siguiente trabajo de desarrollo es funcional: bloque 2, proyecto enriquecido.
 - Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
@@ -29,7 +29,7 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 - Ya existían matching proyecto → fondos explicable, directorio de organizaciones, solicitudes de
   conexión, catálogo de financiadores administrado internamente e ingesta Grants.gov/RSS gobernada.
 
-## 1. Idiomas — en curso
+## 1. Idiomas — base técnica implementada localmente
 
 ### I18N-01: selector, portada y navegación
 
@@ -485,20 +485,49 @@ Validación: build .NET y frontend, lint y typecheck E2E aprobados; 759 pruebas 
 Los cuatro escenarios nuevos de navegador cubren organización/proyecto a 320/1024px,
 ES/EN, claro/oscuro, accesibilidad, errores visibles y una única escritura sintética con el ETag original.
 
-Límites: no modifica reglas obligatorias/opcionales, validación de dominio, SQL, snapshots,
+Límites del corte histórico I18N-05E.1: no modifica reglas obligatorias/opcionales, validación de dominio, SQL, snapshots,
 permisos, política editorial, SSO, cuentas ni flags de seguridad. No cubre todavía validaciones
 de publicación/revisión, financiadores/oportunidades ni los restantes módulos de API/model binding.
 El chunk inicial sigue rondando 591 kB (181 kB gzip); carga diferida y formatos siguen pendientes.
 Sin push ni despliegue Azure. Contrato y ampliación: [validación por campo](API-FIELD-VALIDATION.md).
 
-La traducción completa de la aplicación NO está terminada. Pendiente de I18N-05E:
+### I18N-05E: cierre conjunto de los tres pendientes técnicos
 
-1. Ampliar códigos/consumidores a edición de fondos y financiadores, publicación y revisión.
-2. Extender el contrato a los restantes módulos de API y validaciones de entrada.
-3. Cerrar formatos restantes y optimizar carga de recursos por módulo/idioma.
+Implementado localmente:
 
-Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
-presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
+1. Validaciones de API y consumidores. 252 códigos ES/EN cubren validadores de los módulos
+   actuales: edición/publicación/revisión, financiadores/fondos, organizaciones/proyectos,
+   autenticación, filtros, postulaciones, alertas, networking, matching, suscripciones,
+   importaciones, adjuntos/documentos y administración. Se preservan HTTP, mensajes heredados,
+   reglas, permisos y contratos de concurrencia. El parser responde con errores seguros
+   HTTP 400/415; usa el campo genérico `request` cuando no identifica uno concreto.
+2. Formatos de fechas, números y dinero. Las fechas civiles conservan su día en distintas
+   zonas; los timestamps conservan su instante y los cierres explícitos siguen en UTC.
+   Los rangos monetarios respetan decimales de la moneda, sin convertir ni alterar los datos.
+   Se añaden fallbacks seguros para fechas, monedas y números inválidos.
+3. Carga por módulo e idioma. Las rutas esperan sólo sus recursos; las cargas simultáneas
+   se deduplican y se reutilizan. Cambiar idioma no repite escrituras ni elimina formularios.
+   Si falla la descarga se mantiene el idioma anterior con aviso visible; una ruta que dispone
+   de sus recursos actuales sigue utilizable. La última selección prevalece.
+
+El chunk principal baja de aproximadamente 591 kB a 390,5 kB (aproximadamente 120 kB gzip).
+Desaparece el aviso de Vite sin cambiar su umbral. La entrada al inicio descarga sólo el núcleo
+del idioma elegido; navegar carga los módulos siguientes. No es una medición de latencia Azure.
+
+Verificación del cierre: compilación .NET/frontend, lint y tipos E2E aprobados; 760 pruebas
+unitarias .NET, 222 de integración, 884 frontend en 69 archivos y 156 de navegador.
+Sólo se omite la verificación del SHA de Azure, que no aplica al servidor local.
+Las APIs del navegador están simuladas y bloquean solicitudes no previstas. No hay escrituras
+en bases reales, envíos de correo, subidas reales de archivos ni cambios de cuentas.
+
+Límites deliberados: no se traducen automáticamente textos de usuarios, fondos importados,
+catálogos personalizados ni códigos técnicos de auditoría. Códigos desconocidos futuros
+reciben un aviso genérico. Este cierre no sustituye las pruebas de integración en Azure
+ni desarrolla los siete bloques funcionales siguientes. No requiere nuevas migraciones SQL.
+
+Mantenimiento: [contrato de validación](API-FIELD-VALIDATION.md) y
+[carga de idiomas y formatos](I18N-LOADING-AND-FORMATS.md).
+Sin push ni despliegue Azure en este corte.
 
 ## Desarrollo posterior, en orden de dependencias
 
@@ -517,7 +546,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
 [activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D no requieren
-migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E.1 tampoco
+migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E tampoco
 requiere migración SQL; contiene además cambios de API, que se deben publicar para recibir
 los nuevos códigos. El despliegue escalonado conserva el contrato de clientes anteriores.
 

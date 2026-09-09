@@ -1,4 +1,7 @@
+import { apiValidationEs } from '@/i18n/api-validation/es'
+
 export const validationEs = {
+  ...apiValidationEs,
   'name-length': "El nombre es obligatorio y admite hasta 250 caracteres.",
   'country-invalid': "Selecciona un país válido.",
   'organization-type-invalid': "Selecciona un tipo válido.",

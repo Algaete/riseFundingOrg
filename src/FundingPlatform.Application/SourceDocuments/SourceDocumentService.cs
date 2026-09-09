@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -271,9 +272,9 @@ public sealed class SourceDocumentService(
                 SourceDocumentOutcome.ValidationFailed,
                 "invalid-retry",
                 SourceDocumentPublicId: sourceDocumentPublicId,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["request"] = ["If-Match e Idempotency-Key válidos son obligatorios."]
+                    { "request", "api-validation-141", "If-Match e Idempotency-Key válidos son obligatorios." }
                 });
         }
 
@@ -642,9 +643,9 @@ public sealed class SourceDocumentService(
             rejected.IntentStatus,
             RowVersion: rejected.RowVersion,
             WasReplay: rejected.WasReplay,
-            Errors: new Dictionary<string, string[]>
+            Errors: new FieldValidationErrors
             {
-                ["file"] = ["El archivo no es un PDF válido o no coincide con la carga declarada."]
+                { "file", "api-validation-167", "El archivo no es un PDF válido o no coincide con la carga declarada." }
             });
     }
 
@@ -679,25 +680,25 @@ public sealed class SourceDocumentService(
         }
     }
 
-    private Dictionary<string, string[]> ValidateCreate(
+    private FieldValidationErrors ValidateCreate(
         int fundingSourceId,
         string? fileName,
         string? mimeType,
         long contentLength)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (fundingSourceId <= 0)
-            errors["fundingSourceId"] = ["Selecciona una fuente habilitada."];
+            errors.Set("fundingSourceId", "api-validation-168", "Selecciona una fuente habilitada.");
         var normalizedName = fileName?.Trim();
         if (string.IsNullOrWhiteSpace(normalizedName) || normalizedName.Length > 260 ||
             !normalizedName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
             normalizedName != Path.GetFileName(normalizedName) ||
             normalizedName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-            errors["fileName"] = ["El nombre debe identificar un archivo PDF y no incluir una ruta."];
+            errors.Set("fileName", "api-validation-169", "El nombre debe identificar un archivo PDF y no incluir una ruta.");
         if (!string.Equals(mimeType?.Trim(), PdfMimeType, StringComparison.OrdinalIgnoreCase))
-            errors["mimeType"] = ["Sólo se admite application/pdf."];
+            errors.Set("mimeType", "api-validation-170", "Sólo se admite application/pdf.");
         if (contentLength < 1 || contentLength > policy.MaxBytes)
-            errors["contentLength"] = [$"El PDF debe pesar entre 1 y {policy.MaxBytes} bytes."];
+            errors.Set("contentLength", "api-validation-171", $"El PDF debe pesar entre 1 y {policy.MaxBytes} bytes.", max: policy.MaxBytes);
         return errors;
     }
 
