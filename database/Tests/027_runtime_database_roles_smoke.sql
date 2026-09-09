@@ -41,6 +41,87 @@ IF EXISTS
    )
     THROW 54852, N'A runtime role inherits another database role.', 1;
 
+/* The migrator runs all smokes after applying the full pending chain. Preserve
+   the 027 baseline fingerprint, adding ONLY the exact later object grants. */
+DECLARE @LaterProcedurePermissions TABLE
+    (RoleId INT NOT NULL, ObjectId INT NULL, ProcedureName SYSNAME NOT NULL);
+IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssets', N'U') IS NOT NULL
+BEGIN
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_Create'),
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_Get'),
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_AcquireFinalize'),
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_ReleaseFinalize'),
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_RejectFinalize'),
+        (N'FundingPlatform_usp_ProjectAssetUploadIntent_Complete'),
+        (N'FundingPlatform_usp_ProjectAsset_MarkQuarantined'),
+        (N'FundingPlatform_usp_ProjectAsset_List'),
+        (N'FundingPlatform_usp_ProjectAsset_UpdateMetadata'),
+        (N'FundingPlatform_usp_ProjectAsset_Reorder'),
+        (N'FundingPlatform_usp_ProjectAsset_Delete'),
+        (N'FundingPlatform_usp_ProjectAsset_GetTrustedContent'),
+        (N'FundingPlatform_usp_ProjectAsset_ApplyScanResult')) AS names(ProcedureName);
+    INSERT @LaterProcedurePermissions VALUES
+        (@GeneralWorkerRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectAsset_ApplyScanResult', N'P'),
+         N'FundingPlatform_usp_ProjectAsset_ApplyScanResult');
+END;
+IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetDefenderReceipts', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @GeneralWorkerRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_ProjectAssetDefenderReceipt_Record'),
+        (N'FundingPlatform_usp_ProjectAssetDefenderReceipt_Finalize'),
+        (N'FundingPlatform_usp_ProjectAssetScan_WatchdogTimeout')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @GeneralWorkerRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_ProjectAssetContentRetention_Claim'),
+        (N'FundingPlatform_usp_ProjectAssetContentRetention_Complete'),
+        (N'FundingPlatform_usp_ProjectAssetContentRetention_Fail')) AS names(ProcedureName);
+IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
+           WHERE expected.ObjectId IS NULL)
+    THROW 54867, N'Explicit later procedure is missing.', 1;
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search'), N'FundingPlatform_usp_ProjectMap_Search');
+IF OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_FunderWorkspace_Sources'), N'FundingPlatform_usp_FunderWorkspace_Sources');
+IF OBJECT_ID(N'dbo.FundingPlatform_FundingDiscovery', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_FundingDiscovery_Search'),
+        (N'FundingPlatform_usp_FundingDiscovery_AdminGet'),
+        (N'FundingPlatform_usp_FundingDiscovery_Review')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + names.ProcedureName, N'P'), names.ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_ProfessionalProfile_GetOwn'),
+        (N'FundingPlatform_usp_ProfessionalProfile_Search'),
+        (N'FundingPlatform_usp_ProfessionalProfile_Save'),
+        (N'FundingPlatform_usp_Consortium_List'),
+        (N'FundingPlatform_usp_Consortium_Get'),
+        (N'FundingPlatform_usp_Consortium_Create'),
+        (N'FundingPlatform_usp_Consortium_Update'),
+        (N'FundingPlatform_usp_Consortium_Invite'),
+        (N'FundingPlatform_usp_Consortium_ParticipantAction')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context'), N'FundingPlatform_usp_DiscoveryMatching_Context');
+IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
+           WHERE expected.ObjectId IS NULL OR NOT EXISTS
+               (SELECT 1 FROM sys.database_permissions AS permissions
+                WHERE permissions.grantee_principal_id = expected.RoleId
+                  AND permissions.class = 1 AND permissions.major_id = expected.ObjectId
+                  AND permissions.minor_id = 0 AND permissions.permission_name = N'EXECUTE'
+                  AND permissions.state = N'G'))
+    THROW 54867, N'Explicit post-027 procedure grants are incomplete or escalated.', 1;
+
 IF (SELECT COUNT_BIG(1)
     FROM sys.database_permissions AS permissions
     INNER JOIN sys.procedures AS procedures
@@ -49,7 +130,10 @@ IF (SELECT COUNT_BIG(1)
       AND permissions.class = 1
       AND permissions.minor_id = 0
       AND permissions.permission_name = N'EXECUTE'
-      AND permissions.state IN (N'G', N'W')) <> 119
+      AND permissions.state IN (N'G', N'W')
+      AND NOT EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS later
+                      WHERE later.RoleId = permissions.grantee_principal_id
+                        AND later.ObjectId = permissions.major_id)) <> 119
     THROW 54853, N'The API stored-procedure allowlist count is invalid.', 1;
 
 IF (SELECT COUNT_BIG(1)
@@ -60,7 +144,10 @@ IF (SELECT COUNT_BIG(1)
       AND permissions.class = 1
       AND permissions.minor_id = 0
       AND permissions.permission_name = N'EXECUTE'
-      AND permissions.state IN (N'G', N'W')) <> 49
+      AND permissions.state IN (N'G', N'W')
+      AND NOT EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS later
+                      WHERE later.RoleId = permissions.grantee_principal_id
+                        AND later.ObjectId = permissions.major_id)) <> 49
     THROW 54854, N'The general-worker stored-procedure allowlist count is invalid.', 1;
 
 DECLARE @ApiProcedureMaterial NVARCHAR(MAX) =
@@ -80,6 +167,9 @@ DECLARE @ApiProcedureMaterial NVARCHAR(MAX) =
          AND permissions.minor_id = 0
          AND permissions.permission_name = N'EXECUTE'
          AND permissions.state IN (N'G', N'W')
+         AND NOT EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS later
+                         WHERE later.RoleId = permissions.grantee_principal_id
+                           AND later.ObjectId = permissions.major_id)
    );
 DECLARE @GeneralWorkerProcedureMaterial NVARCHAR(MAX) =
    (
@@ -98,6 +188,9 @@ DECLARE @GeneralWorkerProcedureMaterial NVARCHAR(MAX) =
          AND permissions.minor_id = 0
          AND permissions.permission_name = N'EXECUTE'
          AND permissions.state IN (N'G', N'W')
+         AND NOT EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS later
+                         WHERE later.RoleId = permissions.grantee_principal_id
+                           AND later.ObjectId = permissions.major_id)
    );
 
 IF HASHBYTES(N'SHA2_256', @ApiProcedureMaterial) <>
@@ -184,7 +277,16 @@ FROM (VALUES
 ) AS required(TypeName)
 CROSS JOIN (VALUES (N'EXECUTE'), (N'REFERENCES')) AS permissions(PermissionName);
 
-IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTypePermissions) <> 10
+DECLARE @LaterApiTypePermissionCount INT = 0;
+IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssets', N'U') IS NOT NULL
+BEGIN
+    INSERT @ExpectedApiTypePermissions VALUES
+        (TYPE_ID(N'dbo.FundingPlatform_ProjectAssetOrderList'), N'EXECUTE'),
+        (TYPE_ID(N'dbo.FundingPlatform_ProjectAssetOrderList'), N'REFERENCES');
+    SET @LaterApiTypePermissionCount = 2;
+END;
+
+IF (SELECT COUNT_BIG(1) FROM @ExpectedApiTypePermissions) <> 10 + @LaterApiTypePermissionCount
    OR EXISTS (SELECT 1 FROM @ExpectedApiTypePermissions WHERE TypeId IS NULL)
    OR EXISTS
       (
@@ -261,9 +363,11 @@ IF EXISTS
     THROW 54858, N'A runtime role has permission outside its bounded contract.', 1;
 
 IF (SELECT COUNT_BIG(1) FROM sys.database_permissions
-    WHERE grantee_principal_id = @ApiRoleId) <> 147
+    WHERE grantee_principal_id = @ApiRoleId) <> 147 + @LaterApiTypePermissionCount +
+       (SELECT COUNT(*) FROM @LaterProcedurePermissions WHERE RoleId = @ApiRoleId)
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
-       WHERE grantee_principal_id = @GeneralWorkerRoleId) <> 49
+       WHERE grantee_principal_id = @GeneralWorkerRoleId) <> 49 +
+       (SELECT COUNT(*) FROM @LaterProcedurePermissions WHERE RoleId = @GeneralWorkerRoleId)
     THROW 54859, N'Runtime roles contain an unexpected direct permission.', 1;
 
 IF EXISTS

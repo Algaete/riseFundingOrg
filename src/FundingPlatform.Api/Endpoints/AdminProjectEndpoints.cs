@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Projects;
 using FundingPlatform.Contracts.Projects;
@@ -71,10 +72,10 @@ public static class AdminProjectEndpoints
                 422,
                 "Paginación inválida",
                 "invalid-pagination",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    [page < 1 ? "page" : "pageSize"] =
-                        [page < 1 ? "page debe ser al menos 1." : "pageSize debe estar entre 1 y 100."]
+                    { page < 1 ? "page" : "pageSize", page < 1 ? "api-validation-091" : "api-validation-062",
+                        page < 1 ? "page debe ser al menos 1." : "pageSize debe estar entre 1 y 100." }
                 });
         }
 
@@ -108,9 +109,9 @@ public static class AdminProjectEndpoints
                 422,
                 "Decisión inválida",
                 "invalid-review-decision",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    ["decision"] = ["decision debe ser approve o reject."]
+                    { "decision", "api-validation-054", "decision debe ser approve o reject." }
                 });
         }
 
@@ -142,6 +143,7 @@ public static class AdminProjectEndpoints
         item.Title,
         item.Summary,
         (byte)item.Status,
+        item.Stage.HasValue ? (byte?)item.Stage.Value : null,
         (byte)item.PublicationStatus,
         item.OrganizationPublicId,
         item.OrganizationName,
@@ -157,6 +159,7 @@ public static class AdminProjectEndpoints
         project.Summary,
         project.Description,
         (byte)project.Status,
+        project.Stage.HasValue ? (byte?)project.Stage.Value : null,
         (byte)project.PublicationStatus,
         project.StartDate,
         project.EndDate,
@@ -177,7 +180,9 @@ public static class AdminProjectEndpoints
         project.Regions.Select(Map).ToArray(),
         project.Categories.Select(Map).ToArray(),
         project.BeneficiaryTypes.Select(Map).ToArray(),
-        project.ProjectTypes.Select(Map).ToArray());
+        project.ProjectTypes.Select(Map).ToArray(),
+        project.SustainableDevelopmentGoals.Select(Map).ToArray(),
+        ProjectEnrichmentMapping.ToContract(project.Enrichment));
 
     private static PublicProjectTaxonomyResponse Map(PublicProjectTaxonomyItem item) =>
         new(item.Id, item.Code, item.Name);

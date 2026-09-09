@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Claims;
 using FundingPlatform.Application.FundingOpportunities;
@@ -85,7 +86,7 @@ public static class OrganizationFundingOpportunityEndpoints
 
         if (!TryParseFilters(request.Query, out var filters, out var parseErrors))
         {
-            return Results.ValidationProblem(parseErrors);
+            return FieldValidationResults.BadRequest(parseErrors);
         }
 
         var result = await service.SearchAsync(
@@ -97,7 +98,7 @@ public static class OrganizationFundingOpportunityEndpoints
         {
             FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(result.Page!)),
             FundingOpportunityWorkspaceSearchOutcome.ValidationFailed =>
-                Results.ValidationProblem(result.Errors!),
+                FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
         };
     }
@@ -134,12 +135,12 @@ public static class OrganizationFundingOpportunityEndpoints
             return InvalidSession();
         }
 
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         var pageNumber = ParseInt(request.Query, "page", 1, errors);
         var pageSize = ParseInt(request.Query, "pageSize", 20, errors);
         if (errors.Count > 0)
         {
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         }
 
         var result = await service.ListFavoritesAsync(
@@ -152,7 +153,7 @@ public static class OrganizationFundingOpportunityEndpoints
         {
             FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(result.Page!)),
             FundingOpportunityWorkspaceSearchOutcome.ValidationFailed =>
-                Results.ValidationProblem(result.Errors!),
+                FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
         };
     }
@@ -217,9 +218,9 @@ public static class OrganizationFundingOpportunityEndpoints
     private static bool TryParseFilters(
         IQueryCollection query,
         out FundingOpportunitySearchFilters? filters,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         var searchText = Single(query, "q", errors);
         var sponsor = Single(query, "sponsor", errors);
         var currency = Single(query, "currency", errors);
@@ -241,8 +242,7 @@ public static class OrganizationFundingOpportunityEndpoints
         }
         else if (!Sorts.TryGetValue(sortText.Trim(), out sort))
         {
-            errors["sort"] =
-                ["Usa relevance, closing-soon, newest, amount-asc o amount-desc."];
+            errors.Set("sort", "api-validation-110", "Usa relevance, closing-soon, newest, amount-asc o amount-desc.");
         }
 
         var countryIds = ParseIds<short>(query, "countryIds", short.TryParse, errors);
@@ -292,7 +292,7 @@ public static class OrganizationFundingOpportunityEndpoints
     private static string? Single(
         IQueryCollection query,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (!query.TryGetValue(key, out var values) || values.Count == 0)
         {
@@ -301,7 +301,7 @@ public static class OrganizationFundingOpportunityEndpoints
 
         if (values.Count != 1)
         {
-            errors[key] = ["Envía este parámetro una sola vez."];
+            errors.Set(key, "api-validation-111", "Envía este parámetro una sola vez.");
             return null;
         }
 
@@ -312,7 +312,7 @@ public static class OrganizationFundingOpportunityEndpoints
         IQueryCollection query,
         string key,
         int defaultValue,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = Single(query, key, errors);
         if (raw is null)
@@ -325,14 +325,14 @@ public static class OrganizationFundingOpportunityEndpoints
             return parsed;
         }
 
-        errors[key] = ["Debe ser un número entero válido."];
+        errors.Set(key, "api-validation-112", "Debe ser un número entero válido.");
         return defaultValue;
     }
 
     private static decimal? ParseDecimal(
         IQueryCollection query,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = Single(query, key, errors);
         if (raw is null)
@@ -349,14 +349,14 @@ public static class OrganizationFundingOpportunityEndpoints
             return parsed;
         }
 
-        errors[key] = ["Debe ser un monto válido usando punto decimal."];
+        errors.Set(key, "api-validation-113", "Debe ser un monto válido usando punto decimal.");
         return null;
     }
 
     private static DateOnly? ParseDate(
         IQueryCollection query,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = Single(query, key, errors);
         if (raw is null)
@@ -370,7 +370,7 @@ public static class OrganizationFundingOpportunityEndpoints
             return parsed;
         }
 
-        errors[key] = ["Usa el formato de fecha AAAA-MM-DD."];
+        errors.Set(key, "api-validation-114", "Usa el formato de fecha AAAA-MM-DD.");
         return null;
     }
 
@@ -378,7 +378,7 @@ public static class OrganizationFundingOpportunityEndpoints
         IQueryCollection query,
         string key,
         bool defaultValue,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = Single(query, key, errors);
         if (raw is null)
@@ -391,7 +391,7 @@ public static class OrganizationFundingOpportunityEndpoints
             return parsed;
         }
 
-        errors[key] = ["Debe ser true o false."];
+        errors.Set(key, "api-validation-115", "Debe ser true o false.");
         return defaultValue;
     }
 
@@ -401,7 +401,7 @@ public static class OrganizationFundingOpportunityEndpoints
         IQueryCollection query,
         string key,
         TryParseValue<T> parser,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (!query.TryGetValue(key, out StringValues values) || values.Count == 0)
         {
@@ -415,14 +415,14 @@ public static class OrganizationFundingOpportunityEndpoints
         {
             if (raw.Length == 0 || !parser(raw, out var value))
             {
-                errors[key] = ["Contiene uno o más identificadores inválidos."];
+                errors.Set(key, "api-validation-116", "Contiene uno o más identificadores inválidos.");
                 return [];
             }
 
             parsed.Add(value);
             if (parsed.Count > 50)
             {
-                errors[key] = ["Admite hasta 50 identificadores."];
+                errors.Set(key, "api-validation-117", "Admite hasta 50 identificadores.");
                 return [];
             }
         }

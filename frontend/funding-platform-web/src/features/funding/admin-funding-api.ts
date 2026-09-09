@@ -272,6 +272,7 @@ function editorialApi(prefix: string) {
       decision: ReviewDecision,
       reason?: string,
     ) {
+      if (prefix.startsWith('funder-workspace/')) return Promise.reject(new Error('Owner review is not allowed'))
       return apiClient.post<EditorialWorkflowResponse>(
         entityPath(prefix, id, '/reviews'),
         { decision, ...(reason ? { reason } : {}) },
@@ -295,10 +296,11 @@ function editorialApi(prefix: string) {
   }
 }
 
-const funderPrefix = 'admin/funders'
-const opportunityPrefix = 'admin/funding-opportunities'
+export function createFundingEditorialApis(prefix: 'admin' | 'funder-workspace') {
+const funderPrefix = `${prefix}/funders`
+const opportunityPrefix = `${prefix}/funding-opportunities`
 
-export const adminFundersApi = {
+const funders = {
   list(filters: AdminListFilters, signal?: AbortSignal) {
     return apiClient.get<AdminPage<AdminFunderSummary>>(
       `${funderPrefix}?${listQuery(filters)}`,
@@ -321,7 +323,7 @@ export const adminFundersApi = {
   ...editorialApi(funderPrefix),
 }
 
-export const adminFundingOpportunitiesApi = {
+const opportunities = {
   list(filters: AdminListFilters, signal?: AbortSignal) {
     return apiClient.get<AdminPage<AdminFundingOpportunitySummary>>(
       `${opportunityPrefix}?${listQuery(filters)}`,
@@ -344,11 +346,19 @@ export const adminFundingOpportunitiesApi = {
   ...editorialApi(opportunityPrefix),
 }
 
-export const adminFundingSourcesApi = {
+const sources = {
   list(signal?: AbortSignal) {
-    return apiClient.get<AdminFundingSource[]>('admin/funding-sources', {
+    return apiClient.get<AdminFundingSource[]>(`${prefix}/funding-sources`, {
       cache: 'no-store',
       signal,
     })
   },
 }
+
+return { funders, opportunities, sources }
+}
+
+const administration = createFundingEditorialApis('admin')
+export const adminFundersApi = administration.funders
+export const adminFundingOpportunitiesApi = administration.opportunities
+export const adminFundingSourcesApi = administration.sources

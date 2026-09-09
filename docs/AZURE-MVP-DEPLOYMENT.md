@@ -111,6 +111,19 @@ gate propio de 12B.
 
 No habilitar acceso público anónimo en Blob. No usar account keys en App Settings.
 
+Los incrementos locales `036`→`038` no activan automáticamente sus adjuntos de proyecto. Bicep ya
+declara los containers privados `fp-project-incoming`, `fp-project-quarantine` y
+`fp-project-trusted`, CORS exacto y lifecycle, y el código incluye el worker autenticado de
+resultados Defender/Event Grid; nada de eso se ha aplicado o activado en Azure. Antes de habilitar se
+deben validar RBAC mínimo, provisionar Defender/Event Grid, incorporar retención DB-driven para
+adjuntos eliminados y cuarentenas terminales, y ejecutar E2E limpio y malicioso. `038` ya prepara
+localmente imágenes JPEG/PNG/WebP decodificadas y re-encodificadas sin metadatos, PDF byte-exactos,
+manifiestos `Trusted*`, separación del estado observado/efectivo y revocación exacta fail-closed.
+La API y el worker general quedan dirigidos a `linux-x64` por la dependencia nativa de Skia, pero no
+se publicaron. `038` tampoco se ejecutó contra SQL Server/Azure SQL. Hasta entonces mantener
+`ProjectAssets:Enabled=false`, `ProjectAssetDefenderEventGrid:Enabled=false` y
+`VITE_PROJECT_ASSETS_ENABLED=false`; video corresponde a una fase posterior.
+
 ## 5. Crear las aplicaciones
 
 1. Crear Azure Static Web Apps para el frontend.
@@ -195,6 +208,15 @@ AZURE_STORAGE_BLOB_SERVICE_URI=https://<documents>.blob.core.windows.net
 SOURCE_DOCUMENT_INCOMING_CONTAINER=fp-source-incoming
 SOURCE_DOCUMENT_QUARANTINE_CONTAINER=fp-source-quarantine
 SOURCE_DOCUMENT_TRUSTED_CONTAINER=fp-source-trusted
+PROJECT_ASSETS_ENABLED=false
+PROJECT_ASSET_INCOMING_CONTAINER=fp-project-incoming
+PROJECT_ASSET_QUARANTINE_CONTAINER=fp-project-quarantine
+PROJECT_ASSET_TRUSTED_CONTAINER=fp-project-trusted
+PROJECT_ASSET_SCAN_MODE=MicrosoftDefender
+PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED=false
+PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME=<suscripcion-event-grid-exacta-y-distinta>
+PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES=240
+PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE=25
 FRONTEND_BASE_URL=https://app.<dominio>
 ALLOWED_CORS_ORIGINS=https://app.<dominio>
 Authentication__Jwt__Issuer=https://api.<dominio>
@@ -279,8 +301,9 @@ bash infra/scripts/prepare-database-dev.sh
 
 El wrapper exige `main` limpio e idéntico a `origin/main`, al menos 2 GiB libres y una terminal
 interactiva para la contraseña del SuperAdmin. La autenticación del operador queda fijada a la
-sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, confirma las 30
-migraciones registradas sin pendientes y luego ejecuta los 30 smokes con rollback, verifica
+sesión de Azure CLI ya validada. En el estado actual ejecuta primero `--preflight`, aplica las
+migraciones pendientes, confirma 37 migraciones registradas sin pendientes y luego ejecuta los 37
+smokes con rollback, verifica
 `Full-Text 8A: listo`, prueba reapply/provisioning idempotentes y vincula las tres UAMI SQL por
 `clientId`/SID sin Microsoft Graph. El procedimiento exacto y sus prerrequisitos están en
 [`infra/DEV-DEPLOYMENT-CHECKLIST.md`](../infra/DEV-DEPLOYMENT-CHECKLIST.md).
@@ -303,6 +326,7 @@ Resuelve desde Azure y fija durante el build estas variables, públicas por defi
 ```text
 VITE_API_BASE_URL=https://<api-fqdn>.azurecontainerapps.io/api/v1
 VITE_EXTERNAL_AUTH_BASE_URL=https://<api-fqdn>.azurecontainerapps.io/api/v1
+VITE_PROJECT_ASSETS_ENABLED=false
 ```
 
 `public/staticwebapp.config.json` incluye fallback SPA y cabeceras básicas; Vite lo copia a `dist`.
@@ -314,6 +338,11 @@ almacena en GitHub. La credencial original sigue siendo persistente en Azure has
 El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API. Esto no valida aún
 refresh/login persistente entre hosts cross-site ni PUT directo a Blob; esas pruebas esperan dominios
 same-site y CORS/Functions/Defender para importación.
+
+Para `036`→`038`, desplegar en este orden: base de datos `036`→`038` → API en el 100 % del tráfico → containers,
+RBAC, CORS, lifecycle, sanitización y worker Defender/Event Grid verificados → frontend. Cambiar
+`VITE_PROJECT_ASSETS_ENABLED=true` únicamente en el último paso y solo si el backend ya está
+habilitado; no exponer la interfaz durante un rollout parcial.
 
 ## 12. Despliegue continuo
 

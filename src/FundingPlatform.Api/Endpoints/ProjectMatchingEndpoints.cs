@@ -75,7 +75,7 @@ public static class ProjectMatchingEndpoints
         return result.Outcome switch
         {
             ProjectMatchingOutcome.Success => Results.Ok(Map(result.Page!)),
-            ProjectMatchingOutcome.ValidationFailed => Results.ValidationProblem(result.Errors!),
+            ProjectMatchingOutcome.ValidationFailed => FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
         };
     }

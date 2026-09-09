@@ -143,13 +143,15 @@ BEGIN TRY
     (
         ProjectPublicId UNIQUEIDENTIFIER, Slug NVARCHAR(180), Title NVARCHAR(250),
         Summary NVARCHAR(1000), Description NVARCHAR(MAX), ProjectStatus TINYINT,
-        StartDate DATE, EndDate DATE, BudgetTotal DECIMAL(19,4),
+        ProjectStage TINYINT, StartDate DATE, EndDate DATE, BudgetTotal DECIMAL(19,4),
         ConfirmedFunding DECIMAL(19,4), Currency CHAR(3), FundingGap DECIMAL(19,4),
         ProjectVersion INT, PublishedAtUtc DATETIME2(3), UpdatedAtUtc DATETIME2(3),
+        EnrichmentJson NVARCHAR(MAX),
         OrganizationPublicId UNIQUEIDENTIFIER, OrganizationName NVARCHAR(250),
         OrganizationWebsiteUrl NVARCHAR(2048), CountriesJson NVARCHAR(MAX),
         RegionsJson NVARCHAR(MAX), CategoriesJson NVARCHAR(MAX),
-        BeneficiaryTypesJson NVARCHAR(MAX), ProjectTypesJson NVARCHAR(MAX)
+        BeneficiaryTypesJson NVARCHAR(MAX), ProjectTypesJson NVARCHAR(MAX),
+        SustainableDevelopmentGoalsJson NVARCHAR(MAX)
     );
     INSERT INTO @PublicProjection EXEC dbo.FundingPlatform_usp_Project_Public_GetBySlug @Slug = @MainSlug;
     IF EXISTS (SELECT 1 FROM @PublicProjection)
@@ -265,8 +267,8 @@ BEGIN TRY
     DECLARE @AdminReviewDetail TABLE
     (
         ProjectPublicId UNIQUEIDENTIFIER, Slug NVARCHAR(180), Title NVARCHAR(250),
-        Summary NVARCHAR(1000), Description NVARCHAR(MAX), ProjectStatus TINYINT,
-        PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
+        Summary NVARCHAR(1000), Description NVARCHAR(MAX), EnrichmentJson NVARCHAR(MAX),
+        ProjectStatus TINYINT, ProjectStage TINYINT, PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
         BudgetTotal DECIMAL(19,4), ConfirmedFunding DECIMAL(19,4), Currency CHAR(3),
         FundingGap DECIMAL(19,4), ProjectVersion INT, PublishedAtUtc DATETIME2(3),
         UpdatedAtUtc DATETIME2(3), OrganizationPublicId UNIQUEIDENTIFIER,
@@ -274,7 +276,8 @@ BEGIN TRY
         SubmittedAtUtc DATETIME2(3), RejectionReason NVARCHAR(1000),
         Completeness DECIMAL(5,2), RowVersion BINARY(8), CountriesJson NVARCHAR(MAX),
         RegionsJson NVARCHAR(MAX), CategoriesJson NVARCHAR(MAX),
-        BeneficiaryTypesJson NVARCHAR(MAX), ProjectTypesJson NVARCHAR(MAX)
+        BeneficiaryTypesJson NVARCHAR(MAX), ProjectTypesJson NVARCHAR(MAX),
+        SustainableDevelopmentGoalsJson NVARCHAR(MAX)
     );
     INSERT INTO @AdminReviewDetail EXEC dbo.FundingPlatform_usp_Project_AdminReview_Get
         @AdminUserPublicId = @AdminPublicId, @ProjectPublicId = @MainProjectPublicId;

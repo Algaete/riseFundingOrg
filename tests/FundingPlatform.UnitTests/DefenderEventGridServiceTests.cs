@@ -132,6 +132,32 @@ public sealed class DefenderEventGridServiceTests
     }
 
     [Fact]
+    public async Task Replayed_clean_cannot_recreate_trusted_content_after_late_revocation()
+    {
+        var receipts = new FakeReceipts();
+        var documents = new FakeDocuments(new SourceDocumentMutation(
+            true,
+            "scan-result-applied",
+            SourceDocumentPublicId: DocumentId,
+            StorageStatus: SourceDocumentStorageStatus.Quarantined,
+            ScanStatus: SourceDocumentScanStatus.Malicious,
+            WasReplay: true));
+        var blobs = new FakeBlobs();
+        var service = CreateService(receipts, documents, blobs);
+
+        var result = await service.HandleAsync(
+            Event("No threats found"), "Notification", "defender-results", Caller(),
+            CancellationToken.None);
+
+        Assert.Equal(DefenderEventGridOutcome.Applied, result.Outcome);
+        Assert.Equal("scan-result-applied", result.Code);
+        Assert.Equal("fp-source-trusted", blobs.DeletedLocation!.Container);
+        Assert.Equal("\"trusted-etag\"", blobs.DeletedETag);
+        Assert.Equal(1, receipts.FinalizeCalls);
+        Assert.True(receipts.FinalizedApplied);
+    }
+
+    [Fact]
     public async Task Retention_winning_after_receipt_acceptance_is_terminally_ignored()
     {
         var receipts = new FakeReceipts();

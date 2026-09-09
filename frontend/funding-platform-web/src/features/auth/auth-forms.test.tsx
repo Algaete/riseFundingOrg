@@ -69,6 +69,27 @@ describe('RegisterForm', () => {
     vi.restoreAllMocks()
   })
 
+  it('identifica claramente todos los campos obligatorios', () => {
+    renderRegisterForm()
+
+    expect(screen.getByText(/Campos obligatorios/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Nombre/)).toBeRequired()
+    expect(screen.getByLabelText(/^Correo/)).toBeRequired()
+    expect(screen.getByLabelText(/^Contraseña/)).toBeRequired()
+    expect(screen.getByLabelText(/^Confirmar contraseña/)).toBeRequired()
+  })
+
+  it('vincula los errores de registro con cada campo', async () => {
+    const user = userEvent.setup()
+    renderRegisterForm()
+
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    const name = screen.getByLabelText(/^Nombre/)
+    expect(name).toHaveAttribute('aria-invalid', 'true')
+    expect(name).toHaveAccessibleDescription('Ingresa tu nombre')
+  })
+
   it('envía una sola solicitud aunque se pulse dos veces y conserva el bloqueo', async () => {
     var resolveRegistration: (value: AcceptedResponse) => void = () => undefined
     const request = new Promise<AcceptedResponse>((resolve) => {
@@ -78,10 +99,10 @@ describe('RegisterForm', () => {
     const user = userEvent.setup()
     const firstRender = renderRegisterForm()
 
-    await user.type(screen.getByLabelText('Nombre'), 'Fundación de prueba')
-    await user.type(screen.getByLabelText('Correo'), 'fundacion@example.test')
-    await user.type(screen.getByLabelText('Contraseña'), 'UnaClaveLocal-2026')
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'UnaClaveLocal-2026')
+    await user.type(screen.getByLabelText(/^Nombre/), 'Fundación de prueba')
+    await user.type(screen.getByLabelText(/^Correo/), 'fundacion@example.test')
+    await user.type(screen.getByLabelText(/^Contraseña/), 'UnaClaveLocal-2026')
+    await user.type(screen.getByLabelText(/^Confirmar contraseña/), 'UnaClaveLocal-2026')
 
     const createAccount = screen.getByRole('button', { name: 'Crear cuenta' })
     fireEvent.click(createAccount)
@@ -89,7 +110,8 @@ describe('RegisterForm', () => {
 
     await waitFor(() => expect(register).toHaveBeenCalledTimes(1))
     resolveRegistration({ message: 'Solicitud aceptada.' })
-    expect(await screen.findByText('Solicitud aceptada.')).toBeInTheDocument()
+    expect(await screen.findByText('Si la solicitud es válida, recibirás instrucciones por correo.')).toBeInTheDocument()
+    expect(screen.queryByText('Solicitud aceptada.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Crear cuenta' })).not.toBeInTheDocument()
 
     firstRender.unmount()

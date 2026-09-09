@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/http-client'
+import type { ProjectEnrichment } from './project-enrichment'
 
 export interface ProjectSummary {
   publicId: string
@@ -6,6 +7,7 @@ export interface ProjectSummary {
   title: string
   summary: string | null
   status: number
+  projectStage: number | null
   publicationStatus: number
   startDate: string | null
   endDate: string | null
@@ -18,6 +20,7 @@ export interface ProjectSummary {
 }
 
 export interface ProjectDetails extends ProjectSummary {
+  enrichment?: ProjectEnrichment | null
   description: string | null
   submittedAtUtc: string | null
   reviewedAtUtc: string | null
@@ -29,13 +32,16 @@ export interface ProjectDetails extends ProjectSummary {
   categoryIds: number[]
   beneficiaryTypeIds: number[]
   projectTypeIds: number[]
+  sustainableDevelopmentGoalIds: number[]
 }
 
 export interface ProjectWriteInput {
+  enrichment?: ProjectEnrichment | null
   title: string
   summary: string | null
   description: string | null
   status: number
+  projectStage: number | null
   startDate: string | null
   endDate: string | null
   budgetTotal: number | null
@@ -46,6 +52,7 @@ export interface ProjectWriteInput {
   categoryIds: number[]
   beneficiaryTypeIds: number[]
   projectTypeIds: number[]
+  sustainableDevelopmentGoalIds: number[]
 }
 
 export interface PersistedProject {
@@ -68,6 +75,7 @@ export interface ProjectReviewQueueItem {
   title: string
   summary: string | null
   projectStatus: number
+  projectStage: number | null
   publicationStatus: number
   organizationPublicId: string
   organizationName: string
@@ -101,12 +109,14 @@ export interface PublicProjectRegion extends PublicProjectCatalogItem {
 }
 
 export interface PublicProject {
+  enrichment?: ProjectEnrichment | null
   projectId: string
   slug: string
   title: string
   summary: string | null
   description: string | null
   projectStatus: number
+  projectStage: number | null
   startDate: string | null
   endDate: string | null
   budgetTotal: number | null
@@ -120,6 +130,7 @@ export interface PublicProject {
   categories: PublicProjectCatalogItem[]
   beneficiaryTypes: PublicProjectCatalogItem[]
   projectTypes: PublicProjectCatalogItem[]
+  sustainableDevelopmentGoals: PublicProjectCatalogItem[]
 }
 
 export interface ProjectReviewDetails extends Omit<PublicProject, 'publishedAtUtc'> {

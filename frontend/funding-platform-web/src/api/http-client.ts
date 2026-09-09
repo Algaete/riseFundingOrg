@@ -14,6 +14,12 @@ export interface ApiRequestOptions
   headers?: HeadersInit
 }
 
+export interface ApiBlobResponse {
+  blob: Blob
+  contentDisposition: string | null
+  contentType: string | null
+}
+
 export class ApiError extends Error {
   readonly problem: ProblemDetails
   readonly response: Response
@@ -78,9 +84,13 @@ export class HttpClient {
     this.baseUrl = baseUrl
   }
 
-  async request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  private async send(
+    path: string,
+    options: ApiRequestOptions,
+    defaultAccept: string,
+  ): Promise<Response> {
     const headers = new Headers(options.headers)
-    if (!headers.has('Accept')) headers.set('Accept', 'application/json')
+    if (!headers.has('Accept')) headers.set('Accept', defaultAccept)
     const sessionAtStart = getAuthState().session
     const accessToken = getAccessToken()
     if (accessToken && !headers.has('Authorization')) {
@@ -93,7 +103,7 @@ export class HttpClient {
     const send = () =>
       fetch(requestUrl, {
         ...options,
-        headers,
+        headers: new Headers(headers),
         credentials: options.credentials ?? 'include',
         body,
       })
@@ -114,15 +124,35 @@ export class HttpClient {
       response = await send()
     }
 
-    if (!response.ok) {
-      throw new ApiError(await toProblemDetails(response), response)
-    }
+    if (!response.ok) throw new ApiError(await toProblemDetails(response), response)
+
+    return response
+  }
+
+  async request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+    const response = await this.send(path, options, 'application/json')
 
     if (response.status === 204) return undefined as T
 
     const contentType = response.headers.get('content-type') ?? ''
     if (contentType.includes('json')) return (await response.json()) as T
     return (await response.text()) as T
+  }
+
+  async getBlob(
+    path: string,
+    options: ApiRequestOptions = {},
+  ): Promise<ApiBlobResponse> {
+    const response = await this.send(
+      path,
+      { ...options, cache: options.cache ?? 'no-store', method: 'GET' },
+      '*/*',
+    )
+    return {
+      blob: await response.blob(),
+      contentDisposition: response.headers.get('content-disposition'),
+      contentType: response.headers.get('content-type'),
+    }
   }
 
   get<T>(path: string, options?: ApiRequestOptions) {

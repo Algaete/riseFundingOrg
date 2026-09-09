@@ -50,6 +50,7 @@ describe('panel de control administrativo', () => {
         title: 'Agua rural',
         summary: 'Resumen',
         projectStatus: 1,
+        projectStage: null,
         publicationStatus: 1,
         organizationPublicId: '33333333-3333-3333-3333-333333333333',
         organizationName: 'ONG Demo',

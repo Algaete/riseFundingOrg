@@ -73,10 +73,10 @@ public static class ProjectEndpoints
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(principal, out var userId)) return InvalidSession();
-        if (!TryMap(request, out var project, out var collectionError)) return collectionError!;
-        var result = await service.CreateAsync(userId, organizationId, project!, cancellationToken);
+        var project = Map(request);
+        var result = await service.CreateAsync(userId, organizationId, project, cancellationToken);
         if (result.Outcome == ProjectWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == ProjectWriteOutcome.NotFound) return NotFound();
         if (result.Project is null)
             return Problem(500, "No fue posible crear el proyecto", null, "project-create-failed");
@@ -116,11 +116,41 @@ public static class ProjectEndpoints
         if (!TryGetUserId(principal, out var userId)) return InvalidSession();
         if (!TryParseETag(context.Request.Headers.IfMatch, out var expectedRowVersion))
             return Problem(428, "Versión requerida", "Vuelve a cargar el proyecto e intenta nuevamente.", "if-match-required");
-        if (!TryMap(request, out var data, out var collectionError)) return collectionError!;
+        var effectiveRequest = request;
+        if (request.CountryIds is null || request.RegionIds is null ||
+            request.CategoryIds is null || request.BeneficiaryTypeIds is null ||
+            request.ProjectTypeIds is null || request.SustainableDevelopmentGoalIds is null ||
+            request.Enrichment is null)
+        {
+            /* Omitted collections/enrichment mean "unchanged" on update. This keeps
+               partial and pre-033/pre-040 clients from erasing optional draft data.
+               New clients send [] to clear a selection or {} to clear enrichment.
+               If-Match below protects this read from a concurrent writer. */
+            var current = await service.GetAsync(
+                userId, organizationId, projectId, cancellationToken);
+            if (current is null) return NotFound();
+            effectiveRequest = request with
+            {
+                CountryIds = request.CountryIds ?? current.CountryIds,
+                RegionIds = request.RegionIds ?? current.RegionIds,
+                CategoryIds = request.CategoryIds ?? current.CategoryIds,
+                BeneficiaryTypeIds = request.BeneficiaryTypeIds ?? current.BeneficiaryTypeIds,
+                ProjectTypeIds = request.ProjectTypeIds ?? current.ProjectTypeIds,
+                ProjectStage = request.SustainableDevelopmentGoalIds is null
+                    ? request.ProjectStage ??
+                      (current.Stage.HasValue ? (byte?)current.Stage.Value : null)
+                    : request.ProjectStage,
+                SustainableDevelopmentGoalIds = request.SustainableDevelopmentGoalIds ??
+                    current.SustainableDevelopmentGoalIds,
+                Enrichment = request.Enrichment ?? ProjectEnrichmentMapping.ToContract(current.Enrichment)
+            };
+        }
+
+        var data = Map(effectiveRequest);
         var result = await service.UpdateAsync(
-            userId, organizationId, projectId, expectedRowVersion, data!, cancellationToken);
+            userId, organizationId, projectId, expectedRowVersion, data, cancellationToken);
         if (result.Outcome == ProjectWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == ProjectWriteOutcome.NotFound) return NotFound();
         if (result.Outcome == ProjectWriteOutcome.Conflict)
             return Problem(409, "El proyecto cambió",
@@ -203,45 +233,36 @@ public static class ProjectEndpoints
         return ProjectEndpointResults.MapWorkflow(result, context);
     }
 
-    private static bool TryMap(
-        ProjectWriteRequest request,
-        out ProjectData? project,
-        out IResult? error)
-    {
-        project = null;
-        error = null;
-        if (request.CountryIds is null || request.RegionIds is null || request.CategoryIds is null ||
-            request.BeneficiaryTypeIds is null || request.ProjectTypeIds is null)
-        {
-            error = Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["collections"] = ["Todas las colecciones del proyecto deben enviarse."]
-            });
-            return false;
-        }
-
-        project = new ProjectData(
-            request.Title, request.Summary, request.Description, (ProjectStatus)request.Status,
+    private static ProjectData Map(ProjectWriteRequest request) =>
+        new(
+            request.Title ?? string.Empty, request.Summary, request.Description,
+            (ProjectStatus)request.Status,
+            request.ProjectStage.HasValue ? (ProjectStage?)request.ProjectStage.Value : null,
             request.StartDate, request.EndDate, request.BudgetTotal, request.ConfirmedFunding,
-            request.Currency, request.CountryIds, request.RegionIds, request.CategoryIds,
-            request.BeneficiaryTypeIds, request.ProjectTypeIds);
-        return true;
-    }
+            request.Currency, request.CountryIds ?? [], request.RegionIds ?? [],
+            request.CategoryIds ?? [], request.BeneficiaryTypeIds ?? [],
+            request.ProjectTypeIds ?? [],
+            request.SustainableDevelopmentGoalIds ?? [],
+            ProjectEnrichmentMapping.ToDomain(request.Enrichment));
 
     private static ProjectSummaryResponse MapSummary(ProjectSummary project) => new(
         project.PublicId, project.Slug, project.Title, project.Summary, (byte)project.Status,
+        project.Stage.HasValue ? (byte?)project.Stage.Value : null,
         (byte)project.PublicationStatus, project.StartDate, project.EndDate,
         project.BudgetTotal, project.ConfirmedFunding, project.Currency, project.FundingGap,
         project.ProjectVersion, project.UpdatedAtUtc);
 
     private static ProjectResponse Map(ProjectDetails project) => new(
         project.PublicId, project.Slug, project.Title, project.Summary, project.Description,
-        (byte)project.Status, (byte)project.PublicationStatus, project.StartDate, project.EndDate,
+        (byte)project.Status, project.Stage.HasValue ? (byte?)project.Stage.Value : null,
+        (byte)project.PublicationStatus, project.StartDate, project.EndDate,
         project.BudgetTotal, project.ConfirmedFunding, project.Currency, project.FundingGap,
         project.ProjectVersion, project.UpdatedAtUtc, FormatETag(project.RowVersion),
         project.CountryIds, project.RegionIds, project.CategoryIds,
-        project.BeneficiaryTypeIds, project.ProjectTypeIds, project.SubmittedAtUtc,
-        project.ReviewedAtUtc, project.RejectionReason, project.PublishedAtUtc);
+        project.BeneficiaryTypeIds, project.ProjectTypeIds,
+        project.SustainableDevelopmentGoalIds, project.SubmittedAtUtc,
+        project.ReviewedAtUtc, project.RejectionReason, project.PublishedAtUtc,
+        ProjectEnrichmentMapping.ToContract(project.Enrichment));
 
     private static string FormatETag(byte[] rowVersion) => $"\"{Convert.ToHexString(rowVersion)}\"";
 

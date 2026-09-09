@@ -67,13 +67,98 @@ describe('proyectos', () => {
     render(<App router={router} queryClient={createAppQueryClient()} />)
 
     await user.click(await screen.findByRole('button', { name: 'Nuevo proyecto' }))
-    await user.type(screen.getByLabelText('Título'), 'Proyecto con fechas')
+    await user.type(screen.getByLabelText(/Título/), 'Proyecto con fechas')
     await user.type(screen.getByLabelText('Inicio'), '2027-12-31')
     await user.type(screen.getByLabelText('Término'), '2027-01-01')
     await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
 
     expect(await screen.findByText('La fecha de término no puede ser anterior al inicio.')).toBeInTheDocument()
     expect(createRequests).toBe(0)
+  })
+
+  it('marca el título y las dependencias financieras obligatorias sin enviar un borrador inválido', async () => {
+    setAuthenticatedSession({
+      status: 'authenticated', accessToken: 'project-required-fields-token',
+      accessTokenExpiresAtUtc: '2026-08-21T12:00:00Z',
+      user: { publicId: '89b8d22a-472c-42e4-b034-c772ce3bb08e', email: 'member@example.test', displayName: 'Miembro demo', preferredLocale: 'es-CL', roles: ['Professional'], mfaEnabled: false },
+    })
+    let createRequests = 0
+    vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/organizations')) return json([{ publicId: organizationId, name: 'Fundación Demo', membershipRole: 'admin', profileStatus: 2, profileCompleteness: 100, profileVersion: 2, updatedAtUtc: '2026-08-21T04:00:00Z' }])
+      if (url.endsWith('/catalogs')) return json({ countries: [], regions: [], currencies: [{ code: 'USD', name: 'Dólar estadounidense', minorUnits: 2 }], fundingCategories: [], fundingTypes: [], organizationTypes: [], legalEntityTypes: [], organizationSizes: [], beneficiaryTypes: [], projectTypes: [], tags: [], languages: [], sustainableDevelopmentGoals: [] })
+      if (url.endsWith(`/organizations/${organizationId}/projects`) && init?.method === 'POST') {
+        createRequests += 1
+        return json({})
+      }
+      if (url.endsWith(`/organizations/${organizationId}/projects`)) return json([])
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+
+    const user = userEvent.setup()
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/projects'] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Nuevo proyecto' }))
+    expect(screen.getByLabelText(/Título/)).toBeRequired()
+    await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
+    expect(await screen.findByText('Ingresa el título del proyecto.')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/Título/), 'Proyecto con presupuesto')
+    await user.type(screen.getByLabelText(/Presupuesto total/), '25000')
+    await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
+    expect(await screen.findByText('Selecciona la moneda del presupuesto.')).toBeInTheDocument()
+    expect(createRequests).toBe(0)
+  })
+
+  it('crea buscando financiamiento con etapa y varios ODS sin mostrar estados históricos', async () => {
+    setAuthenticatedSession({
+      status: 'authenticated', accessToken: 'project-impact-test-token',
+      accessTokenExpiresAtUtc: '2026-08-21T12:00:00Z',
+      user: { publicId: '89b8d22a-472c-42e4-b034-c772ce3bb08e', email: 'member@example.test', displayName: 'Miembro demo', preferredLocale: 'es-CL', roles: ['Professional'], mfaEnabled: false },
+    })
+    let submitted: Record<string, unknown> | null = null
+    vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/organizations')) return json([{ publicId: organizationId, name: 'Fundación Demo', membershipRole: 'admin', profileStatus: 2, profileCompleteness: 100, profileVersion: 2, updatedAtUtc: '2026-08-21T04:00:00Z' }])
+      if (url.endsWith('/catalogs')) return json({ countries: [], regions: [], currencies: [], fundingCategories: [], fundingTypes: [], organizationTypes: [], legalEntityTypes: [], organizationSizes: [], beneficiaryTypes: [], projectTypes: [], tags: [], languages: [], sustainableDevelopmentGoals: [{ id: 1, code: 'SDG_01', name: 'Fin de la pobreza' }, { id: 17, code: 'SDG_17', name: 'Alianzas para lograr los objetivos' }] })
+      if (url.endsWith(`/organizations/${organizationId}/projects`) && init?.method === 'POST') {
+        submitted = JSON.parse(String(init.body)) as Record<string, unknown>
+        return json({ publicId: 'bd351806-9139-4524-bc01-93c3676729cb', projectVersion: 1, eTag: '"0000000000000001"' })
+      }
+      if (url.endsWith(`/organizations/${organizationId}/projects`)) return json([])
+      if (url.endsWith(`/organizations/${organizationId}/projects/bd351806-9139-4524-bc01-93c3676729cb`)) return json({
+        publicId: 'bd351806-9139-4524-bc01-93c3676729cb', slug: 'impacto-ods', title: 'Impacto ODS',
+        summary: null, description: null, status: 2, projectStage: 3, publicationStatus: 0,
+        startDate: null, endDate: null, budgetTotal: null, confirmedFunding: null,
+        currency: null, fundingGap: null, projectVersion: 1, updatedAtUtc: '2026-08-21T04:00:00Z',
+        eTag: '"0000000000000001"', countryIds: [], regionIds: [], categoryIds: [],
+        beneficiaryTypeIds: [], projectTypeIds: [], sustainableDevelopmentGoalIds: [1, 17],
+        submittedAtUtc: null, reviewedAtUtc: null, rejectionReason: null, publishedAtUtc: null,
+      })
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+
+    const user = userEvent.setup()
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/projects'] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Nuevo proyecto' }))
+    expect(screen.queryByLabelText('Estado del proyecto')).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /^Idea$/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /^Diseño$/ })).not.toBeInTheDocument()
+    await user.type(screen.getByLabelText(/Título/), 'Impacto ODS')
+    await user.selectOptions(screen.getByLabelText('Etapa del proyecto'), '3')
+    await user.click(screen.getByLabelText('ODS 1 · Fin de la pobreza'))
+    await user.click(screen.getByLabelText('ODS 17 · Alianzas para lograr los objetivos'))
+    await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
+
+    await vi.waitFor(() => expect(submitted).not.toBeNull())
+    expect(submitted).toMatchObject({
+      status: 2,
+      projectStage: 3,
+      sustainableDevelopmentGoalIds: [1, 17],
+    })
   })
 
   it('muestra un perfil público publicado sin datos legales de la organización', async () => {
@@ -88,6 +173,7 @@ describe('proyectos', () => {
         projectId: 'bd351806-9139-4524-bc01-93c3676729cb', slug: 'agua-segura-demo',
         title: 'Agua segura', summary: 'Acceso rural sostenible',
         description: 'Soluciones comunitarias para el acceso seguro al agua.', projectStatus: 2,
+        projectStage: 2,
         startDate: '2027-01-01', endDate: '2027-12-31', budgetTotal: 100000,
         confirmedFunding: 25000, currency: 'CLP', fundingGap: 75000,
         publishedAtUtc: '2026-08-21T10:00:00Z',
@@ -97,6 +183,7 @@ describe('proyectos', () => {
         categories: [{ id: 1, code: 'water', name: 'Agua y saneamiento' }],
         beneficiaryTypes: [{ id: 1, code: 'rural', name: 'Comunidades rurales' }],
         projectTypes: [{ id: 1, code: 'infrastructure', name: 'Infraestructura comunitaria' }],
+        sustainableDevelopmentGoals: [{ id: 6, code: 'SDG_06', name: 'Agua limpia y saneamiento' }],
       })
       throw new Error(`Unexpected request: ${url}`)
     }))
@@ -107,6 +194,9 @@ describe('proyectos', () => {
     expect(await screen.findByRole('heading', { name: 'Agua segura', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Fundación Demo')).toBeInTheDocument()
     expect(screen.getByText('Agua y saneamiento')).toBeInTheDocument()
+    expect(screen.getByText('ODS relacionados')).toBeInTheDocument()
+    expect(screen.getByText('Agua limpia y saneamiento')).toBeInTheDocument()
+    expect(screen.getByText(/Etapa:/).closest('p')).toHaveTextContent('Implementación')
     expect(screen.queryByText('NO-DEBE-VERSE')).not.toBeInTheDocument()
   })
 
@@ -125,6 +215,7 @@ describe('proyectos', () => {
           items: listRequests === 1 ? [{
             projectId: 'bd351806-9139-4524-bc01-93c3676729cb', slug: 'agua-segura-demo',
             title: 'Agua segura', summary: 'Acceso rural sostenible', projectStatus: 2,
+            projectStage: 2,
             publicationStatus: 1, organizationPublicId: organizationId,
             organizationName: 'Fundación Demo', completeness: 100,
             submittedAtUtc: '2026-08-21T10:00:00Z', updatedAtUtc: '2026-08-21T10:00:00Z',
@@ -137,6 +228,7 @@ describe('proyectos', () => {
           projectId: 'bd351806-9139-4524-bc01-93c3676729cb', slug: 'agua-segura-demo',
           title: 'Agua segura', summary: 'Acceso rural sostenible',
           description: 'Proyecto completo sometido a moderación.', projectStatus: 2,
+          projectStage: 2,
           publicationStatus: 1, startDate: '2027-01-01', endDate: '2027-12-31',
           budgetTotal: 100000, confirmedFunding: 25000, currency: 'CLP', fundingGap: 75000,
           projectVersion: 2,
@@ -147,6 +239,7 @@ describe('proyectos', () => {
           categories: [{ id: 1, code: 'water', name: 'Agua y saneamiento' }],
           beneficiaryTypes: [{ id: 1, code: 'rural', name: 'Comunidades rurales' }],
           projectTypes: [{ id: 1, code: 'infrastructure', name: 'Infraestructura comunitaria' }],
+          sustainableDevelopmentGoals: [{ id: 6, code: 'SDG_06', name: 'Agua limpia y saneamiento' }],
         })
       }
       if (url.endsWith('/admin/projects/bd351806-9139-4524-bc01-93c3676729cb/reviews')) {
@@ -167,6 +260,9 @@ describe('proyectos', () => {
     expect(await screen.findByRole('heading', { name: 'Agua segura' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Revisar proyecto completo' }))
     expect(await screen.findByRole('heading', { name: 'Descripción presentada' })).toBeInTheDocument()
+    expect(screen.getByText('ODS relacionados')).toBeInTheDocument()
+    expect(screen.getByText('Agua limpia y saneamiento')).toBeInTheDocument()
+    expect(screen.getByText(/Etapa:/).closest('p')).toHaveTextContent('Implementación')
     await user.click(screen.getByRole('button', { name: 'Aprobar y publicar' }))
 
     expect(await screen.findByRole('heading', { name: 'Revisión al día' })).toBeInTheDocument()

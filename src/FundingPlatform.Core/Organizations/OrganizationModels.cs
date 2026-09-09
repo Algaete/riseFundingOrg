@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace FundingPlatform.Core.Organizations;
 
 public sealed record CatalogOption<TId>(TId Id, string Code, string Name);
@@ -20,7 +22,9 @@ public sealed record OrganizationCatalogs(
     IReadOnlyList<CatalogOption<int>> BeneficiaryTypes,
     IReadOnlyList<CatalogOption<int>> ProjectTypes,
     IReadOnlyList<CatalogOption<long>> Tags,
-    IReadOnlyList<CatalogOption<short>> Languages);
+    IReadOnlyList<CatalogOption<short>> Languages,
+    IReadOnlyList<CatalogOption<int>> SustainableDevelopmentGoals,
+    IReadOnlyList<CatalogOption<short>> FundingExperienceTypes);
 
 public sealed record OrganizationSummary(
     Guid PublicId,
@@ -32,6 +36,19 @@ public sealed record OrganizationSummary(
     DateTimeOffset UpdatedAtUtc);
 
 public sealed record OrganizationLanguage(short LanguageId, byte? Proficiency);
+
+public enum OrganizationCustomTaxonomyKind : byte
+{
+    ImpactArea = 1,
+    BeneficiaryType = 2,
+    ProjectType = 3,
+    Language = 4
+}
+
+public sealed record OrganizationCustomTaxonomyValue(
+    OrganizationCustomTaxonomyKind Kind,
+    string Name,
+    [property: JsonIgnore] string NormalizedName);
 
 public sealed record OrganizationProfile(
     Guid PublicId,
@@ -64,7 +81,9 @@ public sealed record OrganizationProfile(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
-    IReadOnlyList<OrganizationLanguage> Languages);
+    IReadOnlyList<OrganizationLanguage> Languages,
+    IReadOnlyList<short> FundingExperienceTypeIds,
+    IReadOnlyList<OrganizationCustomTaxonomyValue> CustomTaxonomyValues);
 
 public sealed record OrganizationProfileData(
     string Name,
@@ -91,7 +110,9 @@ public sealed record OrganizationProfileData(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     IReadOnlyList<long> TagIds,
-    IReadOnlyList<OrganizationLanguage> Languages);
+    IReadOnlyList<OrganizationLanguage> Languages,
+    IReadOnlyList<short>? FundingExperienceTypeIds = null,
+    IReadOnlyList<OrganizationCustomTaxonomyValue>? CustomTaxonomyValues = null);
 
 public sealed record PersistedOrganization(
     Guid PublicId,

@@ -33,6 +33,8 @@ export interface OrganizationCatalogs {
   projectTypes: CatalogOption<number>[]
   tags: CatalogOption<number>[]
   languages: CatalogOption<number>[]
+  sustainableDevelopmentGoals: CatalogOption<number>[]
+  fundingExperienceTypes?: CatalogOption<number>[]
 }
 
 export interface OrganizationSummary {
@@ -83,6 +85,11 @@ export interface OrganizationProfile {
   projectTypeIds: number[]
   tagIds: number[]
   languages: OrganizationLanguage[]
+  fundingExperienceTypeIds?: number[]
+  customImpactAreas?: string[]
+  customBeneficiaryTypes?: string[]
+  customProjectTypes?: string[]
+  customLanguages?: string[]
 }
 
 export type OrganizationProfileUpdate = Omit<

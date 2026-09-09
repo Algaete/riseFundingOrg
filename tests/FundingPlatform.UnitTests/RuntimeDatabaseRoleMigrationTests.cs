@@ -146,6 +146,27 @@ public sealed class RuntimeDatabaseRoleMigrationTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Full_chain_smoke_has_an_explicit_manifest_for_every_later_procedure_grant()
+    {
+        var smoke = Read("database", "Tests", "027_runtime_database_roles_smoke.sql");
+        var manifest = smoke[smoke.IndexOf("DECLARE @LaterProcedurePermissions", StringComparison.Ordinal)..
+            smoke.IndexOf("IF (SELECT COUNT_BIG(1)", StringComparison.Ordinal)];
+        var expected = new[] { "036_project_assets.sql", "037_project_asset_defender_pipeline.sql",
+            "039_project_asset_content_retention.sql", "041_project_map.sql", "042_funder_workspace.sql",
+            "043_professionals_and_consortia.sql", "044_discovery_matching.sql", "045_funding_discovery.sql" }
+            .SelectMany(file => Regex.Matches(Read("database", "Migrations", file),
+                    @"GRANT EXECUTE ON OBJECT::dbo\.(?<name>FundingPlatform_usp_[A-Za-z0-9_]+)\s+TO FundingPlatform_(?:ApiRuntime|GeneralWorker)Role;")
+                .Select(match => match.Groups["name"].Value))
+            .Distinct().Order().ToArray();
+        var actual = Regex.Matches(manifest, @"N'(?:dbo\.)?(?<name>FundingPlatform_usp_[A-Za-z0-9_]+)'")
+            .Select(match => match.Groups["name"].Value).Distinct().Order().ToArray();
+        Assert.Equal(34, expected.Length);
+        Assert.Equal(expected, actual);
+        Assert.Equal(4, Regex.Matches(smoke,
+            @"AND NOT EXISTS \(SELECT 1 FROM @LaterProcedurePermissions AS later").Count);
+    }
+
     private static string[] ExtractRoleProcedures(string migration, string roleName)
     {
         return Regex.Matches(

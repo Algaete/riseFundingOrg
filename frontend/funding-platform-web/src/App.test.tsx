@@ -12,6 +12,8 @@ import { setAuthenticatedSession } from '@/features/auth/auth-session'
 import { calendarApi } from '@/features/calendar/calendar-api'
 import { organizationApi } from '@/features/organizations/organization-api'
 import { projectApi } from '@/features/projects/project-api'
+import { AppShell } from '@/components/app-shell'
+import { languageStorageKey } from '@/i18n/language'
 
 function authenticate(roles = ['Professional']) {
   setAuthenticatedSession({
@@ -97,7 +99,8 @@ describe('aplicación', () => {
     authenticate()
     renderRoute('/')
 
-    expect(await screen.findByRole('link', { name: 'Ver concursos disponibles' })).toHaveAttribute('href', '/funding')
+    expect(await screen.findByRole('link', { name: 'Encontrar financiamiento' })).toHaveAttribute('href', '/funding')
+    expect(screen.getByRole('link', { name: 'Publicar mi proyecto' })).toHaveAttribute('href', '/projects')
     expect(screen.getAllByRole('link', { name: 'Ir a mi espacio' })[0]).toHaveAttribute('href', '/dashboard')
     expect(screen.queryByRole('link', { name: 'Ingresar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Crear cuenta' })).not.toBeInTheDocument()
@@ -139,6 +142,49 @@ describe('aplicación', () => {
 
     expect(selector).toHaveValue('system')
     expect(localStorage.getItem('funding-platform-theme')).toBe('system')
+  })
+
+  it('cambia portada, navegación, temas y pie de página entre español e inglés', async () => {
+    const user = userEvent.setup()
+    authenticate()
+    renderRoute('/')
+
+    const selectors = await screen.findAllByRole('combobox', { name: 'Idioma' })
+    await user.selectOptions(selectors[0], 'en')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Connect your project with the funding and partners it needs' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Find funding' })).toHaveAttribute('href', '/funding')
+    expect(screen.getByRole('link', { name: 'Publish my project' })).toHaveAttribute('href', '/projects')
+    expect(screen.getByRole('link', { name: 'Opportunities' })).toHaveAttribute('href', '/funding')
+    expect(screen.getByText('FundingPlatform · MVP technical foundation')).toBeInTheDocument()
+    expect(screen.getAllByRole('combobox', { name: 'Language' })).toHaveLength(2)
+    for (const selector of selectors) expect(selector).toHaveValue('en')
+    expect(within(screen.getAllByRole('combobox', { name: 'Change theme' })[0]).getByRole('option', { name: 'System' })).toBeInTheDocument()
+    expect(localStorage.getItem(languageStorageKey)).toBe('en')
+    expect(document.documentElement).toHaveAttribute('lang', 'en')
+
+    await user.selectOptions(selectors[1], 'es')
+    expect(await screen.findByRole('link', { name: 'Encontrar financiamiento' })).toBeInTheDocument()
+    expect(document.documentElement).toHaveAttribute('lang', 'es')
+  })
+
+  it.each(['member', 'admin'] as const)('traduce el shell %s sin alterar contenido ni permisos', async mode => {
+    const user = userEvent.setup()
+    authenticate(mode === 'admin' ? ['Admin'] : ['Professional'])
+    const router = createMemoryRouter([{ element: <AppShell mode={mode} />, children: [
+      { path: '/', element: <p>Contenido original de la organización</p> },
+    ] }])
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Idioma' }), 'en')
+    const navigation = screen.getByRole('navigation', { name: mode === 'admin' ? 'Administration' : 'Application' })
+    expect(within(navigation).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', mode === 'admin' ? '/admin' : '/dashboard')
+    expect(within(navigation).getByRole('link', { name: mode === 'admin' ? 'Funders' : 'Available funding' })).toHaveAttribute('href', mode === 'admin' ? '/admin/funders' : '/opportunities')
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(screen.getByText('Organización demo')).toBeInTheDocument()
+    expect(screen.getByText('Contenido original de la organización')).toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveAttribute('lang', 'es')
+    expect(screen.queryByRole('link', { name: 'Go to the admin panel' })).not.toBeInTheDocument()
   })
 
   it('restaura la preferencia de tema guardada', async () => {

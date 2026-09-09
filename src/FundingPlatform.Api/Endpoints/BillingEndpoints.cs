@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Billing;
 using FundingPlatform.Contracts.Billing;
@@ -170,8 +171,8 @@ public static class BillingEndpoints
         if (!ProjectEndpointResults.TryGetUserId(principal, out var userId))
             return ProjectEndpointResults.InvalidSession();
         if (!TryStatus(status, out var parsed) || page is < 1 or > 10_000 || pageSize is < 1 or > 50)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            { ["filters"] = ["Estado o paginación no permitidos."] });
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
+            { { "filters", "api-validation-118", "Estado o paginación no permitidos." } });
         var result = await service.ListAdminAsync(userId, q, parsed, page, pageSize,
             cancellationToken);
         return Results.Ok(new AdminSubscriptionPageResponse(result.Items.Select(Map).ToArray(),

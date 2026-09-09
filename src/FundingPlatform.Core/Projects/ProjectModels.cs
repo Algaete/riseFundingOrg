@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace FundingPlatform.Core.Projects;
 
 public enum ProjectStatus : byte
@@ -9,6 +11,16 @@ public enum ProjectStatus : byte
     Funded = 4,
     Implementing = 5,
     Completed = 6
+}
+
+public enum ProjectStage : byte
+{
+    IdeaOrDesign = 0,
+    Pilot = 1,
+    Implementation = 2,
+    Scaling = 3,
+    Consolidation = 4,
+    Evaluation = 5
 }
 
 public enum ProjectPublicationStatus : byte
@@ -26,6 +38,7 @@ public sealed record ProjectSummary(
     string Title,
     string? Summary,
     ProjectStatus Status,
+    ProjectStage? Stage,
     ProjectPublicationStatus PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -43,6 +56,7 @@ public sealed record ProjectDetails(
     string? Summary,
     string? Description,
     ProjectStatus Status,
+    ProjectStage? Stage,
     ProjectPublicationStatus PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -58,16 +72,19 @@ public sealed record ProjectDetails(
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
+    IReadOnlyList<int> SustainableDevelopmentGoalIds,
     DateTimeOffset? SubmittedAtUtc = null,
     DateTimeOffset? ReviewedAtUtc = null,
     string? RejectionReason = null,
-    DateTimeOffset? PublishedAtUtc = null);
+    DateTimeOffset? PublishedAtUtc = null,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record ProjectData(
     string Title,
     string? Summary,
     string? Description,
     ProjectStatus Status,
+    [property: JsonPropertyName("projectStage")] ProjectStage? Stage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,
@@ -77,7 +94,9 @@ public sealed record ProjectData(
     IReadOnlyList<int> RegionIds,
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<int> BeneficiaryTypeIds,
-    IReadOnlyList<int> ProjectTypeIds);
+    IReadOnlyList<int> ProjectTypeIds,
+    IReadOnlyList<int> SustainableDevelopmentGoalIds,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record PersistedProject(Guid PublicId, int ProjectVersion, byte[] RowVersion);
 
@@ -181,6 +200,7 @@ public sealed record ProjectReviewQueueItem(
     string Title,
     string? Summary,
     ProjectStatus Status,
+    ProjectStage? Stage,
     ProjectPublicationStatus PublicationStatus,
     Guid OrganizationPublicId,
     string OrganizationName,
@@ -210,6 +230,7 @@ public sealed record ProjectReviewDetails(
     string? Summary,
     string? Description,
     ProjectStatus Status,
+    ProjectStage? Stage,
     ProjectPublicationStatus PublicationStatus,
     DateOnly? StartDate,
     DateOnly? EndDate,
@@ -227,7 +248,9 @@ public sealed record ProjectReviewDetails(
     IReadOnlyList<PublicProjectRegion> Regions,
     IReadOnlyList<PublicProjectTaxonomyItem> Categories,
     IReadOnlyList<PublicProjectTaxonomyItem> BeneficiaryTypes,
-    IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes);
+    IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes,
+    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record PublicProjectOrganization(
     Guid PublicId,
@@ -252,6 +275,7 @@ public sealed record PublicProjectDetails(
     string? Summary,
     string? Description,
     ProjectStatus Status,
+    ProjectStage? Stage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,
@@ -264,4 +288,6 @@ public sealed record PublicProjectDetails(
     IReadOnlyList<PublicProjectRegion> Regions,
     IReadOnlyList<PublicProjectTaxonomyItem> Categories,
     IReadOnlyList<PublicProjectTaxonomyItem> BeneficiaryTypes,
-    IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes);
+    IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes,
+    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals,
+    ProjectEnrichment? Enrichment = null);

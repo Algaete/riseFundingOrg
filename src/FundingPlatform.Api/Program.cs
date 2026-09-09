@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using FundingPlatform.Application.Collaboration;
+using FundingPlatform.Infrastructure.Persistence.Collaboration;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Azure.Communication.Email;
@@ -25,6 +27,7 @@ using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Projects;
+using FundingPlatform.Application.ProjectAssets;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts;
 using FundingPlatform.Core.Identity;
@@ -47,6 +50,7 @@ using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.Organizations;
 using FundingPlatform.Infrastructure.Persistence.Marketplace;
 using FundingPlatform.Infrastructure.Persistence.Projects;
+using FundingPlatform.Infrastructure.Persistence.ProjectAssets;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
@@ -54,6 +58,12 @@ using FundingPlatform.Infrastructure.SourceDocuments.Cryptography;
 using FundingPlatform.Infrastructure.SourceDocuments.Inspection;
 using FundingPlatform.Infrastructure.SourceDocuments.Scanning;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
+using FundingPlatform.Infrastructure.ProjectAssets.Configuration;
+using FundingPlatform.Infrastructure.ProjectAssets.Cryptography;
+using FundingPlatform.Infrastructure.ProjectAssets.Inspection;
+using FundingPlatform.Infrastructure.ProjectAssets.Scanning;
+using FundingPlatform.Infrastructure.ProjectAssets.Storage;
+using FundingPlatform.ImageProcessing.ProjectAssets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -76,6 +86,7 @@ Activity.DefaultIdFormat = ActivityIdFormat.W3C;
 Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
+var projectAssetImageSanitizationProbe = new ProjectAssetImageSanitizationProbe();
 // Use one application-log destination: Azure Monitor when configured, otherwise local JSON.
 // Container Apps also ingests console output, so forwarding to both would duplicate ingestion.
 builder.Logging.ClearProviders();
@@ -181,6 +192,7 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddSingleton<TokenCredential>(azureCredential);
@@ -207,6 +219,18 @@ builder.Services.AddScoped<ISavedSearchAlertRepository, SqlSavedSearchAlertRepos
 builder.Services.AddScoped<SavedSearchAlertService>();
 builder.Services.AddScoped<IFunderRepository, SqlFunderRepository>();
 builder.Services.AddScoped<FunderEditorialService>();
+builder.Services.AddKeyedScoped<FunderEditorialService>("funder-workspace", (services, _) =>
+    new FunderEditorialService(new SqlFunderRepository(services.GetRequiredService<ISqlConnectionFactory>(), ownerWorkspace: true)));
+builder.Services.AddKeyedScoped<FundingOpportunityEditorialService>("funder-workspace", (services, _) =>
+    new FundingOpportunityEditorialService(new SqlFundingOpportunityEditorialRepository(services.GetRequiredService<ISqlConnectionFactory>(), ownerWorkspace: true), services.GetRequiredService<TimeProvider>()));
+builder.Services.AddScoped<IFunderWorkspaceSourceRepository, SqlFunderWorkspaceSourceRepository>();
+builder.Services.AddScoped<IProfessionalProfileRepository, SqlProfessionalProfileRepository>();
+builder.Services.AddScoped<IConsortiumRepository, SqlConsortiumRepository>();
+builder.Services.AddScoped<ProfessionalProfileService>();
+builder.Services.AddScoped<ConsortiumService>();
+builder.Services.AddScoped<IDiscoveryMatchingRepository, SqlDiscoveryMatchingRepository>();
+builder.Services.AddScoped<DiscoveryMatchingService>();
+builder.Services.AddScoped<IFundingDiscoveryRepository, SqlFundingDiscoveryRepository>();
 builder.Services.AddScoped<IFundingOpportunityEditorialRepository,
     SqlFundingOpportunityEditorialRepository>();
 builder.Services.AddScoped<FundingOpportunityEditorialService>();
@@ -222,7 +246,21 @@ builder.Services.AddScoped<OrganizationProfileService>();
 builder.Services.AddScoped<IProjectRepository, SqlProjectRepository>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ProjectWorkflowService>();
+builder.Services.AddScoped<IProjectAssetRepository, SqlProjectAssetRepository>();
+builder.Services.AddScoped<ProjectAssetService>();
+builder.Services.AddSingleton<IProjectAssetCompletionTokenService,
+    ProjectAssetCompletionTokenService>();
+builder.Services.AddSingleton<IProjectAssetContentInspector,
+    StreamingProjectAssetContentInspector>();
+builder.Services.AddSingleton<IProjectAssetScanner, ConfiguredProjectAssetScanner>();
+builder.Services.AddSingleton<IProjectAssetBlobStore, AzureProjectAssetBlobStore>();
+builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
+    ProjectAssetTrustedContentPromoter>();
+builder.Services.AddSingleton<IProjectAssetImageSanitizationProbe>(
+    projectAssetImageSanitizationProbe);
 builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
+builder.Services.AddScoped<IProjectMapRepository, SqlProjectMapRepository>();
+builder.Services.AddScoped<ProjectMapService>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
 builder.Services.AddScoped<FundingApplicationService>();
@@ -348,6 +386,22 @@ builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IOptions<SourceDocumentExtractionOptions>>().Value.ToPolicy());
+builder.Services
+    .AddOptions<ProjectAssetOptions>()
+    .Bind(builder.Configuration.GetSection(ProjectAssetOptions.SectionName))
+    .Validate(
+        options => ProjectAssetOptions.IsValid(options, builder.Environment.EnvironmentName) &&
+                   (!options.Enabled ||
+                    !string.Equals(options.ScanMode, "DevelopmentFake",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(options.DevelopmentFakeResult, "Clean",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    projectAssetImageSanitizationProbe.IsAvailable()),
+        "La configuración ProjectAssets no es válida o el sanitizador de imágenes no " +
+        "está disponible para un resultado DevelopmentFake limpio.")
+    .ValidateOnStart();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IOptions<ProjectAssetOptions>>().Value.ToPolicy());
 builder.Services.AddSingleton(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value;
@@ -621,6 +675,36 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("project-asset-create", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("project-asset-mutation", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("project-asset-content", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetRateLimitPartition(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
     options.AddPolicy("import-run-create", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -696,11 +780,12 @@ app.UseSerilogRequestLogging(options =>
 });
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseMiddleware<RequestValidationMiddleware>();
 app.UseCors(policy => policy
     .WithOrigins(webOptions.AllowedCorsOrigins)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-    .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID", "Idempotency-Key", "If-Match")
-    .WithExposedHeaders("ETag", "X-Correlation-ID")
+    .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID", "Idempotency-Key", "If-Match", "X-Project-If-Match")
+    .WithExposedHeaders("ETag", "X-Correlation-ID", "X-Project-ETag")
     .AllowCredentials());
 
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
@@ -741,6 +826,11 @@ app.MapFundingOpportunityEndpoints();
 app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();
 app.MapAdminFundingEditorialEndpoints();
+app.MapFunderWorkspaceEndpoints();
+app.MapProfessionalProfileEndpoints();
+app.MapConsortiumEndpoints();
+app.MapDiscoveryMatchingEndpoints();
+app.MapFundingDiscoveryEndpoints();
 app.MapAdminImportRunEndpoints();
 app.MapAdminSourceDocumentEndpoints();
 app.MapAdminFundingDuplicateEndpoints();
@@ -748,11 +838,13 @@ app.MapAuthenticationEndpoints();
 app.MapExternalAuthenticationEndpoints();
 app.MapOrganizationEndpoints();
 app.MapProjectEndpoints();
+app.MapProjectAssetEndpoints();
 app.MapAdminProjectEndpoints();
 app.MapAdminUserEndpoints();
 app.MapAdminOperationsEndpoints();
 app.MapPublicProjectEndpoints();
 app.MapMarketplaceEndpoints();
+app.MapProjectMapEndpoints();
 app.MapFundingApplicationEndpoints();
 app.MapProjectMatchingEndpoints();
 app.MapAdminSemanticEvaluationEndpoints();

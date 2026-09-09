@@ -5,6 +5,8 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 using FundingPlatform.Application.Projects;
+using FundingPlatform.Application.Marketplace;
+using FundingPlatform.Core.Marketplace;
 using FundingPlatform.Core.Identity;
 using FundingPlatform.Core.Projects;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -38,6 +40,8 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             {
                 services.RemoveAll<IProjectRepository>();
                 services.AddSingleton<IProjectRepository>(repository);
+                services.RemoveAll<IMarketplaceRepository>();
+                services.AddSingleton<IMarketplaceRepository>(new PublicMarketplaceRepository(repository));
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -162,7 +166,75 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         Assert.Equal(
             "El presupuesto total es obligatorio para publicar.",
             problem.RootElement.GetProperty("errors").GetProperty("budgetTotal")[0].GetString());
+        Assert.Equal("project-ready-budget-required",
+            problem.RootElement.GetProperty("validationIssues").GetProperty("budgetTotal")[0].GetProperty("code").GetString());
         Assert.Equal(1, repository.RequestPublicationCalls);
+    }
+
+    [Fact]
+    public async Task Legacy_update_payload_preserves_current_stage_and_sdgs_in_snapshot()
+    {
+        repository.OwnerProject = CreateOwnerProject() with
+        {
+            Enrichment = new(Problem: "Existing problem", Latitude: -33.456789m, Longitude: -70.654321m)
+        };
+        using var request = AuthenticatedRequest(
+            HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new
+        {
+            title = "Agua segura rural actualizada",
+            summary = "Actualización desde un frontend anterior.",
+            description = "El payload intencionalmente omite etapa y ODS.",
+            status = 3,
+            startDate = "2026-09-01",
+            endDate = "2027-08-31",
+            budgetTotal = 125_000_000m,
+            confirmedFunding = 30_000_000m,
+            currency = "CLP"
+        });
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(ProjectStage.Scaling, repository.LastWrittenProject!.Stage);
+        Assert.Equal([56], repository.LastWrittenProject.CountryIds);
+        Assert.Equal([1310], repository.LastWrittenProject.RegionIds);
+        Assert.Equal([10], repository.LastWrittenProject.CategoryIds);
+        Assert.Equal([20], repository.LastWrittenProject.BeneficiaryTypeIds);
+        Assert.Equal([30], repository.LastWrittenProject.ProjectTypeIds);
+        Assert.Equal([4, 17], repository.LastWrittenProject.SustainableDevelopmentGoalIds);
+        Assert.Equal("Existing problem", repository.LastWrittenProject.Enrichment!.Problem);
+        Assert.Equal(-33.456789m, repository.LastWrittenProject.Enrichment.Latitude);
+        Assert.Contains("\"enrichment\":{", repository.LastSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"projectStage\":3", repository.LastSnapshotJson,
+            StringComparison.Ordinal);
+        Assert.Contains("\"sustainableDevelopmentGoalIds\":[4,17]", repository.LastSnapshotJson,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    public async Task Project_writes_return_field_codes_alongside_legacy_errors(string method)
+    {
+        repository.OwnerProject = CreateOwnerProject();
+        var path = $"/api/v1/organizations/{OrganizationId:D}/projects";
+        if (method == "PUT") path += $"/{ProjectId:D}";
+        using var request = AuthenticatedRequest(new HttpMethod(method), path);
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "x", summary = new string('x', 1001) });
+
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("El título debe tener entre 3 y 250 caracteres.", payload.RootElement
+            .GetProperty("errors").GetProperty("title")[0].GetString());
+        var issues = payload.RootElement.GetProperty("validationIssues");
+        Assert.Equal("project-title-length", issues.GetProperty("title")[0].GetProperty("code").GetString());
+        Assert.Equal("text-max-length", issues.GetProperty("summary")[0].GetProperty("code").GetString());
+        Assert.Equal(1000, issues.GetProperty("summary")[0].GetProperty("max").GetInt32());
     }
 
     [Theory]
@@ -197,6 +269,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
                     "Agua segura rural",
                     "Acceso comunitario a agua potable.",
                     ProjectStatus.SeekingFunding,
+                    ProjectStage.Implementation,
                     ProjectPublicationStatus.PendingReview,
                     OrganizationId,
                     "Fundación Ejemplo",
@@ -258,9 +331,11 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "description",
             "eTag",
             "endDate",
+            "enrichment",
             "fundingGap",
             "organization",
             "projectId",
+            "projectStage",
             "projectStatus",
             "projectTypes",
             "projectVersion",
@@ -270,6 +345,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "startDate",
             "submittedAtUtc",
             "summary",
+            "sustainableDevelopmentGoals",
             "title",
             "updatedAtUtc");
         AssertPropertySet(payload.GetProperty("organization"), "name", "publicId", "websiteUrl");
@@ -337,9 +413,11 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "currency",
             "description",
             "endDate",
+            "enrichment",
             "fundingGap",
             "organization",
             "projectId",
+            "projectStage",
             "projectStatus",
             "projectTypes",
             "publishedAtUtc",
@@ -347,6 +425,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "slug",
             "startDate",
             "summary",
+            "sustainableDevelopmentGoals",
             "title");
         AssertPropertySet(payload.GetProperty("organization"), "name", "publicId", "websiteUrl");
         AssertPropertySet(payload.GetProperty("countries")[0], "code", "id", "name");
@@ -354,6 +433,8 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         AssertPropertySet(payload.GetProperty("categories")[0], "code", "id", "name");
         AssertPropertySet(payload.GetProperty("beneficiaryTypes")[0], "code", "id", "name");
         AssertPropertySet(payload.GetProperty("projectTypes")[0], "code", "id", "name");
+        AssertPropertySet(payload.GetProperty("sustainableDevelopmentGoals")[0],
+            "code", "id", "name");
 
         foreach (var internalField in new[]
                  {
@@ -463,6 +544,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         "Acceso comunitario a agua potable.",
         "Instalación y operación de sistemas de agua segura.",
         ProjectStatus.SeekingFunding,
+        ProjectStage.Implementation,
         new DateOnly(2026, 9, 1),
         new DateOnly(2027, 8, 31),
         125_000_000m,
@@ -478,7 +560,33 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         [new PublicProjectRegion(1310, 56, "CL-RM", "Región Metropolitana")],
         [new PublicProjectTaxonomyItem(10, "WATER", "Agua y saneamiento")],
         [new PublicProjectTaxonomyItem(20, "RURAL", "Comunidades rurales")],
-        [new PublicProjectTaxonomyItem(30, "INFRA", "Infraestructura")]);
+        [new PublicProjectTaxonomyItem(30, "INFRA", "Infraestructura")],
+        [new PublicProjectTaxonomyItem(6, "SDG_06", "Agua limpia y saneamiento")]);
+
+    private static ProjectDetails CreateOwnerProject() => new(
+        ProjectId,
+        "agua-segura-rural",
+        "Agua segura rural",
+        "Acceso comunitario a agua potable.",
+        "Instalación y operación de sistemas de agua segura.",
+        ProjectStatus.SeekingFunding,
+        ProjectStage.Scaling,
+        ProjectPublicationStatus.Draft,
+        new DateOnly(2026, 9, 1),
+        new DateOnly(2027, 8, 31),
+        125_000_000m,
+        25_000_000m,
+        "CLP",
+        100_000_000m,
+        1,
+        new DateTimeOffset(2026, 8, 21, 12, 0, 0, TimeSpan.Zero),
+        Convert.FromHexString("0102030405060708"),
+        [56],
+        [1310],
+        [10],
+        [20],
+        [30],
+        [4, 17]);
 
     private static ProjectReviewDetails CreateReviewDetails() => new(
         ProjectId,
@@ -487,6 +595,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         "Acceso comunitario a agua potable.",
         "Instalación y operación de sistemas de agua segura.",
         ProjectStatus.SeekingFunding,
+        ProjectStage.Implementation,
         ProjectPublicationStatus.PendingReview,
         new DateOnly(2026, 9, 1),
         new DateOnly(2027, 8, 31),
@@ -507,7 +616,95 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         [new PublicProjectRegion(1310, 56, "CL-RM", "Región Metropolitana")],
         [new PublicProjectTaxonomyItem(10, "WATER", "Agua y saneamiento")],
         [new PublicProjectTaxonomyItem(20, "RURAL", "Comunidades rurales")],
-        [new PublicProjectTaxonomyItem(30, "INFRA", "Infraestructura")]);
+        [new PublicProjectTaxonomyItem(30, "INFRA", "Infraestructura")],
+        [new PublicProjectTaxonomyItem(6, "SDG_06", "Agua limpia y saneamiento")]);
+
+    [Theory]
+    [InlineData(0, false, false, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(1, true, false, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(2, true, true, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(0, false, false, "/api/v1/marketplace/projects/agua-segura-rural")]
+    [InlineData(1, true, false, "/api/v1/marketplace/projects/agua-segura-rural")]
+    [InlineData(2, true, true, "/api/v1/marketplace/projects/agua-segura-rural")]
+    public async Task Public_API_redacts_location_even_when_repository_returns_private_coordinates(
+        byte visibility, bool locality, bool point, string path)
+    {
+        repository.PublishedProject = CreatePublishedProject() with
+        {
+            Enrichment = new(Problem: "Problem statement", Locality: "Sensitive locality",
+                Latitude: -33.456789m, Longitude: -70.654321m,
+                LocationVisibility: (ProjectLocationVisibility)visibility, BeneficiaryCount: 250)
+        };
+        using var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(body);
+        var data = document.RootElement.GetProperty("enrichment");
+        Assert.Equal("Problem statement", data.GetProperty("problem").GetString());
+        Assert.Equal(locality ? "Sensitive locality" : null, data.GetProperty("locality").GetString());
+        Assert.Equal<decimal?>(point ? -33.46m : null, data.GetProperty("latitude").ValueKind == JsonValueKind.Null ? null : data.GetProperty("latitude").GetDecimal());
+        Assert.DoesNotContain("33.456789", body);
+        Assert.DoesNotContain("70.654321", body);
+    }
+
+    [Theory]
+    [InlineData("null", "Original problem")]
+    [InlineData("{}", null)]
+    [InlineData("{\"problem\":\"  Updated problem  \",\"beneficiaryCount\":0,\"seekingConsortium\":false}", "Updated problem")]
+    public async Task Update_preserves_replaces_or_clears_enrichment_atomically(string json, string? expectedProblem)
+    {
+        repository.OwnerProject = CreateOwnerProject() with { Enrichment = new(Problem: "Original problem") };
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = JsonSerializer.Deserialize<JsonElement>(json) });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(expectedProblem, repository.LastWrittenProject!.Enrichment!.Problem);
+        using var snapshot = JsonDocument.Parse(repository.LastSnapshotJson!);
+        Assert.Equal(expectedProblem, snapshot.RootElement.GetProperty("enrichment").GetProperty("problem").GetString());
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(expectedProblem, body.RootElement.GetProperty("enrichment").GetProperty("problem").GetString());
+        Assert.Equal(PublishedETag, response.Headers.ETag!.ToString());
+        Assert.Equal(2, repository.OwnerProject.ProjectVersion);
+    }
+
+    [Theory]
+    [InlineData("{\"latitude\":1}", "enrichment.latitude", "project-coordinate-pair-required")]
+    [InlineData("{\"impactIndicators\":[null]}", "enrichment.impactIndicators.0", "project-indicator-fields-required")]
+    [InlineData("{\"beneficiaryCount\":-1}", "enrichment.beneficiaryCount", "project-beneficiary-count-invalid")]
+    public async Task Invalid_enrichment_returns_sanitized_field_errors_without_writing(string json, string field, string code)
+    {
+        repository.OwnerProject = CreateOwnerProject();
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = JsonSerializer.Deserialize<JsonElement>(json) });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(code, document.RootElement.GetProperty("validationIssues").GetProperty(field)[0].GetProperty("code").GetString());
+        Assert.Null(repository.LastWrittenProject);
+    }
+
+    [Fact]
+    public async Task Owner_and_admin_review_receive_private_enrichment_with_no_store()
+    {
+        var enrichment = new ProjectEnrichment(Problem: "Private draft", Latitude: -33.456789m, Longitude: -70.654321m);
+        repository.OwnerProject = CreateOwnerProject() with { Enrichment = enrichment };
+        repository.ReviewDetailsResult = CreateReviewDetails() with { Enrichment = enrichment };
+        foreach (var path in new[] { $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}", $"/api/v1/admin/projects/{ProjectId:D}" })
+        {
+            using var request = AuthenticatedRequest(HttpMethod.Get, path, PlatformRoles.Admin, mfaAuthenticated: true);
+            using var response = await client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(-33.456789m, document.RootElement.GetProperty("enrichment").GetProperty("latitude").GetDecimal());
+        }
+    }
 
     private static void AssertPropertySet(JsonElement element, params string[] expectedProperties)
     {
@@ -519,6 +716,16 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
         Assert.Equal(expected, actual);
+    }
+
+    private sealed class PublicMarketplaceRepository(FakeProjectRepository repository) : IMarketplaceRepository
+    {
+        public Task<PublicProjectDetails?> GetProjectBySlugAsync(string slug, CancellationToken cancellationToken) =>
+            Task.FromResult(repository.PublishedProject);
+        public Task<MarketplaceProjectPage> SearchProjectsAsync(MarketplaceProjectFilters filters, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public Task<MarketplaceOrganizationProfile?> GetOrganizationAsync(Guid organizationPublicId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeProjectRepository : IProjectRepository
@@ -536,11 +743,14 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         public string? LastReviewReason { get; private set; }
         public byte[]? LastReviewExpectedRowVersion { get; private set; }
         public string? LastRequestedSlug { get; private set; }
+        public ProjectData? LastWrittenProject { get; private set; }
+        public string? LastSnapshotJson { get; private set; }
 
         public ProjectWorkflowMutation? RequestPublicationResult { get; set; }
         public ProjectReviewQueuePage ReviewQueueResult { get; set; } = new([], 0, 1, 50);
         public ProjectReviewDetails? ReviewDetailsResult { get; set; }
         public PublicProjectDetails? PublishedProject { get; set; }
+        public ProjectDetails? OwnerProject { get; set; }
 
         public Task<ProjectWorkflowMutation> RequestPublicationAsync(
             Guid userPublicId,
@@ -614,8 +824,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             Guid userPublicId,
             Guid organizationPublicId,
             Guid projectPublicId,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken) => Task.FromResult(OwnerProject);
 
         public Task<PersistedProject> CreateAsync(
             Guid userPublicId,
@@ -635,8 +844,36 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             ProjectData project,
             string snapshotJson,
             byte[] contentHash,
-            CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken)
+        {
+            LastWrittenProject = project;
+            LastSnapshotJson = snapshotJson;
+            OwnerProject = OwnerProject! with
+            {
+                Title = project.Title,
+                Summary = project.Summary,
+                Description = project.Description,
+                Status = project.Status,
+                Stage = project.Stage,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                BudgetTotal = project.BudgetTotal,
+                ConfirmedFunding = project.ConfirmedFunding,
+                Currency = project.Currency,
+                CountryIds = project.CountryIds,
+                RegionIds = project.RegionIds,
+                CategoryIds = project.CategoryIds,
+                BeneficiaryTypeIds = project.BeneficiaryTypeIds,
+                ProjectTypeIds = project.ProjectTypeIds,
+                SustainableDevelopmentGoalIds = project.SustainableDevelopmentGoalIds,
+                Enrichment = project.Enrichment,
+                FundingGap = project.BudgetTotal - (project.ConfirmedFunding ?? 0),
+                ProjectVersion = OwnerProject.ProjectVersion + 1,
+                RowVersion = Convert.FromHexString("A1A2A3A4A5A6A7A8")
+            };
+            return Task.FromResult(new PersistedProject(
+                projectPublicId, OwnerProject.ProjectVersion, OwnerProject.RowVersion));
+        }
 
         public Task<ProjectWorkflowMutation> ArchiveAsync(
             Guid userPublicId,

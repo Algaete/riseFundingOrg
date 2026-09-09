@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts.SourceDocuments;
@@ -344,10 +345,10 @@ public static class AdminSourceDocumentEndpoints
                 422,
                 "Paginación inválida",
                 "invalid-evidence-page",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    ["page"] = ["Debe ser mayor o igual a 1."],
-                    ["pageSize"] = ["Debe estar entre 1 y 100."]
+                    { "page", "api-validation-091", "Debe ser mayor o igual a 1." },
+                    { "pageSize", "api-validation-092", "Debe estar entre 1 y 100." }
                 });
         var latest = await service.GetLatestAsync(userId, sourceDocumentId, cancellationToken);
         if (latest.Value?.JobId is not Guid jobId)

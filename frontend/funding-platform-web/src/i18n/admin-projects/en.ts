@@ -1,0 +1,37 @@
+import type { adminProjectsEs } from './es'
+import type { TranslationShape } from '@/i18n/resource-types'
+
+export const adminProjectsEn = {
+  "noSummary": "The project has no summary.",
+  "status": "Status",
+  "stage": "Stage",
+  "submitted": "Submitted",
+  "updated": "Updated",
+  "unclassified": "Unclassified",
+  "fullReview": "Review full project",
+  "loadingQueue": "Loading project review…",
+  "moderation": "Moderation",
+  "pending": "Pending projects",
+  "intro": "Only administrative approval makes a project public. Every decision is audited and processed idempotently.",
+  "upToDate": "Review queue up to date",
+  "empty": "No projects are awaiting moderation.",
+  "notPending": "This project is no longer pending. Return to the queue for its current status.",
+  "decision": "Editorial decision",
+  "decisionHelp": "Check that the content is clear, consistent and suitable for publication. Moderation does not legally certify claims or guarantee funding.",
+  "reason": "Reason for requesting corrections",
+  "reasonPlaceholder": "Specify a correction so the organization can resubmit.",
+  "requestCorrections": "Request corrections",
+  "loadingDetail": "Loading project for review…",
+  "back": "Back to queue",
+  "description": "Submitted description",
+  "scope": "Declared scope",
+  "territories": "Territories",
+  "impact": "Impact areas",
+  "sdgs": "Related SDGs",
+  "funding": "Funding",
+  "budget": "Budget",
+  "confirmed": "Confirmed",
+  "gap": "Funding gap",
+  "reviewOf": "Review of {{name}}",
+  "complete": "{{value}}% complete"
+} satisfies TranslationShape<typeof adminProjectsEs>

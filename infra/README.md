@@ -58,6 +58,24 @@ y Container Apps son cross-site, por lo que el refresh cookie `SameSite=Lax` req
 `app.<dominio>`/`api.<dominio>` bajo el mismo sitio registrable. La carga directa de PDF también queda
 pendiente hasta versionar CORS de Blob y publicar/validar Functions y Defender/Event Grid.
 
+Los incrementos locales `036`→`038` añaden la base de imágenes JPEG/PNG/WebP y PDF de proyectos, el
+worker autenticado Defender/Event Grid y la materialización confiable, pero no cambian ese estado:
+permanecen apagados y video se difiere. Bicep ya declara los containers privados
+`fp-project-incoming`, `fp-project-quarantine` y
+`fp-project-trusted`, CORS exacto y lifecycle; todavía deben aplicarse y validarse junto con RBAC y
+Defender/Event Grid. `038` ya implementa localmente el decode/re-encode con SkiaSharp y eliminación
+de metadatos para imágenes, la copia byte-exacta de PDF y los manifiestos `Trusted*`; todavía se
+requieren retención DB-driven para adjuntos eliminados/cuarentenas terminales y E2E
+limpio/malicioso. El rollout es base de datos `036`→`038` → API en todo el tráfico →
+infraestructura de seguridad → frontend, con `VITE_PROJECT_ASSETS_ENABLED=true` únicamente al final.
+
+La API en Container Apps y el worker general de Functions fijan el RID `linux-x64` para cargar la
+dependencia nativa de Skia. El paquete reproducible del worker valida la presencia de
+`libSkiaSharp.so` y registra el RID en su manifiesto. Este cambio sólo está preparado localmente:
+no se ejecutó SQL real, no se publicó una nueva imagen/ZIP y no se aplicó infraestructura Azure.
+`PROJECT_ASSETS_ENABLED`, `VITE_PROJECT_ASSETS_ENABLED` y
+`PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED` permanecen en `false`.
+
 ## Escala y costo
 
 El workflow pregunta `api_min_replicas`:
@@ -199,7 +217,8 @@ para un cambio completo de infraestructura; no describe trabajo pendiente del am
    sobrescribirlas y revocar el rol temporal exacto.
 6. Con al menos 2 GiB libres, ejecutar `prepare-database-dev.sh`. El wrapper fija Staging, base y
    FQDN esperados, conexión Entra dev, PITR y firewall temporal con cleanup; ejecuta primero
-   `--preflight`, confirma `001`→`030` sin pendientes, corre los 30 smokes, verifica Full-Text listo,
+   `--preflight`, aplica las pendientes, confirma `001`→`038` sin pendientes, corre los 38 smokes,
+   verifica Full-Text listo,
    aprovisiona por `clientId`/SID los tres usuarios runtime y crea interactivamente el
    SuperAdmin. No usa Graph para crear principals SQL.
 7. Ejecutar `apply` indicando `expected_release_sha` igual al SHA ya preparado; después verificar y

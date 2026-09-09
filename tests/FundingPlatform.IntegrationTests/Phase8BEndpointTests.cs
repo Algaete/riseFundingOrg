@@ -372,6 +372,7 @@ public sealed class Phase8BEndpointTests : IClassFixture<ApiFactory>, IDisposabl
         "Agua segura",
         "Proyecto comunitario",
         ProjectStatus.SeekingFunding,
+        ProjectStage.Implementation,
         new DateOnly(2026, 9, 1),
         new DateOnly(2027, 3, 1),
         10_000,

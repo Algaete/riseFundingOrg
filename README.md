@@ -33,6 +33,77 @@ configurar y deshabilitado en Azure dev; correo, Defender/Event Grid, PDF E2E, d
 servicios externos también continúan apagados. La base compartida histórica `res` permanece en
 18/18, correspondiente a 8A.
 
+Los incrementos de feedback del MVP están preparados localmente mediante
+`031_organization_profile_catalog_expansion.sql`, `032_matching_other_neutrality.sql`,
+`033_project_impact_profile.sql`, `034_organization_funding_experience_types.sql` y
+`035_organization_custom_taxonomy.sql`, junto con la base gobernada de adjuntos
+`036_project_assets.sql` y su pipeline Defender
+`037_project_asset_defender_pipeline.sql`, extendido por
+`038_project_asset_image_sanitization.sql` y la retención exacta
+`039_project_asset_content_retention.sql`. Amplían los catálogos del perfil, evitan que “Otros”
+genere coincidencias
+automáticas y agregan al proyecto una
+etapa independiente junto con los 17 ODS oficiales, permiten registrar de forma opcional los tipos
+de financiadores con los que la organización tiene experiencia y agregan opciones privadas en áreas
+de impacto, poblaciones, tipos de proyecto e idiomas. El incremento `036A` admite imágenes
+JPG/PNG/WebP y documentos PDF privados mediante carga directa gobernada, cuarentena, scan y promoción
+al container confiable; video queda reservado para una fase posterior. `037` agrega recepción
+Event Grid autenticada, recibos idempotentes, rehash acotado, revocación de confianza ante un
+resultado tardío y watchdog de scans pendientes. `038` decodifica y vuelve a codificar con Skia las
+imágenes JPEG/PNG/WebP limpias, elimina sus metadatos y conserva los PDF como copias byte-exactas.
+La copia confiable queda descrita por un manifiesto `Trusted*` propio y el resultado observado por
+Defender se conserva separado del estado efectivo que decide la plataforma. Las imágenes históricas
+que hubieran llegado al container confiable sin esta transformación se revocan de forma fail-closed,
+con el manifiesto exacto necesario para retirar esa versión. `039` agrega tareas durables de
+retención de adjuntos eliminados, cuarentenas terminales y copias revocadas, con leases,
+reintentos acotados y borrado condicionado a la identidad exacta. Estas nueve migraciones y sus
+interfaces todavía no se han aplicado ni publicado en Azure dev; por eso el estado observado del ambiente
+continúa siendo `001`→`030`. El rollout debe respetar el orden base de datos → 100 % del tráfico API
+nuevo → infraestructura de seguridad → frontend, activando `VITE_PROJECT_ASSETS_ENABLED` al final.
+La infraestructura como código ya declara containers privados, CORS exacto y lifecycle, pero no se
+ha aplicado. La funcionalidad de adjuntos permanece apagada hasta validar la retención DB-driven
+en SQL y Blob reales, aplicar `036`→`039`, provisionar Defender/Event Grid y validar casos E2E limpio y
+malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura una actualización de
+una API antigua cuando ya existen esas relaciones o valores personalizados.
+
+El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
+pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B incorporan selector español/inglés,
+portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
+y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos. También
+incluyen Resumen y Mi cuenta, con estados de carga, fallos parciales y avisos de vinculación;
+catálogo público de fondos, marketplace y perfiles públicos de organizaciones, con filtros y paginación.
+También oportunidades internas, detalle y Favoritos, con condiciones de elegibilidad, acciones y avisos.
+Matching incluye historial, reglas, cobertura y puntajes ES/EN sin cambiar el motor ni recalcular;
+la red incluye directorio, privacidad, invitaciones y acciones, conservando borradores y permisos.
+Postulaciones, calendario, búsquedas/alertas, baja pública de alertas, planes y suscripción también
+son ES/EN. Se mantienen fechas sin hora, horas UTC, montos y monedas originales; el idioma no
+guarda postulaciones, envía correos, da de baja alertas ni inicia/cancela/reanuda pagos.
+Guardar una búsqueda sin correo ya no confirma una alerta inexistente; los estados del checkout
+distinguen pendiente, confirmado, fallido y vencido, sin activar planes desde el retorno del navegador.
+Planes públicos enlaza a Suscripción en lugar de ofrecer un checkout sin acción. No se habilitan
+precios, proveedores ni cobros. Se muestran fallos de lectura y reintentos explícitos de suscripción.
+Cambiar el idioma conserva borradores, organización seleccionada, confirmaciones y cargas pendientes;
+no inicia ni repite vinculaciones Microsoft. Mi cuenta distingue fallos de consulta de SSO deshabilitado.
+I18N-05A agrega catálogos bilingües compartidos (95 códigos/102 variantes) al alta/perfil de
+organización, formularios de proyectos y su ficha pública. Respeta versiones históricas, IDs,
+opciones privadas y etiquetas desconocidas; cambiar idioma no ensucia formularios ni guarda datos.
+I18N-05B aplica esa capa a filtros/clasificaciones de fondos internos, marketplace, directorio
+de la red y monedas de postulaciones. No cambia criterios de admisión/exclusión, filtros, IDs,
+importes, borradores ni permisos. El catálogo público de fondos conserva su contrato actual,
+que no expone estos catálogos estructurados; no se agregan consultas ni campos públicos.
+**La traducción completa sigue pendiente**: administración, códigos de validación por campo
+de la API y optimización de carga (I18N-05C–05E).
+Se conservan el contenido original y las atribuciones de fuentes, los parámetros de búsqueda
+y la confirmación de salida externa.
+No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.
+Favoritos conserva la intención del clic mientras responde la API y revierte el estado ante fallos;
+ordenar por monto sin moneda muestra un aviso visible, sin aparentar una búsqueda infinita.
+Las pantallas de oportunidades, matching, red, postulaciones, calendario, alertas y suscripción
+mantienen su organización previa (la primera de la lista);
+no se agrega un selector global de organización en este bloque. Todo sigue local, sin despliegue.
+La red distingue errores de carga de organización/configuración de sus estados vacíos y permite
+reintentar lecturas sin activar visibilidad. Cambiar idioma no inicia cálculos ni solicitudes de conexión.
+
 La entrega 12B en curso agrega E2E público reproducible con Playwright/axe, verificación
 post-deploy sin credenciales Azure ni de usuarios y empaquetado offline determinista de ambos
 workers. El worker general ya fue publicado mediante One Deploy y su canary Grants.gov completó
@@ -64,7 +135,7 @@ no se activaron alertas y no se publicó el paquete del worker de extracción.
 | 10A | DB dev y preflight SQL validados; email pendiente | Búsquedas guardadas privadas, digest diario idempotente, baja segura e historial |
 | 10B | DB dev y preflight SQL validados | Directorio opt-in, Connect moderado, aceptación/rechazo/cancelación/bloqueo y privacidad por defecto |
 | 11 | DB dev y preflight SQL validados; precio/sandbox pendientes | Suscripciones, entitlements, billing sandbox, paneles reales y administración operativa |
-| 12A | Dev operativo: `001`→`029`, 29/29 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
+| 12A | Dev operativo: `001`→`030`, 30/30 smokes, Full-Text, principals, SuperAdmin, API y frontend verificados; Functions sin paquetes | Dev separado, ACR privado, presupuesto, identidades, Storage, SQL serverless, OIDC/what-if y roles SQL runtime de mínimo privilegio |
 | 12B | En curso: API/frontend y worker general publicados; importación Grants.gov 25/25 verificada sin autopublicación; extracción, dominios, auth E2E, alertas y restore pendientes | Despliegue gobernado de paquetes, dominios, observabilidad, E2E y restore del piloto |
 
 El diseño base está en [docs/FASE-0-DISENO-TECNICO.md](docs/FASE-0-DISENO-TECNICO.md) y
@@ -223,12 +294,23 @@ Variables agrupadas:
   SOURCE_DOCUMENT_FINALIZE_LEASE_SECONDS, SOURCE_DOCUMENT_SCAN_TIMEOUT_SECONDS,
   SOURCE_DOCUMENT_SCAN_MODE y SOURCE_DOCUMENT_DEVELOPMENT_FAKE_RESULT. La API accede a Blob
   mediante Entra/Managed Identity y no necesita una account key.
+- Adjuntos de proyecto 036A: `PROJECT_ASSETS_ENABLED`, `PROJECT_ASSET_INCOMING_CONTAINER`,
+  `PROJECT_ASSET_QUARANTINE_CONTAINER`, `PROJECT_ASSET_TRUSTED_CONTAINER`, límites de bytes/píxeles,
+  TTL/lease/timeout y `PROJECT_ASSET_SCAN_MODE`. Backend y frontend permanecen apagados con
+  `PROJECT_ASSETS_ENABLED=false` y `VITE_PROJECT_ASSETS_ENABLED=false` hasta completar los gates de
+  sanitización, Defender/Event Grid y Storage; el navegador nunca recibe account keys.
+- Pipeline Defender 037/038: `PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED`,
+  `PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME`,
+  `PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES` y
+  `PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE`. Sus dos Functions y el feature principal salen
+  explícitamente deshabilitados.
 - Extracción/retención: DOCUMENT_EXTRACTION_MAX_BYTES, DOCUMENT_EXTRACTION_MAX_PAGES,
   DOCUMENT_EXTRACTION_MAX_CHARACTERS, DOCUMENT_EXTRACTION_MAX_UTF8_BYTES,
   DOCUMENT_EXTRACTION_MAX_STACK_DEPTH, DOCUMENT_EXTRACTION_TIMEOUT_SECONDS,
   DOCUMENT_EXTRACTION_LEASE_SECONDS, DOCUMENT_EXTRACTION_WATCHDOG_BATCH_SIZE,
   CONTENT_RETENTION_BATCH_SIZE, CONTENT_RETENTION_SOURCE_DOCUMENT_BATCH_SIZE y
-  CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS.
+  CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS, además de
+  CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE y CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS.
 - Defender/RSS: las familias DEFENDER_EVENT_GRID_*, DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES,
   DEFENDER_WATCHDOG_BATCH_SIZE y OFFICIAL_RSS_* son fail-closed. Los ejemplos dejan
   DEFENDER_EVENT_GRID_ENABLED y OFFICIAL_RSS_ENABLED en `false`.
@@ -450,9 +532,11 @@ candidato sigue sin publicarse.
 ### Activación Azure pendiente
 
 El código no habilita ni factura Defender/Event Grid por sí solo. Antes de producción, un operador
-debe crear/configurar esos recursos, registrar la política exacta con
-`configure-defender-event-grid-trust`, asignar RBAC mínimo y ejecutar un E2E real limpio/malicioso.
-Hasta entonces `DEFENDER_EVENT_GRID_ENABLED=false`, el scan productivo falla cerrado y no existe un
+debe crear/configurar esos recursos, registrar políticas exactas y separadas con
+`configure-defender-event-grid-trust --workload source-document` y
+`--workload project-asset`, usar suscripciones distintas, asignar RBAC mínimo y ejecutar un E2E real
+limpio/malicioso. Hasta entonces `DEFENDER_EVENT_GRID_ENABLED=false` y
+`PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED=false`; el scan productivo falla cerrado y no existe un
 botón de reintento que simule Defender.
 
 El despliegue usa cuatro UAMI distintas; una identidad adjunta a un Function App no se adjunta al
@@ -1033,10 +1117,72 @@ su producto, pasó lint, 21 archivos/104 pruebas Vitest y el build de producció
 el parsing estático de `021`/smoke no sustituyen su ejecución pendiente en SQL Server/Azure SQL y no
 incluyeron una llamada a OpenAI o a otro proveedor externo.
 
+## Adjuntos gobernados de proyectos — incrementos 036–039
+
+La base local permite que un Admin de la organización prepare imágenes JPEG, PNG o WebP y documentos
+PDF para un proyecto. La carga usa una autorización SAS HTTPS create-only de cinco minutos sobre un
+objeto opaco; la API vuelve a transmitir y verificar longitud, MIME, firma, dimensiones y SHA-256,
+mantiene el archivo en cuarentena y solo sirve contenido cuyo estado sea confiable y limpio. Los
+listados no exponen rutas Blob, hashes ni SAS. Los miembros activos pueden consultar; intents y
+mutaciones requieren Admin, ETag del proyecto y, cuando corresponde, ETag del adjunto.
+
+El incremento `038` hace que un resultado `Clean` del proveedor sea necesario pero no suficiente.
+Las imágenes se decodifican y re-encodifican con SkiaSharp, aplicando la orientación y eliminando
+EXIF y demás metadatos no requeridos; sólo el resultado derivado se escribe en el container
+confiable. Los PDF se copian byte por byte y su MIME, longitud y SHA-256 deben coincidir con el
+original verificado. SQL registra para cada copia un manifiesto `Trusted*` con container, objeto,
+ETag/versión, MIME, longitud, hash, dimensiones cuando corresponden, versión de procesamiento y
+fecha de creación.
+
+`ProviderObservedStatus`/`ProviderResultCode` conservan el hecho informado por Defender, mientras
+el estado y código efectivos reflejan también el resultado del procesamiento local. Por ejemplo,
+una imagen que Defender observó limpia pero que Skia no puede decodificar termina bloqueada, sin
+reescribir la evidencia del proveedor. Una revocación tardía conserva el manifiesto confiable
+completo para retirar el blob exacto. La migración también revoca de forma fail-closed cualquier
+imagen histórica confiable que no pruebe haber pasado por este pipeline; los PDF históricos sólo se
+mantienen si cumplen la identidad byte-exacta.
+
+`039` reclama en SQL tareas inmutables por manifiesto, con lease y hasta ocho intentos. Espera
+24 horas desde el borrado lógico o el scan terminal para retirar cuarentenas; las copias confiables
+eliminadas también tienen 24 horas de gracia y las revocadas son elegibles inmediatamente.
+El worker verifica container, nombre, ETag, versión, MIME, longitud y metadatos SHA-256 antes de
+borrar, y confirma la ausencia del blob actual y de la versión registrada antes de completar SQL.
+No enumera ni borra otras versiones o snapshots: una discrepancia de identidad falla cerrada.
+No procesa contenido activo, cargas `incoming` ni promociones huérfanas sin recibo persistido.
+La finalización significa indisponibilidad lógica; soft delete/lifecycle gobierna la purga posterior.
+
+La publicación, revisión administrativa y proyección al marketplace fallan cerradas mientras exista
+un adjunto activo que no esté `Trusted` + `Clean`; una imagen de portada también exige texto
+alternativo. Video no está habilitado en 036A. Aunque contratos, API e interfaz están preparados,
+`ProjectAssets:Enabled=false` y `VITE_PROJECT_ASSETS_ENABLED=false` son obligatorios hasta completar:
+
+- validación SQL/Blob real de la retención `039`, incluidos reintentos, revocación tardía,
+  soft delete y conservación del contenido activo;
+- provisión de Microsoft Defender for Storage/Event Grid y prueba E2E limpia y maliciosa del worker
+  ya implementado localmente;
+- aplicación y verificación en Azure de los containers privados `fp-project-incoming`,
+  `fp-project-quarantine` y `fp-project-trusted`, RBAC mínimo, CORS exacto para el origen web y
+  lifecycle de cargas abandonadas/versiones, ya declarados en Bicep;
+- aplicación de las migraciones `036`→`039` y publicación coordinada de la API y del worker general.
+
+La API y el worker general se restauran/publican para `linux-x64`, RID que contiene la dependencia
+nativa de Skia usada por la sanitización; el ZIP del worker exige `libSkiaSharp.so` en su manifiesto.
+El orden de rollout es base de datos `036`→`039` → API nueva en todo el tráfico → infraestructura de
+seguridad validada → frontend con el feature flag habilitado al final. No se debe activar parcialmente.
+Hasta este corte `031`→`039` no se ejecutaron contra SQL Server/Azure SQL, no hubo deploy de estos
+incrementos y los flags de backend, frontend, retención y recepción Defender/Event Grid continúan
+deshabilitados. El checklist del siguiente corte está en
+[`docs/runbooks/project-assets-rollout.md`](docs/runbooks/project-assets-rollout.md).
+
 Endpoints principales del backend hasta este cierre:
 
 - tenant: `POST /api/v1/organizations/{organizationId}/projects/{projectId}/publish` y
   `/archive`, con `If-Match` e `Idempotency-Key`;
+- adjuntos privados de proyecto: `GET /api/v1/organizations/{organizationId}/projects/{projectId}/assets`,
+  `POST /asset-upload-intents`, `GET /asset-upload-intents/{intentId}`,
+  `POST /asset-upload-intents/{intentId}/complete`, `PATCH/DELETE /assets/{assetId}`,
+  `GET /assets/{assetId}/content` y `PUT /assets/order`, todos bajo el mismo prefijo de
+  organización/proyecto;
 - admin MFA: cola, detalle completo y decisión bajo `/api/v1/admin/projects`;
 - público anónimo: `GET /api/v1/projects/{slug}`, limitado a proyectos publicados y
   organizaciones activas con perfil apto;

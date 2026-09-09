@@ -1,0 +1,87 @@
+import type { TranslationShape } from '@/i18n/resource-types'
+import type { billingEs } from './es'
+
+export const billingEn = {
+  "descriptions": {
+    "FREE": "Initial free plan to validate the MVP.",
+    "PROFESSIONAL": "Automation and expanded limits. Sandbox pricing pending approval.",
+    "ORGANIZATION": "Custom-priced team plan; contact sales."
+  },
+  "features": {
+    "funding_visible_limit": "Visible opportunity limit",
+    "search_advanced": "Advanced search",
+    "recommendations_enabled": "Recommendations",
+    "alerts_max": "Alert limit",
+    "ai_explanations_monthly": "AI explanations",
+    "applications_enabled": "Application tracking",
+    "calendar_enabled": "Calendar",
+    "organization_members_max": "Members per organization",
+    "organizations_max_owned": "Owned organizations",
+    "export_enabled": "Data export"
+  },
+  "units": {
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "monthly_one": "{{count}} item/month",
+    "monthly_other": "{{count}} items/month"
+  },
+  "current": "Current plan",
+  "free": "Free plan",
+  "noPrice": "Price to be determined",
+  "year": "year",
+  "month": "month",
+  "checkout": "Try sandbox checkout",
+  "manage": "View subscription",
+  "notEnabled": "Not enabled yet. The price and sandbox identifier need approval; no charge will be made from this screen.",
+  "eyebrow": "Plans",
+  "title": "Start free and grow with your organization",
+  "publicHelp": "Paid plans are not on sale yet. We will publish approved pricing before enabling any sandbox or live checkout.",
+  "plansLoading": "Loading plans…",
+  "plansFailed": "We could not load plans.",
+  "plansEmpty": "No plans are available right now.",
+  "subscriptionEyebrow": "Plans and usage",
+  "subscriptionTitle": "Subscription",
+  "help": "Access belongs to the organization. At this stage, all payments are disabled or restricted to sandbox.",
+  "checkoutCreated": "Checkout created; wait for reconciliation with the sandbox provider.",
+  "renewalUpdated": "Renewal preference updated.",
+  "checkoutStatus": "Checkout: {{status}}",
+  "checkoutHelp": "Returning to this page never activates a plan by itself. Authoritative status: {{status}}.",
+  "period": "Period",
+  "renewal": "Renewal",
+  "noDate": "No date",
+  "cancelScheduled": "Will cancel at period end",
+  "noCancellation": "No cancellation scheduled",
+  "resume": "Resume renewal",
+  "cancel": "Cancel at period end",
+  "usage": "Usage and limits",
+  "enabled": "Enabled",
+  "notIncluded": "Not included in the current plan",
+  "usageEmpty": "No usage data is available.",
+  "currentLoading": "Loading subscription…",
+  "currentFailed": "We could not load the subscription.",
+  "usageLoading": "Loading usage and limits…",
+  "usageFailed": "We could not load usage and limits.",
+  "checkoutLoading": "Checking checkout status…",
+  "checkoutFailed": "We could not confirm checkout status.",
+  "adminOnly": "Only an organization administrator can change the plan.",
+  "disabled": "Checkout is not enabled in this environment. The catalog remains available.",
+  "alreadyOpen": "A checkout is already pending. Check its status before starting another.",
+  "invalidTransition": "This change is not allowed in the subscription’s current state. Reload to review its status.",
+  "providerUnavailable": "We could not confirm the provider’s response. Retry the same request without changing the price.",
+  "statuses": {
+    "free": "Free",
+    "pending": "Pending",
+    "trialing": "Trial",
+    "active": "Active",
+    "pastdue": "Past due",
+    "canceled": "Canceled",
+    "expired": "Expired"
+  },
+  "checkoutStatuses": {
+    "creating": "Creating",
+    "pending": "Pending confirmation",
+    "completed": "Confirmed",
+    "failed": "Failed",
+    "expired": "Expired"
+  }
+} satisfies TranslationShape<typeof billingEs>

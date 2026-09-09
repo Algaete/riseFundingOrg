@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.Imports;
@@ -115,10 +116,9 @@ public sealed class ImportRunService(IImportRunRepository repository) : IImportR
         {
             return new ImportRunResult<ImportRunDetail>(
                 ImportRunOutcome.Invalid,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    [adminUserPublicId == Guid.Empty ? "adminUserId" : "runId"] =
-                        ["El identificador no es válido."]
+                    { adminUserPublicId == Guid.Empty ? "adminUserId" : "runId", "api-validation-146", "El identificador no es válido." }
                 },
                 Code: "invalid-query");
         }
@@ -138,7 +138,7 @@ public sealed class ImportRunService(IImportRunRepository repository) : IImportR
         }
     }
 
-    private static Dictionary<string, string[]> ValidateCreate(
+    private static FieldValidationErrors ValidateCreate(
         Guid adminUserPublicId,
         int fundingSourceId,
         string? keyword,
@@ -146,33 +146,32 @@ public sealed class ImportRunService(IImportRunRepository repository) : IImportR
         string? idempotencyKey,
         string? correlationId)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (adminUserPublicId == Guid.Empty)
         {
-            errors["adminUserId"] = ["El usuario administrador no es válido."];
+            errors.Set("adminUserId", "api-validation-143", "El usuario administrador no es válido.");
         }
 
         if (fundingSourceId <= 0)
         {
-            errors["fundingSourceId"] = ["La fuente no es válida."];
+            errors.Set("fundingSourceId", "api-validation-161", "La fuente no es válida.");
         }
 
         var normalizedKeyword = keyword?.Trim() ?? string.Empty;
         if (normalizedKeyword.Length is < 2 or > 100)
         {
-            errors["keyword"] = ["La búsqueda debe tener entre 2 y 100 caracteres."];
+            errors.Set("keyword", "api-validation-162", "La búsqueda debe tener entre 2 y 100 caracteres.");
         }
 
         if (maximumResults is < 1 or > 25)
         {
-            errors["maximumResults"] = ["La cantidad debe estar entre 1 y 25."];
+            errors.Set("maximumResults", "api-validation-163", "La cantidad debe estar entre 1 y 25.");
         }
 
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
         {
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         }
 
         var normalizedCorrelationId = correlationId?.Trim() ?? string.Empty;
@@ -180,43 +179,43 @@ public sealed class ImportRunService(IImportRunRepository repository) : IImportR
             normalizedCorrelationId.Any(character =>
                 !(char.IsAsciiLetterOrDigit(character) || character is '-' or '_' or '.' or ':')))
         {
-            errors["correlationId"] = ["El identificador de correlación no es válido."];
+            errors.Set("correlationId", "api-validation-164", "El identificador de correlación no es válido.");
         }
 
         return errors;
     }
 
-    private static Dictionary<string, string[]> ValidateQuery(
+    private static FieldValidationErrors ValidateQuery(
         Guid adminUserPublicId,
         int? fundingSourceId,
         ImportRunStatus? status,
         int page,
         int pageSize)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (adminUserPublicId == Guid.Empty)
         {
-            errors["adminUserId"] = ["El usuario administrador no es válido."];
+            errors.Set("adminUserId", "api-validation-143", "El usuario administrador no es válido.");
         }
 
         if (fundingSourceId is <= 0)
         {
-            errors["fundingSourceId"] = ["La fuente no es válida."];
+            errors.Set("fundingSourceId", "api-validation-161", "La fuente no es válida.");
         }
 
         if (status.HasValue && !Enum.IsDefined(status.Value))
         {
-            errors["status"] = ["El estado no es válido."];
+            errors.Set("status", "api-validation-165", "El estado no es válido.");
         }
 
         if (page < 1)
         {
-            errors["page"] = ["La página debe ser mayor o igual a 1."];
+            errors.Set("page", "api-validation-166", "La página debe ser mayor o igual a 1.");
         }
 
         if (pageSize is < 1 or > 100)
         {
-            errors["pageSize"] = ["El tamaño de página debe estar entre 1 y 100."];
+            errors.Set("pageSize", "api-validation-148", "El tamaño de página debe estar entre 1 y 100.");
         }
 
         return errors;

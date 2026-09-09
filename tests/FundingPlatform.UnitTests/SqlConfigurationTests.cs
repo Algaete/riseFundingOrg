@@ -30,11 +30,17 @@ public sealed class SqlConfigurationTests
             ["SOURCE_DOCUMENT_SCAN_TIMEOUT_SECONDS"] = "10",
             ["SOURCE_DOCUMENT_SCAN_MODE"] = "DevelopmentFake",
             ["SOURCE_DOCUMENT_DEVELOPMENT_FAKE_RESULT"] = "Clean",
+            ["PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED"] = "true",
+            ["PROJECT_ASSET_DEFENDER_EVENT_GRID_SUBSCRIPTION_NAME"] = "project-assets",
+            ["PROJECT_ASSET_DEFENDER_PENDING_SCAN_TIMEOUT_MINUTES"] = "240",
+            ["PROJECT_ASSET_DEFENDER_WATCHDOG_BATCH_SIZE"] = "25",
             ["IMPORT_WORKER_LEASE_SECONDS"] = "1800",
             ["IMPORT_SCHEDULER_BATCH_SIZE"] = "10",
             ["IMPORT_OUTBOX_BATCH_SIZE"] = "25",
             ["GRANTS_GOV_TIMEOUT_SECONDS"] = "20",
             ["IMPORT_ALLOWED_PROVIDERS"] = "grants-gov",
+            ["CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE"] = "25",
+            ["CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS"] = "900",
             ["AUTH_ACCESS_TOKEN_MINUTES"] = "15",
             ["AUTH_REFRESH_TOKEN_DAYS"] = "30",
             ["AUTH_ADMIN_SESSION_MINUTES"] = "60"
@@ -63,11 +69,21 @@ public sealed class SqlConfigurationTests
         Assert.Equal("10", configuration["SourceDocuments:ScanTimeoutSeconds"]);
         Assert.Equal("DevelopmentFake", configuration["SourceDocuments:ScanMode"]);
         Assert.Equal("Clean", configuration["SourceDocuments:DevelopmentFakeResult"]);
+        Assert.Equal("true", configuration["ProjectAssetDefenderEventGrid:Enabled"]);
+        Assert.Equal(
+            "project-assets",
+            configuration["ProjectAssetDefenderEventGrid:ExpectedSubscriptionName"]);
+        Assert.Equal(
+            "240",
+            configuration["ProjectAssetDefenderEventGrid:PendingScanTimeoutMinutes"]);
+        Assert.Equal("25", configuration["ProjectAssetDefenderEventGrid:WatchdogBatchSize"]);
         Assert.Equal("1800", configuration["ImportWorkers:LeaseSeconds"]);
         Assert.Equal("10", configuration["ImportWorkers:SchedulerBatchSize"]);
         Assert.Equal("25", configuration["ImportWorkers:OutboxBatchSize"]);
         Assert.Equal("20", configuration["ImportWorkers:GrantsGovTimeoutSeconds"]);
         Assert.Equal("grants-gov", configuration["ImportWorkers:AllowedProviders"]);
+        Assert.Equal("25", configuration["ContentRetention:ProjectAssetBatchSize"]);
+        Assert.Equal("900", configuration["ContentRetention:ProjectAssetLeaseSeconds"]);
         Assert.Equal("15", configuration["Authentication:Jwt:AccessTokenMinutes"]);
         Assert.Equal("30", configuration["Authentication:RefreshToken:LifetimeDays"]);
         Assert.Equal("60", configuration["Authentication:Mfa:AdminSessionMinutes"]);

@@ -11,8 +11,18 @@ using Microsoft.Data.SqlClient;
 namespace FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 
 public sealed class SqlFundingOpportunityEditorialRepository(
-    ISqlConnectionFactory connectionFactory) : IFundingOpportunityEditorialRepository
+    ISqlConnectionFactory connectionFactory, bool ownerWorkspace = false) : IFundingOpportunityEditorialRepository
 {
+    private object ScopeParameters(string procedure, object parameters)
+    {
+        if (!ownerWorkspace) return parameters;
+        if (procedure.EndsWith("_AdminReview", StringComparison.Ordinal))
+            throw new InvalidOperationException("Workspace repositories cannot approve or reject publication.");
+        var scoped = new DynamicParameters(parameters);
+        scoped.Add("OwnerWorkspace", true);
+        return scoped;
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<FundingOpportunityAdminPage> ListAdminAsync(
@@ -32,6 +42,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
                 new
                 {
                     AdminUserPublicId = adminUserPublicId,
+                    OwnerWorkspace = ownerWorkspace,
                     Query = query,
                     PublicationStatus = publicationStatus.HasValue
                         ? (byte?)publicationStatus.Value
@@ -67,6 +78,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
                 new
                 {
                     AdminUserPublicId = adminUserPublicId,
+                    OwnerWorkspace = ownerWorkspace,
                     FundingOpportunityPublicId = opportunityPublicId
                 },
                 commandType: CommandType.StoredProcedure,
@@ -306,7 +318,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
         {
             var row = await connection.QuerySingleAsync<MutationRow>(new CommandDefinition(
                 procedure,
-                parameters,
+                ScopeParameters(procedure, parameters),
                 commandType: CommandType.StoredProcedure,
                 commandTimeout: 30,
                 cancellationToken: cancellationToken));
@@ -334,7 +346,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
             {
                 using var reader = await connection.QueryMultipleAsync(new CommandDefinition(
                     procedure,
-                    parameters,
+                    ScopeParameters(procedure, parameters),
                     commandType: CommandType.StoredProcedure,
                     commandTimeout: 30,
                     cancellationToken: cancellationToken));
@@ -345,7 +357,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
             {
                 row = await connection.QuerySingleAsync<MutationRow>(new CommandDefinition(
                     procedure,
-                    parameters,
+                    ScopeParameters(procedure, parameters),
                     commandType: CommandType.StoredProcedure,
                     commandTimeout: 30,
                     cancellationToken: cancellationToken));

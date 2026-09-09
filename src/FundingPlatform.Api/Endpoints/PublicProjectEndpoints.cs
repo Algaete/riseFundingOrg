@@ -40,6 +40,7 @@ public static class PublicProjectEndpoints
         project.Summary,
         project.Description,
         (byte)project.Status,
+        project.Stage.HasValue ? (byte?)project.Stage.Value : null,
         project.StartDate,
         project.EndDate,
         project.BudgetTotal,
@@ -55,7 +56,9 @@ public static class PublicProjectEndpoints
         project.Regions.Select(Map).ToArray(),
         project.Categories.Select(Map).ToArray(),
         project.BeneficiaryTypes.Select(Map).ToArray(),
-        project.ProjectTypes.Select(Map).ToArray());
+        project.ProjectTypes.Select(Map).ToArray(),
+        project.SustainableDevelopmentGoals.Select(Map).ToArray(),
+        ProjectEnrichmentMapping.ToContract(project.Enrichment, publicView: true));
 
     private static PublicProjectTaxonomyResponse Map(PublicProjectTaxonomyItem item) =>
         new(item.Id, item.Code, item.Name);

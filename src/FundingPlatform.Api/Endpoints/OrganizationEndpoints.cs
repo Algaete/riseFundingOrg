@@ -71,7 +71,7 @@ public static class OrganizationEndpoints
         var result = await service.CreateAsync(
             userId, request.Name, request.HomeCountryId, request.OrganizationTypeId, cancellationToken);
         if (result.Outcome == OrganizationWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == OrganizationWriteOutcome.OwnedLimitReached)
             return Problem(StatusCodes.Status409Conflict, "Límite alcanzado",
                 "El MVP permite una organización propia por usuario.", "organization-owned-limit");
@@ -123,33 +123,56 @@ public static class OrganizationEndpoints
         if (!TryParseETag(context.Request.Headers.IfMatch, out var rowVersion))
             return Problem(StatusCodes.Status428PreconditionRequired, "Versión requerida",
                 "Vuelve a cargar el perfil e intenta nuevamente.", "if-match-required");
-        if (request.CountryIds is null || request.RegionIds is null || request.CategoryIds is null ||
-            request.BeneficiaryTypeIds is null || request.ProjectTypeIds is null ||
-            request.TagIds is null || request.Languages is null)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["collections"] = ["Todas las colecciones del perfil deben enviarse."]
-            });
+
+        var needsCurrentProfile =
+            (request.PreviousFundingExperience == 2 && request.FundingExperienceTypeIds is null) ||
+            request.CustomImpactAreas is null || request.CustomBeneficiaryTypes is null ||
+            request.CustomProjectTypes is null || request.CustomLanguages is null;
+        var current = needsCurrentProfile
+            ? await service.GetAsync(userId, organizationId, cancellationToken)
+            : null;
+        if (needsCurrentProfile && current is null) return NotFound();
+
+        IReadOnlyList<short> fundingExperienceTypeIds = [];
+        if (request.PreviousFundingExperience == 2 && request.FundingExperienceTypeIds is not null)
+        {
+            fundingExperienceTypeIds = request.FundingExperienceTypeIds;
+        }
+        else if (request.PreviousFundingExperience == 2)
+        {
+            fundingExperienceTypeIds = current!.FundingExperienceTypeIds;
+        }
+
+        var customTaxonomyValues = new List<OrganizationCustomTaxonomyValue>();
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.ImpactArea,
+            request.CustomImpactAreas, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.BeneficiaryType,
+            request.CustomBeneficiaryTypes, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.ProjectType,
+            request.CustomProjectTypes, current);
+        AddCustom(customTaxonomyValues, OrganizationCustomTaxonomyKind.Language,
+            request.CustomLanguages, current);
 
         var profile = new OrganizationProfileData(
-            request.Name, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
+            request.Name ?? string.Empty, request.LegalName, request.TaxIdentifier, request.HomeCountryId,
             request.OrganizationTypeId, request.LegalEntityTypeId, request.OrganizationSizeId,
             request.EstablishedYear, request.WebsiteUrl, request.Description,
             request.PreviousFundingExperience, request.ExperienceSummary,
             request.AnnualBudgetMin, request.AnnualBudgetMax, request.AnnualBudgetCurrency,
             request.DesiredFundingMin, request.DesiredFundingMax, request.DesiredFundingCurrency,
-            request.CountryIds, request.RegionIds, request.CategoryIds,
-            request.BeneficiaryTypeIds, request.ProjectTypeIds, request.TagIds,
-            request.Languages.Select(language =>
-                new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray());
+            request.CountryIds ?? [], request.RegionIds ?? [], request.CategoryIds ?? [],
+            request.BeneficiaryTypeIds ?? [], request.ProjectTypeIds ?? [], request.TagIds ?? [],
+            (request.Languages ?? []).OfType<OrganizationLanguageRequest>().Select(language =>
+                new OrganizationLanguage(language.LanguageId, language.Proficiency)).ToArray(),
+            fundingExperienceTypeIds, customTaxonomyValues);
         var result = await service.UpdateAsync(
             userId, organizationId, rowVersion, profile, cancellationToken);
 
         if (result.Outcome == OrganizationWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == OrganizationWriteOutcome.Conflict)
             return Problem(StatusCodes.Status409Conflict, "El perfil cambió",
-                "Otra sesión guardó una versión más reciente. Recarga antes de continuar.", "organization-concurrency-conflict");
+                "Otra sesión guardó una versión más reciente o usó una versión anterior del perfil. Recarga antes de continuar.", "organization-concurrency-conflict");
         if (result.Outcome is OrganizationWriteOutcome.NotFound or OrganizationWriteOutcome.Forbidden)
             return NotFound();
 
@@ -172,7 +195,9 @@ public static class OrganizationEndpoints
         catalogs.BeneficiaryTypes.Select(Map).ToArray(),
         catalogs.ProjectTypes.Select(Map).ToArray(),
         catalogs.Tags.Select(Map).ToArray(),
-        catalogs.Languages.Select(Map).ToArray());
+        catalogs.Languages.Select(Map).ToArray(),
+        catalogs.SustainableDevelopmentGoals.Select(Map).ToArray(),
+        catalogs.FundingExperienceTypes.Select(Map).ToArray());
 
     private static CatalogOptionResponse<T> Map<T>(CatalogOption<T> item) => new(item.Id, item.Code, item.Name);
 
@@ -191,7 +216,32 @@ public static class OrganizationEndpoints
         FormatETag(profile.RowVersion), profile.CountryIds, profile.RegionIds,
         profile.CategoryIds, profile.BeneficiaryTypeIds, profile.ProjectTypeIds,
         profile.TagIds, profile.Languages.Select(language =>
-            new OrganizationLanguageResponse(language.LanguageId, language.Proficiency)).ToArray());
+            new OrganizationLanguageResponse(language.LanguageId, language.Proficiency)).ToArray(),
+        profile.FundingExperienceTypeIds,
+        CustomNames(profile, OrganizationCustomTaxonomyKind.ImpactArea),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.BeneficiaryType),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.ProjectType),
+        CustomNames(profile, OrganizationCustomTaxonomyKind.Language));
+
+    private static void AddCustom(
+        ICollection<OrganizationCustomTaxonomyValue> target,
+        OrganizationCustomTaxonomyKind kind,
+        IReadOnlyList<string>? requested,
+        OrganizationProfile? current)
+    {
+        if (requested is not null)
+        {
+            foreach (var name in requested)
+                target.Add(new OrganizationCustomTaxonomyValue(kind, name ?? string.Empty, string.Empty));
+            return;
+        }
+
+        foreach (var value in current?.CustomTaxonomyValues.Where(value => value.Kind == kind) ?? [])
+            target.Add(value);
+    }
+
+    private static string[] CustomNames(OrganizationProfile profile, OrganizationCustomTaxonomyKind kind) =>
+        profile.CustomTaxonomyValues.Where(value => value.Kind == kind).Select(value => value.Name).ToArray();
 
     private static string FormatETag(byte[] rowVersion) => $"\"{Convert.ToHexString(rowVersion)}\"";
 

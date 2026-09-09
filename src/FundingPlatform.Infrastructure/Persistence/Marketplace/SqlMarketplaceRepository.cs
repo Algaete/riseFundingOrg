@@ -163,6 +163,7 @@ public sealed class SqlMarketplaceRepository(
             row.Title,
             row.Summary,
             (ProjectStatus)row.ProjectStatus,
+            row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
             ToDateOnly(row.StartDate),
             ToDateOnly(row.EndDate),
             row.BudgetTotal,
@@ -184,6 +185,7 @@ public sealed class SqlMarketplaceRepository(
             row.Title,
             row.Summary,
             (ProjectStatus)row.ProjectStatus,
+            row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
             ToDateOnly(row.StartDate),
             ToDateOnly(row.EndDate),
             row.BudgetTotal,
@@ -201,6 +203,7 @@ public sealed class SqlMarketplaceRepository(
             row.Summary,
             row.Description,
             (ProjectStatus)row.ProjectStatus,
+            row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
             ToDateOnly(row.StartDate),
             ToDateOnly(row.EndDate),
             row.BudgetTotal,
@@ -216,7 +219,10 @@ public sealed class SqlMarketplaceRepository(
             Deserialize<PublicProjectRegion>(row.RegionsJson),
             Deserialize<PublicProjectTaxonomyItem>(row.CategoriesJson),
             Deserialize<PublicProjectTaxonomyItem>(row.BeneficiaryTypesJson),
-            Deserialize<PublicProjectTaxonomyItem>(row.ProjectTypesJson));
+            Deserialize<PublicProjectTaxonomyItem>(row.ProjectTypesJson),
+            Deserialize<PublicProjectTaxonomyItem>(row.SustainableDevelopmentGoalsJson),
+            row.EnrichmentJson is null ? null :
+                JsonSerializer.Deserialize<ProjectEnrichment>(row.EnrichmentJson, JsonOptions)?.ForPublic());
 
     private static IReadOnlyList<T> Deserialize<T>(string? json) =>
         string.IsNullOrWhiteSpace(json)
@@ -270,6 +276,7 @@ public sealed class SqlMarketplaceRepository(
         public string Title { get; init; } = "";
         public string? Summary { get; init; }
         public byte ProjectStatus { get; init; }
+        public byte? ProjectStage { get; init; }
         public DateTime? StartDate { get; init; }
         public DateTime? EndDate { get; init; }
         public decimal? BudgetTotal { get; init; }
@@ -294,6 +301,8 @@ public sealed class SqlMarketplaceRepository(
         public string CategoriesJson { get; init; } = "[]";
         public string BeneficiaryTypesJson { get; init; } = "[]";
         public string ProjectTypesJson { get; init; } = "[]";
+        public string SustainableDevelopmentGoalsJson { get; init; } = "[]";
+        public string? EnrichmentJson { get; init; }
     }
 
     private sealed class MarketplaceOrganizationRow

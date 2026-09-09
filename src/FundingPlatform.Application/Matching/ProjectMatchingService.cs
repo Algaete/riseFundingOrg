@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.Matching;
@@ -23,12 +24,12 @@ public sealed class ProjectMatchingService(IProjectMatchingRepository repository
         var errors = ValidateIdentifiers(organizationPublicId, projectPublicId);
         if (filters.PageNumber is < 1 or > MaximumPageNumber)
         {
-            errors["page"] = [$"La página debe estar entre 1 y {MaximumPageNumber}."];
+            errors.Set("page", "api-validation-013", $"La página debe estar entre 1 y {MaximumPageNumber}.", max: MaximumPageNumber);
         }
 
         if (filters.PageSize is < 1 or > MaximumPageSize)
         {
-            errors["pageSize"] = [$"El tamaño de página debe estar entre 1 y {MaximumPageSize}."];
+            errors.Set("pageSize", "api-validation-014", $"El tamaño de página debe estar entre 1 y {MaximumPageSize}.", max: MaximumPageSize);
         }
 
         if (errors.Count > 0)
@@ -56,9 +57,9 @@ public sealed class ProjectMatchingService(IProjectMatchingRepository repository
         {
             return new ProjectMatchingRunPageResult(
                 ProjectMatchingOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["filters"] = ["Los filtros de ejecuciones no son válidos."]
+                    { "filters", "api-validation-135", "Los filtros de ejecuciones no son válidos." }
                 });
         }
     }
@@ -105,8 +106,7 @@ public sealed class ProjectMatchingService(IProjectMatchingRepository repository
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
         {
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         }
 
         if (errors.Count > 0)
@@ -155,9 +155,9 @@ public sealed class ProjectMatchingService(IProjectMatchingRepository repository
         {
             return new ProjectMatchingRunDetailsResult(
                 ProjectMatchingOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["project"] = ["El proyecto o su perfil institucional no están listos para calcular compatibilidad."]
+                    { "project", "api-validation-136", "El proyecto o su perfil institucional no están listos para calcular compatibilidad." }
                 });
         }
         catch (ProjectMatchingDataException exception) when (exception.DatabaseErrorNumber == 52403)
@@ -177,32 +177,32 @@ public sealed class ProjectMatchingService(IProjectMatchingRepository repository
         "idempotency-conflict" => new(ProjectMatchingOutcome.IdempotencyConflict),
         "project-not-ready" or "profile-not-ready" => new(
             ProjectMatchingOutcome.NotReady,
-            Errors: new Dictionary<string, string[]>
+            Errors: new FieldValidationErrors
             {
-                ["project"] = ["Completa el proyecto y el perfil institucional antes de calcular compatibilidad."]
+                { "project", "api-validation-137", "Completa el proyecto y el perfil institucional antes de calcular compatibilidad." }
             }),
         "invalid-input" => new(
             ProjectMatchingOutcome.ValidationFailed,
-            Errors: new Dictionary<string, string[]>
+            Errors: new FieldValidationErrors
             {
-                ["project"] = ["No fue posible validar los datos para esta ejecución."]
+                { "project", "api-validation-138", "No fue posible validar los datos para esta ejecución." }
             }),
         _ => new(ProjectMatchingOutcome.Conflict)
     };
 
-    private static Dictionary<string, string[]> ValidateIdentifiers(
+    private static FieldValidationErrors ValidateIdentifiers(
         Guid organizationPublicId,
         Guid projectPublicId)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (organizationPublicId == Guid.Empty)
         {
-            errors["organizationId"] = ["La organización no es válida."];
+            errors.Set("organizationId", "api-validation-139", "La organización no es válida.");
         }
 
         if (projectPublicId == Guid.Empty)
         {
-            errors["projectId"] = ["El proyecto no es válido."];
+            errors.Set("projectId", "api-validation-140", "El proyecto no es válido.");
         }
 
         return errors;

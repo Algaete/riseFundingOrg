@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.Semantics;
@@ -21,20 +22,18 @@ public sealed class SemanticEvaluationAdministrationService(
         string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (adminUserPublicId == Guid.Empty)
-            errors["adminUserId"] = ["El usuario administrador no es válido."];
+            errors.Set("adminUserId", "api-validation-143", "El usuario administrador no es válido.");
         var evalSet = NormalizeVersion(evaluationSetVersion);
         if (evalSet is null)
-            errors["evalSetVersion"] = ["La versión del conjunto de evaluación no es válida."];
+            errors.Set("evalSetVersion", "api-validation-144", "La versión del conjunto de evaluación no es válida.");
         var configuration = NormalizeVersion(semanticConfigurationVersion);
         if (configuration is null)
-            errors["semanticConfigurationVersion"] =
-                ["La versión de configuración semántica no es válida."];
+            errors.Set("semanticConfigurationVersion", "api-validation-145", "La versión de configuración semántica no es válida.");
         var normalizedKey = idempotencyKey?.Trim() ?? string.Empty;
         if (normalizedKey.Length is < MinimumIdempotencyKeyLength or > MaximumIdempotencyKeyLength)
-            errors["idempotencyKey"] =
-                [$"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres."];
+            errors.Set("idempotencyKey", "api-validation-004", $"Idempotency-Key debe tener entre {MinimumIdempotencyKeyLength} y {MaximumIdempotencyKeyLength} caracteres.", min: MinimumIdempotencyKeyLength, max: MaximumIdempotencyKeyLength);
         if (errors.Count > 0)
             return new SemanticEvaluationResult<SemanticEvaluationRunMutation>(
                 SemanticEvaluationOutcome.Invalid, Errors: errors, Code: "invalid-request");
@@ -140,10 +139,9 @@ public sealed class SemanticEvaluationAdministrationService(
             return new SemanticEvaluationResult<SemanticEvaluationRunDetail>(
                 SemanticEvaluationOutcome.Invalid,
                 Code: "invalid-query",
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    [adminUserPublicId == Guid.Empty ? "adminUserId" : "runId"] =
-                        ["El identificador no es válido."]
+                    { adminUserPublicId == Guid.Empty ? "adminUserId" : "runId", "api-validation-146", "El identificador no es válido." }
                 });
         try
         {
@@ -178,10 +176,9 @@ public sealed class SemanticEvaluationAdministrationService(
             return new SemanticEvaluationResult<SemanticEvaluationRunReport>(
                 SemanticEvaluationOutcome.Invalid,
                 Code: "invalid-query",
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    [adminUserPublicId == Guid.Empty ? "adminUserId" : "runId"] =
-                        ["El identificador no es válido."]
+                    { adminUserPublicId == Guid.Empty ? "adminUserId" : "runId", "api-validation-146", "El identificador no es válido." }
                 });
         try
         {
@@ -207,14 +204,14 @@ public sealed class SemanticEvaluationAdministrationService(
         }
     }
 
-    private static Dictionary<string, string[]> ValidateQuery(
+    private static FieldValidationErrors ValidateQuery(
         Guid userId, int page, int pageSize)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-        if (userId == Guid.Empty) errors["adminUserId"] = ["El usuario no es válido."];
-        if (page is < 1 or > 10_000) errors["page"] = ["La página no es válida."];
+        var errors = new FieldValidationErrors();
+        if (userId == Guid.Empty) errors.Set("adminUserId", "api-validation-147", "El usuario no es válido.");
+        if (page is < 1 or > 10_000) errors.Set("page", "api-validation-125", "La página no es válida.");
         if (pageSize is < 1 or > MaximumPageSize)
-            errors["pageSize"] = ["El tamaño de página debe estar entre 1 y 100."];
+            errors.Set("pageSize", "api-validation-148", "El tamaño de página debe estar entre 1 y 100.");
         return errors;
     }
 

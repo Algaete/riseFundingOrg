@@ -33,7 +33,7 @@ describe('resumen del usuario', () => {
     }])
     vi.spyOn(projectApi, 'list').mockResolvedValue([{
       publicId: '33333333-3333-3333-3333-333333333333', slug: 'agua-rural',
-      title: 'Agua rural', summary: null, status: 2, publicationStatus: 2,
+      title: 'Agua rural', summary: null, status: 2, projectStage: null, publicationStatus: 2,
       startDate: null, endDate: null, budgetTotal: 100, confirmedFunding: 20,
       currency: 'CLP', fundingGap: 80, projectVersion: 2, updatedAtUtc: '2026-08-26T12:00:00Z',
     }])

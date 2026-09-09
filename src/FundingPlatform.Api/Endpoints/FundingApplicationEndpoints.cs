@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.Applications;
 using FundingPlatform.Contracts.Applications;
@@ -94,7 +95,7 @@ public static class FundingApplicationEndpoints
         return result.Outcome switch
         {
             FundingApplicationOutcome.Success => Results.Ok(Map(result.Page!)),
-            FundingApplicationOutcome.ValidationFailed => Results.ValidationProblem(result.Errors!),
+            FundingApplicationOutcome.ValidationFailed => FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
         };
     }
@@ -242,9 +243,9 @@ public static class FundingApplicationEndpoints
 
         if (!from.HasValue || !to.HasValue)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
             {
-                [!from.HasValue ? "from" : "to"] = ["Indica ambas fechas en formato YYYY-MM-DD."]
+                { !from.HasValue ? "from" : "to", "api-validation-142", "Indica ambas fechas en formato YYYY-MM-DD." }
             });
         }
 
@@ -260,7 +261,7 @@ public static class FundingApplicationEndpoints
                 result.From,
                 result.To,
                 result.Items.Select(Map).ToArray())),
-            FundingApplicationOutcome.ValidationFailed => Results.ValidationProblem(result.Errors!),
+            FundingApplicationOutcome.ValidationFailed => FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
         };
     }

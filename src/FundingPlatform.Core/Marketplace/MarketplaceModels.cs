@@ -26,6 +26,7 @@ public sealed record MarketplaceProjectSummary(
     string Title,
     string? Summary,
     ProjectStatus Status,
+    ProjectStage? Stage,
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetTotal,

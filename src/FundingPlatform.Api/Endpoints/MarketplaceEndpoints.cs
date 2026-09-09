@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using FundingPlatform.Application.Marketplace;
 using FundingPlatform.Application.Organizations;
@@ -68,7 +69,8 @@ public static class MarketplaceEndpoints
             catalogs.Currencies.Select(item => new CurrencyOptionResponse(
                 item.Code, item.Name, item.MinorUnits)).ToArray(),
             catalogs.FundingCategories.Select(Map).ToArray(),
-            catalogs.ProjectTypes.Select(Map).ToArray()));
+            catalogs.ProjectTypes.Select(Map).ToArray(),
+            catalogs.SustainableDevelopmentGoals.Select(Map).ToArray()));
     }
 
     private static async Task<IResult> SearchProjectsAsync(
@@ -78,13 +80,13 @@ public static class MarketplaceEndpoints
     {
         if (!TryParseFilters(context.Request.Query, out var filters, out var errors))
         {
-            return Results.ValidationProblem(errors);
+            return FieldValidationResults.BadRequest(errors);
         }
 
         var result = await service.SearchProjectsAsync(filters!, cancellationToken);
         if (result.Outcome == MarketplaceOutcome.ValidationFailed)
         {
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         }
 
         SetPublicCache(context);
@@ -126,10 +128,10 @@ public static class MarketplaceEndpoints
     private static bool TryParseFilters(
         IQueryCollection query,
         out MarketplaceProjectFilters? filters,
-        out Dictionary<string, string[]> errors)
+        out FieldValidationErrors errors)
     {
         filters = null;
-        errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        errors = new FieldValidationErrors();
         var countries = ParseShortIds(query["countryIds"], "countryIds", errors);
         var categories = ParseIntIds(query["categoryIds"], "categoryIds", errors);
         var projectTypes = ParseIntIds(query["projectTypeIds"], "projectTypeIds", errors);
@@ -140,7 +142,7 @@ public static class MarketplaceEndpoints
         var sort = MarketplaceProjectSort.Newest;
         if (!string.IsNullOrWhiteSpace(sortCode) && !Sorts.TryGetValue(sortCode.Trim(), out sort))
         {
-            errors["sort"] = ["El orden solicitado no es válido."];
+            errors.Set("sort", "api-validation-101", "El orden solicitado no es válido.");
         }
 
         if (errors.Count > 0)
@@ -164,7 +166,7 @@ public static class MarketplaceEndpoints
     private static short[] ParseShortIds(
         StringValues values,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var tokens = Tokens(values);
         var parsed = new List<short>(tokens.Length);
@@ -172,7 +174,7 @@ public static class MarketplaceEndpoints
                 token, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ||
                 value <= 0))
         {
-            errors[key] = ["Usa una lista de identificadores positivos separados por coma."];
+            errors.Set(key, "api-validation-130", "Usa una lista de identificadores positivos separados por coma.");
             return [];
         }
 
@@ -187,7 +189,7 @@ public static class MarketplaceEndpoints
     private static int[] ParseIntIds(
         StringValues values,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var tokens = Tokens(values);
         var parsed = new List<int>(tokens.Length);
@@ -195,7 +197,7 @@ public static class MarketplaceEndpoints
                 token, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ||
                 value <= 0))
         {
-            errors[key] = ["Usa una lista de identificadores positivos separados por coma."];
+            errors.Set(key, "api-validation-130", "Usa una lista de identificadores positivos separados por coma.");
             return [];
         }
 
@@ -215,7 +217,7 @@ public static class MarketplaceEndpoints
     private static byte? ParseByte(
         StringValues value,
         string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = value.ToString();
         if (string.IsNullOrWhiteSpace(raw))
@@ -228,7 +230,7 @@ public static class MarketplaceEndpoints
             return parsed;
         }
 
-        errors[key] = ["El valor no es válido."];
+        errors.Set(key, "api-validation-131", "El valor no es válido.");
         return null;
     }
 
@@ -236,7 +238,7 @@ public static class MarketplaceEndpoints
         StringValues value,
         string key,
         int defaultValue,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         var raw = value.ToString();
         if (string.IsNullOrWhiteSpace(raw))
@@ -249,7 +251,7 @@ public static class MarketplaceEndpoints
             return parsed;
         }
 
-        errors[key] = ["El valor no es válido."];
+        errors.Set(key, "api-validation-131", "El valor no es válido.");
         return defaultValue;
     }
 
@@ -263,6 +265,7 @@ public static class MarketplaceEndpoints
             project.Title,
             project.Summary,
             (byte)project.Status,
+            project.Stage.HasValue ? (byte?)project.Stage.Value : null,
             project.StartDate,
             project.EndDate,
             project.BudgetTotal,
@@ -283,6 +286,7 @@ public static class MarketplaceEndpoints
             project.Summary,
             project.Description,
             (byte)project.Status,
+            project.Stage.HasValue ? (byte?)project.Stage.Value : null,
             project.StartDate,
             project.EndDate,
             project.BudgetTotal,
@@ -298,7 +302,9 @@ public static class MarketplaceEndpoints
             project.Regions.Select(Map).ToArray(),
             project.Categories.Select(Map).ToArray(),
             project.BeneficiaryTypes.Select(Map).ToArray(),
-            project.ProjectTypes.Select(Map).ToArray());
+            project.ProjectTypes.Select(Map).ToArray(),
+            project.SustainableDevelopmentGoals.Select(Map).ToArray(),
+            ProjectEnrichmentMapping.ToContract(project.Enrichment, publicView: true));
 
     private static MarketplaceOrganizationProfileResponse Map(
         MarketplaceOrganizationProfile organization) =>

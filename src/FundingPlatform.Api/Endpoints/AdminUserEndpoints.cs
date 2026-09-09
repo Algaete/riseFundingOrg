@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Application.Authentication;
 using FundingPlatform.Contracts.Authentication;
 using FundingPlatform.Core.Identity;
@@ -30,7 +31,7 @@ public static class AdminUserEndpoints
         var errors = Validate(q, status, role, page, pageSize);
         if (errors.Count > 0)
         {
-            return Results.ValidationProblem(
+            return FieldValidationResults.BadRequest(
                 errors,
                 statusCode: StatusCodes.Status422UnprocessableEntity,
                 title: "Filtros de usuarios inválidos");
@@ -47,26 +48,26 @@ public static class AdminUserEndpoints
             result.PageSize));
     }
 
-    private static Dictionary<string, string[]> Validate(
+    private static FieldValidationErrors Validate(
         string? query,
         int? status,
         string? role,
         int page,
         int pageSize)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (query?.Trim().Length > 200)
-            errors["q"] = ["q no puede superar 200 caracteres."];
+            errors.Set("q", "api-validation-028", "q no puede superar 200 caracteres.");
         if (status is not null &&
             (status.Value is < byte.MinValue or > byte.MaxValue ||
              !Enum.IsDefined(typeof(UserStatus), (byte)status.Value)))
-            errors["status"] = ["status no es válido."];
+            errors.Set("status", "api-validation-060", "status no es válido.");
         if (role?.Trim().Length > 100)
-            errors["role"] = ["role no puede superar 100 caracteres."];
+            errors.Set("role", "api-validation-061", "role no puede superar 100 caracteres.");
         if (page is < 1 or > 10000)
-            errors["page"] = ["page debe estar entre 1 y 10000."];
+            errors.Set("page", "api-validation-029", "page debe estar entre 1 y 10000.");
         if (pageSize is < 1 or > 100)
-            errors["pageSize"] = ["pageSize debe estar entre 1 y 100."];
+            errors.Set("pageSize", "api-validation-062", "pageSize debe estar entre 1 y 100.");
         return errors;
     }
 

@@ -63,18 +63,28 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
             var categories = (await reader.ReadAsync<IntIdRow>()).Select(item => item.Id).ToArray();
             var beneficiaries = (await reader.ReadAsync<IntIdRow>()).Select(item => item.Id).ToArray();
             var projectTypes = (await reader.ReadAsync<IntIdRow>()).Select(item => item.Id).ToArray();
+            var sustainableDevelopmentGoals =
+                (await reader.ReadAsync<IntIdRow>()).Select(item => item.Id).ToArray();
             return new ProjectDetails(
                 row.PublicId, row.Slug, row.Title, row.Summary, row.Description,
-                (ProjectStatus)row.ProjectStatus, (ProjectPublicationStatus)row.PublicationStatus,
+                (ProjectStatus)row.ProjectStatus,
+                row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
+                (ProjectPublicationStatus)row.PublicationStatus,
                 ToDateOnly(row.StartDate), ToDateOnly(row.EndDate), row.BudgetTotal,
                 row.ConfirmedFunding, row.Currency?.Trim(), row.FundingGap, row.ProjectVersion,
                 ToUtc(row.UpdatedAtUtc), row.RowVersion, countries, regions, categories,
-                beneficiaries, projectTypes, ToUtc(row.SubmittedAtUtc), ToUtc(row.ReviewedAtUtc),
-                row.RejectionReason, ToUtc(row.PublishedAtUtc));
+                beneficiaries, projectTypes, sustainableDevelopmentGoals,
+                ToUtc(row.SubmittedAtUtc), ToUtc(row.ReviewedAtUtc),
+                row.RejectionReason, ToUtc(row.PublishedAtUtc),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
             throw Wrap("read project", exception);
+        }
+        catch (JsonException exception)
+        {
+            throw new ProjectDataException("read project contract", -1, exception);
         }
     }
 
@@ -178,6 +188,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                     row.Title,
                     row.Summary,
                     (ProjectStatus)row.ProjectStatus,
+                    row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
                     (ProjectPublicationStatus)row.PublicationStatus,
                     row.OrganizationPublicId,
                     row.OrganizationName,
@@ -226,6 +237,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 row.Summary,
                 row.Description,
                 (ProjectStatus)row.ProjectStatus,
+                row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
                 (ProjectPublicationStatus)row.PublicationStatus,
                 ToDateOnly(row.StartDate),
                 ToDateOnly(row.EndDate),
@@ -246,7 +258,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 DeserializeRegions(row.RegionsJson),
                 DeserializeTaxonomy(row.CategoriesJson),
                 DeserializeTaxonomy(row.BeneficiaryTypesJson),
-                DeserializeTaxonomy(row.ProjectTypesJson));
+                DeserializeTaxonomy(row.ProjectTypesJson),
+                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
@@ -308,6 +322,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 row.Summary,
                 row.Description,
                 (ProjectStatus)row.ProjectStatus,
+                row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
                 ToDateOnly(row.StartDate),
                 ToDateOnly(row.EndDate),
                 row.BudgetTotal,
@@ -323,7 +338,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 DeserializeRegions(row.RegionsJson),
                 DeserializeTaxonomy(row.CategoriesJson),
                 DeserializeTaxonomy(row.BeneficiaryTypesJson),
-                DeserializeTaxonomy(row.ProjectTypesJson));
+                DeserializeTaxonomy(row.ProjectTypesJson),
+                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
@@ -334,6 +351,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
             throw new ProjectDataException("read published project contract", -1, exception);
         }
     }
+
+    private static ProjectEnrichment? DeserializeEnrichment(string? json) =>
+        json is null ? null : JsonSerializer.Deserialize<ProjectEnrichment>(json, PublicJsonOptions);
 
     private async Task<PersistedProject> WriteAsync(
         string procedure,
@@ -359,11 +379,17 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         parameters.Add("Summary", project.Summary);
         parameters.Add("Description", project.Description);
         parameters.Add("ProjectStatus", (byte)project.Status);
+        parameters.Add("ProjectStage", project.Stage.HasValue
+            ? (byte?)project.Stage.Value
+            : null);
+        parameters.Add("ProjectStageIsSpecified", true);
         parameters.Add("StartDate", ToDateTime(project.StartDate), DbType.Date);
         parameters.Add("EndDate", ToDateTime(project.EndDate), DbType.Date);
         parameters.Add("BudgetTotal", project.BudgetTotal);
         parameters.Add("ConfirmedFunding", project.ConfirmedFunding);
         parameters.Add("Currency", project.Currency, DbType.AnsiStringFixedLength, size: 3);
+        parameters.Add("EnrichmentJson", project.Enrichment is null ? null :
+            JsonSerializer.Serialize(project.Enrichment, PublicJsonOptions));
         parameters.Add("SnapshotJson", snapshotJson);
         parameters.Add("ContentHash", contentHash, DbType.Binary, size: 32);
         parameters.Add("CountryIds", ToIdTable(project.CountryIds).AsTableValuedParameter("dbo.FundingPlatform_SmallIntIdList"));
@@ -371,6 +397,8 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         parameters.Add("CategoryIds", ToIdTable(project.CategoryIds).AsTableValuedParameter("dbo.FundingPlatform_IntIdList"));
         parameters.Add("BeneficiaryTypeIds", ToIdTable(project.BeneficiaryTypeIds).AsTableValuedParameter("dbo.FundingPlatform_IntIdList"));
         parameters.Add("ProjectTypeIds", ToIdTable(project.ProjectTypeIds).AsTableValuedParameter("dbo.FundingPlatform_IntIdList"));
+        parameters.Add("SustainableDevelopmentGoalIdsJson",
+            JsonSerializer.Serialize(project.SustainableDevelopmentGoalIds, PublicJsonOptions));
 
         await using var connection = connectionFactory.CreateConnection();
         try
@@ -443,6 +471,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
 
     private static ProjectSummary MapSummary(ProjectSummaryRow row) => new(
         row.PublicId, row.Slug, row.Title, row.Summary, (ProjectStatus)row.ProjectStatus,
+        row.ProjectStage.HasValue ? (ProjectStage?)row.ProjectStage.Value : null,
         (ProjectPublicationStatus)row.PublicationStatus, ToDateOnly(row.StartDate),
         ToDateOnly(row.EndDate), row.BudgetTotal, row.ConfirmedFunding, row.Currency?.Trim(),
         row.FundingGap, row.ProjectVersion, ToUtc(row.UpdatedAtUtc));
@@ -486,6 +515,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = "";
         public string? Summary { get; set; }
         public byte ProjectStatus { get; set; }
+        public byte? ProjectStage { get; set; }
         public byte PublicationStatus { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -499,6 +529,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
     private sealed class ProjectDetailsRow : ProjectSummaryRow
     {
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte[] RowVersion { get; set; } = [];
         public DateTime? SubmittedAtUtc { get; set; }
         public DateTime? ReviewedAtUtc { get; set; }
@@ -529,6 +560,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public byte ProjectStatus { get; set; }
+        public byte? ProjectStage { get; set; }
         public byte PublicationStatus { get; set; }
         public DateTime SubmittedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
@@ -545,7 +577,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte ProjectStatus { get; set; }
+        public byte? ProjectStage { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public decimal? BudgetTotal { get; set; }
@@ -561,6 +595,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string CategoriesJson { get; set; } = "[]";
         public string BeneficiaryTypesJson { get; set; } = "[]";
         public string ProjectTypesJson { get; set; } = "[]";
+        public string SustainableDevelopmentGoalsJson { get; set; } = "[]";
     }
 
     private sealed class ProjectReviewDetailRow
@@ -570,7 +605,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte ProjectStatus { get; set; }
+        public byte? ProjectStage { get; set; }
         public byte PublicationStatus { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -591,5 +628,6 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string CategoriesJson { get; set; } = "[]";
         public string BeneficiaryTypesJson { get; set; } = "[]";
         public string ProjectTypesJson { get; set; } = "[]";
+        public string SustainableDevelopmentGoalsJson { get; set; } = "[]";
     }
 }

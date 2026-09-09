@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Contracts.FundingOpportunities;
 using FundingPlatform.Core.FundingOpportunities;
@@ -36,12 +37,12 @@ public static class FunderEndpoints
         {
             return ProjectEndpointResults.Validation(
                 422, "Paginación inválida", "invalid-pagination",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    [page < 1 ? "page" : "pageSize"] =
-                        [page < 1
+                    { page < 1 ? "page" : "pageSize", page < 1 ? "api-validation-091" : "api-validation-030",
+                        page < 1
                             ? "page debe ser al menos 1."
-                            : "pageSize debe estar entre 1 y 50."]
+                            : "pageSize debe estar entre 1 y 50." }
                 });
         }
 
@@ -49,9 +50,9 @@ public static class FunderEndpoints
         {
             return ProjectEndpointResults.Validation(
                 422, "Búsqueda inválida", "invalid-query",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    ["query"] = ["query admite hasta 300 caracteres."]
+                    { "query", "api-validation-109", "query admite hasta 300 caracteres." }
                 });
         }
 

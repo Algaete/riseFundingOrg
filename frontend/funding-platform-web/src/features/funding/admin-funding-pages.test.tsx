@@ -226,7 +226,7 @@ describe('administración editorial de fondos', () => {
     await user.type(title, 'Fondo actualizado')
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
-    expect(await screen.findByText('Otro administrador actualizó esta oportunidad.')).toBeInTheDocument()
+    expect(await screen.findByText('Otro administrador actualizó este contenido. Carga la versión vigente y revísala antes de volver a intentarlo.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cargar versión vigente' })).toBeInTheDocument()
   })
 

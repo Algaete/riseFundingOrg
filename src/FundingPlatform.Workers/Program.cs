@@ -10,6 +10,7 @@ using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Application.Alerts;
 using FundingPlatform.Application.Billing;
 using FundingPlatform.Application.Imports;
+using FundingPlatform.Application.ProjectAssets;
 using FundingPlatform.Application.Semantics;
 using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Infrastructure.Configuration;
@@ -21,11 +22,15 @@ using FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 using FundingPlatform.Infrastructure.Persistence.Alerts;
 using FundingPlatform.Infrastructure.Persistence.Billing;
 using FundingPlatform.Infrastructure.Persistence.Imports;
+using FundingPlatform.Infrastructure.Persistence.ProjectAssets;
 using FundingPlatform.Infrastructure.Persistence.Semantics;
 using FundingPlatform.Infrastructure.Persistence.SourceDocuments;
 using FundingPlatform.Infrastructure.Persistence.Sql;
 using FundingPlatform.Infrastructure.SourceDocuments.Configuration;
 using FundingPlatform.Infrastructure.SourceDocuments.Storage;
+using FundingPlatform.Infrastructure.ProjectAssets.Configuration;
+using FundingPlatform.Infrastructure.ProjectAssets.Storage;
+using FundingPlatform.ImageProcessing.ProjectAssets;
 using FundingPlatform.Infrastructure.Semantics;
 using FundingPlatform.Infrastructure.Notifications;
 using FundingPlatform.Infrastructure.Identity.Configuration;
@@ -50,6 +55,7 @@ Activity.ForceDefaultIdFormat = true;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddFundingPlatformAliases();
+var projectAssetImageSanitizationProbe = new ProjectAssetImageSanitizationProbe();
 
 var applicationInsightsConnectionString =
     builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.Trim();
@@ -106,6 +112,13 @@ builder.Services.AddOptions<SourceDocumentOptions>()
         options => SourceDocumentOptions.IsValid(options, builder.Environment.EnvironmentName),
         "SourceDocuments configuration is invalid.")
     .ValidateOnStart();
+builder.Services.AddOptions<ProjectAssetOptions>()
+    .Bind(builder.Configuration.GetSection(ProjectAssetOptions.SectionName))
+    .Validate(
+        options => ProjectAssetOptions.IsValid(
+            options, builder.Environment.EnvironmentName),
+        "ProjectAssets configuration is invalid.")
+    .ValidateOnStart();
 builder.Services.AddOptions<DefenderEventGridOptions>()
     .Bind(builder.Configuration.GetSection(DefenderEventGridOptions.SectionName))
     .Validate(
@@ -118,6 +131,28 @@ builder.Services.AddOptions<DefenderEventGridOptions>()
         "DefenderEventGrid configuration must be complete when enabled; when disabled " +
         "outside local development, both Defender functions must be explicitly disabled " +
         "with the exact value 'true'.")
+    .ValidateOnStart();
+builder.Services.AddOptions<ProjectAssetDefenderWorkerOptions>()
+    .Bind(builder.Configuration.GetSection(ProjectAssetDefenderWorkerOptions.SectionName))
+    .Validate(
+        options => ProjectAssetDefenderWorkerOptions.IsValid(
+            options,
+            builder.Environment.EnvironmentName,
+            builder.Configuration.GetSection(DefenderEventGridOptions.SectionName)
+                .Get<DefenderEventGridOptions>() ?? new DefenderEventGridOptions(),
+            builder.Configuration.GetSection(ProjectAssetOptions.SectionName)
+                .Get<ProjectAssetOptions>() ?? new ProjectAssetOptions(),
+            builder.Configuration[
+                ProjectAssetDefenderWorkerOptions.EventGridFunctionDisabledSetting],
+            builder.Configuration[
+                ProjectAssetDefenderWorkerOptions.ScanWatchdogFunctionDisabledSetting],
+            imageSanitizationAvailable:
+                options.Enabled && projectAssetImageSanitizationProbe.IsAvailable()),
+        "Project-asset Defender configuration must be complete and real image " +
+        "sanitization must be available and both triggers must have the exact disable " +
+        "setting 'false' when enabled; when disabled outside local " +
+        "development, both project-asset Defender functions must be explicitly " +
+        "disabled with the exact value 'true'.")
     .ValidateOnStart();
 builder.Services.AddOptions<OfficialRssOptions>()
     .Bind(builder.Configuration.GetSection(OfficialRssOptions.SectionName))
@@ -217,11 +252,27 @@ builder.Services.AddScoped<IAiExplanationProcessingRepository,
 builder.Services.AddScoped<IDefenderScanReceiptRepository, SqlDefenderScanReceiptRepository>();
 builder.Services.AddScoped<IDefenderScanWatchdogRepository,
     SqlDefenderScanWatchdogRepository>();
+builder.Services.AddScoped<IProjectAssetRepository, SqlProjectAssetRepository>();
+builder.Services.AddScoped<IProjectAssetContentRetentionRepository,
+    SqlProjectAssetContentRetentionRepository>();
+builder.Services.AddScoped<IProjectAssetDefenderScanReceiptRepository,
+    SqlProjectAssetDefenderScanReceiptRepository>();
+builder.Services.AddScoped<IProjectAssetDefenderScanWatchdogRepository,
+    SqlProjectAssetDefenderScanWatchdogRepository>();
 builder.Services.AddSingleton<AzureSourceDocumentBlobStore>();
 builder.Services.AddSingleton<ISourceDocumentBlobStore>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureSourceDocumentBlobStore>());
 builder.Services.AddSingleton<ISourceDocumentRetentionBlobStore>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureSourceDocumentBlobStore>());
+builder.Services.AddSingleton<AzureProjectAssetBlobStore>();
+builder.Services.AddSingleton<IProjectAssetBlobStore>(serviceProvider =>
+    serviceProvider.GetRequiredService<AzureProjectAssetBlobStore>());
+builder.Services.AddSingleton<IProjectAssetContentRetentionBlobStore>(serviceProvider =>
+    serviceProvider.GetRequiredService<AzureProjectAssetBlobStore>());
+builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
+    ProjectAssetTrustedContentPromoter>();
+builder.Services.AddSingleton<IProjectAssetImageSanitizationProbe>(
+    projectAssetImageSanitizationProbe);
 builder.Services.AddSingleton(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<SourceDocumentOptions>>().Value;
@@ -239,12 +290,25 @@ builder.Services.AddSingleton(serviceProvider =>
         documents.TrustedContainer,
         documents.MaxBytes);
 });
+builder.Services.AddSingleton(serviceProvider =>
+{
+    var defender = serviceProvider
+        .GetRequiredService<IOptions<DefenderEventGridOptions>>().Value;
+    var projectDefender = serviceProvider
+        .GetRequiredService<IOptions<ProjectAssetDefenderWorkerOptions>>().Value;
+    var projectAssets = serviceProvider
+        .GetRequiredService<IOptions<ProjectAssetOptions>>().Value;
+    return projectDefender.ToPolicy(defender, projectAssets);
+});
 builder.Services.AddSingleton<IEventGridBearerTokenValidator,
     EntraEventGridBearerTokenValidator>();
 builder.Services.AddScoped<DefenderEventGridService>();
 builder.Services.AddScoped<DefenderScanWatchdogService>();
+builder.Services.AddScoped<ProjectAssetDefenderEventGridService>();
+builder.Services.AddScoped<ProjectAssetDefenderScanWatchdogService>();
 builder.Services.AddScoped<ContentRetentionService>();
 builder.Services.AddScoped<SourceDocumentContentRetentionService>();
+builder.Services.AddScoped<ProjectAssetContentRetentionService>();
 builder.Services.AddSingleton<DeterministicDevelopmentEmbeddingService>();
 var configuredOpenAi = builder.Configuration
     .GetSection(OpenAiProviderOptions.SectionName)

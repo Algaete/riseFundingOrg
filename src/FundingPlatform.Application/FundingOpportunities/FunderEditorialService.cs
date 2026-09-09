@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using FundingPlatform.Core.FundingOpportunities;
 
 namespace FundingPlatform.Application.FundingOpportunities;
@@ -130,10 +131,9 @@ public sealed class FunderEditorialService(IFunderRepository repository)
         {
             return Task.FromResult(new FundingEditorialCommandResult(
                 FundingEditorialOutcome.ValidationFailed, funderPublicId,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["reason"] =
-                        [$"Admite hasta {FundingEditorialServiceSupport.MaximumReasonLength} caracteres."]
+                    { "reason", "text-max-length", $"Admite hasta {FundingEditorialServiceSupport.MaximumReasonLength} caracteres.", null, FundingEditorialServiceSupport.MaximumReasonLength }
                 },
                 Code: "invalid-deactivation"));
         }
@@ -319,28 +319,28 @@ public sealed class FunderEditorialService(IFunderRepository repository)
         };
     }
 
-    private static Dictionary<string, string[]> Validate(FunderData data)
+    private static FieldValidationErrors Validate(FunderData data)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (data.Name.Length is < 2 or > 300)
         {
-            errors["name"] = ["El nombre debe tener entre 2 y 300 caracteres."];
+            errors.Set("name", "api-validation-056", "El nombre debe tener entre 2 y 300 caracteres.");
         }
 
         FundingEditorialServiceSupport.ValidateLength(data.Description, 2000, "description", errors);
         if (!FundingEditorialServiceSupport.IsSafeHttpUrl(data.WebsiteUrl))
         {
-            errors["websiteUrl"] = ["Usa una URL HTTP o HTTPS válida, sin credenciales."];
+            errors.Set("websiteUrl", "api-validation-057", "Usa una URL HTTP o HTTPS válida, sin credenciales.");
         }
 
         if (data.CountryId is <= 0)
         {
-            errors["countryId"] = ["El país no es válido."];
+            errors.Set("countryId", "api-validation-058", "El país no es válido.");
         }
 
         if (data.Aliases.Count > 50 || data.Aliases.Any(alias => alias.Length is < 2 or > 300))
         {
-            errors["aliases"] = ["Admite hasta 50 aliases de 2 a 300 caracteres."];
+            errors.Set("aliases", "api-validation-059", "Admite hasta 50 aliases de 2 a 300 caracteres.");
         }
 
         return errors;
@@ -371,12 +371,9 @@ public sealed class FunderEditorialService(IFunderRepository repository)
     }
 
     private static void Merge(
-        IDictionary<string, string[]> target,
+        FieldValidationErrors target,
         IReadOnlyDictionary<string, string[]> source)
     {
-        foreach (var (key, value) in source)
-        {
-            target[key] = value;
-        }
+        target.Merge(source);
     }
 }

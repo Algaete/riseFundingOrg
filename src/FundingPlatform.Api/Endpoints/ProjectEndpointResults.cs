@@ -95,10 +95,14 @@ internal static class ProjectEndpointResults
             statusCode: status,
             title: title,
             type: $"https://fundingplatform.local/problems/{code}",
-            extensions: new Dictionary<string, object?>
-            {
-                ["errors"] = errors ?? new Dictionary<string, string[]>()
-            });
+            extensions: ValidationExtensions(errors));
+
+    private static Dictionary<string, object?> ValidationExtensions(IReadOnlyDictionary<string, string[]>? errors)
+    {
+        var extensions = FieldValidationResults.Extensions(errors);
+        extensions["errors"] = errors ?? new Dictionary<string, string[]>();
+        return extensions;
+    }
 
     internal static IResult Problem(
         int status,

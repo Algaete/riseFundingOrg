@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Claims;
 using FundingPlatform.Application.FundingOpportunities;
 using FundingPlatform.Contracts.FundingOpportunities;
@@ -127,7 +128,7 @@ public static class AdminFundingEditorialEndpoints
         return endpoints;
     }
 
-    private static async Task<IResult> ListFundersAsync(
+    internal static async Task<IResult> ListFundersAsync(
         ClaimsPrincipal principal,
         FunderEditorialService service,
         CancellationToken cancellationToken,
@@ -155,7 +156,7 @@ public static class AdminFundingEditorialEndpoints
             result.Value.PageSize));
     }
 
-    private static async Task<IResult> GetFunderAsync(
+    internal static async Task<IResult> GetFunderAsync(
         Guid funderId,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -171,7 +172,7 @@ public static class AdminFundingEditorialEndpoints
         return Results.Ok(Map(result.Value));
     }
 
-    private static async Task<IResult> CreateFunderAsync(
+    internal static async Task<IResult> CreateFunderAsync(
         FunderWriteRequest request,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -186,10 +187,10 @@ public static class AdminFundingEditorialEndpoints
             userId, Map(request), idempotencyKey, cancellationToken);
         return FundingEditorialEndpointResults.MapCreated(
             result, context, "Funder", "funder-not-found",
-            $"/api/v1/admin/funders/{result.EntityPublicId:D}");
+            $"{context.Request.Path.ToString().TrimEnd('/')}/{result.EntityPublicId:D}");
     }
 
-    private static async Task<IResult> UpdateFunderAsync(
+    internal static async Task<IResult> UpdateFunderAsync(
         Guid funderId,
         FunderWriteRequest request,
         ClaimsPrincipal principal,
@@ -207,7 +208,7 @@ public static class AdminFundingEditorialEndpoints
             result, context, "Funder", "funder-not-found");
     }
 
-    private static Task<IResult> SubmitFunderReviewAsync(
+    internal static Task<IResult> SubmitFunderReviewAsync(
         Guid funderId,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -236,7 +237,7 @@ public static class AdminFundingEditorialEndpoints
             cancellationToken);
     }
 
-    private static async Task<IResult> DeactivateFunderAsync(
+    internal static async Task<IResult> DeactivateFunderAsync(
         Guid funderId,
         FundingEditorialDeactivateRequest? request,
         ClaimsPrincipal principal,
@@ -249,7 +250,7 @@ public static class AdminFundingEditorialEndpoints
                 userId, entityId, request?.Reason, rowVersion, key, token),
         cancellationToken);
 
-    private static async Task<IResult> StartFunderCorrectionAsync(
+    internal static async Task<IResult> StartFunderCorrectionAsync(
         Guid funderId,
         FundingEditorialStartCorrectionRequest request,
         ClaimsPrincipal principal,
@@ -281,7 +282,7 @@ public static class AdminFundingEditorialEndpoints
             result, context, "Funder", "funder-not-found");
     }
 
-    private static async Task<IResult> ListOpportunitiesAsync(
+    internal static async Task<IResult> ListOpportunitiesAsync(
         ClaimsPrincipal principal,
         FundingOpportunityEditorialService service,
         CancellationToken cancellationToken,
@@ -307,7 +308,7 @@ public static class AdminFundingEditorialEndpoints
             result.Value.PageSize));
     }
 
-    private static async Task<IResult> GetOpportunityAsync(
+    internal static async Task<IResult> GetOpportunityAsync(
         Guid opportunityId,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -324,7 +325,7 @@ public static class AdminFundingEditorialEndpoints
         return Results.Ok(Map(result.Value));
     }
 
-    private static async Task<IResult> CreateOpportunityAsync(
+    internal static async Task<IResult> CreateOpportunityAsync(
         FundingOpportunityWriteRequest request,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -339,10 +340,10 @@ public static class AdminFundingEditorialEndpoints
             userId, Map(request), idempotencyKey, cancellationToken);
         return FundingEditorialEndpointResults.MapCreated(
             result, context, "Oportunidad", "funding-opportunity-not-found",
-            $"/api/v1/admin/funding-opportunities/{result.EntityPublicId:D}");
+            $"{context.Request.Path.ToString().TrimEnd('/')}/{result.EntityPublicId:D}");
     }
 
-    private static async Task<IResult> UpdateOpportunityAsync(
+    internal static async Task<IResult> UpdateOpportunityAsync(
         Guid opportunityId,
         FundingOpportunityWriteRequest request,
         ClaimsPrincipal principal,
@@ -360,7 +361,7 @@ public static class AdminFundingEditorialEndpoints
             result, context, "Oportunidad", "funding-opportunity-not-found");
     }
 
-    private static Task<IResult> SubmitOpportunityReviewAsync(
+    internal static Task<IResult> SubmitOpportunityReviewAsync(
         Guid opportunityId,
         ClaimsPrincipal principal,
         HttpContext context,
@@ -389,7 +390,7 @@ public static class AdminFundingEditorialEndpoints
             cancellationToken);
     }
 
-    private static async Task<IResult> DeactivateOpportunityAsync(
+    internal static async Task<IResult> DeactivateOpportunityAsync(
         Guid opportunityId,
         FundingEditorialDeactivateRequest? request,
         ClaimsPrincipal principal,
@@ -402,7 +403,7 @@ public static class AdminFundingEditorialEndpoints
                 userId, entityId, request?.Reason, rowVersion, key, token),
         cancellationToken);
 
-    private static async Task<IResult> StartOpportunityCorrectionAsync(
+    internal static async Task<IResult> StartOpportunityCorrectionAsync(
         Guid opportunityId,
         FundingEditorialStartCorrectionRequest request,
         ClaimsPrincipal principal,
@@ -677,18 +678,20 @@ public static class AdminFundingEditorialEndpoints
         {
             error = ProjectEndpointResults.Validation(
                 422, "Filtros inválidos", "invalid-funding-editorial-filter",
-                new Dictionary<string, string[]>
+                new FieldValidationErrors
                 {
-                    [query?.Trim().Length > 300
+                    { query?.Trim().Length > 300
                         ? "query"
                         : status > (byte)FundingPublicationStatus.Archived
                             ? "status"
-                            : "pagination"] =
-                        [query?.Trim().Length > 300
+                            : "pagination",
+                        query?.Trim().Length > 300 ? "api-validation-109"
+                            : status > (byte)FundingPublicationStatus.Archived ? "editorial-status-invalid" : "editorial-pagination-invalid",
+                        query?.Trim().Length > 300
                             ? "query admite hasta 300 caracteres."
                             : status > (byte)FundingPublicationStatus.Archived
                             ? "status debe estar entre 0 y 4."
-                            : "page debe ser al menos 1 y pageSize debe estar entre 1 y 100."]
+                            : "page debe ser al menos 1 y pageSize debe estar entre 1 y 100." }
                 });
             return false;
         }
@@ -719,9 +722,9 @@ public static class AdminFundingEditorialEndpoints
         decision = default;
         error = ProjectEndpointResults.Validation(
             422, "Decisión inválida", "invalid-review-decision",
-            new Dictionary<string, string[]>
+            new FieldValidationErrors
             {
-                ["decision"] = ["decision debe ser approve o reject."]
+                { "decision", "api-validation-054", "decision debe ser approve o reject." }
             });
         return false;
     }

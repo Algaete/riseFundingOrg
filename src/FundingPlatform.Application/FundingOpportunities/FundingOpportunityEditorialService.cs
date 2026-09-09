@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using FundingPlatform.Core.FundingOpportunities;
@@ -139,10 +140,9 @@ public sealed class FundingOpportunityEditorialService(
         {
             return Task.FromResult(new FundingEditorialCommandResult(
                 FundingEditorialOutcome.ValidationFailed, opportunityPublicId,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["reason"] =
-                        [$"Admite hasta {FundingEditorialServiceSupport.MaximumReasonLength} caracteres."]
+                    { "reason", "text-max-length", $"Admite hasta {FundingEditorialServiceSupport.MaximumReasonLength} caracteres.", null, FundingEditorialServiceSupport.MaximumReasonLength }
                 },
                 Code: "invalid-deactivation"));
         }
@@ -327,17 +327,17 @@ public sealed class FundingOpportunityEditorialService(
         };
     }
 
-    private Dictionary<string, string[]> Validate(FundingOpportunityEditorialData data)
+    private FieldValidationErrors Validate(FundingOpportunityEditorialData data)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (data.Title.Length is < 3 or > 350)
         {
-            errors["title"] = ["El título debe tener entre 3 y 350 caracteres."];
+            errors.Set("title", "api-validation-063", "El título debe tener entre 3 y 350 caracteres.");
         }
 
         if (data.SponsorName.Length is < 2 or > 300)
         {
-            errors["sponsorName"] = ["El organismo debe tener entre 2 y 300 caracteres."];
+            errors.Set("sponsorName", "api-validation-064", "El organismo debe tener entre 2 y 300 caracteres.");
         }
 
         FundingEditorialServiceSupport.ValidateLength(data.Summary, 2000, "summary", errors);
@@ -366,76 +366,74 @@ public sealed class FundingOpportunityEditorialService(
         ValidateUrl(data.SourceUrl, "sourceUrl", required: true, errors);
         if (data.FundingSourceId <= 0)
         {
-            errors["fundingSourceId"] = ["Selecciona una fuente editorial activa."];
+            errors.Set("fundingSourceId", "api-validation-065", "Selecciona una fuente editorial activa.");
         }
 
         if (data.IssuerCountryId is <= 0)
         {
-            errors["issuerCountryId"] = ["El país emisor no es válido."];
+            errors.Set("issuerCountryId", "api-validation-066", "El país emisor no es válido.");
         }
 
         if (data.FundingTypeId is <= 0)
         {
-            errors["fundingTypeId"] = ["El tipo de financiamiento no es válido."];
+            errors.Set("fundingTypeId", "api-validation-067", "El tipo de financiamiento no es válido.");
         }
 
         if (data.ExternalId?.Length > 250)
         {
-            errors["externalId"] = ["Admite hasta 250 caracteres."];
+            errors.Set("externalId", "api-validation-068", "Admite hasta 250 caracteres.");
         }
 
         if (data.Funders.Count == 0 ||
             data.Funders.Count(link => link.Role == FunderOpportunityRole.Primary) != 1)
         {
-            errors["funders"] = ["Selecciona exactamente un funder primario."];
+            errors.Set("funders", "api-validation-069", "Selecciona exactamente un funder primario.");
         }
         else if (data.Funders.Any(link => link.FunderPublicId == Guid.Empty ||
                      link.Role is < FunderOpportunityRole.Primary or > FunderOpportunityRole.Administrator) ||
                  data.Funders.GroupBy(link => link.FunderPublicId).Any(group => group.Count() > 1))
         {
-            errors["funders"] = ["Cada funder debe ser válido, único y tener un rol permitido."];
+            errors.Set("funders", "api-validation-070", "Cada funder debe ser válido, único y tener un rol permitido.");
         }
 
         if (data.Currency is not null &&
             (data.Currency.Length != 3 || data.Currency.Any(character => character is < 'A' or > 'Z')))
         {
-            errors["currency"] = ["La moneda debe usar un código ISO de tres letras."];
+            errors.Set("currency", "api-validation-071", "La moneda debe usar un código ISO de tres letras.");
         }
 
         if (data.AmountStatus is < FundingAmountStatus.Unknown or > FundingAmountStatus.NotDisclosed)
         {
-            errors["amountStatus"] = ["amountStatus debe estar entre 0 y 2."];
+            errors.Set("amountStatus", "api-validation-072", "amountStatus debe estar entre 0 y 2.");
         }
         else if (data.AmountStatus == FundingAmountStatus.Specified &&
                  (!data.MinimumAmount.HasValue && !data.MaximumAmount.HasValue ||
                   data.Currency is null))
         {
-            errors["amountStatus"] =
-                ["Los montos especificados requieren moneda y al menos un monto."];
+            errors.Set("amountStatus", "api-validation-073", "Los montos especificados requieren moneda y al menos un monto.");
         }
         else if (data.AmountStatus != FundingAmountStatus.Specified &&
                  (data.MinimumAmount.HasValue || data.MaximumAmount.HasValue || data.Currency is not null))
         {
-            errors["amountStatus"] =
-                ["Los estados unknown/not-disclosed no admiten moneda ni montos."];
+            errors.Set("amountStatus", "api-validation-074", "Los estados unknown/not-disclosed no admiten moneda ni montos.");
         }
 
         if (data.MinimumAmount is < 0 || data.MaximumAmount is < 0 ||
             data.MaximumAmount < data.MinimumAmount)
         {
-            errors["maximumAmount"] = ["Los montos deben ser positivos y el máximo no puede ser menor al mínimo."];
+            errors.Set("maximumAmount", "api-validation-075", "Los montos deben ser positivos y el máximo no puede ser menor al mínimo.");
         }
 
         if (data.OpenDate.HasValue && data.CloseDate.HasValue && data.CloseDate < data.OpenDate)
         {
-            errors["closeDate"] = ["El cierre no puede ser anterior a la apertura."];
+            errors.Set("closeDate", "api-validation-076", "El cierre no puede ser anterior a la apertura.");
         }
 
         ValidateDeadline(data, errors);
 
         if (data.MinimumOperatingYears is < 0)
         {
-            errors["minimumOperatingYears"] = ["No puede ser negativo."];
+            errors.Set("minimumOperatingYears", "api-validation-077", "No puede ser negativo.");
         }
 
         if (data.CofundingPercentage is < 0 or > 100 ||
@@ -443,29 +441,27 @@ public sealed class FundingOpportunityEditorialService(
             data.RequiresCofunding == false && data.CofundingPercentage is not null and not 0 ||
             data.RequiresCofunding == true && data.CofundingPercentage is null or <= 0)
         {
-            errors["cofundingPercentage"] =
-                ["Debe ser mayor que 0 y hasta 100 cuando el cofinanciamiento es requerido."];
+            errors.Set("cofundingPercentage", "api-validation-078", "Debe ser mayor que 0 y hasta 100 cuando el cofinanciamiento es requerido.");
         }
 
         if (data.GeographicScope is < FundingGeographicScope.Unknown or > FundingGeographicScope.Global)
         {
-            errors["geographicScope"] = ["geographicScope debe estar entre 0 y 2."];
+            errors.Set("geographicScope", "api-validation-079", "geographicScope debe estar entre 0 y 2.");
         }
         else if (data.GeographicScope == FundingGeographicScope.Specified &&
                  data.CountryIds.Count == 0)
         {
-            errors["countryIds"] =
-                ["El alcance geográfico especificado requiere al menos un país."];
+            errors.Set("countryIds", "api-validation-080", "El alcance geográfico especificado requiere al menos un país.");
         }
 
         if (data.RemoteApplication is < FundingRemoteApplication.Unknown or > FundingRemoteApplication.Yes)
         {
-            errors["remoteApplication"] = ["remoteApplication debe estar entre 0 y 2."];
+            errors.Set("remoteApplication", "api-validation-081", "remoteApplication debe estar entre 0 y 2.");
         }
 
         if (data.LastVerifiedAtUtc > timeProvider.GetUtcNow().AddMinutes(5))
         {
-            errors["lastVerifiedAtUtc"] = ["No puede estar en el futuro."];
+            errors.Set("lastVerifiedAtUtc", "api-validation-082", "No puede estar en el futuro.");
         }
 
         ValidatePositiveIds(data.CountryIds, "countryIds", errors);
@@ -478,18 +474,18 @@ public sealed class FundingOpportunityEditorialService(
 
     private static void ValidateDeadline(
         FundingOpportunityEditorialData data,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (data.DeadlineType is < FundingDeadlineType.Unknown or > FundingDeadlineType.Rolling)
         {
-            errors["deadlineType"] = ["deadlineType debe estar entre 0 y 2."];
+            errors.Set("deadlineType", "api-validation-083", "deadlineType debe estar entre 0 y 2.");
             return;
         }
 
         if (data.DeadlinePrecision is < FundingDeadlinePrecision.Unknown or
             > FundingDeadlinePrecision.DateTime)
         {
-            errors["deadlinePrecision"] = ["deadlinePrecision debe estar entre 0 y 2."];
+            errors.Set("deadlinePrecision", "api-validation-084", "deadlinePrecision debe estar entre 0 y 2.");
             return;
         }
 
@@ -510,8 +506,7 @@ public sealed class FundingOpportunityEditorialService(
         };
         if (!valid)
         {
-            errors["deadline"] =
-                ["La combinación de tipo, precisión, fecha, hora y zona horaria no es válida."];
+            errors.Set("deadline", "api-validation-085", "La combinación de tipo, precisión, fecha, hora y zona horaria no es válida.");
             return;
         }
 
@@ -526,17 +521,16 @@ public sealed class FundingOpportunityEditorialService(
             var localDeadline = TimeZoneInfo.ConvertTime(data.CloseAtUtc!.Value, timeZone);
             if (DateOnly.FromDateTime(localDeadline.DateTime) != data.CloseDate)
             {
-                errors["closeAtUtc"] =
-                    ["closeAtUtc no corresponde a closeDate en deadlineTimeZoneId."];
+                errors.Set("closeAtUtc", "api-validation-086", "closeAtUtc no corresponde a closeDate en deadlineTimeZoneId.");
             }
         }
         catch (TimeZoneNotFoundException)
         {
-            errors["deadlineTimeZoneId"] = ["La zona horaria no existe."];
+            errors.Set("deadlineTimeZoneId", "api-validation-087", "La zona horaria no existe.");
         }
         catch (InvalidTimeZoneException)
         {
-            errors["deadlineTimeZoneId"] = ["La zona horaria no es válida."];
+            errors.Set("deadlineTimeZoneId", "api-validation-088", "La zona horaria no es válida.");
         }
     }
 
@@ -558,27 +552,27 @@ public sealed class FundingOpportunityEditorialService(
         string? value,
         string field,
         bool required,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (required && string.IsNullOrWhiteSpace(value))
         {
-            errors[field] = ["La URL de fuente oficial es obligatoria."];
+            errors.Set(field, "api-validation-089", "La URL de fuente oficial es obligatoria.");
         }
         else if (!FundingEditorialServiceSupport.IsSafeHttpUrl(value))
         {
-            errors[field] = ["Usa una URL HTTP o HTTPS válida, sin credenciales."];
+            errors.Set(field, "api-validation-057", "Usa una URL HTTP o HTTPS válida, sin credenciales.");
         }
     }
 
     private static void ValidatePositiveIds<T>(
         IReadOnlyList<T> values,
         string field,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
         where T : struct, IComparable<T>
     {
         if (values.Any(value => value.CompareTo(default) <= 0))
         {
-            errors[field] = ["Contiene identificadores no válidos."];
+            errors.Set(field, "api-validation-090", "Contiene identificadores no válidos.");
         }
     }
 
@@ -607,12 +601,9 @@ public sealed class FundingOpportunityEditorialService(
     }
 
     private static void Merge(
-        IDictionary<string, string[]> target,
+        FieldValidationErrors target,
         IReadOnlyDictionary<string, string[]> source)
     {
-        foreach (var (key, value) in source)
-        {
-            target[key] = value;
-        }
+        target.Merge(source);
     }
 }

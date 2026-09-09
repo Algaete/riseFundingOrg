@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -421,9 +422,9 @@ public sealed class AiExplanationAdministrationService(
             return new SemanticEvaluationResult<AiExplanationRunSummary>(
                 SemanticEvaluationOutcome.Invalid,
                 Code: "invalid-request",
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["request"] = ["La solicitud de explicación en sombra no es válida."]
+                    { "request", "api-validation-172", "La solicitud de explicación en sombra no es válida." }
                 });
         policy.Validate();
         var keyHash = SHA256.HashData(Encoding.UTF8.GetBytes(key));
@@ -483,9 +484,9 @@ public sealed class AiExplanationAdministrationService(
             return new SemanticEvaluationResult<AiExplanationRunDetail>(
                 SemanticEvaluationOutcome.Invalid,
                 Code: "invalid-query",
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["query"] = ["La consulta de explicación en sombra no es válida."]
+                    { "query", "api-validation-173", "La consulta de explicación en sombra no es válida." }
                 });
         try
         {

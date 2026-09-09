@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Claims;
 using FundingPlatform.Application.Networking;
@@ -114,12 +115,12 @@ public static class NetworkingEndpoints
         if (!TryCsv<short>(countryIds, out var countries) ||
             !TryCsv<int>(categoryIds, out var categories) ||
             !TryCsv<int>(projectTypeIds, out var projectTypes))
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            { ["filters"] = ["Los identificadores deben ser enteros positivos separados por comas."] });
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
+            { { "filters", "api-validation-022", "Los identificadores deben ser enteros positivos separados por comas." } });
         var result = await service.SearchDirectoryAsync(userId, organizationId,
             new NetworkDirectoryFilters(q, countries, categories, projectTypes, page, pageSize),
             cancellationToken);
-        if (result.Errors is not null) return Results.ValidationProblem(result.Errors);
+        if (result.Errors is not null) return FieldValidationResults.BadRequest(result.Errors);
         return result.Page is null ? NotFound() : Results.Ok(Map(result.Page));
     }
 
@@ -133,8 +134,8 @@ public static class NetworkingEndpoints
         if (!TryDirection(direction, out var parsedDirection) ||
             !TryStatus(status, out var parsedStatus) || page is < 1 or > 10_000 ||
             pageSize is < 1 or > 50)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            { ["filters"] = ["Dirección o estado no permitido."] });
+            return FieldValidationResults.BadRequest(new FieldValidationErrors
+            { { "filters", "api-validation-023", "Dirección o estado no permitido." } });
         var result = await service.ListConnectionsAsync(userId, organizationId,
             parsedDirection, parsedStatus, page, pageSize, cancellationToken);
         return result is null ? NotFound() : Results.Ok(Map(result));
@@ -166,7 +167,7 @@ public static class NetworkingEndpoints
         if (!TryPurpose(request.Purpose, out var purpose))
             return ProjectEndpointResults.Validation(StatusCodes.Status422UnprocessableEntity,
                 "Solicitud inválida", "networking-validation",
-                new Dictionary<string, string[]> { ["purpose"] = ["Propósito no permitido."] });
+                new FieldValidationErrors { { "purpose", "api-validation-024", "Propósito no permitido." } });
         var result = await service.CreateConnectionAsync(new CreateConnectionCommand(
             userId, organizationId, request.RecipientOrganizationId,
             request.RequesterProjectId, purpose, request.Message, key), cancellationToken);
@@ -195,7 +196,7 @@ public static class NetworkingEndpoints
         if (!TryAction(request.Action, out var action))
             return ProjectEndpointResults.Validation(StatusCodes.Status422UnprocessableEntity,
                 "Acción inválida", "networking-validation",
-                new Dictionary<string, string[]> { ["action"] = ["Acción no permitida."] });
+                new FieldValidationErrors { { "action", "api-validation-025", "Acción no permitida." } });
         var result = await service.ActionConnectionAsync(userId, organizationId,
             connectionId, action, expectedRowVersion, cancellationToken);
         if (result.Outcome == NetworkingMutationOutcome.Updated)

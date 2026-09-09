@@ -2360,6 +2360,15 @@ El limiter ASP.NET en memoria solo es global mientras la API tenga una instancia
   la solicitud, pero los bytes permanecen recuperables durante esa ventana y la purga física ocurre
   después por expiración/lifecycle. Referencias: [versionado de Blob](https://learn.microsoft.com/en-us/azure/storage/blobs/versioning-overview) y
   [soft delete de blobs](https://learn.microsoft.com/en-us/azure/storage/blobs/soft-delete-blob-overview).
+- El incremento local `039` separa la retención de adjuntos de proyectos de la documental:
+  SQL materializa el manifiesto exacto y conserva tareas/intentos; el worker sólo puede ejecutar
+  `Claim`, `Complete` y `Fail`, sin DML directo. Adjuntos eliminados y cuarentenas terminales tienen
+  24 horas de gracia; las copias confiables revocadas son elegibles inmediatamente. Cada lease dura
+  900 segundos por defecto y admite ocho intentos, con backoff de 60 segundos a una hora. El borrado
+  exige ETag/versión y metadatos coincidentes y confirma ausencia antes de cerrar la tarea; no recorre
+  ni elimina versiones o snapshots ajenos al manifiesto. `incoming` y promociones huérfanas sin
+  recibo durable quedan fuera de este módulo. El timer está apagado por defecto y todavía requiere
+  validación SQL/Blob real; una tarea completada no afirma purga física bajo soft delete.
 - Backups cifrados y restore probado antes de producción.
 - No usar IDs difíciles de adivinar como reemplazo de autorización.
 - Una revisión legal local debe validar privacidad, términos de fuentes, emails transaccionales/comerciales y tratamiento tributario antes del lanzamiento; este documento no sustituye asesoría jurídica.
@@ -2600,6 +2609,8 @@ GRANTS_GOV_TIMEOUT_SECONDS=20
 CONTENT_RETENTION_BATCH_SIZE=100
 CONTENT_RETENTION_SOURCE_DOCUMENT_BATCH_SIZE=25
 CONTENT_RETENTION_SOURCE_DOCUMENT_LEASE_SECONDS=900
+CONTENT_RETENTION_PROJECT_ASSET_BATCH_SIZE=25
+CONTENT_RETENTION_PROJECT_ASSET_LEASE_SECONDS=900
 AZURE_STORAGE_BLOB_SERVICE_URI=
 SOURCE_DOCUMENT_INCOMING_CONTAINER=
 SOURCE_DOCUMENT_QUARANTINE_CONTAINER=

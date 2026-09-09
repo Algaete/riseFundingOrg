@@ -14,6 +14,26 @@ public sealed class OfficialRssFundingSourceProviderTests
         new(2026, 8, 22, 18, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task Atom_uses_alternate_link_and_exact_duplicate_entries_are_staged_once()
+    {
+        const string entry = "<entry><id>fund-1</id><title>Fund</title><link rel='self' href='https://official.example.org/api/1'/><link rel='alternate' href='https://official.example.org/fund/1'/></entry>";
+        var provider = CreateProvider(_ => Xml("<feed xmlns='http://www.w3.org/2005/Atom'>" + entry + entry + "</feed>"));
+        var result = Assert.Single(await provider.FetchOpenAsync("*", 10, Governance(), CancellationToken.None));
+        Assert.Equal("https://official.example.org/fund/1", result.SourceUrl);
+    }
+    [Fact]
+    public async Task Conflicting_duplicate_feed_ids_cannot_overwrite_one_another()
+    {
+        var provider = CreateProvider(_ => Xml("<rss><channel><item><guid>same</guid><title>First</title><link>https://official.example.org/one</link></item><item><guid>same</guid><title>Second</title><link>https://official.example.org/two</link></item></channel></rss>"));
+        await Assert.ThrowsAsync<FundingSourceImportException>(() => provider.FetchOpenAsync("*", 10, Governance(), CancellationToken.None));
+    }
+    [Fact]
+    public async Task Html_error_page_is_not_a_successful_empty_feed()
+    {
+        var provider = CreateProvider(_ => Xml("<html><body>Login required</body></html>"));
+        await Assert.ThrowsAsync<FundingSourceImportException>(() => provider.FetchOpenAsync("*", 10, Governance(), CancellationToken.None));
+    }
+    [Fact]
     public async Task Xxe_feed_is_rejected_without_resolving_entities()
     {
         const string xml = "<!DOCTYPE rss [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>" +

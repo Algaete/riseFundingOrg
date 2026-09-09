@@ -72,6 +72,7 @@ jobs:
           AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           AZURE_UNIQUE_SUFFIX: ${{ vars.AZURE_UNIQUE_SUFFIX }}
           AZURE_SQL_LOCATION: ${{ vars.AZURE_SQL_LOCATION }}
+          AZURE_DEV_VERIFICATION_PROFILE: imports-only
         with:
           azcliversion: 2.88.0
           inlineScript: |

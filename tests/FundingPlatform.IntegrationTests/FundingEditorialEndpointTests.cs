@@ -17,7 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FundingPlatform.IntegrationTests;
 
-public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, IDisposable
+public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, IDisposable
 {
     private const string JwtIssuer = "https://testing.fundingplatform.local";
     private const string JwtAudience = "FundingPlatform.Tests";
@@ -49,6 +49,8 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
                 services.AddSingleton<IFundingOpportunityEditorialRepository>(opportunities);
                 services.AddSingleton<IFundingSourceAdminRepository>(sources);
                 services.AddSingleton<IFundingOpportunityRepository>(publicOpportunities);
+                services.AddKeyedSingleton<FunderEditorialService>("funder-workspace", new FunderEditorialService(workspaceFunders));
+                services.AddKeyedSingleton<FundingOpportunityEditorialService>("funder-workspace", new FundingOpportunityEditorialService(workspaceOpportunities, TimeProvider.System));
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -307,6 +309,10 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
         Assert.Equal(
             "Selecciona al menos un país elegible.",
             problem.RootElement.GetProperty("errors").GetProperty("/countryIds")[0].GetString());
+        var issues = problem.RootElement.GetProperty("validationIssues");
+        Assert.Equal("funding-ready-primaryFunder", issues.GetProperty("funderLinks")[0].GetProperty("code").GetString());
+        Assert.Equal("funding-ready-geographicScope", issues.GetProperty("geographicScope")[0].GetProperty("code").GetString());
+        Assert.False(issues.GetProperty("funderLinks")[0].TryGetProperty("message", out _));
         Assert.DoesNotContain("published primary funder", problem.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("connection", problem.RootElement.GetRawText(),
@@ -344,6 +350,8 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
         Assert.Equal(
             "Agrega el sitio web oficial del financiador.",
             problem.RootElement.GetProperty("errors").GetProperty("websiteUrl")[0].GetString());
+        Assert.Equal("funding-ready-websiteUrl",
+            problem.RootElement.GetProperty("validationIssues").GetProperty("websiteUrl")[0].GetProperty("code").GetString());
         Assert.DoesNotContain("official website", problem.RootElement.GetRawText(),
             StringComparison.OrdinalIgnoreCase);
     }
@@ -669,6 +677,7 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
 
     private sealed class FakeFunderRepository : IFunderRepository
     {
+        public bool DenyAccess { get; set; }
         public int Calls { get; private set; }
         public int CreateCalls { get; private set; }
         public int UpdateCalls { get; private set; }
@@ -698,6 +707,7 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
             CancellationToken cancellationToken)
         {
             Calls++;
+            if (DenyAccess) throw new FundingEditorialDataException("workspace read", 51601, new InvalidOperationException());
             return Task.FromResult<FunderDetails?>(null);
         }
 

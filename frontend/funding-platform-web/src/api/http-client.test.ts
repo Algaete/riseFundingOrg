@@ -81,4 +81,32 @@ describe('HttpClient', () => {
     expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('Authorization'))
       .toBe('Bearer user-a-token')
   })
+
+  it('downloads a private blob with JWT refresh and no-store semantics', async () => {
+    setAuthenticatedSession(createSession('expired-token', 'user-a'))
+    const refreshed = createSession('fresh-token', 'user-a')
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(refreshed), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response('private-image', {
+        status: 200,
+        headers: { 'Content-Type': 'image/png' },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await new HttpClient('/api/v1').getBlob('/private/content')
+
+    expect(result.contentType).toBe('image/png')
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const firstHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    const retriedHeaders = new Headers(fetchMock.mock.calls[2]?.[1]?.headers)
+    expect(firstHeaders.get('Authorization')).toBe('Bearer expired-token')
+    expect(firstHeaders.get('Accept')).toBe('*/*')
+    expect(retriedHeaders.get('Authorization')).toBe('Bearer fresh-token')
+    expect(fetchMock.mock.calls[2]?.[1]?.cache).toBe('no-store')
+    expect(fetchMock.mock.calls[2]?.[1]?.credentials).toBe('include')
+  })
 })

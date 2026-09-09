@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -111,18 +112,18 @@ public sealed class NetworkingService(
         CreateConnectionCommand command, CancellationToken cancellationToken)
     {
         var message = NormalizeMessage(command.Message);
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (!ValidIdentity(command.UserPublicId, command.OrganizationPublicId) ||
             command.RecipientOrganizationPublicId == Guid.Empty ||
             command.RecipientOrganizationPublicId == command.OrganizationPublicId ||
             command.RequesterProjectPublicId == Guid.Empty)
-            errors["resource"] = ["Selecciona una organización y un proyecto válidos."];
+            errors.Set("resource", "api-validation-119", "Selecciona una organización y un proyecto válidos.");
         if (!Enum.IsDefined(command.Purpose))
-            errors["purpose"] = ["Selecciona un propósito permitido."];
+            errors.Set("purpose", "api-validation-120", "Selecciona un propósito permitido.");
         if (!ValidMessage(message))
-            errors["message"] = ["Escribe entre 10 y 500 caracteres sin email, teléfono ni enlaces."];
+            errors.Set("message", "api-validation-121", "Escribe entre 10 y 500 caracteres sin email, teléfono ni enlaces.");
         if (!ValidIdempotencyKey(command.IdempotencyKey))
-            errors["idempotencyKey"] = ["Idempotency-Key debe tener entre 16 y 128 caracteres ASCII."];
+            errors.Set("idempotencyKey", "api-validation-122", "Idempotency-Key debe tener entre 16 y 128 caracteres ASCII.");
         if (errors.Count > 0)
             return new OrganizationConnectionMutation(
                 NetworkingMutationOutcome.ValidationFailed, Errors: errors);
@@ -149,38 +150,38 @@ public sealed class NetworkingService(
                 or > OrganizationConnectionStatus.Blocked || expectedRowVersion?.Length != 8)
             return Task.FromResult(new OrganizationConnectionMutation(
                 NetworkingMutationOutcome.ValidationFailed,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["action"] = ["Acción o ETag no válido."]
+                    { "action", "api-validation-123", "Acción o ETag no válido." }
                 }));
         return repository.ActionConnectionAsync(
             userPublicId, organizationPublicId, connectionPublicId, action,
             expectedRowVersion, timeProvider.GetUtcNow(), cancellationToken);
     }
 
-    private static Dictionary<string, string[]> ValidateFilters(
+    private static FieldValidationErrors ValidateFilters(
         Guid userPublicId, Guid organizationPublicId, NetworkDirectoryFilters filters)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (!ValidIdentity(userPublicId, organizationPublicId))
-            errors["resource"] = ["El espacio de networking no existe."];
+            errors.Set("resource", "api-validation-124", "El espacio de networking no existe.");
         if (filters.Query?.Length > MaximumQueryLength)
-            errors["q"] = [$"La búsqueda admite hasta {MaximumQueryLength} caracteres."];
+            errors.Set("q", "api-validation-098", $"La búsqueda admite hasta {MaximumQueryLength} caracteres.", max: MaximumQueryLength);
         ValidateIds(filters.CountryIds, "countryIds", errors);
         ValidateIds(filters.CategoryIds, "categoryIds", errors);
         ValidateIds(filters.ProjectTypeIds, "projectTypeIds", errors);
         if (filters.PageNumber is < 1 or > MaximumPageNumber)
-            errors["page"] = ["La página no es válida."];
+            errors.Set("page", "api-validation-125", "La página no es válida.");
         if (filters.PageSize is < 1 or > MaximumPageSize)
-            errors["pageSize"] = ["El tamaño de página no es válido."];
+            errors.Set("pageSize", "api-validation-126", "El tamaño de página no es válido.");
         return errors;
     }
 
     private static void ValidateIds<T>(IReadOnlyCollection<T> values, string key,
-        IDictionary<string, string[]> errors) where T : struct, IComparable<T>
+        FieldValidationErrors errors) where T : struct, IComparable<T>
     {
         if (values.Count > MaximumFilterValues || values.Any(value => value.CompareTo(default) <= 0))
-            errors[key] = [$"Admite hasta {MaximumFilterValues} identificadores positivos."];
+            errors.Set(key, "api-validation-043", $"Admite hasta {MaximumFilterValues} identificadores positivos.", max: MaximumFilterValues);
     }
 
     private static bool ValidMessage(string value)

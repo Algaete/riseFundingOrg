@@ -1,3 +1,4 @@
+using FundingPlatform.Core.Validation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Globalization;
@@ -30,9 +31,9 @@ public sealed class SourceDocumentExtractionAdminService(
                 SourceDocumentExtractionOutcome.Invalid,
                 "invalid-extraction-request",
                 sourceDocumentId,
-                Errors: new Dictionary<string, string[]>
+                Errors: new FieldValidationErrors
                 {
-                    ["request"] = ["If-Match e Idempotency-Key válidos son obligatorios."]
+                    { "request", "api-validation-141", "If-Match e Idempotency-Key válidos son obligatorios." }
                 });
         }
 

@@ -185,8 +185,8 @@ done
    El script hace `git fetch`, exige `main` limpio e idéntico a `origin/main`, valida grupo/miembro y
    el administrador efectivo del servidor SQL, obtiene el token SQL y fija `AzureCliCredential`,
    deriva la conexión dev, registra PITR, abre una regla
-   firewall única con cleanup verificado, ejecuta `--preflight`, confirma `001`→`030` sin
-   pendientes, ejecuta los 30 smokes, verifica Full-Text listo y prueba reapply/provisioning
+   firewall única con cleanup verificado, ejecuta `--preflight`, aplica las pendientes, confirma
+   `001`→`038` sin pendientes, ejecuta los 38 smokes, verifica Full-Text listo y prueba reapply/provisioning
    idempotente. Después crea por `clientId`/SID y verifica los
    principals de la tabla siguiente, confirma las dos ausencias y solicita la contraseña SuperAdmin
    sin argumento ni pipe.
@@ -221,6 +221,20 @@ done
     dos de extracción deben permanecer en `true`. La carga PDF tampoco es E2E hasta versionar CORS
     de Blob y habilitar/validar Defender/Event Grid. Los hosts predeterminados permiten catálogo y
     navegación, pero refresh/login persistente espera `app.<dominio>` y `api.<dominio>` same-site.
+
+    Los adjuntos de proyecto de `036`→`038` también deben permanecer apagados en backend y frontend.
+    `038` prepara localmente el re-encode sin metadatos de imágenes, la copia byte-exacta de PDF, los
+    manifiestos `Trusted*` y la separación entre estado observado y efectivo. Su activación exige,
+    en este orden, migraciones `036`→`038` → API `linux-x64` en todo el tráfico y paquete
+    `linux-x64` del worker general verificado → aplicación/verificación de
+    `fp-project-incoming`, `fp-project-quarantine` y `fp-project-trusted` con RBAC, CORS y lifecycle
+    → retención DB-driven de adjuntos eliminados/cuarentenas terminales → provisión Defender/Event
+    Grid y validación del worker ya implementado con casos limpio/malicioso →
+    `VITE_PROJECT_ASSETS_ENABLED=true` al final. Video queda fuera de 036A.
+
+    Este corte no ejecutó `038` ni su smoke en SQL Server/Azure SQL, no hizo deploy y conserva
+    `PROJECT_ASSETS_ENABLED=false`, `PROJECT_ASSET_DEFENDER_EVENT_GRID_ENABLED=false` y
+    `VITE_PROJECT_ASSETS_ENABLED=false`.
 
     CI prepara ZIP offline reproducibles de ambos workers y verifica sus manifiestos/SHA-256, pero
     no recibe credenciales Azure. El release `680c96bc0b97b5b2c67594c0f997d99aa1370880`

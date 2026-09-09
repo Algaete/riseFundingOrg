@@ -1,5 +1,15 @@
 # Base de datos
 
+Bloque 4 local: `042_funder_workspace.sql` agrega propiedad explícita y reutiliza
+14 procedimientos editoriales con ámbito de propietario opcional; revisión Admin/MFA
+intacta. Smoke `042` sintético con rollback y manifiesto `027` actualizado. Validado
+por parser; ejecución SQL real pendiente. [Contrato](../docs/FUNDER-WORKSPACE.md).
+
+Bloque 3 local: `041_project_map.sql` y smoke `041_project_map_smoke.sql` agregan
+consulta paginada con consentimiento de ubicación y redondeo. `027` incorpora el
+permiso exacto de la nueva consulta. Parser validado; ejecución SQL real y Azure
+pendientes. Contrato: [mapa de proyectos](../docs/PROJECT-MAP.md).
+
 Esta carpeta contiene los artefactos SQL versionados de FundingPlatform. El baseline
 ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
@@ -20,6 +30,138 @@ confirmó reapply con 0 migraciones/0 lotes y dejó Full-Text listo. El aprovisi
 principals runtime falló después con SQL 102 y fue revertido transaccionalmente, sin usuarios ni
 membresías parciales. La corrección se incluye en este release y aún debe ejecutarse en Azure;
 principals runtime, bootstrap SuperAdmin y compute permanecen pendientes.
+
+La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
+`032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
+`034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
+`036_project_assets.sql`, `037_project_asset_defender_pipeline.sql`,
+`038_project_asset_image_sanitization.sql`, `039_project_asset_content_retention.sql` y
+`040_project_enrichment.sql`, con sus smokes transaccionales. Los diez incrementos
+están preparados
+para el siguiente release y todavía
+no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
+datos → 100 % del tráfico API nuevo → frontend; las guardas `51011` y `51013` impiden que una
+instancia API antigua genere un snapshot incompleto cuando la organización ya tiene relaciones
+nuevas. `036` permanece apagada por feature flag hasta completar su despliegue coordinado de SQL,
+Blob privado, API y el pipeline `037`; no publica URLs de blobs ni reutiliza `SourceDocuments`.
+`040` agrega la extensión opcional y versionada de proyectos: ubicación con privacidad opt-in,
+problema/solución, beneficiarios, indicadores y necesidades de colaboración. Conserva las guardas
+editoriales y de seguridad de medios existentes. El smoke prueba guardado/limpieza atómicos y
+proyecciones públicas con fixtures transaccionales. Solo se validó su sintaxis localmente;
+**no se ejecutó contra SQL Server/Azure SQL**. Requiere base de datos → 100 % API nueva → frontend;
+la guarda `51411` impide que escritores anteriores omitan la extensión del snapshot.
+No agrega permisos runtime ni requiere activar adjuntos. Ver
+[contrato y rollout de proyectos enriquecidos](../docs/PROJECT-ENRICHMENT.md).
+
+Huellas locales del incremento:
+
+- migración `031` (354 líneas/un lote):
+  `457f9584de3aebb9b3b354d14051262bb4a081b43dee51f2259b547f20cefb7e`;
+- smoke `031` (204 líneas/un lote):
+  `cc2d9e9044c0b747b42babc3177a7f77d9781bd6ea9542a226df1330d9aefa88`;
+- migración `032` (388 líneas/un lote):
+  `e7b35a144ebaa0598b906e021c6a664fc9524a4a1e850841c96fde050e5eae6d`;
+- smoke `032` (327 líneas/un lote):
+  `6af60b2956d8ae72aaf16b164fcacb3dfaede851fe37010ad2bc1e6f3de63f79`;
+- migración `033` (967 líneas/12 lotes):
+  `e8b7f7382abf82dc9647ca7446250c9744234c188badb7afb33740f821bfaf9f`;
+- smoke `033` (240 líneas/un lote):
+  `f3c1d2e041e923f5a09700b2af4d897d505bdeb360bac6468d53306a41a6bf7f`;
+- migración `034` (499 líneas/5 lotes):
+  `d3811089c78154d9acbb51ebe692096463eca0b3b33a12bb795c6e50e32a50a4`;
+- smoke `034` (195 líneas/un lote):
+  `11404611e3560c81c57285e7ddd66d10a6f4e6a8925775e5b2af70f9afc454eb`;
+- migración `035` (602 líneas/4 lotes):
+  `7586b84e5138f1ea7bb26204f200788b9da0e2e6812c4efc19ba25eabcba50bb`;
+- smoke `035` (207 líneas/un lote):
+  `a7d228f658e3c7d5b97051ebba5a059a7eec712180a9c869883da5df151a5a45`;
+- migración `036` (3366 líneas/19 lotes):
+  `e15b507d2c0823d49e7a8a3cfb845a3dda18a469a2fea75799939ba6bb99156d`;
+- smoke `036` (501 líneas/un lote):
+  `36bb637b22848b1a126be594ba73952925e0f9fbea50fbce602ad12626a25d12`;
+- migración `037` (1899 líneas/13 lotes):
+  `41a80202ddfe3183d2ce712d07dc7efb0edf0c86447b328b735505b923c041fd`;
+- smoke `037` (1016 líneas/un lote, compatible con `039`):
+  `928a454daeb584231c6d2bf1f3afbba1de314be2fce449ba8b7cf3573046af78`;
+- migración `038` (1762 líneas/8 lotes):
+  `f258f9868c31798d5d3a5ff99d663f508927ac761c1e0dfa96e3e1f9ee56d23c`;
+- smoke `038` (1003 líneas/un lote, compatible con `039`):
+  `6f5b6208a66d2f4bc62654b38f7b245f7426dcc4b305f2be281d7b8103818622`;
+- migración `039` (412 líneas/7 lotes):
+  `884f206fdb0afe349be4bcbb0e1a0ce9d0c4a524fae2fcdae5f7fe6068fbb05e`;
+- smoke `039` (237 líneas/un lote):
+  `00e5ccc09d0c3b7d4a2cfc1cf3971b59c592a2ccb6a045dfd2ffbc6dff7737c8`;
+- migración `040` (733 líneas/8 lotes):
+  `99787baede99fbd8b1ba448c82ad9456c8718309ac82183bc7247bd9043a7e66`;
+- smoke `040` (255 líneas/un lote):
+  `bdce4a1f186ad92ca5e8480d326c8f23a4768cb80618d0941a26c7db377e617d`.
+
+El smoke `008` actualiza sus tablas de captura pública/administrativa a la forma de resultado
+vigente tras `033`/`040` (etapa, ODS y extensión), sin alterar las migraciones históricas ni sus
+huellas. Debe ejecutarse después de aplicar la cadena completa. Su revisión local tiene
+525 líneas/un lote y SHA-256
+`7021f0aadecd08400b347f822d4d7864b832ee04f925f52e4c4c621fce53ac88`.
+El parser local valida también este smoke revisado; la ejecución real sigue pendiente.
+
+El smoke `027` conserva el fingerprint del conjunto original y agrega una lista explícita de
+permisos `036`/`037`/`039`, para poder ejecutarse después de toda la cadena. Su revisión actual
+tiene 539 líneas/un lote y SHA-256
+`05ad782f560fea48eba38ddf91f63cf2f20edb7bec04000eafd66c12a3006657`.
+Las migraciones históricas no se modificaron; las huellas anteriores de smokes documentadas en
+los cierres históricos corresponden a esos cortes, no al preflight actual.
+
+`036` agrega adjuntos privados de proyecto con intents de carga y finalización durable, cuarentena,
+escaneo fail-closed, ETags de proyecto/asset, portada única accesible sólo si está limpia/confiable y
+borrado lógico. Admite hasta
+8 imágenes JPEG/PNG/WebP de 10 MiB y 25 megapíxeles, 4 PDF de 25 MiB, 12 activos, 5 intents
+pendientes y 250 MiB por proyecto. Las lecturas privadas exigen membresía activa; las mutaciones,
+rol administrador. La publicación, la aprobación administrativa y la proyección marketplace
+revalidan que cada adjunto activo siga limpio y confiable.
+
+`037` separa el ingreso Event Grid de adjuntos y documentos fuente mediante `WorkloadKind`, registra
+receipts antes de aceptar resultados Defender, promueve sólo contenido limpio y revoca por versión
+exacta un resultado limpio que posteriormente se vuelva malicioso, fallido o vencido. Su watchdog
+cierra scans pendientes sin abrir acceso al blob y el wrapper del outbox reconoce únicamente los
+diez eventos de adjuntos conocidos, con ACK por lotes, validación estricta e idempotencia.
+
+`038` completa la materialización confiable: las imágenes JPEG/PNG/WebP se decodifican y
+re-encodifican con SkiaSharp, sin EXIF ni otros metadatos innecesarios, y los PDF se conservan como
+copias byte-exactas con MIME, longitud y SHA-256 idénticos al original verificado. Cada asset limpio
+debe tener un manifiesto `Trusted*` coherente —ubicación y versión Blob, ETag, MIME, longitud, hash,
+dimensiones para imágenes, versión de procesamiento y fecha— antes de poder leerse o participar en
+publicación. El estado/código observado del proveedor se persiste separado del estado/código
+efectivo, de modo que un `Clean` de Defender no oculte un rechazo posterior del sanitizador.
+
+La migración falla cerrada ante imágenes históricas marcadas como confiables pero no sanitizadas:
+retira su confianza y genera la evidencia de revocación con el manifiesto exacto del blob. Una
+revocación posterior también conserva ese manifiesto completo para no borrar por nombre una versión
+distinta.
+
+`039` implementa tareas inmutables y un ledger de intentos para retirar contenido de proyecto por
+manifiesto exacto. La selección excluye contenido activo y revalida identidad y elegibilidad en
+cada claim. El lease es exclusivo, con hasta ocho intentos y backoff de 60 segundos a una hora;
+una finalización repetida con el mismo lease/identidad es idempotente. Cada cuarentena terminal o
+adjunto borrado espera 24 horas; las copias revocadas son elegibles inmediatamente. El worker
+verifica ETag, versión, MIME, longitud y metadatos hash, borra únicamente el actual y la versión
+identificados y confirma ausencia antes de cerrar SQL. No enumera ni borra snapshots u otras
+versiones; soft delete/lifecycle determina la purga física posterior. Cargas `incoming` y promociones
+huérfanas sin recibo durable quedan fuera del claim.
+
+El worker continúa bloqueado por configuración hasta validar SQL/Blob y completar el E2E real
+limpio/malicioso. `031`→`039` y sus smokes son artefactos locales: **no se ejecutaron contra SQL
+Server/Azure SQL ni se desplegaron en Azure**. El smoke `039` cubre elegibilidad, gracia, imágenes
+sanitizadas/legacy revocadas, identidad exacta, idempotencia, conflicto de lease, reintentos e
+historial acotado. La validación local es parsing estático, no ejecución del smoke SQL.
+
+El parser ScriptDom T-SQL 170 valida los lotes de `039` y los smokes revisados `027`, `037`, `038`
+y `039`. Son gates locales y no sustituyen una ejecución transaccional contra SQL Server o Azure
+SQL. El checklist de activación está en
+[`docs/runbooks/project-assets-rollout.md`](../docs/runbooks/project-assets-rollout.md).
+
+Para mantener ejecutable la suite completa después del cambio de motor, el smoke `020` tiene una
+revisión compatible de 945 líneas con SHA-256
+`028cb1268a5dfdb52ebac753d467820aaa7fe3060f4de1796476fe785133f460`; la huella original de 924
+líneas documentada en el cierre histórico de 9A se conserva más abajo como evidencia de ese corte.
 
 ### Snapshot anterior al primer apply
 
@@ -387,6 +529,14 @@ organización 15%, figura jurídica 15%, años de operación 10%, experiencia pr
 excluyentes con estado agregado `Pass`/`Fail`/`Unknown`. `Unknown` aporta cero y reduce cobertura,
 sin renormalizar los demás pesos; un `Fail` produce `Incompatible` y score `NULL`, mientras un hard
 gate `Unknown` sin fallos produce `InsufficientData`.
+
+La migración local `032` conserva esa familia y sus pesos, pero activa el perfil versión 2 y el
+motor `deterministic-sql-v2`. Los valores controlados `OTHER` de área, población y tipo de proyecto
+se excluyen de ambos snapshots antes de contar o intersectar; por tanto quedan `Unknown` y no suman
+puntos por una coincidencia nominal. El perfil, handlers y resultados v1 permanecen inmutables y
+auditables. El smoke histórico `020` acepta el único perfil publicado activo v1 o v2 para poder
+seguir ejecutándose sobre la cadena completa, mientras `032` verifica específicamente la nueva
+semántica y la conservación del historial.
 
 La persistencia contiene únicamente identificadores, snapshots/versiones, razones, parámetros y
 evidencia estructurada allowlisted necesarios para explicar el cálculo. 9A no almacena prompts,
