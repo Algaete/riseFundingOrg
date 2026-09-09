@@ -1,3 +1,4 @@
+import type { ProjectEnrichment } from '@/features/projects/project-enrichment'
 import { apiClient } from '@/api/http-client'
 
 import type {
@@ -43,6 +44,7 @@ export interface MarketplaceProjectItem {
 }
 
 export interface MarketplaceProjectDetails extends MarketplaceProjectItem {
+  enrichment?: ProjectEnrichment | null
   description: string | null
   regions: Array<PublicProjectCatalogItem & { countryId: number }>
   countries: PublicProjectCatalogItem[]
@@ -127,6 +129,7 @@ export const marketplaceApi = {
       title: project.title,
       summary: project.summary,
       description: project.description,
+      enrichment: project.enrichment,
       projectStatus: project.status,
       projectStage: project.projectStage,
       startDate: project.startDate,

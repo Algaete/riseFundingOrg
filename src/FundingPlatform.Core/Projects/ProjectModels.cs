@@ -76,7 +76,8 @@ public sealed record ProjectDetails(
     DateTimeOffset? SubmittedAtUtc = null,
     DateTimeOffset? ReviewedAtUtc = null,
     string? RejectionReason = null,
-    DateTimeOffset? PublishedAtUtc = null);
+    DateTimeOffset? PublishedAtUtc = null,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record ProjectData(
     string Title,
@@ -94,7 +95,8 @@ public sealed record ProjectData(
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
-    IReadOnlyList<int> SustainableDevelopmentGoalIds);
+    IReadOnlyList<int> SustainableDevelopmentGoalIds,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record PersistedProject(Guid PublicId, int ProjectVersion, byte[] RowVersion);
 
@@ -247,7 +249,8 @@ public sealed record ProjectReviewDetails(
     IReadOnlyList<PublicProjectTaxonomyItem> Categories,
     IReadOnlyList<PublicProjectTaxonomyItem> BeneficiaryTypes,
     IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes,
-    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals);
+    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals,
+    ProjectEnrichment? Enrichment = null);
 
 public sealed record PublicProjectOrganization(
     Guid PublicId,
@@ -286,4 +289,5 @@ public sealed record PublicProjectDetails(
     IReadOnlyList<PublicProjectTaxonomyItem> Categories,
     IReadOnlyList<PublicProjectTaxonomyItem> BeneficiaryTypes,
     IReadOnlyList<PublicProjectTaxonomyItem> ProjectTypes,
-    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals);
+    IReadOnlyList<PublicProjectTaxonomyItem> SustainableDevelopmentGoals,
+    ProjectEnrichment? Enrichment = null);

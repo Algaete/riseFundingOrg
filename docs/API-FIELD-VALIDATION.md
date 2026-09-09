@@ -62,9 +62,14 @@ API y web al mismo instante. Códigos futuros o malformados producen un aviso ge
 
 ## Registro y mantenimiento
 
-Hay 252 códigos con recursos ES/EN en
+Hay 262 códigos con recursos ES/EN en
 `frontend/funding-platform-web/src/i18n/validation/{es,en}.ts` y `api-validation/{es,en}.ts`.
 El registro extendido tiene huecos intencionales por reutilización de reglas existentes.
+
+El bloque de [proyecto enriquecido](PROJECT-ENRICHMENT.md) agrega diez códigos descriptivos
+`project-*` para sus campos opcionales, ubicación e indicadores. Usa rutas como
+`enrichment.latitude` y `enrichment.impactIndicators.0.name`; las reglas de longitud reutilizan
+`text-max-length`. No se renumeran los códigos anteriores.
 
 `tests/field-validation-contract.test.mjs` comprueba emisores estáticos de Application/API,
 paridad y ausencia de IDs duplicados. Las pruebas de endpoints verifican el JSON real,

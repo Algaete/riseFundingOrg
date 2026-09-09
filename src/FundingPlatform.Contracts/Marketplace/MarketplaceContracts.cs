@@ -58,7 +58,8 @@ public sealed record MarketplaceProjectDetailsResponse(
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
     IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals,
+    ProjectEnrichmentContract? Enrichment = null);
 
 public sealed record MarketplaceOrganizationProfileResponse(
     Guid PublicId,

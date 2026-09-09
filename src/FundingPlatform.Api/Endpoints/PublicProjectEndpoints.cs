@@ -57,7 +57,8 @@ public static class PublicProjectEndpoints
         project.Categories.Select(Map).ToArray(),
         project.BeneficiaryTypes.Select(Map).ToArray(),
         project.ProjectTypes.Select(Map).ToArray(),
-        project.SustainableDevelopmentGoals.Select(Map).ToArray());
+        project.SustainableDevelopmentGoals.Select(Map).ToArray(),
+        ProjectEnrichmentMapping.ToContract(project.Enrichment, publicView: true));
 
     private static PublicProjectTaxonomyResponse Map(PublicProjectTaxonomyItem item) =>
         new(item.Id, item.Code, item.Name);

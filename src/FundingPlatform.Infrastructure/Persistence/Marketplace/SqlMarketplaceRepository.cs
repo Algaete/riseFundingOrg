@@ -220,7 +220,9 @@ public sealed class SqlMarketplaceRepository(
             Deserialize<PublicProjectTaxonomyItem>(row.CategoriesJson),
             Deserialize<PublicProjectTaxonomyItem>(row.BeneficiaryTypesJson),
             Deserialize<PublicProjectTaxonomyItem>(row.ProjectTypesJson),
-            Deserialize<PublicProjectTaxonomyItem>(row.SustainableDevelopmentGoalsJson));
+            Deserialize<PublicProjectTaxonomyItem>(row.SustainableDevelopmentGoalsJson),
+            row.EnrichmentJson is null ? null :
+                JsonSerializer.Deserialize<ProjectEnrichment>(row.EnrichmentJson, JsonOptions)?.ForPublic());
 
     private static IReadOnlyList<T> Deserialize<T>(string? json) =>
         string.IsNullOrWhiteSpace(json)
@@ -300,6 +302,7 @@ public sealed class SqlMarketplaceRepository(
         public string BeneficiaryTypesJson { get; init; } = "[]";
         public string ProjectTypesJson { get; init; } = "[]";
         public string SustainableDevelopmentGoalsJson { get; init; } = "[]";
+        public string? EnrichmentJson { get; init; }
     }
 
     private sealed class MarketplaceOrganizationRow

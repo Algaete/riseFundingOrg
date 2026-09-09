@@ -14,7 +14,9 @@ import {
   Target,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldPath } from 'react-hook-form'
+import { ProjectEnrichmentFields } from './project-enrichment-fields'
+import { enrichmentInput } from './project-enrichment'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
@@ -93,7 +95,7 @@ function emptyProject(): ProjectWriteInput {
     startDate: null, endDate: null,
     budgetTotal: null, confirmedFunding: null, currency: null, countryIds: [], regionIds: [],
     categoryIds: [], beneficiaryTypeIds: [], projectTypeIds: [],
-    sustainableDevelopmentGoalIds: [],
+    sustainableDevelopmentGoalIds: [], enrichment: enrichmentInput(),
   }
 }
 
@@ -107,6 +109,7 @@ function toInput(project: ProjectDetails): ProjectWriteInput {
     categoryIds: project.categoryIds, beneficiaryTypeIds: project.beneficiaryTypeIds,
     projectTypeIds: project.projectTypeIds,
     sustainableDevelopmentGoalIds: project.sustainableDevelopmentGoalIds ?? [],
+    enrichment: enrichmentInput(project.enrichment),
   }
 }
 
@@ -119,9 +122,10 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { register, handleSubmit, watch, setValue, setError, clearErrors, reset, formState } = useForm<ProjectWriteInput>({
+  const form = useForm<ProjectWriteInput>({
     defaultValues: project ? toInput(project) : emptyProject(),
   })
+  const { register, handleSubmit, watch, setValue, setError, clearErrors, reset, formState } = form
   useEffect(() => { if (project) reset(toInput(project)) }, [project, reset])
   useEffect(() => { onDirtyChange?.(formState.isDirty) }, [formState.isDirty, onDirtyChange])
   const save = useMutation({
@@ -150,6 +154,11 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
       applyServerError('confirmedFunding')
       applyServerError('currency')
       applyServerError('sustainableDevelopmentGoalIds')
+      for (const entry of serverErrors) {
+        if (/^enrichment\.(problem|solution|beneficiaryCount|locality|latitude|longitude|locationVisibility|soughtPartners|soughtProfessionals|seekingConsortium|impactIndicators(?:\.\d{1,2}(?:\.(name|unit|baseline|target))?)?)$/.test(entry.key)) {
+          setError(entry.key as FieldPath<ProjectWriteInput>, { type: 'server', message: entry.message })
+        }
+      }
     },
   })
   const countries = watch('countryIds') ?? []
@@ -204,6 +213,7 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
         <MultiChoice label={t('projects.projectType')} catalog="projectTypes" items={catalogs.projectTypes} selected={projectTypes} onChange={value => setValue('projectTypeIds', value, { shouldDirty: true })} />
         <MultiChoice label={t('projects.sdgs')} catalog="sustainableDevelopmentGoals" items={catalogs.sustainableDevelopmentGoals ?? []} selected={sustainableDevelopmentGoals} onChange={value => setValue('sustainableDevelopmentGoalIds', value, { shouldDirty: true, shouldValidate: true })} />
         {formState.errors.sustainableDevelopmentGoalIds?.message && <p className="text-xs text-destructive" role="alert">{workspaceMessage(formState.errors.sustainableDevelopmentGoalIds.message)}</p>}
+        <ProjectEnrichmentFields form={form} />
         {contentLocked && <p className="rounded-lg bg-muted p-3 text-sm">{t('projects.contentLocked', { status: t(publicationNames[project!.publicationStatus]).toLocaleLowerCase() })}</p>}
         {save.isError && <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground">{errorMessage(save.error)}</p>}
         {save.isSuccess && project && <p className="rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground">{t('projects.saved')}</p>}

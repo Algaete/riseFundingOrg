@@ -44,7 +44,8 @@ public sealed record ProjectResponse(
     DateTimeOffset? SubmittedAtUtc,
     DateTimeOffset? ReviewedAtUtc,
     string? RejectionReason,
-    DateTimeOffset? PublishedAtUtc);
+    DateTimeOffset? PublishedAtUtc,
+    ProjectEnrichmentContract? Enrichment = null);
 
 public sealed record ProjectWriteRequest(
     string Title,
@@ -62,6 +63,7 @@ public sealed record ProjectWriteRequest(
     IReadOnlyList<int>? BeneficiaryTypeIds,
     IReadOnlyList<int>? ProjectTypeIds,
     IReadOnlyList<int>? SustainableDevelopmentGoalIds = null,
-    byte? ProjectStage = null);
+    byte? ProjectStage = null,
+    ProjectEnrichmentContract? Enrichment = null);
 
 public sealed record ProjectCreatedResponse(Guid PublicId, int ProjectVersion, string ETag);

@@ -148,6 +148,33 @@ public sealed class ProjectServiceTests
         Assert.Null(repository.WrittenProject);
     }
 
+    [Fact]
+    public async Task Enrichment_is_normalized_and_included_in_the_atomic_content_hash()
+    {
+        var repository = new StubRepository();
+        var result = await new ProjectService(repository).CreateAsync(Guid.NewGuid(), Guid.NewGuid(),
+            ValidProject() with { Enrichment = new(Problem: "  Water access  ", BeneficiaryCount: 250,
+                Latitude: -33.456789m, Longitude: -70.654321m, SeekingConsortium: true,
+                ImpactIndicators: [new("Households", "people", 0, 250)]) }, CancellationToken.None);
+        Assert.Equal(ProjectWriteOutcome.Success, result.Outcome);
+        Assert.Equal("Water access", repository.WrittenProject!.Enrichment!.Problem);
+        using var snapshot = System.Text.Json.JsonDocument.Parse(repository.SnapshotJson!);
+        Assert.Equal(-33.456789m, snapshot.RootElement.GetProperty("enrichment").GetProperty("latitude").GetDecimal());
+        Assert.Equal(250, snapshot.RootElement.GetProperty("enrichment").GetProperty("beneficiaryCount").GetInt32());
+        Assert.Equal(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(repository.SnapshotJson!)), repository.ContentHash);
+    }
+
+    [Fact]
+    public async Task Invalid_enrichment_never_reaches_persistence()
+    {
+        var repository = new StubRepository();
+        var result = await new ProjectService(repository).CreateAsync(Guid.NewGuid(), Guid.NewGuid(),
+            ValidProject() with { Enrichment = new(Latitude: 3) }, CancellationToken.None);
+        Assert.Equal(ProjectWriteOutcome.ValidationFailed, result.Outcome);
+        Assert.Null(repository.WrittenProject);
+        Assert.Contains("enrichment.latitude", result.Errors!.Keys);
+    }
+
     private static ProjectData ValidProject() => new(
         "Agua segura", "Resumen", "Descripción", ProjectStatus.SeekingFunding,
         ProjectStage.Pilot,

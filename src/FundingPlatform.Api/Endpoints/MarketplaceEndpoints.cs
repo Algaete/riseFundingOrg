@@ -303,7 +303,8 @@ public static class MarketplaceEndpoints
             project.Categories.Select(Map).ToArray(),
             project.BeneficiaryTypes.Select(Map).ToArray(),
             project.ProjectTypes.Select(Map).ToArray(),
-            project.SustainableDevelopmentGoals.Select(Map).ToArray());
+            project.SustainableDevelopmentGoals.Select(Map).ToArray(),
+            ProjectEnrichmentMapping.ToContract(project.Enrichment, publicView: true));
 
     private static MarketplaceOrganizationProfileResponse Map(
         MarketplaceOrganizationProfile organization) =>

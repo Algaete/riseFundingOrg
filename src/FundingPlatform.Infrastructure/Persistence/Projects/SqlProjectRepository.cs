@@ -75,11 +75,16 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 ToUtc(row.UpdatedAtUtc), row.RowVersion, countries, regions, categories,
                 beneficiaries, projectTypes, sustainableDevelopmentGoals,
                 ToUtc(row.SubmittedAtUtc), ToUtc(row.ReviewedAtUtc),
-                row.RejectionReason, ToUtc(row.PublishedAtUtc));
+                row.RejectionReason, ToUtc(row.PublishedAtUtc),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
             throw Wrap("read project", exception);
+        }
+        catch (JsonException exception)
+        {
+            throw new ProjectDataException("read project contract", -1, exception);
         }
     }
 
@@ -254,7 +259,8 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 DeserializeTaxonomy(row.CategoriesJson),
                 DeserializeTaxonomy(row.BeneficiaryTypesJson),
                 DeserializeTaxonomy(row.ProjectTypesJson),
-                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson));
+                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
@@ -333,7 +339,8 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
                 DeserializeTaxonomy(row.CategoriesJson),
                 DeserializeTaxonomy(row.BeneficiaryTypesJson),
                 DeserializeTaxonomy(row.ProjectTypesJson),
-                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson));
+                DeserializeTaxonomy(row.SustainableDevelopmentGoalsJson),
+                DeserializeEnrichment(row.EnrichmentJson));
         }
         catch (SqlException exception)
         {
@@ -344,6 +351,9 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
             throw new ProjectDataException("read published project contract", -1, exception);
         }
     }
+
+    private static ProjectEnrichment? DeserializeEnrichment(string? json) =>
+        json is null ? null : JsonSerializer.Deserialize<ProjectEnrichment>(json, PublicJsonOptions);
 
     private async Task<PersistedProject> WriteAsync(
         string procedure,
@@ -378,6 +388,8 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         parameters.Add("BudgetTotal", project.BudgetTotal);
         parameters.Add("ConfirmedFunding", project.ConfirmedFunding);
         parameters.Add("Currency", project.Currency, DbType.AnsiStringFixedLength, size: 3);
+        parameters.Add("EnrichmentJson", project.Enrichment is null ? null :
+            JsonSerializer.Serialize(project.Enrichment, PublicJsonOptions));
         parameters.Add("SnapshotJson", snapshotJson);
         parameters.Add("ContentHash", contentHash, DbType.Binary, size: 32);
         parameters.Add("CountryIds", ToIdTable(project.CountryIds).AsTableValuedParameter("dbo.FundingPlatform_SmallIntIdList"));
@@ -517,6 +529,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
     private sealed class ProjectDetailsRow : ProjectSummaryRow
     {
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte[] RowVersion { get; set; } = [];
         public DateTime? SubmittedAtUtc { get; set; }
         public DateTime? ReviewedAtUtc { get; set; }
@@ -564,6 +577,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte ProjectStatus { get; set; }
         public byte? ProjectStage { get; set; }
         public DateTime? StartDate { get; set; }
@@ -591,6 +605,7 @@ public sealed class SqlProjectRepository(ISqlConnectionFactory connectionFactory
         public string Title { get; set; } = string.Empty;
         public string? Summary { get; set; }
         public string? Description { get; set; }
+        public string? EnrichmentJson { get; set; }
         public byte ProjectStatus { get; set; }
         public byte? ProjectStage { get; set; }
         public byte PublicationStatus { get; set; }

@@ -25,8 +25,8 @@ La cadena local agrega `031_organization_profile_catalog_expansion.sql`,
 `032_matching_other_neutrality.sql`, `033_project_impact_profile.sql`,
 `034_organization_funding_experience_types.sql`, `035_organization_custom_taxonomy.sql` y
 `036_project_assets.sql`, `037_project_asset_defender_pipeline.sql`,
-`038_project_asset_image_sanitization.sql` y `039_project_asset_content_retention.sql`, con sus
-smokes transaccionales. Los nueve incrementos
+`038_project_asset_image_sanitization.sql`, `039_project_asset_content_retention.sql` y
+`040_project_enrichment.sql`, con sus smokes transaccionales. Los diez incrementos
 están preparados
 para el siguiente release y todavía
 no forman parte del estado Azure descrito arriba. Para `034` y `035`, el orden seguro es base de
@@ -34,6 +34,15 @@ datos → 100 % del tráfico API nuevo → frontend; las guardas `51011` y `5101
 instancia API antigua genere un snapshot incompleto cuando la organización ya tiene relaciones
 nuevas. `036` permanece apagada por feature flag hasta completar su despliegue coordinado de SQL,
 Blob privado, API y el pipeline `037`; no publica URLs de blobs ni reutiliza `SourceDocuments`.
+`040` agrega la extensión opcional y versionada de proyectos: ubicación con privacidad opt-in,
+problema/solución, beneficiarios, indicadores y necesidades de colaboración. Conserva las guardas
+editoriales y de seguridad de medios existentes. El smoke prueba guardado/limpieza atómicos y
+proyecciones públicas con fixtures transaccionales. Solo se validó su sintaxis localmente;
+**no se ejecutó contra SQL Server/Azure SQL**. Requiere base de datos → 100 % API nueva → frontend;
+la guarda `51411` impide que escritores anteriores omitan la extensión del snapshot.
+No agrega permisos runtime ni requiere activar adjuntos. Ver
+[contrato y rollout de proyectos enriquecidos](../docs/PROJECT-ENRICHMENT.md).
+
 Huellas locales del incremento:
 
 - migración `031` (354 líneas/un lote):
@@ -71,7 +80,18 @@ Huellas locales del incremento:
 - migración `039` (412 líneas/7 lotes):
   `884f206fdb0afe349be4bcbb0e1a0ce9d0c4a524fae2fcdae5f7fe6068fbb05e`;
 - smoke `039` (237 líneas/un lote):
-  `00e5ccc09d0c3b7d4a2cfc1cf3971b59c592a2ccb6a045dfd2ffbc6dff7737c8`.
+  `00e5ccc09d0c3b7d4a2cfc1cf3971b59c592a2ccb6a045dfd2ffbc6dff7737c8`;
+- migración `040` (733 líneas/8 lotes):
+  `99787baede99fbd8b1ba448c82ad9456c8718309ac82183bc7247bd9043a7e66`;
+- smoke `040` (255 líneas/un lote):
+  `bdce4a1f186ad92ca5e8480d326c8f23a4768cb80618d0941a26c7db377e617d`.
+
+El smoke `008` actualiza sus tablas de captura pública/administrativa a la forma de resultado
+vigente tras `033`/`040` (etapa, ODS y extensión), sin alterar las migraciones históricas ni sus
+huellas. Debe ejecutarse después de aplicar la cadena completa. Su revisión local tiene
+525 líneas/un lote y SHA-256
+`7021f0aadecd08400b347f822d4d7864b832ee04f925f52e4c4c621fce53ac88`.
+El parser local valida también este smoke revisado; la ejecución real sigue pendiente.
 
 El smoke `027` conserva el fingerprint del conjunto original y agrega una lista explícita de
 permisos `036`/`037`/`039`, para poder ejecutarse después de toda la cadena. Su revisión actual

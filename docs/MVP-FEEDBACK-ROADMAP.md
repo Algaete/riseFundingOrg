@@ -12,8 +12,8 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 - I18N-05E cerrado localmente: contrato de validación extendido a la API y sus consumidores,
   formatos restantes y carga diferida de recursos por módulo/idioma. Los tres pendientes
   técnicos se completan juntos, sobre el primer corte I18N-05E.1.
-- El siguiente trabajo de desarrollo es funcional: bloque 2, proyecto enriquecido.
-- Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
+- Bloque funcional 2, proyecto enriquecido, implementado localmente; ver su contrato abajo.
+- Quedan seis bloques funcionales (3–8), empezando por el mapa, más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
 ## Base implementada localmente
@@ -529,11 +529,32 @@ Mantenimiento: [contrato de validación](API-FIELD-VALIDATION.md) y
 [carga de idiomas y formatos](I18N-LOADING-AND-FORMATS.md).
 Sin push ni despliegue Azure en este corte.
 
+## 2. Proyecto enriquecido — implementado localmente
+
+Problema/solución separados, cantidad de beneficiarios, hasta 20 indicadores con nombre/unidad,
+línea base/meta, localidad/coordenadas y visibilidad pública opt-in; necesidades de socios,
+profesionales e interés en consorcio. Son campos opcionales y versionados junto al proyecto.
+No cambia los requisitos ni los permisos de publicación. No crea contactos ni consorcios.
+
+Formulario, revisión y ficha pública ES/EN, con módulos separados; el idioma conserva el borrador
+y los errores por campo. Coordenadas privadas por defecto y punto público redondeado solo si
+se elige. Las dos APIs públicas aplican la misma proyección segura además de la guarda SQL.
+
+Migración forward-only `040`, snapshot/ETag/outbox atómicos y protección `51411` ante escritores
+antiguos. Omitir `enrichment` en PUT lo conserva; `{}` lo limpia. El smoke SQL usa fixtures con
+rollback; aún no se ejecutó contra una base real. Contrato, límites y rollout:
+[proyecto enriquecido](PROJECT-ENRICHMENT.md).
+
+Verificación local: 790 pruebas unitarias .NET, 235 de integración HTTP con repositorios
+simulados, 908 de frontend (70 archivos) y 159 de navegador aprobadas. Build, lint y tipos E2E
+aprobados. Solo se omite el SHA de Azure en el servidor local. El parser valida la migración
+`040`, su smoke y el `008` actualizado; ninguna de esas pruebas ejecuta SQL real.
+Sin push, despliegue ni activación de adjuntos en este corte.
+
 ## Desarrollo posterior, en orden de dependencias
 
 | Bloque | Desarrollo pendiente |
 | --- | --- |
-| 2. Proyecto enriquecido | Localidad/coordenadas, problema y solución estructurados, cantidad de beneficiarios, indicadores, aliados y profesionales requeridos, búsqueda de consorcio. |
 | 3. Mapa | Descubrimiento geográfico de proyectos publicados, filtros y fichas; privacidad de ubicación y agrupación de puntos. Depende del bloque 2. |
 | 4. Financiadores | Registro/propiedad del perfil y espacio propio para gestionar oportunidades con revisión editorial. El rol global Admin no debe sustituir permisos de un financiador. |
 | 5. Profesionales y alianzas | Perfiles profesionales, capacidades, necesidades de colaboración y gestión de consorcios sobre la base del directorio/conexiones. |
@@ -543,7 +564,7 @@ Sin push ni despliegue Azure en este corte.
 
 ## Validación y despliegue — trabajo diferente
 
-Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
+Las migraciones locales `031`–`040`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
 [activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E tampoco

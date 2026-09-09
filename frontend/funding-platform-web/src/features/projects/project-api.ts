@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/http-client'
+import type { ProjectEnrichment } from './project-enrichment'
 
 export interface ProjectSummary {
   publicId: string
@@ -19,6 +20,7 @@ export interface ProjectSummary {
 }
 
 export interface ProjectDetails extends ProjectSummary {
+  enrichment?: ProjectEnrichment | null
   description: string | null
   submittedAtUtc: string | null
   reviewedAtUtc: string | null
@@ -34,6 +36,7 @@ export interface ProjectDetails extends ProjectSummary {
 }
 
 export interface ProjectWriteInput {
+  enrichment?: ProjectEnrichment | null
   title: string
   summary: string | null
   description: string | null
@@ -106,6 +109,7 @@ export interface PublicProjectRegion extends PublicProjectCatalogItem {
 }
 
 export interface PublicProject {
+  enrichment?: ProjectEnrichment | null
   projectId: string
   slug: string
   title: string

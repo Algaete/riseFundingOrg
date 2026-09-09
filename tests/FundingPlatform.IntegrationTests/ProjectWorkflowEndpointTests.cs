@@ -5,6 +5,8 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 using FundingPlatform.Application.Projects;
+using FundingPlatform.Application.Marketplace;
+using FundingPlatform.Core.Marketplace;
 using FundingPlatform.Core.Identity;
 using FundingPlatform.Core.Projects;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -38,6 +40,8 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             {
                 services.RemoveAll<IProjectRepository>();
                 services.AddSingleton<IProjectRepository>(repository);
+                services.RemoveAll<IMarketplaceRepository>();
+                services.AddSingleton<IMarketplaceRepository>(new PublicMarketplaceRepository(repository));
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -170,7 +174,10 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
     [Fact]
     public async Task Legacy_update_payload_preserves_current_stage_and_sdgs_in_snapshot()
     {
-        repository.OwnerProject = CreateOwnerProject();
+        repository.OwnerProject = CreateOwnerProject() with
+        {
+            Enrichment = new(Problem: "Existing problem", Latitude: -33.456789m, Longitude: -70.654321m)
+        };
         using var request = AuthenticatedRequest(
             HttpMethod.Put,
             $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
@@ -198,6 +205,9 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         Assert.Equal([20], repository.LastWrittenProject.BeneficiaryTypeIds);
         Assert.Equal([30], repository.LastWrittenProject.ProjectTypeIds);
         Assert.Equal([4, 17], repository.LastWrittenProject.SustainableDevelopmentGoalIds);
+        Assert.Equal("Existing problem", repository.LastWrittenProject.Enrichment!.Problem);
+        Assert.Equal(-33.456789m, repository.LastWrittenProject.Enrichment.Latitude);
+        Assert.Contains("\"enrichment\":{", repository.LastSnapshotJson, StringComparison.Ordinal);
         Assert.Contains("\"projectStage\":3", repository.LastSnapshotJson,
             StringComparison.Ordinal);
         Assert.Contains("\"sustainableDevelopmentGoalIds\":[4,17]", repository.LastSnapshotJson,
@@ -321,6 +331,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "description",
             "eTag",
             "endDate",
+            "enrichment",
             "fundingGap",
             "organization",
             "projectId",
@@ -402,6 +413,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             "currency",
             "description",
             "endDate",
+            "enrichment",
             "fundingGap",
             "organization",
             "projectId",
@@ -607,6 +619,93 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         [new PublicProjectTaxonomyItem(30, "INFRA", "Infraestructura")],
         [new PublicProjectTaxonomyItem(6, "SDG_06", "Agua limpia y saneamiento")]);
 
+    [Theory]
+    [InlineData(0, false, false, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(1, true, false, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(2, true, true, "/api/v1/projects/agua-segura-rural")]
+    [InlineData(0, false, false, "/api/v1/marketplace/projects/agua-segura-rural")]
+    [InlineData(1, true, false, "/api/v1/marketplace/projects/agua-segura-rural")]
+    [InlineData(2, true, true, "/api/v1/marketplace/projects/agua-segura-rural")]
+    public async Task Public_API_redacts_location_even_when_repository_returns_private_coordinates(
+        byte visibility, bool locality, bool point, string path)
+    {
+        repository.PublishedProject = CreatePublishedProject() with
+        {
+            Enrichment = new(Problem: "Problem statement", Locality: "Sensitive locality",
+                Latitude: -33.456789m, Longitude: -70.654321m,
+                LocationVisibility: (ProjectLocationVisibility)visibility, BeneficiaryCount: 250)
+        };
+        using var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(body);
+        var data = document.RootElement.GetProperty("enrichment");
+        Assert.Equal("Problem statement", data.GetProperty("problem").GetString());
+        Assert.Equal(locality ? "Sensitive locality" : null, data.GetProperty("locality").GetString());
+        Assert.Equal<decimal?>(point ? -33.46m : null, data.GetProperty("latitude").ValueKind == JsonValueKind.Null ? null : data.GetProperty("latitude").GetDecimal());
+        Assert.DoesNotContain("33.456789", body);
+        Assert.DoesNotContain("70.654321", body);
+    }
+
+    [Theory]
+    [InlineData("null", "Original problem")]
+    [InlineData("{}", null)]
+    [InlineData("{\"problem\":\"  Updated problem  \",\"beneficiaryCount\":0,\"seekingConsortium\":false}", "Updated problem")]
+    public async Task Update_preserves_replaces_or_clears_enrichment_atomically(string json, string? expectedProblem)
+    {
+        repository.OwnerProject = CreateOwnerProject() with { Enrichment = new(Problem: "Original problem") };
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = JsonSerializer.Deserialize<JsonElement>(json) });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(expectedProblem, repository.LastWrittenProject!.Enrichment!.Problem);
+        using var snapshot = JsonDocument.Parse(repository.LastSnapshotJson!);
+        Assert.Equal(expectedProblem, snapshot.RootElement.GetProperty("enrichment").GetProperty("problem").GetString());
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(expectedProblem, body.RootElement.GetProperty("enrichment").GetProperty("problem").GetString());
+        Assert.Equal(PublishedETag, response.Headers.ETag!.ToString());
+        Assert.Equal(2, repository.OwnerProject.ProjectVersion);
+    }
+
+    [Theory]
+    [InlineData("{\"latitude\":1}", "enrichment.latitude", "project-coordinate-pair-required")]
+    [InlineData("{\"impactIndicators\":[null]}", "enrichment.impactIndicators.0", "project-indicator-fields-required")]
+    [InlineData("{\"beneficiaryCount\":-1}", "enrichment.beneficiaryCount", "project-beneficiary-count-invalid")]
+    public async Task Invalid_enrichment_returns_sanitized_field_errors_without_writing(string json, string field, string code)
+    {
+        repository.OwnerProject = CreateOwnerProject();
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = JsonSerializer.Deserialize<JsonElement>(json) });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(code, document.RootElement.GetProperty("validationIssues").GetProperty(field)[0].GetProperty("code").GetString());
+        Assert.Null(repository.LastWrittenProject);
+    }
+
+    [Fact]
+    public async Task Owner_and_admin_review_receive_private_enrichment_with_no_store()
+    {
+        var enrichment = new ProjectEnrichment(Problem: "Private draft", Latitude: -33.456789m, Longitude: -70.654321m);
+        repository.OwnerProject = CreateOwnerProject() with { Enrichment = enrichment };
+        repository.ReviewDetailsResult = CreateReviewDetails() with { Enrichment = enrichment };
+        foreach (var path in new[] { $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}", $"/api/v1/admin/projects/{ProjectId:D}" })
+        {
+            using var request = AuthenticatedRequest(HttpMethod.Get, path, PlatformRoles.Admin, mfaAuthenticated: true);
+            using var response = await client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(-33.456789m, document.RootElement.GetProperty("enrichment").GetProperty("latitude").GetDecimal());
+        }
+    }
+
     private static void AssertPropertySet(JsonElement element, params string[] expectedProperties)
     {
         var actual = element.EnumerateObject()
@@ -617,6 +716,16 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
         Assert.Equal(expected, actual);
+    }
+
+    private sealed class PublicMarketplaceRepository(FakeProjectRepository repository) : IMarketplaceRepository
+    {
+        public Task<PublicProjectDetails?> GetProjectBySlugAsync(string slug, CancellationToken cancellationToken) =>
+            Task.FromResult(repository.PublishedProject);
+        public Task<MarketplaceProjectPage> SearchProjectsAsync(MarketplaceProjectFilters filters, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+        public Task<MarketplaceOrganizationProfile?> GetOrganizationAsync(Guid organizationPublicId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeProjectRepository : IProjectRepository
@@ -757,6 +866,7 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
                 BeneficiaryTypeIds = project.BeneficiaryTypeIds,
                 ProjectTypeIds = project.ProjectTypeIds,
                 SustainableDevelopmentGoalIds = project.SustainableDevelopmentGoalIds,
+                Enrichment = project.Enrichment,
                 FundingGap = project.BudgetTotal - (project.ConfirmedFunding ?? 0),
                 ProjectVersion = OwnerProject.ProjectVersion + 1,
                 RowVersion = Convert.FromHexString("A1A2A3A4A5A6A7A8")

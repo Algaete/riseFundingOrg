@@ -119,7 +119,8 @@ public sealed class ProjectService(IProjectRepository repository)
         BeneficiaryTypeIds = project.BeneficiaryTypeIds.Distinct().Order().ToArray(),
         ProjectTypeIds = project.ProjectTypeIds.Distinct().Order().ToArray(),
         SustainableDevelopmentGoalIds = project.SustainableDevelopmentGoalIds
-            .Distinct().Order().ToArray()
+            .Distinct().Order().ToArray(),
+        Enrichment = ProjectEnrichmentRules.Normalize(project.Enrichment)
     };
 
     private static FieldValidationErrors Validate(ProjectData project)
@@ -148,6 +149,7 @@ public sealed class ProjectService(IProjectRepository repository)
         if (project.BudgetTotal.HasValue && (project.Currency?.Length != 3 ||
             !project.Currency.All(character => character is >= 'A' and <= 'Z')))
             errors.Set("currency", "currency-invalid", "Selecciona una moneda ISO de tres letras.");
+        ProjectEnrichmentRules.Validate(project.Enrichment, errors);
         return errors;
     }
 

@@ -58,7 +58,8 @@ public sealed record ProjectAdminReviewDetailResponse(
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
     IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals,
+    ProjectEnrichmentContract? Enrichment = null);
 
 public sealed record PublicProjectResponse(
     Guid ProjectId,
@@ -81,7 +82,8 @@ public sealed record PublicProjectResponse(
     IReadOnlyList<PublicProjectTaxonomyResponse> Categories,
     IReadOnlyList<PublicProjectTaxonomyResponse> BeneficiaryTypes,
     IReadOnlyList<PublicProjectTaxonomyResponse> ProjectTypes,
-    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals);
+    IReadOnlyList<PublicProjectTaxonomyResponse> SustainableDevelopmentGoals,
+    ProjectEnrichmentContract? Enrichment = null);
 
 public sealed record PublicProjectOrganizationResponse(
     Guid PublicId,

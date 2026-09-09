@@ -119,11 +119,12 @@ public static class ProjectEndpoints
         var effectiveRequest = request;
         if (request.CountryIds is null || request.RegionIds is null ||
             request.CategoryIds is null || request.BeneficiaryTypeIds is null ||
-            request.ProjectTypeIds is null || request.SustainableDevelopmentGoalIds is null)
+            request.ProjectTypeIds is null || request.SustainableDevelopmentGoalIds is null ||
+            request.Enrichment is null)
         {
-            /* Omitted collections mean "unchanged" on update. This keeps
-               partial and pre-033 clients from erasing optional draft data.
-               New clients send [] when they intentionally clear a selection.
+            /* Omitted collections/enrichment mean "unchanged" on update. This keeps
+               partial and pre-033/pre-040 clients from erasing optional draft data.
+               New clients send [] to clear a selection or {} to clear enrichment.
                If-Match below protects this read from a concurrent writer. */
             var current = await service.GetAsync(
                 userId, organizationId, projectId, cancellationToken);
@@ -140,7 +141,8 @@ public static class ProjectEndpoints
                       (current.Stage.HasValue ? (byte?)current.Stage.Value : null)
                     : request.ProjectStage,
                 SustainableDevelopmentGoalIds = request.SustainableDevelopmentGoalIds ??
-                    current.SustainableDevelopmentGoalIds
+                    current.SustainableDevelopmentGoalIds,
+                Enrichment = request.Enrichment ?? ProjectEnrichmentMapping.ToContract(current.Enrichment)
             };
         }
 
@@ -240,7 +242,8 @@ public static class ProjectEndpoints
             request.Currency, request.CountryIds ?? [], request.RegionIds ?? [],
             request.CategoryIds ?? [], request.BeneficiaryTypeIds ?? [],
             request.ProjectTypeIds ?? [],
-            request.SustainableDevelopmentGoalIds ?? []);
+            request.SustainableDevelopmentGoalIds ?? [],
+            ProjectEnrichmentMapping.ToDomain(request.Enrichment));
 
     private static ProjectSummaryResponse MapSummary(ProjectSummary project) => new(
         project.PublicId, project.Slug, project.Title, project.Summary, (byte)project.Status,
@@ -258,7 +261,8 @@ public static class ProjectEndpoints
         project.CountryIds, project.RegionIds, project.CategoryIds,
         project.BeneficiaryTypeIds, project.ProjectTypeIds,
         project.SustainableDevelopmentGoalIds, project.SubmittedAtUtc,
-        project.ReviewedAtUtc, project.RejectionReason, project.PublishedAtUtc);
+        project.ReviewedAtUtc, project.RejectionReason, project.PublishedAtUtc,
+        ProjectEnrichmentMapping.ToContract(project.Enrichment));
 
     private static string FormatETag(byte[] rowVersion) => $"\"{Convert.ToHexString(rowVersion)}\"";
 
