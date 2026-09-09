@@ -71,7 +71,7 @@ public static class OrganizationEndpoints
         var result = await service.CreateAsync(
             userId, request.Name, request.HomeCountryId, request.OrganizationTypeId, cancellationToken);
         if (result.Outcome == OrganizationWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == OrganizationWriteOutcome.OwnedLimitReached)
             return Problem(StatusCodes.Status409Conflict, "Límite alcanzado",
                 "El MVP permite una organización propia por usuario.", "organization-owned-limit");
@@ -169,7 +169,7 @@ public static class OrganizationEndpoints
             userId, organizationId, rowVersion, profile, cancellationToken);
 
         if (result.Outcome == OrganizationWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == OrganizationWriteOutcome.Conflict)
             return Problem(StatusCodes.Status409Conflict, "El perfil cambió",
                 "Otra sesión guardó una versión más reciente o usó una versión anterior del perfil. Recarga antes de continuar.", "organization-concurrency-conflict");

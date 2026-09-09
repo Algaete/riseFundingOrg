@@ -1,10 +1,38 @@
 using FundingPlatform.Application.Organizations;
 using FundingPlatform.Core.Organizations;
+using FundingPlatform.Core.Validation;
 
 namespace FundingPlatform.UnitTests;
 
 public sealed class OrganizationProfileServiceTests
 {
+    [Fact]
+    public async Task Validation_codes_follow_field_precedence_and_keep_legacy_messages()
+    {
+        var repository = new StubRepository();
+        var result = await new OrganizationProfileService(repository).UpdateAsync(
+            Guid.NewGuid(), Guid.NewGuid(), new byte[8], CompleteProfile() with
+            {
+                Description = new string('x', 2001),
+                PreviousFundingExperience = 0,
+                FundingExperienceTypeIds = [1, 2, 3, 4, 5, 6, 7],
+                DesiredFundingMin = 100,
+                DesiredFundingMax = 10,
+                CustomTaxonomyValues = [
+                    new(OrganizationCustomTaxonomyKind.ImpactArea, "Duplicado", "IGNORED"),
+                    new(OrganizationCustomTaxonomyKind.ImpactArea, "Duplicado", "IGNORED")]
+            }, CancellationToken.None);
+
+        var errors = Assert.IsType<FieldValidationErrors>(result.Errors);
+        Assert.Equal(new FieldValidationIssue("text-max-length", Max: 2000), errors.Issues["description"][0]);
+        Assert.Equal("funder-types-invalid", errors.Issues["fundingExperienceTypeIds"][0].Code);
+        Assert.Equal("Uno o más tipos de financiadores no son válidos.", errors["fundingExperienceTypeIds"][0]);
+        Assert.Equal("amount-range-order", errors.Issues["desiredFundingMax"][0].Code);
+        Assert.Equal("custom-option-duplicate", errors.Issues["customImpactAreas"][0].Code);
+        Assert.Equal(errors.Keys.Order(), errors.Issues.Keys.Order());
+        Assert.Null(repository.UpdatedProfile);
+    }
+
     [Fact]
     public async Task Update_normalizes_lists_and_calculates_completeness_server_side()
     {

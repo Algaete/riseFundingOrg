@@ -1,10 +1,28 @@
 using FundingPlatform.Application.Projects;
 using FundingPlatform.Core.Projects;
+using FundingPlatform.Core.Validation;
 
 namespace FundingPlatform.UnitTests;
 
 public sealed class ProjectServiceTests
 {
+    [Fact]
+    public async Task Validation_exposes_stable_codes_and_rule_bounds_without_submitted_text()
+    {
+        var repository = new StubRepository();
+        var result = await new ProjectService(repository).CreateAsync(Guid.NewGuid(), Guid.NewGuid(),
+            ValidProject() with { Title = "x", Summary = new string('x', 1001), BudgetTotal = -1 },
+            CancellationToken.None);
+
+        var errors = Assert.IsType<FieldValidationErrors>(result.Errors);
+        Assert.Equal("project-title-length", Assert.Single(errors.Issues["title"]).Code);
+        Assert.Equal(new FieldValidationIssue("text-max-length", Max: 1000), Assert.Single(errors.Issues["summary"]));
+        Assert.Equal("Admite hasta 1000 caracteres.", Assert.Single(errors["summary"]));
+        Assert.Equal("amount-negative", Assert.Single(errors.Issues["budgetTotal"]).Code);
+        Assert.Equal(errors.Keys.Order(), errors.Issues.Keys.Order());
+        Assert.Null(repository.WrittenProject);
+    }
+
     [Fact]
     public async Task Create_normalizes_collections_currency_and_writes_snapshot()
     {
@@ -107,6 +125,7 @@ public sealed class ProjectServiceTests
         Assert.Equal(
             "El proyecto contiene relaciones o datos inválidos.",
             Assert.Single(result.Errors!["project"]));
+        Assert.Equal("project-data-invalid", Assert.IsType<FieldValidationErrors>(result.Errors).Issues["project"][0].Code);
     }
 
     [Fact]

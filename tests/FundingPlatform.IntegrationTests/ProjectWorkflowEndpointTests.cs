@@ -203,6 +203,29 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
     }
 
     [Theory]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    public async Task Project_writes_return_field_codes_alongside_legacy_errors(string method)
+    {
+        repository.OwnerProject = CreateOwnerProject();
+        var path = $"/api/v1/organizations/{OrganizationId:D}/projects";
+        if (method == "PUT") path += $"/{ProjectId:D}";
+        using var request = AuthenticatedRequest(new HttpMethod(method), path);
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "x", summary = new string('x', 1001) });
+
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("El título debe tener entre 3 y 250 caracteres.", payload.RootElement
+            .GetProperty("errors").GetProperty("title")[0].GetString());
+        var issues = payload.RootElement.GetProperty("validationIssues");
+        Assert.Equal("project-title-length", issues.GetProperty("title")[0].GetProperty("code").GetString());
+        Assert.Equal("text-max-length", issues.GetProperty("summary")[0].GetProperty("code").GetString());
+        Assert.Equal(1000, issues.GetProperty("summary")[0].GetProperty("max").GetInt32());
+    }
+
+    [Theory]
     [InlineData(null, true)]
     [InlineData(PlatformRoles.Admin, false)]
     public async Task Admin_queue_requires_both_an_admin_role_and_MFA(

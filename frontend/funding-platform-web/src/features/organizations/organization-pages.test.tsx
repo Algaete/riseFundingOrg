@@ -692,10 +692,10 @@ describe('perfil de organización', () => {
         title: 'La solicitud contiene errores.',
         status: 400,
         errors: {
-          profile: ['Revisa los datos generales del perfil.'],
-          desiredFundingCurrency: ['Debes seleccionar la moneda del financiamiento.'],
-          annualBudgetMax: ['El presupuesto anual máximo no es válido.'],
-          languages: ['Selecciona al menos un idioma válido.'],
+          profile: ['El perfil contiene catálogos o relaciones inválidas.'],
+          desiredFundingCurrency: ['Selecciona una moneda para el rango.'],
+          annualBudgetMax: ['El monto máximo no puede ser negativo.'],
+          languages: ['El dominio de idioma debe estar entre 1 y 5.'],
         },
       }, 400)),
     })
@@ -706,10 +706,10 @@ describe('perfil de organización', () => {
     await user.click(screen.getByRole('button', { name: /Guardar/i }))
 
     expect(await screen.findByText('No pudimos guardar. Revisa lo siguiente:')).toBeInTheDocument()
-    expect(screen.getAllByText('Debes seleccionar la moneda del financiamiento.')).toHaveLength(2)
-    expect(screen.getAllByText('El presupuesto anual máximo no es válido.')).toHaveLength(2)
-    expect(screen.getAllByText('Selecciona al menos un idioma válido.')).toHaveLength(2)
-    expect(screen.getByText('Revisa los datos generales del perfil.')).toBeInTheDocument()
+    expect(screen.getAllByText('Selecciona una moneda para el rango.')).toHaveLength(2)
+    expect(screen.getAllByText('El monto máximo no puede ser negativo.')).toHaveLength(2)
+    expect(screen.getAllByText('El dominio de idioma debe estar entre 1 y 5.')).toHaveLength(2)
+    expect(screen.getByText('El perfil contiene catálogos o relaciones inválidas.')).toBeInTheDocument()
     await waitFor(() => {
       expect(document.activeElement).toHaveAttribute('id', 'organization-desired-funding-currency')
     })
@@ -722,8 +722,8 @@ describe('perfil de organización', () => {
         title: 'La solicitud contiene errores.',
         status: 400,
         errors: {
-          desiredFundingCurrency: ['Debes seleccionar la moneda del financiamiento.'],
-          name: ['Corrige el nombre público.'],
+          desiredFundingCurrency: ['Selecciona una moneda para el rango.'],
+          name: ['El nombre es obligatorio y admite hasta 250 caracteres.'],
         },
       }, 400)),
     })
@@ -733,7 +733,7 @@ describe('perfil de organización', () => {
     await user.type(name, ' actualizada')
     await user.click(screen.getByRole('button', { name: /Guardar/i }))
 
-    const identityErrorLink = await screen.findByRole('link', { name: 'Corrige el nombre público.' })
+    const identityErrorLink = await screen.findByRole('link', { name: 'El nombre es obligatorio y admite hasta 250 caracteres.' })
     await waitFor(() => {
       expect(document.activeElement).toHaveAttribute('id', 'organization-desired-funding-currency')
     })

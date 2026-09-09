@@ -4,6 +4,7 @@ import { adminFundersEn } from '@/i18n/admin-funders/en'
 import { adminFundingEn } from '@/i18n/admin-funding/en'
 import { adminProjectsEn } from '@/i18n/admin-projects/en'
 import { editorialValidationEn } from '@/i18n/editorial-validation/en'
+import { validationEn } from '@/i18n/validation/en'
 import { authEn } from '@/i18n/auth/en'
 import { catalogsEn } from '@/i18n/catalogs/en'
 import { trackingEn } from '@/i18n/tracking/en'
@@ -28,6 +29,7 @@ import type { TranslationShape } from '@/i18n/resource-types'
 
 export const en = {
   translation: {
+    validation: validationEn,
     operations: operationsEn,
     adminDashboard: adminDashboardEn,
     adminUsers: adminUsersEn,

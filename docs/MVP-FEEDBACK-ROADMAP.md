@@ -9,9 +9,10 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 - Doce entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D,
   además de la base funcional descrita abajo. Son entregas de distinto tamaño, no doce módulos
   nuevos del producto ni un porcentaje del feedback completo.
-- Idiomas sigue en curso: faltan validaciones de API, formatos restantes y optimización de carga.
-  El siguiente corte es I18N-05E: códigos estables por campo y sus consumidores, formatos
-  pendientes y carga diferida de recursos.
+- Primer corte de I18N-05E terminado localmente: I18N-05E.1, contrato de códigos por campo
+  para crear/actualizar organizaciones y proyectos, con consumidores ES/EN compatibles.
+- Idiomas sigue en curso: faltan códigos de validación del resto de la API, formatos restantes
+  y carga diferida de recursos. Siguiente corte: validaciones editoriales y requisitos de publicación.
 - Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
@@ -460,10 +461,41 @@ Los diagnósticos por campo con códigos estables y formatos restantes siguen en
 El recurso inicial aún no se carga por módulo/idioma: el chunk principal ronda 586 kB
 sin comprimir (180 kB gzip); el aviso de tamaño de Vite sigue visible. Sin push ni despliegue Azure.
 
-La traducción completa de la aplicación NO está terminada. Próximo corte de I18N-05:
+### I18N-05E.1: contrato de validación y formularios de organización/proyecto
 
-1. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
-   y optimización de carga de recursos por módulo/idioma.
+Implementado localmente:
+
+- `FieldValidationErrors` en Core y adaptador `FieldValidationResults` en API. Los cuatro
+  endpoints de creación/actualización conservan HTTP 400, `type`, `title` y mensajes `errors`;
+  incorporan `validationIssues` con códigos estables y límites numéricos de reglas.
+- 37 códigos emitidos directamente por validadores y errores sanitizados de persistencia.
+  No se obtienen códigos comparando texto. La precedencia de reglas por campo se conserva.
+- Recursos `validation/{es,en}` y consumidor compartido que valida la forma del JSON,
+  prefiere códigos y conserva compatibilidad por campo con mensajes heredados conocidos.
+  Códigos, parámetros o diagnósticos desconocidos muestran un fallback seguro en ambos idiomas.
+- Formularios y resúmenes resuelven los mensajes al renderizar: idioma sin perder borradores,
+  selecciones, referencias de foco, estado de validación ni ETags, y sin repetir escrituras.
+- Prueba de cobertura que compara los códigos emitidos por ambos servicios con los recursos
+  ES/EN. Corregida una comprobación .NET preexistente que todavía esperaba el glob de Vitest
+  anterior a la incorporación de las pruebas de contrato `.mjs`.
+
+Validación: build .NET y frontend, lint y typecheck E2E aprobados; 759 pruebas unitarias .NET,
+216 de integración con repositorios simulados, 632 pruebas frontend (66 archivos) y
+153 pruebas de navegador. Se omite únicamente la comprobación del SHA de Azure en local.
+Los cuatro escenarios nuevos de navegador cubren organización/proyecto a 320/1024px,
+ES/EN, claro/oscuro, accesibilidad, errores visibles y una única escritura sintética con el ETag original.
+
+Límites: no modifica reglas obligatorias/opcionales, validación de dominio, SQL, snapshots,
+permisos, política editorial, SSO, cuentas ni flags de seguridad. No cubre todavía validaciones
+de publicación/revisión, financiadores/oportunidades ni los restantes módulos de API/model binding.
+El chunk inicial sigue rondando 591 kB (181 kB gzip); carga diferida y formatos siguen pendientes.
+Sin push ni despliegue Azure. Contrato y ampliación: [validación por campo](API-FIELD-VALIDATION.md).
+
+La traducción completa de la aplicación NO está terminada. Pendiente de I18N-05E:
+
+1. Ampliar códigos/consumidores a edición de fondos y financiadores, publicación y revisión.
+2. Extender el contrato a los restantes módulos de API y validaciones de entrada.
+3. Cerrar formatos restantes y optimizar carga de recursos por módulo/idioma.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -484,8 +516,10 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C no requieren
-migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D no requieren
+migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E.1 tampoco
+requiere migración SQL; contiene además cambios de API, que se deben publicar para recibir
+los nuevos códigos. El despliegue escalonado conserva el contrato de clientes anteriores.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros
 son módulos nuevos. El cierre se acredita por criterios y pruebas de cada bloque.

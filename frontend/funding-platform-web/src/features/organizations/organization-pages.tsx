@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type FieldPath } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { catalogName, catalogLanguage, catalogAliases, type CatalogKind } from '@/i18n/catalog-labels'
+import { fieldValidationEntries } from '@/i18n/validation-issues'
 import { workspaceMessage, workspaceRequestError, type OrganizationTextKey } from '@/i18n/workspace-messages'
 
 import { ApiError } from '@/api/http-client'
@@ -193,9 +194,7 @@ function apiValidationEntries(error: unknown): ApiValidationEntry[] {
     return [{ key: 'request', message: 'organization.saveFailure' }]
   }
 
-  const entries = Object.entries(error.problem.errors ?? {}).flatMap(([key, messages]) =>
-    messages.map(message => ({ key, message })),
-  )
+  const entries = fieldValidationEntries(error.problem)
   if (entries.length > 0) return entries
 
   return [{ key: 'request', message: workspaceRequestError(error, 'organization') }]

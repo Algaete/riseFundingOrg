@@ -1,4 +1,6 @@
 import { ApiError } from '@/api/http-client'
+import { readValidationMessage } from '@/i18n/validation-issues'
+import { validationEs } from '@/i18n/validation/es'
 import i18n from '@/i18n'
 import { organizationEs } from '@/i18n/organization/es'
 import { projectsEs } from '@/i18n/projects/es'
@@ -9,9 +11,9 @@ export type OrganizationTextKey = `organization.${keyof typeof organizationEs}`
 export type ProjectTextKey = `projects.${keyof typeof projectsEs}`
 export type AssetTextKey = `projectAssets.${keyof typeof projectAssetsEs}`
 type FeedbackTextKey = `workspaceFeedback.${keyof typeof workspaceFeedbackEs}`
-type WorkspaceTextKey = OrganizationTextKey | ProjectTextKey | AssetTextKey | FeedbackTextKey
+type WorkspaceTextKey = OrganizationTextKey | ProjectTextKey | AssetTextKey | FeedbackTextKey | `validation.${keyof typeof validationEs}`
 
-const resources = { organization: organizationEs, projects: projectsEs, projectAssets: projectAssetsEs, workspaceFeedback: workspaceFeedbackEs }
+const resources = { organization: organizationEs, projects: projectsEs, projectAssets: projectAssetsEs, workspaceFeedback: workspaceFeedbackEs, validation: validationEs }
 const keys = new Set<string>()
 const legacyMessages = new Map<string, WorkspaceTextKey>()
 for (const [namespace, values] of Object.entries(resources)) {
@@ -26,11 +28,13 @@ for (const [namespace, values] of Object.entries(resources)) {
 
 export function workspaceMessage(message: string | null | undefined): string {
   if (!message) return ''
+  const issue = readValidationMessage(message)
+  if (issue?.code === 'text-max-length') return i18n.t('validation.text-max-length', { max: issue.max })
+  if (issue) return i18n.t(`validation.${issue.code}`)
   const key = keys.has(message) ? message as WorkspaceTextKey : legacyMessages.get(message)
   if (key) return i18n.t(key)
-  // Preserve existing Spanish diagnostics. Unknown API validation in English
-  // has an explicit fallback until the API-wide error-code block (I18N-05).
-  return i18n.resolvedLanguage === 'en' ? i18n.t('workspaceFeedback.invalid') : message
+  // Unknown server diagnostics must not be shown in either language.
+  return i18n.t('workspaceFeedback.invalid')
 }
 
 export function workspaceRequestError(error: unknown, scope: 'organization' | 'project' = 'project'): string {

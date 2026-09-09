@@ -1,4 +1,5 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
+import { ApiError } from '@/api/http-client'
 import userEvent from '@testing-library/user-event'
 import { organizationApi, type OrganizationProfile } from './organization-api'
 import { OrganizationWorkspacePage } from './organization-pages'
@@ -12,6 +13,31 @@ beforeEach(() => {
   vi.spyOn(organizationApi, 'profile').mockResolvedValue(bilingualProfile)
 })
 afterEach(() => vi.restoreAllMocks())
+
+it('retranslates API codes in the summary and field without clearing unsaved organization data', async () => {
+  const update = vi.spyOn(organizationApi, 'update').mockRejectedValue(new ApiError({
+    title: 'PRIVATE-DIAGNOSTIC', status: 400,
+    errors: { name: ['PRIVATE-DIAGNOSTIC'] },
+    validationIssues: { name: [{ code: 'name-length' }] },
+  }, new Response(null, { status: 400 })))
+  trackingPage(<OrganizationWorkspacePage />, '/organization/profile')
+  const user = userEvent.setup()
+  const name = await screen.findByLabelText(/Nombre público/)
+  await user.clear(name)
+  await user.type(name, 'Organización Ñandú pendiente')
+  await user.click(screen.getByRole('button', { name: 'Guardar' }))
+  expect(await screen.findAllByText('El nombre es obligatorio y admite hasta 250 caracteres.')).toHaveLength(2)
+  await language('en')
+  expect(screen.getAllByText('Name is required and must not exceed 250 characters.')).toHaveLength(2)
+  expect(screen.getByLabelText(/Public name/)).toHaveValue('Organización Ñandú pendiente')
+  expect(screen.getByLabelText(/Public name/)).toHaveAttribute('aria-invalid', 'true')
+  expect(screen.queryByText(/PRIVATE-DIAGNOSTIC/)).not.toBeInTheDocument()
+  expect(update).toHaveBeenCalledOnce()
+  expect(update.mock.calls[0].slice(0, 2)).toEqual([workspaceOrganizationId, bilingualProfile.eTag])
+  await language('es')
+  expect(screen.getAllByText('El nombre es obligatorio y admite hasta 250 caracteres.')).toHaveLength(2)
+  expect(update).toHaveBeenCalledOnce()
+})
 
 it('preserves a legacy size, organization types, raw query data and a clean form across languages', async () => {
   const update = vi.spyOn(organizationApi, 'update')

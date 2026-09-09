@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { createAppQueryClient } from '@/api/query-client'
+import { ApiError } from '@/api/http-client'
 import { organizationApi } from '@/features/organizations/organization-api'
 import { projectApi, publicProjectApi } from '@/features/projects/project-api'
 import { ProjectDetailPage, ProjectsPage } from '@/features/projects/project-pages'
@@ -56,6 +57,28 @@ describe('project language changes', () => {
     expect(screen.getByText('The end date cannot be before the start date.')).toBeVisible()
     expect(screen.getByLabelText(/End/)).toHaveValue('2026-01-01')
     expect(update).not.toHaveBeenCalled()
+  })
+
+  it('retranslates structured server field errors while preserving draft, ETag and request count', async () => {
+    const update = vi.spyOn(projectApi, 'update').mockRejectedValue(new ApiError({
+      title: 'PRIVATE-DIAGNOSTIC', status: 400,
+      errors: { title: ['PRIVATE-DIAGNOSTIC'] },
+      validationIssues: { title: [{ code: 'project-title-length' }] },
+    }, new Response(null, { status: 400 })))
+    renderWorkspace()
+    fireEvent.change(await screen.findByLabelText(/Título/), { target: { value: 'Borrador privado Ñandú' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findAllByText('El título debe tener entre 3 y 250 caracteres.')).toHaveLength(2)
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getAllByText('The title must be between 3 and 250 characters.')).toHaveLength(2)
+    expect(screen.getByLabelText(/Title/)).toHaveValue('Borrador privado Ñandú')
+    expect(screen.getByLabelText(/Title/)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.queryByText(/PRIVATE-DIAGNOSTIC/)).not.toBeInTheDocument()
+    expect(update).toHaveBeenCalledOnce()
+    expect(update.mock.calls[0].slice(0, 3)).toEqual([workspaceOrganizationId, workspaceProjectId, workspaceProject.eTag])
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getAllByText('El título debe tener entre 3 y 250 caracteres.')).toHaveLength(2)
+    expect(update).toHaveBeenCalledOnce()
   })
 
   it.each([1, 2, 4])('keeps publication status %s locked across language changes', async publicationStatus => {

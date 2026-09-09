@@ -19,6 +19,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
 import i18n from '@/i18n'
+import { fieldValidationEntries } from '@/i18n/validation-issues'
 import { workspaceMessage, workspaceRequestError, workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
 
 import { ApiError } from '@/api/http-client'
@@ -58,8 +59,8 @@ function errorMessage(error: unknown) {
 }
 
 function validationMessages(error: unknown) {
-  if (!(error instanceof ApiError) || !error.problem.errors) return []
-  return Object.values(error.problem.errors).flat()
+  if (!(error instanceof ApiError)) return []
+  return fieldValidationEntries(error.problem).map(entry => entry.message)
 }
 
 function formatDate(value: string | null) {
@@ -135,9 +136,9 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
     },
     onError: error => {
       if (!(error instanceof ApiError)) return
-      const serverErrors = error.problem.errors
+      const serverErrors = fieldValidationEntries(error.problem)
       const applyServerError = (field: 'title' | 'summary' | 'description' | 'projectStage' | 'endDate' | 'budgetTotal' | 'confirmedFunding' | 'currency' | 'sustainableDevelopmentGoalIds') => {
-        const message = serverErrors?.[field]?.[0]
+        const message = serverErrors.find(entry => entry.key.toLowerCase() === field.toLowerCase())?.message
         if (message) setError(field, { type: 'server', message })
       }
       applyServerError('title')

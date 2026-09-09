@@ -1,3 +1,4 @@
+import { validationEs } from '@/i18n/validation/es'
 import { authEs } from '@/i18n/auth/es'
 import { editorialEs } from '@/i18n/editorial/es'
 import { adminFundersEs } from '@/i18n/admin-funders/es'
@@ -26,6 +27,7 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 
 export const es = {
   translation: {
+    validation: validationEs,
     operations: operationsEs,
     adminDashboard: adminDashboardEs,
     adminUsers: adminUsersEs,

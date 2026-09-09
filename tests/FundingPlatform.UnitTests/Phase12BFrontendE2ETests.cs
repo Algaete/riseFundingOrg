@@ -27,7 +27,9 @@ public sealed class Phase12BFrontendE2ETests
         Assert.Contains("/admin", suite, StringComparison.Ordinal);
         Assert.Contains("/funding", suite, StringComparison.Ordinal);
         Assert.Contains("deploy-meta.json", suite, StringComparison.Ordinal);
-        Assert.Contains("include: ['src/**/*.test.{ts,tsx}']", vite, StringComparison.Ordinal);
+        // Catalog contract checks were added as .mjs tests; retain both suites.
+        Assert.Contains("include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.mjs']", vite,
+            StringComparison.Ordinal);
         Assert.Contains("npx playwright install --with-deps chromium", ci, StringComparison.Ordinal);
         Assert.Contains("npm run test:e2e:public", ci, StringComparison.Ordinal);
         Assert.DoesNotContain("azure/login", ci, StringComparison.OrdinalIgnoreCase);

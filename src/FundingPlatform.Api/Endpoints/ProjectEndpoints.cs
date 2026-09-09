@@ -76,7 +76,7 @@ public static class ProjectEndpoints
         var project = Map(request);
         var result = await service.CreateAsync(userId, organizationId, project, cancellationToken);
         if (result.Outcome == ProjectWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == ProjectWriteOutcome.NotFound) return NotFound();
         if (result.Project is null)
             return Problem(500, "No fue posible crear el proyecto", null, "project-create-failed");
@@ -148,7 +148,7 @@ public static class ProjectEndpoints
         var result = await service.UpdateAsync(
             userId, organizationId, projectId, expectedRowVersion, data, cancellationToken);
         if (result.Outcome == ProjectWriteOutcome.ValidationFailed)
-            return Results.ValidationProblem(result.Errors!);
+            return FieldValidationResults.BadRequest(result.Errors!);
         if (result.Outcome == ProjectWriteOutcome.NotFound) return NotFound();
         if (result.Outcome == ProjectWriteOutcome.Conflict)
             return Problem(409, "El proyecto cambió",

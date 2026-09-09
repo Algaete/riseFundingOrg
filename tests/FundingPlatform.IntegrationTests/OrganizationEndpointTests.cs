@@ -224,6 +224,45 @@ public sealed class OrganizationEndpointTests : IClassFixture<ApiFactory>, IDisp
         Assert.True(errors.TryGetProperty("name", out _));
         Assert.True(errors.TryGetProperty("homeCountryId", out _));
         Assert.True(errors.TryGetProperty("organizationTypeId", out _));
+        var issues = payload.RootElement.GetProperty("validationIssues");
+        Assert.Equal("name-length", issues.GetProperty("name")[0].GetProperty("code").GetString());
+        Assert.Equal("country-invalid", issues.GetProperty("homeCountryId")[0].GetProperty("code").GetString());
+        Assert.Equal("organization-type-invalid", issues.GetProperty("organizationTypeId")[0].GetProperty("code").GetString());
+        Assert.Equal("El nombre es obligatorio y admite hasta 250 caracteres.", errors.GetProperty("name")[0].GetString());
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(0, repository.UpdateCalls);
+    }
+
+    [Fact]
+    public async Task Create_returns_additive_validation_codes_for_legacy_clients()
+    {
+        using var request = AuthenticatedPut("{}");
+        request.Method = HttpMethod.Post;
+        request.RequestUri = new Uri("/api/v1/organizations", UriKind.Relative);
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("country-invalid", payload.RootElement.GetProperty("validationIssues")
+            .GetProperty("homeCountryId")[0].GetProperty("code").GetString());
+        Assert.Equal("Selecciona un país válido.", payload.RootElement.GetProperty("errors")
+            .GetProperty("homeCountryId")[0].GetString());
+    }
+
+    [Fact]
+    public async Task Put_returns_only_rule_bounds_in_structured_metadata()
+    {
+        var json = JsonSerializer.Serialize(new { name = "Fundación", homeCountryId = 152,
+            organizationTypeId = 2, description = new string('x', 2001) });
+        using var request = AuthenticatedPut(json);
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var issue = payload.RootElement.GetProperty("validationIssues").GetProperty("description")[0];
+        Assert.Equal("text-max-length", issue.GetProperty("code").GetString());
+        Assert.Equal(2000, issue.GetProperty("max").GetInt32());
+        Assert.False(issue.TryGetProperty("message", out _));
+        Assert.Equal("Admite hasta 2000 caracteres.", payload.RootElement.GetProperty("errors")
+            .GetProperty("description")[0].GetString());
         Assert.Equal(0, repository.UpdateCalls);
     }
 

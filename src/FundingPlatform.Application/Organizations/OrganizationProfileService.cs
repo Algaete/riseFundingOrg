@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using FundingPlatform.Core.Organizations;
+using FundingPlatform.Core.Validation;
 
 namespace FundingPlatform.Application.Organizations;
 
@@ -54,7 +55,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 547 or 51201)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
-                new Dictionary<string, string[]> { ["organization"] = ["Los datos de organización no son válidos."] });
+                FieldValidationErrors.Single("organization", "organization-data-invalid", "Los datos de organización no son válidos."));
         }
     }
 
@@ -75,7 +76,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         var errors = Validate(profile);
         if (expectedRowVersion.Length != 8)
         {
-            errors["ifMatch"] = ["If-Match no contiene una versión válida."];
+            errors.Set("ifMatch", "version-invalid", "If-Match no contiene una versión válida.");
         }
 
         if (errors.Count == 0 && profile.CustomTaxonomyValues is { Count: > 0 })
@@ -126,25 +127,17 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51012)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
-                new Dictionary<string, string[]>
-                {
-                    ["fundingExperienceTypeIds"] =
-                        ["Revisa los tipos de financiadores seleccionados."]
-                });
+                FieldValidationErrors.Single("fundingExperienceTypeIds", "funder-types-review", "Revisa los tipos de financiadores seleccionados."));
         }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber == 51014)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
-                new Dictionary<string, string[]>
-                {
-                    ["customTaxonomyValues"] =
-                        ["Revisa las opciones personalizadas de la organización."]
-                });
+                FieldValidationErrors.Single("customTaxonomyValues", "custom-options-review", "Revisa las opciones personalizadas de la organización."));
         }
         catch (OrganizationDataException exception) when (exception.DatabaseErrorNumber is 51004 or 51007 or 51010 or 547)
         {
             return new OrganizationWriteResult(OrganizationWriteOutcome.ValidationFailed, Errors:
-                new Dictionary<string, string[]> { ["profile"] = ["El perfil contiene catálogos o relaciones inválidas."] });
+                FieldValidationErrors.Single("profile", "organization-profile-invalid", "El perfil contiene catálogos o relaciones inválidas."));
         }
     }
 
@@ -167,24 +160,23 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
     private static bool HasCustom(OrganizationProfileData profile, OrganizationCustomTaxonomyKind kind) =>
         profile.CustomTaxonomyValues?.Any(value => value.Kind == kind) == true;
 
-    private static Dictionary<string, string[]> Validate(OrganizationProfileData profile)
+    private static FieldValidationErrors Validate(OrganizationProfileData profile)
     {
-        var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        var errors = new FieldValidationErrors();
         if (string.IsNullOrWhiteSpace(profile.Name) || profile.Name.Length > 250)
-            errors["name"] = ["El nombre es obligatorio y admite hasta 250 caracteres."];
-        if (profile.HomeCountryId <= 0) errors["homeCountryId"] = ["Selecciona un país válido."];
-        if (profile.OrganizationTypeId <= 0) errors["organizationTypeId"] = ["Selecciona un tipo válido."];
+            errors.Set("name", "name-length", "El nombre es obligatorio y admite hasta 250 caracteres.");
+        if (profile.HomeCountryId <= 0) errors.Set("homeCountryId", "country-invalid", "Selecciona un país válido.");
+        if (profile.OrganizationTypeId <= 0) errors.Set("organizationTypeId", "organization-type-invalid", "Selecciona un tipo válido.");
         if (profile.EstablishedYear is < 1800 || profile.EstablishedYear > DateTime.UtcNow.Year)
-            errors["establishedYear"] = ["El año de constitución no es válido."];
+            errors.Set("establishedYear", "established-year-invalid", "El año de constitución no es válido.");
         if (profile.PreviousFundingExperience > 2)
-            errors["previousFundingExperience"] = ["La experiencia previa no es válida."];
+            errors.Set("previousFundingExperience", "funding-experience-invalid", "La experiencia previa no es válida.");
         if (profile.FundingExperienceTypeIds is { Count: > 0 } && profile.PreviousFundingExperience != 2)
-            errors["fundingExperienceTypeIds"] =
-                ["Selecciona tipos de financiadores solo si la organización tiene experiencia previa."];
+            errors.Set("fundingExperienceTypeIds", "funding-experience-required", "Selecciona tipos de financiadores solo si la organización tiene experiencia previa.");
         if (profile.FundingExperienceTypeIds is { Count: > 6 })
-            errors["fundingExperienceTypeIds"] = ["Selecciona como máximo seis tipos de financiadores."];
+            errors.Set("fundingExperienceTypeIds", "funder-types-limit", "Selecciona como máximo seis tipos de financiadores.");
         if (profile.FundingExperienceTypeIds?.Any(id => id is < 1 or > 6) == true)
-            errors["fundingExperienceTypeIds"] = ["Uno o más tipos de financiadores no son válidos."];
+            errors.Set("fundingExperienceTypeIds", "funder-types-invalid", "Uno o más tipos de financiadores no son válidos.");
         ValidateRange(profile.AnnualBudgetMin, profile.AnnualBudgetMax,
             profile.AnnualBudgetCurrency, "annualBudget", errors);
         ValidateRange(profile.DesiredFundingMin, profile.DesiredFundingMax,
@@ -199,45 +191,45 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
              website.Scheme is not ("http" or "https") ||
              string.IsNullOrWhiteSpace(website.Host) ||
              !string.IsNullOrEmpty(website.UserInfo)))
-            errors["websiteUrl"] = ["Ingresa un dominio válido, por ejemplo onara.org."];
+            errors.Set("websiteUrl", "website-invalid", "Ingresa un dominio válido, por ejemplo onara.org.");
         if (profile.Languages.Any(language => language.Proficiency is < 1 or > 5))
-            errors["languages"] = ["El dominio de idioma debe estar entre 1 y 5."];
+            errors.Set("languages", "language-proficiency-invalid", "El dominio de idioma debe estar entre 1 y 5.");
         ValidateCustomTaxonomy(profile.CustomTaxonomyValues ?? [], errors);
         return errors;
     }
 
     private static void ValidateCustomTaxonomy(
         IReadOnlyList<OrganizationCustomTaxonomyValue> values,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (values.Count > 20)
-            errors["customTaxonomyValues"] = ["Puedes agregar hasta 20 opciones personalizadas en total."];
+            errors.Set("customTaxonomyValues", "custom-options-total-limit", "Puedes agregar hasta 20 opciones personalizadas en total.");
 
         foreach (var group in values.GroupBy(value => value.Kind))
         {
             var field = CustomField(group.Key);
             if (!Enum.IsDefined(group.Key))
             {
-                errors["customTaxonomyValues"] = ["Una dimensión personalizada no es válida."];
+                errors.Set("customTaxonomyValues", "custom-option-kind-invalid", "Una dimensión personalizada no es válida.");
                 continue;
             }
             if (group.Count() > 5)
-                errors[field] = ["Puedes agregar hasta cinco opciones personalizadas en esta sección."];
+                errors.Set(field, "custom-options-section-limit", "Puedes agregar hasta cinco opciones personalizadas en esta sección.");
             if (group.Any(value => value.Name.Length is < 2 or > 100 || value.NormalizedName.Length is < 2 or > 100))
-                errors[field] = ["Cada opción debe tener entre 2 y 100 caracteres."];
+                errors.Set(field, "custom-option-length", "Cada opción debe tener entre 2 y 100 caracteres.");
             if (group.Any(value => value.Name.Any(character => char.GetUnicodeCategory(character) is
                     UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.Surrogate or
                     UnicodeCategory.PrivateUse or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator)))
-                errors[field] = ["Las opciones contienen caracteres no permitidos."];
+                errors.Set(field, "custom-option-characters", "Las opciones contienen caracteres no permitidos.");
             if (group.GroupBy(value => value.NormalizedName, StringComparer.Ordinal).Any(items => items.Count() > 1))
-                errors[field] = ["No agregues la misma opción más de una vez."];
+                errors.Set(field, "custom-option-duplicate", "No agregues la misma opción más de una vez.");
         }
     }
 
     private static void ValidateCustomTaxonomyAgainstCatalogs(
         IReadOnlyList<OrganizationCustomTaxonomyValue> values,
         OrganizationCatalogs catalogs,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         foreach (var group in values.GroupBy(value => value.Kind))
         {
@@ -251,8 +243,7 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
             };
             var official = officialNames.Select(NormalizeComparison).ToHashSet(StringComparer.Ordinal);
             if (group.Any(value => official.Contains(value.NormalizedName)))
-                errors[CustomField(group.Key)] =
-                    ["Esa opción ya existe en el catálogo. Selecciónala en la lista."];
+                errors.Set(CustomField(group.Key), "custom-option-in-catalog", "Esa opción ya existe en el catálogo. Selecciónala en la lista.");
         }
     }
 
@@ -266,26 +257,26 @@ public sealed class OrganizationProfileService(IOrganizationRepository repositor
     };
 
     private static void ValidateRange(decimal? minimum, decimal? maximum, string? currency, string key,
-        IDictionary<string, string[]> errors)
+        FieldValidationErrors errors)
     {
         if (minimum < 0)
-            errors[$"{key}Min"] = ["El monto mínimo no puede ser negativo."];
+            errors.Set($"{key}Min", "amount-min-negative", "El monto mínimo no puede ser negativo.");
         if (maximum < 0)
-            errors[$"{key}Max"] = ["El monto máximo no puede ser negativo."];
+            errors.Set($"{key}Max", "amount-max-negative", "El monto máximo no puede ser negativo.");
         if (minimum >= 0 && maximum >= 0 && maximum < minimum)
-            errors[$"{key}Max"] = ["El monto máximo no puede ser menor al mínimo."];
+            errors.Set($"{key}Max", "amount-range-order", "El monto máximo no puede ser menor al mínimo.");
         if ((minimum.HasValue || maximum.HasValue) && string.IsNullOrWhiteSpace(currency))
-            errors[$"{key}Currency"] = ["Selecciona una moneda para el rango."];
+            errors.Set($"{key}Currency", "range-currency-required", "Selecciona una moneda para el rango.");
         if (!minimum.HasValue && !maximum.HasValue && !string.IsNullOrWhiteSpace(currency))
-            errors[$"{key}Currency"] = ["No indiques moneda si el rango está vacío."];
+            errors.Set($"{key}Currency", "range-currency-without-amount", "No indiques moneda si el rango está vacío.");
         if (!string.IsNullOrWhiteSpace(currency) &&
             (currency.Length != 3 || currency.Any(character => character is < 'A' or > 'Z')))
-            errors[$"{key}Currency"] = ["Selecciona una moneda ISO de tres letras."];
+            errors.Set($"{key}Currency", "currency-invalid", "Selecciona una moneda ISO de tres letras.");
     }
 
-    private static void ValidateLength(string? value, int maximum, string key, IDictionary<string, string[]> errors)
+    private static void ValidateLength(string? value, int maximum, string key, FieldValidationErrors errors)
     {
-        if (value?.Length > maximum) errors[key] = [$"Admite hasta {maximum} caracteres."];
+        if (value?.Length > maximum) errors.Set(key, "text-max-length", $"Admite hasta {maximum} caracteres.", max: maximum);
     }
 
     private static OrganizationProfileData Normalize(OrganizationProfileData profile) => profile with
