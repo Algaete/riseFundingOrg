@@ -6,11 +6,12 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 
 ## Corte de avance
 
-- Diez entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B,
-  además de la base funcional descrita abajo. Son entregas de distinto tamaño, no diez módulos
+- Once entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C,
+  además de la base funcional descrita abajo. Son entregas de distinto tamaño, no once módulos
   nuevos del producto ni un porcentaje del feedback completo.
-- Idiomas sigue en curso: faltan administración, validaciones de API y optimización de carga.
-  El siguiente corte es I18N-05C, administración editorial de fondos, financiadores y proyectos.
+- Idiomas sigue en curso: faltan administración operativa, validaciones de API y optimización de carga.
+  El siguiente corte es I18N-05D: resumen, usuarios, organizaciones, fuentes/importaciones,
+  suscripciones y errores administrativos.
 - Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
@@ -375,12 +376,53 @@ autores/fuentes ni incorpora filtros nuevos. Administración, validaciones y opt
 carga siguen pendientes; persiste el aviso de chunk principal mayor a 500 kB sin comprimir.
 Sin push ni despliegue Azure.
 
+### I18N-05C: administración editorial de fondos, financiadores y proyectos
+
+Implementado localmente:
+
+- Recursos ES/EN separados para financiadores, oportunidades, revisión de proyectos, flujo
+  editorial compartido y validaciones. Listados, búsqueda/paginación, formularios, estados,
+  bloqueos, preparación para publicar, trazabilidad y confirmaciones ya cambian de idioma.
+- Los borradores y errores visibles se conservan al cambiar de idioma. Los esquemas guardan
+  claves de traducción, no mensajes fijados en el idioma del primer render. No se vuelve a
+  ejecutar una validación, reinicia el aviso de guardado ni resetea el formulario por traducir.
+- Catálogos administrativos reutilizan `catalog-labels.ts`: IDs/códigos, regiones, nombres
+  nuevos o no revisados y contenido de autores/fuentes permanecen intactos. Fechas y montos
+  cambian de presentación sin conversión monetaria ni modificación de zona horaria/precisión.
+  Los cierres con solo fecha conservan su día local; se mantienen milisegundos al guardar.
+- `editorial-messages.ts` centraliza mensajes seguros por código/HTTP y reglas heredadas
+  reconocidas. Mantiene instrucciones de publicación incompleta y recarga explícita ante 412;
+  los diagnósticos desconocidos, incluidas claves heredadas del prototipo, no se muestran.
+- No se modifican transiciones, permisos ni requisitos editoriales: borrador, pendiente,
+  publicado, rechazado y desactivado siguen diferenciados. Publicado pero oculto no se presenta
+  como visible. Retirar para corregir/desactivar exige confirmación; aprobar/rechazar sigue
+  siendo explícito. Cambiar idioma no genera comandos ni consultas adicionales.
+- Corrección de reintentos en revisión de proyectos: captura proyecto, ETag, decisión y motivo
+  al pulsar el botón; un reintento no lee un motivo editado después bajo la misma clave
+  idempotente. La prueba reproduce un fallo temporal, edición e idioma distintos antes del retry.
+- Corrección de desbordamiento del editor de oportunidades a 320 px: fieldsets y controles
+  pueden reducir su ancho; no se oculta contenido para hacer pasar la comprobación.
+- El límite `lang` se actualiza únicamente para las tres áreas editoriales. Administración
+  operativa permanece marcada como español hasta 05D; una cuenta miembro no gana acceso editorial.
+
+Validación del corte I18N-05C: build, lint y typecheck E2E aprobados; 516 pruebas de frontend
+(60 archivos) y 121 pruebas de navegador aprobadas. Se omite únicamente la comprobación del SHA
+de Azure en local. Incluye 39 pruebas nuevas de frontend y 12 escenarios nuevos de navegador:
+320/1024px, claro/oscuro, accesibilidad automatizada, validaciones, borradores y confirmaciones.
+Se verifican payloads, ETags, claves idempotentes, reintentos y ausencia de escrituras por idioma.
+Las pruebas usan exclusivamente respuestas sintéticas; no publican ni moderan registros reales.
+
+Límites: no modifica backend, SQL, catálogos persistidos, SSO, cuentas, política editorial,
+matching ni flags de adjuntos. Los códigos estables de reglas por campo en API siguen en 05E;
+el fallback seguro actual no sustituye ese contrato. La carga diferida de recursos también
+sigue pendiente: el chunk principal mide aproximadamente 547,30 kB sin comprimir
+(168,32 kB gzip), manteniendo visible el aviso de Vite. Sin push ni despliegue Azure.
+
 La traducción completa de la aplicación NO está terminada. Próximos cortes de I18N-05:
 
-1. I18N-05C: administración editorial de fondos, financiadores y revisión de proyectos.
-2. I18N-05D: administración operativa: resumen, usuarios, organizaciones, fuentes/importaciones,
+1. I18N-05D: administración operativa: resumen, usuarios, organizaciones, fuentes/importaciones,
    suscripciones y errores.
-3. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
+2. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
    y optimización de carga de recursos por módulo/idioma.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
@@ -402,7 +444,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

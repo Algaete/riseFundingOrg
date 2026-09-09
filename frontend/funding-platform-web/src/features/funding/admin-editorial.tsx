@@ -12,8 +12,10 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
-import { ApiError } from '@/api/http-client'
+import i18n from '@/i18n'
+import { adminErrorMessage, adminValidationMessages, isConcurrencyConflict, problemHasCode } from '@/i18n/editorial-messages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -23,87 +25,31 @@ import {
 } from '@/features/funding/admin-funding-api'
 import { executeEditorialCommand } from '@/features/funding/editorial-command-cache'
 
-export const publicationStatusLabels: Record<PublicationStatus, string> = {
-  0: 'Borrador',
-  1: 'Pendiente de revisión',
-  2: 'Publicado',
-  3: 'Rechazado',
-  4: 'Desactivado',
-}
+export { adminErrorMessage, adminValidationMessages, isConcurrencyConflict, formatAdminDate } from '@/i18n/editorial-messages'
+
+export const publicationStatusKeys = {
+  0: 'editorial.draft',
+  1: 'editorial.pending',
+  2: 'editorial.published',
+  3: 'editorial.rejected',
+  4: 'editorial.inactive',
+} as const satisfies Record<PublicationStatus, string>
 
 const statusStyles: Record<PublicationStatus, string> = {
   0: 'bg-muted text-foreground',
   1: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100',
   2: 'bg-accent text-accent-foreground',
-  3: 'bg-destructive/10 text-destructive',
+  3: 'bg-destructive/10 text-foreground',
   4: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
 }
 
-const readinessMessageTranslations: Record<string, string> = {
-  'name is required': 'Ingresa el nombre del financiador.',
-  'a stable public slug is required': 'El financiador no tiene un identificador público válido. Contacta a soporte para corregirlo.',
-  'an official website is required': 'Agrega el sitio web oficial del financiador.',
-  'a primary alias is required': 'Agrega un nombre principal al financiador.',
-  'title is required': 'Ingresa el título de la oportunidad.',
-  'a published primary funder is required': 'Publica el financiador principal antes de enviar la oportunidad a revisión.',
-  'an enabled primary source url is required': 'Selecciona una fuente principal habilitada con una URL oficial.',
-  'unknown geographic scope cannot be published': 'Define el alcance geográfico como específico o global.',
-  'explicit geographic scope requires at least one eligible country': 'Selecciona al menos un país elegible para el alcance geográfico específico.',
-  'global geographic scope cannot contain country or region restrictions': 'Elimina los países y regiones cuando el alcance geográfico sea global.',
-  'at least one category is required': 'Selecciona al menos una categoría de financiamiento.',
-  'every catalog reference must be active and geography must remain consistent': 'Revisa la moneda, el tipo de financiamiento, el alcance, las categorías y el financiador principal. Alguna selección está inactiva o no es coherente.',
-  'every critical field requires selected evidence or an explicit unknown value': 'Completa la evidencia del título, la descripción, la elegibilidad y el cierre, o marca expresamente el dato como desconocido.',
-}
-
-function problemHasCode(error: unknown, code: string) {
-  if (!(error instanceof ApiError)) return false
-  const type = error.problem.type?.replace(/\/$/, '')
-  return type === code || type?.endsWith(`/${code}`) === true
-}
-
-function localizeReadinessMessage(message: string) {
-  const key = message.trim().replace(/\s+/g, ' ').replace(/\.$/, '').toLowerCase()
-  return readinessMessageTranslations[key] ?? message
-}
-
 export function PublicationStatusBadge({ status }: { status: PublicationStatus }) {
+  useTranslation()
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}>
-      {publicationStatusLabels[status]}
+      {i18n.t(publicationStatusKeys[status])}
     </span>
   )
-}
-
-export function adminErrorMessage(error: unknown) {
-  if (!(error instanceof ApiError)) {
-    return 'No fue posible completar la operación. Intenta nuevamente.'
-  }
-  if (problemHasCode(error, 'opportunity-not-ready')) {
-    return 'Faltan datos para enviar esta oportunidad a revisión.'
-  }
-  if (problemHasCode(error, 'funder-not-ready')) {
-    return 'Faltan datos para enviar este financiador a revisión.'
-  }
-  return localizeReadinessMessage(error.problem.detail ?? error.problem.title)
-}
-
-export function adminValidationMessages(error: unknown) {
-  if (!(error instanceof ApiError) || !error.problem.errors) return []
-  return Array.from(new Set(
-    Object.values(error.problem.errors).flat().map(localizeReadinessMessage),
-  ))
-}
-
-export function isConcurrencyConflict(error: unknown) {
-  return error instanceof ApiError && error.response.status === 412
-}
-
-export function formatAdminDate(value: string | null | undefined) {
-  if (!value) return 'Sin fecha'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? 'Fecha no disponible'
-    : new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
 interface EditorialCommands {
@@ -159,6 +105,7 @@ export function EditorialWorkflowPanel({
   publicationStatus: PublicationStatus
   rejectionReason?: string | null
 }) {
+  useTranslation()
   const [reason, setReason] = useState('')
   const [correctionReason, setCorrectionReason] = useState('')
   const [confirmCorrection, setConfirmCorrection] = useState(false)
@@ -213,8 +160,8 @@ export function EditorialWorkflowPanel({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Flujo editorial</p>
-            <CardTitle className="mt-1">{publicationStatusLabels[publicationStatus]}</CardTitle>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.flow')}</p>
+            <CardTitle className="mt-1">{i18n.t(publicationStatusKeys[publicationStatus])}</CardTitle>
           </div>
           <PublicationStatusBadge status={publicationStatus} />
         </div>
@@ -222,37 +169,37 @@ export function EditorialWorkflowPanel({
       <CardContent className="space-y-5">
         {publicationStatus === 0 && (
           <p className="text-sm leading-6 text-muted-foreground">
-            Guarda el contenido y envía {entityName} a revisión cuando tenga procedencia y alcance suficientes.
+            {i18n.t('editorial.draftHelp', { entity: entityName })}
           </p>
         )}
         {publicationStatus === 1 && !confirmDeactivate && (
           <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/35 dark:text-amber-100">
-            <Clock3 className="mt-0.5 size-4 shrink-0" /> La versión enviada está bloqueada hasta aprobarla o rechazarla.
+            <Clock3 className="mt-0.5 size-4 shrink-0" /> {i18n.t('editorial.lockedReview')}
           </p>
         )}
         {publicationStatus === 2 && publicVisibilityIssues.length === 0 && (
           <p className="flex items-start gap-2 rounded-lg bg-accent p-3 text-sm text-accent-foreground">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> Este contenido está visible en el catálogo público.
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> {i18n.t('editorial.public')}
           </p>
         )}
         {publicationStatus === 2 && publicVisibilityIssues.length > 0 && (
           <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/35 dark:text-amber-100" role="alert">
             <p className="flex items-start gap-2 font-semibold">
-              <CircleAlert className="mt-0.5 size-4 shrink-0" /> Publicado, pero oculto del catálogo hasta completar estos datos:
+              <CircleAlert className="mt-0.5 size-4 shrink-0" /> {i18n.t('editorial.hidden')}
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-7">
               {publicVisibilityIssues.map((issue) => <li key={issue}>{issue}</li>)}
             </ul>
-            <p className="mt-2">Usa “Corregir publicación”, completa los campos y vuelve a enviarla a revisión.</p>
+            <p className="mt-2">{i18n.t('editorial.hiddenHelp')}</p>
           </div>
         )}
         {publicationStatus === 3 && (
-          <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            <strong>Revisión rechazada.</strong>{' '}{rejectionReason ?? 'Corrige los datos y vuelve a enviarlos.'}
+          <p className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground">
+            <strong>{i18n.t('editorial.reviewRejected')}</strong>{' '}{rejectionReason ?? i18n.t('editorial.correctData')}
           </p>
         )}
         {publicationStatus === 4 && (
-          <p className="rounded-lg bg-muted p-3 text-sm">Este contenido fue desactivado y ya no es público.</p>
+          <p className="rounded-lg bg-muted p-3 text-sm">{i18n.t('editorial.deactivated')}</p>
         )}
         {disabledReason && (
           <p className="rounded-lg border p-3 text-sm text-muted-foreground">{disabledReason}</p>
@@ -260,12 +207,12 @@ export function EditorialWorkflowPanel({
 
         {publicationStatus === 1 && (
           <label className="grid gap-1.5 text-sm font-semibold">
-            <span>Motivo si rechazas</span>
+            <span>{i18n.t('editorial.rejectionReason')}</span>
             <textarea
               className="min-h-24 rounded-lg border bg-background px-3 py-2 font-normal"
               maxLength={1000}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Explica qué debe corregirse antes de volver a revisión."
+              placeholder={i18n.t('editorial.rejectionPlaceholder')}
               value={reason}
             />
           </label>
@@ -273,19 +220,19 @@ export function EditorialWorkflowPanel({
 
         {publicationStatus !== 4 && confirmDeactivate && (
           <label className="grid gap-1.5 text-sm font-semibold">
-            <span>Motivo de desactivación (opcional)</span>
+            <span>{i18n.t('editorial.deactivationReason')}</span>
             <textarea
               className="min-h-20 rounded-lg border bg-background px-3 py-2 font-normal"
               maxLength={1000}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Ej. La convocatoria cerró anticipadamente."
+              placeholder={i18n.t('editorial.deactivationPlaceholder')}
               value={reason}
             />
           </label>
         )}
 
         {command.isError && (
-          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">
             <p className="flex items-start gap-2">
               <CircleAlert className="mt-0.5 size-4 shrink-0" /> {adminErrorMessage(command.error)}
             </p>
@@ -301,7 +248,7 @@ export function EditorialWorkflowPanel({
             )}
             {conflict && (
               <Button className="mt-3" onClick={() => void onChanged()} size="sm" type="button" variant="outline">
-                <RefreshCw className="size-4" /> Cargar versión vigente
+                <RefreshCw className="size-4" /> {i18n.t('editorial.reload')}
               </Button>
             )}
           </div>
@@ -316,21 +263,21 @@ export function EditorialWorkflowPanel({
               className="w-full max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950 shadow-2xl dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
               role="dialog"
             >
-              <h3 className="text-lg font-bold" id="correction-title">Iniciar corrección editorial</h3>
+              <h3 className="text-lg font-bold" id="correction-title">{i18n.t('editorial.correctionTitle')}</h3>
               <p className="mt-2 text-sm leading-6" id="correction-description">
-                Al confirmar, {entityName} se retirará temporalmente del catálogo público y volverá a borrador. Deberás guardar los cambios, enviarlos a revisión y aprobarlos nuevamente.
+                {i18n.t('editorial.correctionHelp', { entity: entityName })}
               </p>
               <label className="mt-4 grid gap-1.5 text-sm font-semibold">
-                <span>Motivo de la corrección</span>
+                <span>{i18n.t('editorial.correctionReason')}</span>
                 <textarea
                   autoFocus
                   className="min-h-24 rounded-lg border bg-background px-3 py-2 font-normal text-foreground"
                   maxLength={1000}
                   onChange={(event) => setCorrectionReason(event.target.value)}
-                  placeholder="Ej. Debemos reemplazar el enlace de postulación por el oficial."
+                  placeholder={i18n.t('editorial.correctionPlaceholder')}
                   value={correctionReason}
                 />
-                <span className="text-xs font-normal">Obligatorio, entre 3 y 1000 caracteres.</span>
+                <span className="text-xs font-normal">{i18n.t('editorial.reasonHelp')}</span>
               </label>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button
@@ -339,7 +286,7 @@ export function EditorialWorkflowPanel({
                   type="button"
                 >
                   {command.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <PencilLine className="size-4" />}
-                  Retirar e iniciar corrección
+                  {i18n.t('editorial.confirmCorrection')}
                 </Button>
                 <Button
                   disabled={command.isPending}
@@ -347,7 +294,7 @@ export function EditorialWorkflowPanel({
                   type="button"
                   variant="ghost"
                 >
-                  Cancelar
+                  {i18n.t('editorial.cancel')}
                 </Button>
               </div>
             </div>
@@ -362,7 +309,7 @@ export function EditorialWorkflowPanel({
               type="button"
             >
               {command.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Enviar a revisión
+              {i18n.t('editorial.submit')}
             </Button>
           )}
           {publicationStatus === 1 && !confirmDeactivate && (
@@ -372,7 +319,7 @@ export function EditorialWorkflowPanel({
                 onClick={() => command.mutate({ action: 'approve' })}
                 type="button"
               >
-                <CheckCircle2 className="size-4" /> Aprobar y publicar
+                <CheckCircle2 className="size-4" /> {i18n.t('editorial.approve')}
               </Button>
               <Button
                 disabled={command.isPending || Boolean(disabledReason) || reason.trim().length < 3}
@@ -380,7 +327,7 @@ export function EditorialWorkflowPanel({
                 type="button"
                 variant="outline"
               >
-                <XCircle className="size-4" /> Rechazar
+                <XCircle className="size-4" /> {i18n.t('editorial.reject')}
               </Button>
             </>
           )}
@@ -391,12 +338,12 @@ export function EditorialWorkflowPanel({
               type="button"
               variant="outline"
             >
-              <PencilLine className="size-4" /> Corregir publicación
+              <PencilLine className="size-4" /> {i18n.t('editorial.correct')}
             </Button>
           )}
           {publicationStatus !== 4 && !confirmDeactivate && (
             <Button disabled={Boolean(disabledReason) || confirmCorrection} onClick={() => setConfirmDeactivate(true)} type="button" variant="outline">
-              <Archive className="size-4" /> Desactivar
+              <Archive className="size-4" /> {i18n.t('editorial.deactivate')}
             </Button>
           )}
           {publicationStatus !== 4 && confirmDeactivate && (
@@ -408,9 +355,9 @@ export function EditorialWorkflowPanel({
                 variant="outline"
               >
                 {command.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Archive className="size-4" />}
-                Confirmar desactivación
+                {i18n.t('editorial.confirmDeactivation')}
               </Button>
-              <Button onClick={() => { setConfirmDeactivate(false); setReason('') }} type="button" variant="ghost">Cancelar</Button>
+              <Button onClick={() => { setConfirmDeactivate(false); setReason('') }} type="button" variant="ghost">{i18n.t('editorial.cancel')}</Button>
             </>
           )}
         </div>

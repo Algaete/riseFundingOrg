@@ -1,4 +1,9 @@
 import type { es } from '@/i18n/es'
+import { editorialEn } from '@/i18n/editorial/en'
+import { adminFundersEn } from '@/i18n/admin-funders/en'
+import { adminFundingEn } from '@/i18n/admin-funding/en'
+import { adminProjectsEn } from '@/i18n/admin-projects/en'
+import { editorialValidationEn } from '@/i18n/editorial-validation/en'
 import { authEn } from '@/i18n/auth/en'
 import { catalogsEn } from '@/i18n/catalogs/en'
 import { trackingEn } from '@/i18n/tracking/en'
@@ -23,6 +28,11 @@ import type { TranslationShape } from '@/i18n/resource-types'
 
 export const en = {
   translation: {
+    editorial: editorialEn,
+    adminFunders: adminFundersEn,
+    adminFunding: adminFundingEn,
+    adminProjects: adminProjectsEn,
+    editorialValidation: editorialValidationEn,
     auth: authEn,
     catalogs: catalogsEn,
     tracking: trackingEn,

@@ -1,4 +1,9 @@
 import { authEs } from '@/i18n/auth/es'
+import { editorialEs } from '@/i18n/editorial/es'
+import { adminFundersEs } from '@/i18n/admin-funders/es'
+import { adminFundingEs } from '@/i18n/admin-funding/es'
+import { adminProjectsEs } from '@/i18n/admin-projects/es'
+import { editorialValidationEs } from '@/i18n/editorial-validation/es'
 import { catalogsEs } from '@/i18n/catalogs/es'
 import { trackingEs } from '@/i18n/tracking/es'
 import { applicationsEs } from '@/i18n/applications/es'
@@ -21,6 +26,11 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 
 export const es = {
   translation: {
+    editorial: editorialEs,
+    adminFunders: adminFundersEs,
+    adminFunding: adminFundingEs,
+    adminProjects: adminProjectsEs,
+    editorialValidation: editorialValidationEs,
     auth: authEs,
     catalogs: catalogsEs,
     tracking: trackingEs,

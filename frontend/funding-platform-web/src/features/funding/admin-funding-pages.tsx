@@ -18,10 +18,15 @@ import {
 } from 'lucide-react'
 import { type FormEvent, useEffect, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
 import { ApiError } from '@/api/http-client'
+import i18n from '@/i18n'
+import { editorialFieldMessage } from '@/i18n/editorial-messages'
+import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
+import { workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -32,7 +37,7 @@ import {
   formatAdminDate,
   isConcurrencyConflict,
   PublicationStatusBadge,
-  publicationStatusLabels,
+  publicationStatusKeys,
 } from '@/features/funding/admin-editorial'
 import {
   adminFundersApi,
@@ -53,31 +58,31 @@ import { organizationApi, type CatalogOption } from '@/features/organizations/or
 
 const listPageSize = 20
 const funderChoicePageSize = 20
-const inputClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
+const inputClass = 'h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm'
 const textareaClass = 'min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm'
 const optionalHttpUrl = z.string().trim().refine(
   (value) => value === '' || /^https?:\/\/[^\s]+$/i.test(value),
-  'Ingresa una URL completa que comience con http:// o https://.',
+  'editorialValidation.httpUrl',
 )
 const requiredHttpUrl = z.string().trim().refine(
   (value) => /^https?:\/\/[^\s]+$/i.test(value),
-  'Ingresa la URL oficial completa que comience con http:// o https://.',
+  'editorialValidation.officialUrl',
 )
 const optionalNonNegativeNumber = z.string().refine(
   (value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0),
-  'Ingresa un número igual o mayor que cero.',
+  'editorialValidation.nonnegative',
 )
 const optionalPositiveInteger = z.string().refine(
   (value) => value === '' || (Number.isInteger(Number(value)) && Number(value) > 0),
-  'Ingresa un identificador entero válido.',
+  'editorialValidation.positiveId',
 )
 const optionalNonNegativeInteger = z.string().refine(
   (value) => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0),
-  'Ingresa un número entero igual o mayor que cero.',
+  'editorialValidation.nonnegativeInteger',
 )
 const optionalPercentage = z.string().refine(
   (value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100),
-  'Ingresa un porcentaje entre 0 y 100.',
+  'editorialValidation.percentage',
 )
 const nullableBoolean = z.enum(['', 'true', 'false'])
 const amountStatus = z.enum(['0', '1', '2'])
@@ -87,34 +92,34 @@ const geographicScope = z.enum(['0', '1', '2'])
 const remoteApplication = z.enum(['0', '1', '2'])
 
 const opportunitySchema = z.object({
-  title: z.string().trim().min(3, 'El título debe tener al menos 3 caracteres.').max(350),
-  summary: z.string().trim().max(2000),
-  description: z.string().trim().max(50_000),
-  sponsorName: z.string().trim().min(2, 'Indica el organismo patrocinador.').max(300),
+  title: z.string().trim().min(3, 'editorialValidation.titleMin').max(350, 'editorialValidation.max350'),
+  summary: z.string().trim().max(2000, 'editorialValidation.max2000'),
+  description: z.string().trim().max(50_000, 'editorialValidation.max50000'),
+  sponsorName: z.string().trim().min(2, 'editorialValidation.sponsor').max(300, 'editorialValidation.max300'),
   sponsorUrl: optionalHttpUrl,
   applicationUrl: optionalHttpUrl,
-  externalId: z.string().trim().max(250),
-  fundingSourceId: z.string().refine((value) => Number.isInteger(Number(value)) && Number(value) > 0, 'Selecciona una fuente.'),
+  externalId: z.string().trim().max(250, 'editorialValidation.max250'),
+  fundingSourceId: z.string().refine((value) => Number.isInteger(Number(value)) && Number(value) > 0, 'editorialValidation.source'),
   issuerCountryId: optionalPositiveInteger,
   fundingTypeId: optionalPositiveInteger,
-  currency: z.string().trim().refine((value) => value === '' || /^[A-Za-z]{3}$/.test(value), 'Usa un código ISO de tres letras.'),
+  currency: z.string().trim().refine((value) => value === '' || /^[A-Za-z]{3}$/.test(value), 'editorialValidation.currency'),
   minimumAmount: optionalNonNegativeNumber,
   maximumAmount: optionalNonNegativeNumber,
   amountStatus,
   openDate: z.string(),
   closeDate: z.string(),
   closeAtUtc: z.string(),
-  deadlineTimeZoneId: z.string().trim().max(100),
+  deadlineTimeZoneId: z.string().trim().max(100, 'editorialValidation.max100'),
   deadlineType,
   deadlinePrecision,
-  eligibilityDescription: z.string().trim().max(30_000),
-  requirements: z.string().trim().max(30_000),
-  objectives: z.string().trim().max(30_000),
-  allowedActivities: z.string().trim().max(30_000),
-  excludedActivities: z.string().trim().max(30_000),
-  restrictions: z.string().trim().max(30_000),
-  targetOrganizationsDescription: z.string().trim().max(2000),
-  targetPopulationsDescription: z.string().trim().max(2000),
+  eligibilityDescription: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  requirements: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  objectives: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  allowedActivities: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  excludedActivities: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  restrictions: z.string().trim().max(30_000, 'editorialValidation.max30000'),
+  targetOrganizationsDescription: z.string().trim().max(2000, 'editorialValidation.max2000'),
+  targetPopulationsDescription: z.string().trim().max(2000, 'editorialValidation.max2000'),
   minimumOperatingYears: optionalNonNegativeInteger,
   requiresLegalEntity: nullableBoolean,
   requiresPriorExperience: nullableBoolean,
@@ -132,102 +137,106 @@ const opportunitySchema = z.object({
   projectTypeIds: z.array(z.number().int().positive()),
 }).superRefine((values, context) => {
   if (values.minimumAmount && values.maximumAmount && Number(values.minimumAmount) > Number(values.maximumAmount)) {
-    context.addIssue({ code: 'custom', message: 'El monto mínimo no puede superar al máximo.', path: ['maximumAmount'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.amountOrder', path: ['maximumAmount'] })
   }
   if (values.openDate && values.closeDate && values.openDate > values.closeDate) {
-    context.addIssue({ code: 'custom', message: 'El cierre no puede ser anterior a la apertura.', path: ['closeDate'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.dateOrder', path: ['closeDate'] })
   }
   if (values.lastVerifiedAtUtc) {
     const verifiedAt = new Date(values.lastVerifiedAtUtc)
     if (Number.isNaN(verifiedAt.getTime())) {
-      context.addIssue({ code: 'custom', message: 'Ingresa una fecha de verificación válida.', path: ['lastVerifiedAtUtc'] })
+      context.addIssue({ code: 'custom', message: 'editorialValidation.verifiedDate', path: ['lastVerifiedAtUtc'] })
     } else if (verifiedAt.getTime() > Date.now() + 5 * 60_000) {
-      context.addIssue({ code: 'custom', message: 'La última verificación no puede estar en el futuro.', path: ['lastVerifiedAtUtc'] })
+      context.addIssue({ code: 'custom', message: 'editorialValidation.verifiedFuture', path: ['lastVerifiedAtUtc'] })
     }
   }
   const hasAmount = Boolean(values.minimumAmount || values.maximumAmount)
   if (values.amountStatus === '1' && (!hasAmount || !values.currency)) {
-    context.addIssue({ code: 'custom', message: 'Un monto especificado requiere moneda y al menos un valor.', path: ['amountStatus'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.amountSpecified', path: ['amountStatus'] })
   }
   if (values.amountStatus !== '1' && (hasAmount || values.currency)) {
-    context.addIssue({ code: 'custom', message: 'Los montos desconocidos o no informados no admiten moneda ni valores.', path: ['amountStatus'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.amountUnknown', path: ['amountStatus'] })
   }
   const fixedDeadline = values.deadlineType === '1'
   if (!fixedDeadline && (values.deadlinePrecision !== '0' || values.closeDate || values.closeAtUtc)) {
-    context.addIssue({ code: 'custom', message: 'Un cierre desconocido o continuo no admite fecha ni hora.', path: ['deadlineType'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.deadlineUnknown', path: ['deadlineType'] })
   }
   if (fixedDeadline && values.deadlinePrecision === '0') {
-    context.addIssue({ code: 'custom', message: 'Selecciona si el cierre tiene fecha o fecha y hora.', path: ['deadlinePrecision'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.precision', path: ['deadlinePrecision'] })
   }
   if (fixedDeadline && values.deadlinePrecision === '1' && (!values.closeDate || values.closeAtUtc)) {
-    context.addIssue({ code: 'custom', message: 'El cierre por fecha requiere solo la fecha de cierre.', path: ['closeDate'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.dateOnly', path: ['closeDate'] })
   }
   if (fixedDeadline && values.deadlinePrecision === '2') {
     if (!values.closeDate || !values.closeAtUtc || !values.deadlineTimeZoneId.trim()) {
-      context.addIssue({ code: 'custom', message: 'La fecha, hora UTC y zona horaria son obligatorias.', path: ['closeAtUtc'] })
+      context.addIssue({ code: 'custom', message: 'editorialValidation.dateTime', path: ['closeAtUtc'] })
     } else {
       const dateAtZone = utcDateInTimeZone(values.closeAtUtc, values.deadlineTimeZoneId.trim())
       if (dateAtZone === null) {
-        context.addIssue({ code: 'custom', message: 'Usa una zona IANA válida, por ejemplo America/Santiago.', path: ['deadlineTimeZoneId'] })
+        context.addIssue({ code: 'custom', message: 'editorialValidation.iana', path: ['deadlineTimeZoneId'] })
       } else if (dateAtZone !== values.closeDate) {
-        context.addIssue({ code: 'custom', message: 'La hora UTC no corresponde a la fecha de cierre en la zona indicada.', path: ['closeAtUtc'] })
+        context.addIssue({ code: 'custom', message: 'editorialValidation.zoneDate', path: ['closeAtUtc'] })
       }
     }
   }
   if (values.requiresCofunding === 'true' && (!values.cofundingPercentage || Number(values.cofundingPercentage) <= 0)) {
-    context.addIssue({ code: 'custom', message: 'Indica un porcentaje mayor que cero cuando se exige cofinanciamiento.', path: ['cofundingPercentage'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.cofundingPositive', path: ['cofundingPercentage'] })
   }
   if (values.requiresCofunding !== 'true' && values.cofundingPercentage !== '' && Number(values.cofundingPercentage) !== 0) {
-    context.addIssue({ code: 'custom', message: 'El porcentaje solo corresponde cuando se exige cofinanciamiento.', path: ['cofundingPercentage'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.cofundingNotRequired', path: ['cofundingPercentage'] })
   }
   if (values.geographicScope === '1' && values.countryIds.length === 0) {
-    context.addIssue({ code: 'custom', message: 'El alcance específico requiere al menos un país.', path: ['countryIds'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.specificCountries', path: ['countryIds'] })
   } else if (values.geographicScope !== '1' && (values.countryIds.length > 0 || values.regionIds.length > 0)) {
-    context.addIssue({ code: 'custom', message: 'Solo el alcance específico admite países o regiones.', path: ['countryIds'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.specificOnly', path: ['countryIds'] })
   }
   if (values.funders.filter((funder) => funder.role === 1).length !== 1) {
-    context.addIssue({ code: 'custom', message: 'Selecciona exactamente un financiador principal.', path: ['funders'] })
+    context.addIssue({ code: 'custom', message: 'editorialValidation.primary', path: ['funders'] })
   }
 })
 
 type OpportunityFormValues = z.infer<typeof opportunitySchema>
 
 function Field({ children, error, hint, label }: { children: ReactNode; error?: string; hint?: string; label: string }) {
+  useTranslation()
   return (
-    <label className="grid gap-1.5 text-sm font-semibold">
+    <label className="grid min-w-0 gap-1.5 text-sm font-semibold [&_input]:min-w-0">
       <span>{label}</span>
       {children}
       {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
-      {error && <span className="text-xs font-normal text-destructive">{error}</span>}
+      {error && <span className="text-xs font-normal text-foreground" role="alert">{editorialFieldMessage(error)}</span>}
     </label>
   )
 }
 
 function MultiChoice({
+  catalog,
   items,
   label,
   onChange,
   selected,
 }: {
+  catalog: CatalogKind
   items: CatalogOption<number>[]
   label: string
   onChange: (value: number[]) => void
   selected: number[]
 }) {
+  useTranslation()
   return (
-    <fieldset className="space-y-2">
+    <fieldset className="min-w-0 space-y-2">
       <legend className="text-sm font-semibold">{label}</legend>
       {items.length === 0
-        ? <p className="text-sm text-muted-foreground">No hay opciones configuradas.</p>
+        ? <p className="text-sm text-muted-foreground">{i18n.t('adminFunding.optionsEmpty')}</p>
         : <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((item) => (
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id} lang={catalogLanguage(catalog, item)}>
                 <input
                   checked={selected.includes(item.id)}
                   onChange={() => onChange(selected.includes(item.id) ? selected.filter((id) => id !== item.id) : [...selected, item.id])}
                   type="checkbox"
                 />
-                {item.name}
+                {catalogName(catalog, item)}
               </label>
             ))}
           </div>}
@@ -446,28 +455,29 @@ function FundingPartnerChoices({
   selected: OpportunityFormValues['funders']
   totalCount: number
 }) {
+  useTranslation()
   const lastPage = Math.max(1, Math.ceil(totalCount / pageSize))
   return (
-    <fieldset className="space-y-3">
-      <div><legend className="text-sm font-semibold">Financiadores asociados</legend><p className="mt-1 text-xs text-muted-foreground">Selecciona exactamente un financiador principal para guardar.</p></div>
+    <fieldset className="min-w-0 space-y-3">
+      <div><legend className="text-sm font-semibold">{i18n.t('adminFunding.associatedFunders')}</legend><p className="mt-1 text-xs text-muted-foreground">{i18n.t('adminFunding.primaryHelp')}</p></div>
       <label className="grid gap-1.5 text-sm font-semibold">
-        Buscar financiador
+        {i18n.t('adminFunding.searchFunder')}
         <span className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Busca por nombre o alias"
+            placeholder={i18n.t('adminFunding.searchFunderPlaceholder')}
             value={search}
           />
         </span>
       </label>
-      {isFetching && <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status"><LoaderCircle className="size-3.5 animate-spin" /> Buscando financiadores…</p>}
+      {isFetching && <p className="flex items-center gap-2 text-xs text-muted-foreground" role="status"><LoaderCircle className="size-3.5 animate-spin" /> {i18n.t('adminFunding.searchingFunders')}</p>}
       {funders.length === 0 ? (
         <p className="rounded-lg border p-3 text-sm">
           {search.trim()
-            ? 'No encontramos financiadores para esta búsqueda.'
-            : <>No hay financiadores disponibles. <Link className="font-semibold text-primary underline" to="/admin/funders/new">Crea uno</Link>.</>}
+            ? i18n.t('adminFunding.noFunderResults')
+            : <>{i18n.t('adminFunding.noFunders')} <Link className="font-semibold text-primary underline" to="/admin/funders/new">{i18n.t('adminFunding.createFunder')}</Link>.</>}
         </p>
       ) : (
         <div className="grid gap-2 lg:grid-cols-2">
@@ -490,21 +500,21 @@ function FundingPartnerChoices({
                   </label>
                   {association && (
                     <Button asChild size="sm" variant="ghost">
-                      <Link aria-label={`Gestionar financiador ${funder.name}`} to={`/admin/funders/${funder.funderId}`}>Gestionar</Link>
+                      <Link aria-label={i18n.t('adminFunding.manageFunder', { name: funder.name })} to={`/admin/funders/${funder.funderId}`}>{i18n.t('editorial.manage')}</Link>
                     </Button>
                   )}
                 </div>
                 {association && (
                   <label className="mt-2 grid gap-1 pl-6 text-xs font-semibold">
-                    Rol
+                    {i18n.t('adminFunding.role')}
                     <select
                       className="h-9 rounded-lg border bg-background px-2 text-sm font-normal"
                       onChange={(event) => onChange(selected.map((value) => value.funderId === funder.funderId ? { ...value, role: Number(event.target.value) as 1 | 2 | 3 } : value))}
                       value={association.role}
                     >
-                      <option value={1}>Principal</option>
-                      <option value={2}>Cofinanciador</option>
-                      <option value={3}>Administrador</option>
+                      <option value={1}>{i18n.t('adminFunding.primary')}</option>
+                      <option value={2}>{i18n.t('adminFunding.cofunder')}</option>
+                      <option value={3}>{i18n.t('adminFunding.administrator')}</option>
                     </select>
                   </label>
                 )}
@@ -514,13 +524,13 @@ function FundingPartnerChoices({
         </div>
       )}
       {(lastPage > 1 || page > 1) && (
-        <nav aria-label="Páginas de financiadores" className="flex items-center justify-end gap-3">
-          <Button disabled={page <= 1 || isFetching} onClick={() => onPageChange(page - 1)} size="sm" type="button" variant="outline"><ChevronLeft className="size-4" /> Anterior</Button>
-          <span className="text-xs text-muted-foreground">Página {page} de {lastPage}</span>
-          <Button disabled={page >= lastPage || isFetching} onClick={() => onPageChange(page + 1)} size="sm" type="button" variant="outline">Siguiente <ChevronRight className="size-4" /></Button>
+        <nav aria-label={i18n.t('adminFunding.funderPages')} className="flex flex-wrap items-center justify-end gap-3">
+          <Button disabled={page <= 1 || isFetching} onClick={() => onPageChange(page - 1)} size="sm" type="button" variant="outline"><ChevronLeft className="size-4" /> {i18n.t('editorial.previous')}</Button>
+          <span className="text-xs text-muted-foreground">{i18n.t('editorial.page', { page, total: lastPage })}</span>
+          <Button disabled={page >= lastPage || isFetching} onClick={() => onPageChange(page + 1)} size="sm" type="button" variant="outline">{i18n.t('editorial.next')} <ChevronRight className="size-4" /></Button>
         </nav>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(error)}</p>}
     </fieldset>
   )
 }
@@ -532,12 +542,13 @@ function AdminOpportunityForm({
   item?: AdminFundingOpportunityDetail
   onDirtyChange?: (dirty: boolean) => void
 }) {
+  useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [funderSearch, setFunderSearch] = useState('')
   const [debouncedFunderSearch, setDebouncedFunderSearch] = useState('')
   const [funderPage, setFunderPage] = useState(1)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<'adminFunding.saved' | null>(null)
   const [knownFunders, setKnownFunders] = useState<FunderChoice[]>(() =>
     (item?.funders ?? []).map((funder) => ({ funderId: funder.funderId, name: funder.name })),
   )
@@ -587,7 +598,7 @@ function AdminOpportunityForm({
         return
       }
       await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunity', item.opportunityId] })
-      setSaveMessage('Cambios guardados correctamente.')
+      setSaveMessage('adminFunding.saved')
     },
     onError: error => {
       setSaveMessage(null)
@@ -611,9 +622,9 @@ function AdminOpportunityForm({
     return () => window.clearTimeout(timeout)
   }, [saveMessage])
 
-  if (catalogs.isPending || funders.isPending || sources.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Preparando editor…</p>
+  if (catalogs.isPending || funders.isPending || sources.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunding.preparing')}</p>
   if (catalogs.isError || funders.isError || sources.isError || !catalogs.data || !funders.data || !sources.data) {
-    return <Card><CardContent className="p-6 text-destructive" role="alert">No fue posible cargar catálogos, fuentes o financiadores para el editor.</CardContent></Card>
+    return <Card><CardContent className="p-6 text-foreground" role="alert">{i18n.t('adminFunding.editorFailed')}</CardContent></Card>
   }
 
   const locked = Boolean(item && [1, 2, 4].includes(item.publicationStatus))
@@ -646,7 +657,7 @@ function AdminOpportunityForm({
         .map((region) => region.id),
     )
     if (values.regionIds.some((regionId) => !eligibleRegionIds.has(regionId))) {
-      form.setError('regionIds', { message: 'Cada región debe pertenecer a uno de los países seleccionados.' })
+      form.setError('regionIds', { message: 'editorialValidation.regions' })
       return
     }
     save.mutate(values)
@@ -654,71 +665,71 @@ function AdminOpportunityForm({
 
   return (
     <form className="space-y-5" noValidate onSubmit={form.handleSubmit(submit)}>
-      <fieldset className="space-y-5 disabled:opacity-65" disabled={locked || save.isPending}>
+      <fieldset className="min-w-0 space-y-5 disabled:opacity-65" disabled={locked || save.isPending}>
         <Card>
-          <CardHeader><CardTitle>Identidad y procedencia</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{i18n.t('adminFunding.identity')}</CardTitle></CardHeader>
           <CardContent className="grid gap-5">
-            <Field error={form.formState.errors.title?.message} label="Título"><Input {...form.register('title')} placeholder="Nombre oficial de la convocatoria" /></Field>
+            <Field error={form.formState.errors.title?.message} label={i18n.t('adminFunding.title')}><Input {...form.register('title')} placeholder={i18n.t('adminFunding.titlePlaceholder')} /></Field>
             <div className="grid gap-4 lg:grid-cols-2">
-              <Field error={form.formState.errors.sponsorName?.message} label="Organismo patrocinador"><Input {...form.register('sponsorName')} placeholder="Entidad que convoca" /></Field>
-              <Field error={form.formState.errors.sponsorUrl?.message} label="Sitio del patrocinador"><Input {...form.register('sponsorUrl')} inputMode="url" placeholder="https://..." /></Field>
+              <Field error={form.formState.errors.sponsorName?.message} label={i18n.t('adminFunding.sponsor')}><Input {...form.register('sponsorName')} placeholder={i18n.t('adminFunding.sponsorPlaceholder')} /></Field>
+              <Field error={form.formState.errors.sponsorUrl?.message} label={i18n.t('adminFunding.sponsorWebsite')}><Input {...form.register('sponsorUrl')} inputMode="url" placeholder="https://..." /></Field>
             </div>
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-              <Field error={form.formState.errors.fundingSourceId?.message} label="Fuente de datos">
+              <Field error={form.formState.errors.fundingSourceId?.message} label={i18n.t('adminFunding.source')}>
                 <select {...form.register('fundingSourceId')} className={inputClass}>
-                  <option value="">Selecciona una fuente</option>
-                  {sources.data.map((source) => <option disabled={!source.isEnabled} key={source.id} value={source.id}>{source.name}{source.isEnabled ? '' : ' (inactiva)'}</option>)}
+                  <option value="">{i18n.t('adminFunding.chooseSource')}</option>
+                  {sources.data.map((source) => <option disabled={!source.isEnabled} key={source.id} value={source.id}>{source.name}{source.isEnabled ? '' : i18n.t('adminFunding.inactiveSource')}</option>)}
                 </select>
               </Field>
-              <Field error={form.formState.errors.externalId?.message} label="ID en la fuente"><Input {...form.register('externalId')} placeholder="Identificador externo" /></Field>
-              <Field error={form.formState.errors.issuerCountryId?.message} hint="País de la entidad que emite el fondo; no reemplaza los países elegibles." label="País emisor">
+              <Field error={form.formState.errors.externalId?.message} label={i18n.t('adminFunding.externalId')}><Input {...form.register('externalId')} placeholder={i18n.t('adminFunding.externalIdPlaceholder')} /></Field>
+              <Field error={form.formState.errors.issuerCountryId?.message} hint={i18n.t('adminFunding.issuerHelp')} label={i18n.t('adminFunding.issuerCountry')}>
                 <select {...form.register('issuerCountryId')} className={inputClass}>
-                  <option value="">No informado</option>
-                  {catalogs.data.countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
+                  <option value="">{i18n.t('editorial.notReported')}</option>
+                  {catalogs.data.countries.map((country) => <option key={country.id} value={country.id} lang={catalogLanguage('countries', country)}>{catalogName('countries', country)}</option>)}
                 </select>
               </Field>
-              <Field error={form.formState.errors.fundingTypeId?.message} label="Tipo de financiamiento">
+              <Field error={form.formState.errors.fundingTypeId?.message} label={i18n.t('adminFunding.fundingType')}>
                 <select {...form.register('fundingTypeId')} className={inputClass}>
-                  <option value="">No informado</option>
-                  {catalogs.data.fundingTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+                  <option value="">{i18n.t('editorial.notReported')}</option>
+                  {catalogs.data.fundingTypes.map((type) => <option key={type.id} value={type.id} lang={catalogLanguage('fundingTypes', type)}>{catalogName('fundingTypes', type)}</option>)}
                 </select>
               </Field>
             </div>
-            <Field error={form.formState.errors.sourceUrl?.message} hint="Obligatoria para guardar y conservar la procedencia." label="URL oficial de la convocatoria"><Input {...form.register('sourceUrl')} inputMode="url" placeholder="https://..." /></Field>
-            <Field error={form.formState.errors.applicationUrl?.message} label="URL de postulación"><Input {...form.register('applicationUrl')} inputMode="url" placeholder="https://..." /></Field>
+            <Field error={form.formState.errors.sourceUrl?.message} hint={i18n.t('adminFunding.sourceUrlHelp')} label={i18n.t('adminFunding.sourceUrl')}><Input {...form.register('sourceUrl')} inputMode="url" placeholder="https://..." /></Field>
+            <Field error={form.formState.errors.applicationUrl?.message} label={i18n.t('adminFunding.applicationUrl')}><Input {...form.register('applicationUrl')} inputMode="url" placeholder="https://..." /></Field>
             {sourceHostname && applicationHostname && sourceHostname !== applicationHostname && (
               <p className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="alert">
                 <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                El dominio de postulación (<strong>{applicationHostname}</strong>) difiere del dominio de la fuente oficial (<strong>{sourceHostname}</strong>). Confírmalo antes de publicar para reducir riesgo de phishing.
+                <span>{i18n.t('adminFunding.differentDomains', { application: applicationHostname, source: sourceHostname })}</span>
               </p>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Contenido</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{i18n.t('adminFunding.content')}</CardTitle></CardHeader>
           <CardContent className="grid gap-5">
-            <Field error={form.formState.errors.summary?.message} label="Resumen"><textarea {...form.register('summary')} className={textareaClass} placeholder="Síntesis visible en el catálogo" /></Field>
-            <Field error={form.formState.errors.description?.message} label="Descripción completa"><textarea {...form.register('description')} className="min-h-48 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></Field>
-            <Field error={form.formState.errors.eligibilityDescription?.message} label="Elegibilidad"><textarea {...form.register('eligibilityDescription')} className={textareaClass} placeholder="Quiénes pueden postular" /></Field>
-            <Field error={form.formState.errors.requirements?.message} label="Requisitos"><textarea {...form.register('requirements')} className={textareaClass} placeholder="Documentos y condiciones de postulación" /></Field>
-            <Field error={form.formState.errors.objectives?.message} label="Objetivos o áreas financiables"><textarea {...form.register('objectives')} className={textareaClass} /></Field>
+            <Field error={form.formState.errors.summary?.message} label={i18n.t('adminFunding.summary')}><textarea {...form.register('summary')} className={textareaClass} placeholder={i18n.t('adminFunding.summaryPlaceholder')} /></Field>
+            <Field error={form.formState.errors.description?.message} label={i18n.t('adminFunding.description')}><textarea {...form.register('description')} className="min-h-48 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></Field>
+            <Field error={form.formState.errors.eligibilityDescription?.message} label={i18n.t('adminFunding.eligibility')}><textarea {...form.register('eligibilityDescription')} className={textareaClass} placeholder={i18n.t('adminFunding.eligibilityPlaceholder')} /></Field>
+            <Field error={form.formState.errors.requirements?.message} label={i18n.t('adminFunding.requirements')}><textarea {...form.register('requirements')} className={textareaClass} placeholder={i18n.t('adminFunding.requirementsPlaceholder')} /></Field>
+            <Field error={form.formState.errors.objectives?.message} label={i18n.t('adminFunding.objectives')}><textarea {...form.register('objectives')} className={textareaClass} /></Field>
             <div className="grid gap-5 lg:grid-cols-2">
-              <Field error={form.formState.errors.allowedActivities?.message} label="Actividades permitidas"><textarea {...form.register('allowedActivities')} className={textareaClass} /></Field>
-              <Field error={form.formState.errors.excludedActivities?.message} label="Actividades excluidas"><textarea {...form.register('excludedActivities')} className={textareaClass} /></Field>
+              <Field error={form.formState.errors.allowedActivities?.message} label={i18n.t('adminFunding.allowed')}><textarea {...form.register('allowedActivities')} className={textareaClass} /></Field>
+              <Field error={form.formState.errors.excludedActivities?.message} label={i18n.t('adminFunding.excluded')}><textarea {...form.register('excludedActivities')} className={textareaClass} /></Field>
             </div>
-            <Field error={form.formState.errors.restrictions?.message} label="Restricciones"><textarea {...form.register('restrictions')} className={textareaClass} /></Field>
+            <Field error={form.formState.errors.restrictions?.message} label={i18n.t('adminFunding.restrictions')}><textarea {...form.register('restrictions')} className={textareaClass} /></Field>
             <div className="grid gap-5 lg:grid-cols-2">
-              <Field error={form.formState.errors.targetOrganizationsDescription?.message} label="Organizaciones objetivo"><textarea {...form.register('targetOrganizationsDescription')} className={textareaClass} placeholder="Tipos o características de las organizaciones buscadas" /></Field>
-              <Field error={form.formState.errors.targetPopulationsDescription?.message} label="Poblaciones objetivo"><textarea {...form.register('targetPopulationsDescription')} className={textareaClass} placeholder="Personas o comunidades beneficiarias" /></Field>
+              <Field error={form.formState.errors.targetOrganizationsDescription?.message} label={i18n.t('adminFunding.targetOrganizations')}><textarea {...form.register('targetOrganizationsDescription')} className={textareaClass} placeholder={i18n.t('adminFunding.targetOrganizationsPlaceholder')} /></Field>
+              <Field error={form.formState.errors.targetPopulationsDescription?.message} label={i18n.t('adminFunding.targetPopulations')}><textarea {...form.register('targetPopulationsDescription')} className={textareaClass} placeholder={i18n.t('adminFunding.targetPopulationsPlaceholder')} /></Field>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Financiamiento y requisitos institucionales</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{i18n.t('adminFunding.fundingRequirements')}</CardTitle></CardHeader>
           <CardContent className="grid gap-5">
-            <Field error={form.formState.errors.amountStatus?.message} label="Estado del monto">
+            <Field error={form.formState.errors.amountStatus?.message} label={i18n.t('adminFunding.amountStatus')}>
               <select
                 {...form.register('amountStatus', { onChange: (event) => {
                   if (event.target.value !== '1') {
@@ -729,39 +740,39 @@ function AdminOpportunityForm({
                 } })}
                 className={inputClass}
               >
-                <option value="0">Desconocido</option>
-                <option value="1">Especificado</option>
-                <option value="2">No divulgado</option>
+                <option value="0">{i18n.t('adminFunding.unknown')}</option>
+                <option value="1">{i18n.t('adminFunding.specified')}</option>
+                <option value="2">{i18n.t('adminFunding.notDisclosed')}</option>
               </select>
             </Field>
             {selectedAmountStatus === '1' && <div className="grid gap-4 sm:grid-cols-3">
-              <Field error={form.formState.errors.currency?.message} label="Moneda">
+              <Field error={form.formState.errors.currency?.message} label={i18n.t('adminFunding.currency')}>
                 <select {...form.register('currency')} className={inputClass}>
-                  <option value="">Selecciona una moneda</option>
-                  {catalogs.data.currencies.map((currency) => <option key={currency.code} value={currency.code}>{currency.code} · {currency.name}</option>)}
+                  <option value="">{i18n.t('adminFunding.chooseCurrency')}</option>
+                  {catalogs.data.currencies.map((currency) => <option key={currency.code} value={currency.code} lang={catalogLanguage('currencies', currency)}>{currency.code} · {catalogName('currencies', currency)}</option>)}
                 </select>
               </Field>
-              <Field error={form.formState.errors.minimumAmount?.message} label="Monto mínimo"><Input {...form.register('minimumAmount')} min="0" step="0.01" type="number" /></Field>
-              <Field error={form.formState.errors.maximumAmount?.message} label="Monto máximo"><Input {...form.register('maximumAmount')} min="0" step="0.01" type="number" /></Field>
+              <Field error={form.formState.errors.minimumAmount?.message} label={i18n.t('adminFunding.minimum')}><Input {...form.register('minimumAmount')} min="0" step="0.01" type="number" /></Field>
+              <Field error={form.formState.errors.maximumAmount?.message} label={i18n.t('adminFunding.maximum')}><Input {...form.register('maximumAmount')} min="0" step="0.01" type="number" /></Field>
             </div>}
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <Field error={form.formState.errors.minimumOperatingYears?.message} label="Años mínimos de operación"><Input {...form.register('minimumOperatingYears')} min="0" step="1" type="number" /></Field>
-              <Field label="Entidad legal requerida"><select {...form.register('requiresLegalEntity')} className={inputClass}><option value="">No informado</option><option value="true">Sí</option><option value="false">No</option></select></Field>
-              <Field label="Experiencia previa requerida"><select {...form.register('requiresPriorExperience')} className={inputClass}><option value="">No informado</option><option value="true">Sí</option><option value="false">No</option></select></Field>
-              <Field label="Cofinanciamiento"><select {...form.register('requiresCofunding', { onChange: (event) => {
+              <Field error={form.formState.errors.minimumOperatingYears?.message} label={i18n.t('adminFunding.minimumYears')}><Input {...form.register('minimumOperatingYears')} min="0" step="1" type="number" /></Field>
+              <Field label={i18n.t('adminFunding.legalRequired')}><select {...form.register('requiresLegalEntity')} className={inputClass}><option value="">{i18n.t('editorial.notReported')}</option><option value="true">{i18n.t('adminFunding.yes')}</option><option value="false">{i18n.t('adminFunding.no')}</option></select></Field>
+              <Field label={i18n.t('adminFunding.experienceRequired')}><select {...form.register('requiresPriorExperience')} className={inputClass}><option value="">{i18n.t('editorial.notReported')}</option><option value="true">{i18n.t('adminFunding.yes')}</option><option value="false">{i18n.t('adminFunding.no')}</option></select></Field>
+              <Field label={i18n.t('adminFunding.cofunding')}><select {...form.register('requiresCofunding', { onChange: (event) => {
                 if (event.target.value !== 'true') form.setValue('cofundingPercentage', '', { shouldDirty: true })
-              } })} className={inputClass}><option value="">No informado</option><option value="true">Requerido</option><option value="false">No requerido</option></select></Field>
+              } })} className={inputClass}><option value="">{i18n.t('editorial.notReported')}</option><option value="true">{i18n.t('adminFunding.required')}</option><option value="false">{i18n.t('adminFunding.notRequired')}</option></select></Field>
             </div>
-            {selectedCofunding === 'true' && <Field error={form.formState.errors.cofundingPercentage?.message} hint="Porcentaje obligatorio, mayor que 0 y hasta 100." label="Porcentaje de cofinanciamiento"><Input {...form.register('cofundingPercentage')} max="100" min="0.01" step="0.01" type="number" /></Field>}
+            {selectedCofunding === 'true' && <Field error={form.formState.errors.cofundingPercentage?.message} hint={i18n.t('adminFunding.cofundingHelp')} label={i18n.t('adminFunding.cofundingPercentage')}><Input {...form.register('cofundingPercentage')} max="100" min="0.01" step="0.01" type="number" /></Field>}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Calendario y cierre</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{i18n.t('adminFunding.calendar')}</CardTitle></CardHeader>
           <CardContent className="grid gap-5">
             <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Apertura"><Input {...form.register('openDate')} type="date" /></Field>
-              <Field error={form.formState.errors.deadlineType?.message} label="Tipo de cierre">
+              <Field label={i18n.t('adminFunding.opening')}><Input {...form.register('openDate')} type="date" /></Field>
+              <Field error={form.formState.errors.deadlineType?.message} label={i18n.t('adminFunding.deadlineType')}>
                 <select {...form.register('deadlineType', { onChange: (event) => {
                   if (event.target.value !== '1') {
                     form.setValue('deadlinePrecision', '0', { shouldDirty: true })
@@ -770,43 +781,43 @@ function AdminOpportunityForm({
                     form.setValue('deadlineTimeZoneId', '', { shouldDirty: true })
                   }
                 } })} className={inputClass}>
-                  <option value="0">Desconocido</option>
-                  <option value="1">Fecha fija</option>
-                  <option value="2">Convocatoria continua</option>
+                  <option value="0">{i18n.t('adminFunding.unknown')}</option>
+                  <option value="1">{i18n.t('adminFunding.fixed')}</option>
+                  <option value="2">{i18n.t('adminFunding.continuous')}</option>
                 </select>
               </Field>
-              {selectedDeadlineType === '1' && <Field error={form.formState.errors.deadlinePrecision?.message} label="Precisión del cierre">
+              {selectedDeadlineType === '1' && <Field error={form.formState.errors.deadlinePrecision?.message} label={i18n.t('adminFunding.deadlinePrecision')}>
                 <select {...form.register('deadlinePrecision', { onChange: (event) => {
                   if (event.target.value !== '2') {
                     form.setValue('closeAtUtc', '', { shouldDirty: true })
                     form.setValue('deadlineTimeZoneId', '', { shouldDirty: true })
                   }
                 } })} className={inputClass}>
-                  <option value="0">Selecciona una precisión</option>
-                  <option value="1">Solo fecha</option>
-                  <option value="2">Fecha y hora exactas</option>
+                  <option value="0">{i18n.t('adminFunding.choosePrecision')}</option>
+                  <option value="1">{i18n.t('adminFunding.dateOnly')}</option>
+                  <option value="2">{i18n.t('adminFunding.exactDate')}</option>
                 </select>
               </Field>}
             </div>
-            {selectedDeadlineType === '1' && selectedDeadlinePrecision !== '0' && <Field error={form.formState.errors.closeDate?.message} label="Fecha de cierre"><Input {...form.register('closeDate')} type="date" /></Field>}
+            {selectedDeadlineType === '1' && selectedDeadlinePrecision !== '0' && <Field error={form.formState.errors.closeDate?.message} label={i18n.t('adminFunding.closingDate')}><Input {...form.register('closeDate')} type="date" /></Field>}
             {selectedDeadlineType === '1' && selectedDeadlinePrecision === '2' && <div className="grid gap-4 md:grid-cols-2">
-              <Field error={form.formState.errors.closeAtUtc?.message} hint="Se conserva en UTC; debe corresponder a la fecha local en la zona indicada." label="Hora exacta de cierre (UTC)"><Input {...form.register('closeAtUtc')} step="0.001" type="datetime-local" /></Field>
-              <Field error={form.formState.errors.deadlineTimeZoneId?.message} hint="Identificador IANA, por ejemplo America/Santiago." label="Zona horaria del cierre"><Input {...form.register('deadlineTimeZoneId')} placeholder="America/Santiago" /></Field>
+              <Field error={form.formState.errors.closeAtUtc?.message} hint={i18n.t('adminFunding.closingUtcHelp')} label={i18n.t('adminFunding.closingUtc')}><Input {...form.register('closeAtUtc')} step="0.001" type="datetime-local" /></Field>
+              <Field error={form.formState.errors.deadlineTimeZoneId?.message} hint={i18n.t('adminFunding.closingZoneHelp')} label={i18n.t('adminFunding.closingZone')}><Input {...form.register('deadlineTimeZoneId')} placeholder="America/Santiago" /></Field>
             </div>}
-            <Field error={form.formState.errors.lastVerifiedAtUtc?.message} hint="Usa la hora local real en que revisaste la fuente. La plataforma la convierte automáticamente a UTC." label="Última verificación">
+            <Field error={form.formState.errors.lastVerifiedAtUtc?.message} hint={i18n.t('adminFunding.verifiedHelp')} label={i18n.t('adminFunding.verified')}>
               <span className="flex flex-col gap-2 sm:flex-row">
                 <Input {...form.register('lastVerifiedAtUtc')} className="flex-1" max={currentLocalDateTimeInput()} step="0.001" type="datetime-local" />
                 <Button onClick={() => {
                   form.setValue('lastVerifiedAtUtc', currentLocalDateTimeInput(), { shouldDirty: true, shouldValidate: true })
                   form.clearErrors('lastVerifiedAtUtc')
-                }} type="button" variant="outline">Usar hora actual</Button>
+                }} type="button" variant="outline">{i18n.t('adminFunding.useNow')}</Button>
               </span>
             </Field>
           </CardContent>
         </Card>
 
         <Card className="scroll-mt-6" id="financiadores-alcance">
-          <CardHeader><CardTitle>Financiadores y alcance</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{i18n.t('adminFunding.fundersScope')}</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <FundingPartnerChoices
               error={form.formState.errors.funders?.message}
@@ -822,49 +833,49 @@ function AdminOpportunityForm({
               totalCount={funders.data?.totalCount ?? 0}
             />
             <div className="grid gap-4 md:grid-cols-2">
-              <Field error={form.formState.errors.geographicScope?.message} label="Alcance geográfico"><select {...form.register('geographicScope', { onChange: (event) => {
+              <Field error={form.formState.errors.geographicScope?.message} label={i18n.t('adminFunding.geographicScope')}><select {...form.register('geographicScope', { onChange: (event) => {
                 if (event.target.value !== '1') {
                   form.setValue('countryIds', [], { shouldDirty: true })
                   form.setValue('regionIds', [], { shouldDirty: true })
                 }
-              } })} className={inputClass}><option value="0">Desconocido</option><option value="1">Países o regiones específicos</option><option value="2">Global</option></select></Field>
-              <Field label="Postulación remota"><select {...form.register('remoteApplication')} className={inputClass}><option value="0">No informado</option><option value="1">No</option><option value="2">Sí</option></select></Field>
+              } })} className={inputClass}><option value="0">{i18n.t('adminFunding.unknown')}</option><option value="1">{i18n.t('adminFunding.specific')}</option><option value="2">{i18n.t('adminFunding.global')}</option></select></Field>
+              <Field label={i18n.t('adminFunding.remote')}><select {...form.register('remoteApplication')} className={inputClass}><option value="0">{i18n.t('editorial.notReported')}</option><option value="1">{i18n.t('adminFunding.no')}</option><option value="2">{i18n.t('adminFunding.yes')}</option></select></Field>
             </div>
             {selectedGeographicScope === '1' && <>
-              <MultiChoice items={catalogs.data.countries} label="Países elegibles" onChange={(value) => {
+              <MultiChoice catalog='countries' items={catalogs.data.countries} label={i18n.t('adminFunding.countries')} onChange={(value) => {
                 form.setValue('countryIds', value, { shouldDirty: true })
                 const allowedRegionIds = catalogs.data.regions.filter((region) => value.includes(region.countryId)).map((region) => region.id)
                 form.setValue('regionIds', regions.filter((regionId) => allowedRegionIds.includes(regionId)), { shouldDirty: true })
               }} selected={countries} />
-              {form.formState.errors.countryIds?.message && <p className="text-xs text-destructive">{form.formState.errors.countryIds.message}</p>}
-              {visibleRegions.length > 0 && <MultiChoice items={visibleRegions} label="Regiones" onChange={(value) => form.setValue('regionIds', value, { shouldDirty: true })} selected={regions} />}
-              {form.formState.errors.regionIds?.message && <p className="text-xs text-destructive">{form.formState.errors.regionIds.message}</p>}
+              {form.formState.errors.countryIds?.message && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(form.formState.errors.countryIds.message)}</p>}
+              {visibleRegions.length > 0 && <MultiChoice catalog='regions' items={visibleRegions} label={i18n.t('adminFunding.regions')} onChange={(value) => form.setValue('regionIds', value, { shouldDirty: true })} selected={regions} />}
+              {form.formState.errors.regionIds?.message && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(form.formState.errors.regionIds.message)}</p>}
             </>}
-            <MultiChoice items={catalogs.data.fundingCategories} label="Categorías" onChange={(value) => form.setValue('categoryIds', value, { shouldDirty: true })} selected={categories} />
-            <MultiChoice items={catalogs.data.beneficiaryTypes} label="Poblaciones beneficiarias" onChange={(value) => form.setValue('beneficiaryTypeIds', value, { shouldDirty: true })} selected={beneficiaries} />
-            <MultiChoice items={catalogs.data.projectTypes} label="Tipos de proyecto" onChange={(value) => form.setValue('projectTypeIds', value, { shouldDirty: true })} selected={projectTypes} />
+            <MultiChoice catalog='fundingCategories' items={catalogs.data.fundingCategories} label={i18n.t('adminFunding.categories')} onChange={(value) => form.setValue('categoryIds', value, { shouldDirty: true })} selected={categories} />
+            <MultiChoice catalog='beneficiaryTypes' items={catalogs.data.beneficiaryTypes} label={i18n.t('adminFunding.beneficiaries')} onChange={(value) => form.setValue('beneficiaryTypeIds', value, { shouldDirty: true })} selected={beneficiaries} />
+            <MultiChoice catalog='projectTypes' items={catalogs.data.projectTypes} label={i18n.t('adminFunding.projectTypes')} onChange={(value) => form.setValue('projectTypeIds', value, { shouldDirty: true })} selected={projectTypes} />
           </CardContent>
         </Card>
       </fieldset>
 
-      {locked && <p className="rounded-lg bg-muted p-3 text-sm">El contenido está bloqueado mientras permanece {publicationStatusLabels[item!.publicationStatus].toLowerCase()}.</p>}
+      {locked && <p className="rounded-lg bg-muted p-3 text-sm">{i18n.t('editorial.lockedContent', { status: i18n.t(publicationStatusKeys[item!.publicationStatus]).toLocaleLowerCase() })}</p>}
       {saveMessage && item && (
         <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground" role="status">
-          <CheckCircle2 className="size-4 shrink-0" /> {saveMessage}
+          <CheckCircle2 className="size-4 shrink-0" /> {i18n.t(saveMessage)}
         </p>
       )}
       {save.isError && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">
           <p>{adminErrorMessage(save.error)}</p>
           {serverValidation.length > 0 && <ul className="mt-2 list-disc pl-5">{serverValidation.map((message) => <li key={message}>{message}</li>)}</ul>}
-          {isConcurrencyConflict(save.error) && item && <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunity', item.opportunityId] })} size="sm" type="button" variant="outline"><RefreshCw className="size-4" /> Cargar versión vigente</Button>}
+          {isConcurrencyConflict(save.error) && item && <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunity', item.opportunityId] })} size="sm" type="button" variant="outline"><RefreshCw className="size-4" /> {i18n.t('editorial.reload')}</Button>}
         </div>
       )}
       {!locked && (
         <div className="flex justify-end">
           <Button disabled={save.isPending || (Boolean(item) && !form.formState.isDirty)} type="submit">
             {save.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
-            {item ? 'Guardar cambios' : 'Crear oportunidad'}
+            {item ? i18n.t('editorial.save') : i18n.t('adminFunding.create')}
           </Button>
         </div>
       )}
@@ -873,13 +884,14 @@ function AdminOpportunityForm({
 }
 
 function formatAmount(minimum: number | null, maximum: number | null, currency: string | null) {
-  if (!currency || (minimum === null && maximum === null)) return 'Monto no informado'
-  const formatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency, maximumFractionDigits: 0 })
+  if (!currency || (minimum === null && maximum === null)) return i18n.t('adminFunding.noAmount')
+  const formatter = new Intl.NumberFormat(workspaceLocale(), { style: 'currency', currency, maximumFractionDigits: 0 })
   if (minimum !== null && maximum !== null) return `${formatter.format(minimum)} – ${formatter.format(maximum)}`
-  return maximum !== null ? `Hasta ${formatter.format(maximum)}` : `Desde ${formatter.format(minimum!)}`
+  return maximum !== null ? i18n.t('adminFunding.upTo', { amount: formatter.format(maximum) }) : i18n.t('adminFunding.fromAmount', { amount: formatter.format(minimum!) })
 }
 
 export function AdminFundingPage() {
+  useTranslation()
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<PublicationStatus | ''>('')
@@ -900,14 +912,14 @@ export function AdminFundingPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Administración</p><h1 className="mt-1 text-3xl font-bold">Oportunidades</h1><p className="mt-2 max-w-3xl text-muted-foreground">Crea, verifica y modera cada convocatoria antes de hacerla pública.</p></div>
-        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/admin/funders"><Building2Icon /> Financiadores</Link></Button><Button asChild><Link to="/admin/funding/new"><Plus className="size-4" /> Nueva oportunidad</Link></Button></div>
+        <div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p><h1 className="mt-1 text-3xl font-bold">{i18n.t('adminFunding.opportunities')}</h1><p className="mt-2 max-w-3xl text-muted-foreground">{i18n.t('adminFunding.intro')}</p></div>
+        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/admin/funders"><Building2Icon /> {i18n.t('adminFunders.title')}</Link></Button><Button asChild><Link to="/admin/funding/new"><Plus className="size-4" /> {i18n.t('adminFunding.new')}</Link></Button></div>
       </div>
-      <Card><CardContent className="p-4"><form className="grid gap-3 sm:grid-cols-[1fr_14rem_auto]" onSubmit={search}><label className="relative"><span className="sr-only">Buscar oportunidades</span><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" onChange={(event) => setDraftQuery(event.target.value)} placeholder="Título o patrocinador" value={draftQuery} /></label><label><span className="sr-only">Filtrar por estado</span><select className={inputClass} onChange={(event) => { setStatus(event.target.value === '' ? '' : Number(event.target.value) as PublicationStatus); setPage(1) }} value={status}><option value="">Todos los estados</option>{(Object.entries(publicationStatusLabels) as [string, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><Button type="submit">Buscar</Button></form></CardContent></Card>
+      <Card><CardContent className="p-4"><form className="grid gap-3 sm:grid-cols-[1fr_14rem_auto]" onSubmit={search}><label className="relative"><span className="sr-only">{i18n.t('adminFunding.search')}</span><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" onChange={(event) => setDraftQuery(event.target.value)} placeholder={i18n.t('adminFunding.searchPlaceholder')} value={draftQuery} /></label><label><span className="sr-only">{i18n.t('editorial.filterStatus')}</span><select className={inputClass} onChange={(event) => { setStatus(event.target.value === '' ? '' : Number(event.target.value) as PublicationStatus); setPage(1) }} value={status}><option value="">{i18n.t('editorial.allStatuses')}</option>{Object.entries(publicationStatusKeys).map(([value, label]) => <option key={value} value={value}>{i18n.t(label)}</option>)}</select></label><Button type="submit">{i18n.t('editorial.search')}</Button></form></CardContent></Card>
 
-      {opportunities.isPending && <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando oportunidades…</p>}
-      {opportunities.isError && <Card><CardContent className="space-y-3 p-6" role="alert"><p className="text-destructive">{adminErrorMessage(opportunities.error)}</p><Button onClick={() => void opportunities.refetch()} variant="outline">Reintentar</Button></CardContent></Card>}
-      {opportunities.data && <section aria-busy={opportunities.isFetching} className="space-y-4"><p className="text-sm text-muted-foreground"><strong className="text-foreground">{opportunities.data.totalCount}</strong> oportunidades</p>{opportunities.data.items.length === 0 ? <Card><CardContent className="p-10 text-center"><FileSearch className="mx-auto size-10 text-primary" /><h2 className="mt-3 text-xl font-bold">No hay oportunidades</h2><p className="mt-2 text-muted-foreground">Crea una nueva o cambia los filtros.</p></CardContent></Card> : <div className="grid gap-4 lg:grid-cols-2">{opportunities.data.items.map((item) => <Card key={item.opportunityId}><CardContent className="space-y-4 p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.sponsorName}</p><h2 className="mt-1 text-xl font-bold">{item.title}</h2></div><PublicationStatusBadge status={item.publicationStatus} /></div><p className="line-clamp-2 text-sm text-muted-foreground">{item.summary ?? 'Sin resumen.'}</p><div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" /> Cierre {item.closeDate ?? 'sin fecha'}</p><p className="flex items-center gap-1.5"><CircleDollarSign className="size-3.5" /> {formatAmount(item.minimumAmount, item.maximumAmount, item.currency)}</p></div><div className="flex items-center justify-between gap-3 border-t pt-3"><p className="text-xs text-muted-foreground">v{item.contentVersion} · {formatAdminDate(item.updatedAtUtc)}</p><Button asChild size="sm" variant={item.publicationStatus === 1 ? 'default' : 'outline'}><Link to={`/admin/funding/${item.opportunityId}`}>{item.publicationStatus === 1 ? 'Revisar y publicar' : 'Gestionar'}</Link></Button></div></CardContent></Card>)}</div>}{opportunities.data.totalCount > opportunities.data.pageSize && <nav aria-label="Paginación administrativa de oportunidades" className="flex items-center justify-end gap-3"><Button disabled={page <= 1 || opportunities.isFetching} onClick={() => setPage((value) => value - 1)} variant="outline"><ChevronLeft className="size-4" />Anterior</Button><p className="text-sm">Página {opportunities.data.page} de {lastPage}</p><Button disabled={page >= lastPage || opportunities.isFetching} onClick={() => setPage((value) => value + 1)} variant="outline">Siguiente<ChevronRight className="size-4" /></Button></nav>}</section>}
+      {opportunities.isPending && <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunding.loading')}</p>}
+      {opportunities.isError && <Card><CardContent className="space-y-3 p-6" role="alert"><p className="text-foreground">{adminErrorMessage(opportunities.error)}</p><Button onClick={() => void opportunities.refetch()} variant="outline">{i18n.t('editorial.retry')}</Button></CardContent></Card>}
+      {opportunities.data && <section aria-busy={opportunities.isFetching} className="space-y-4"><p className="text-sm text-muted-foreground">{i18n.t('adminFunding.count', { count: opportunities.data.totalCount })}</p>{opportunities.data.items.length === 0 ? <Card><CardContent className="p-10 text-center"><FileSearch className="mx-auto size-10 text-primary" /><h2 className="mt-3 text-xl font-bold">{i18n.t('adminFunding.empty')}</h2><p className="mt-2 text-muted-foreground">{i18n.t('adminFunding.emptyHelp')}</p></CardContent></Card> : <div className="grid gap-4 lg:grid-cols-2">{opportunities.data.items.map((item) => <Card key={item.opportunityId}><CardContent className="space-y-4 p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.sponsorName}</p><h2 className="mt-1 text-xl font-bold">{item.title}</h2></div><PublicationStatusBadge status={item.publicationStatus} /></div><p className="line-clamp-2 text-sm text-muted-foreground">{item.summary ?? i18n.t('adminFunding.noSummary')}</p><div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" /> {i18n.t('adminFunding.closing', { date: item.closeDate ? formatWorkspaceDate(item.closeDate) : i18n.t('editorial.noDate') })}</p><p className="flex items-center gap-1.5"><CircleDollarSign className="size-3.5" /> {formatAmount(item.minimumAmount, item.maximumAmount, item.currency)}</p></div><div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3"><p className="text-xs text-muted-foreground">v{item.contentVersion} · {formatAdminDate(item.updatedAtUtc)}</p><Button asChild size="sm" variant={item.publicationStatus === 1 ? 'default' : 'outline'}><Link to={`/admin/funding/${item.opportunityId}`}>{item.publicationStatus === 1 ? i18n.t('adminFunding.reviewPublish') : i18n.t('editorial.manage')}</Link></Button></div></CardContent></Card>)}</div>}{opportunities.data.totalCount > opportunities.data.pageSize && <nav aria-label={i18n.t('adminFunding.pagination')} className="flex flex-wrap items-center justify-end gap-3"><Button disabled={page <= 1 || opportunities.isFetching} onClick={() => setPage((value) => value - 1)} variant="outline"><ChevronLeft className="size-4" />{i18n.t('editorial.previous')}</Button><p className="text-sm">{i18n.t('editorial.page', { page: opportunities.data.page, total: lastPage })}</p><Button disabled={page >= lastPage || opportunities.isFetching} onClick={() => setPage((value) => value + 1)} variant="outline">{i18n.t('editorial.next')}<ChevronRight className="size-4" /></Button></nav>}</section>}
     </div>
   )
 }
@@ -925,6 +937,7 @@ function ReadinessChecks({
   primaryFunder?: AdminFunderDetail
   primaryFunderLoading: boolean
 }) {
+  useTranslation()
   const primaryFunderLink = item.funders.find((funder) => funder.role === 1)
   const matchingPrimaryFunder = primaryFunder?.funderId === primaryFunderLink?.funderId
     ? primaryFunder
@@ -932,33 +945,33 @@ function ReadinessChecks({
   const primaryFunderReady = matchingPrimaryFunder?.publicationStatus === 2 &&
     matchingPrimaryFunder.isActive
   const primaryFunderState = !primaryFunderLink
-    ? 'Sin asignar'
+    ? i18n.t('adminFunding.unassigned')
     : primaryFunderLoading
-      ? 'Verificando…'
+      ? i18n.t('adminFunding.checking')
       : matchingPrimaryFunder
         ? matchingPrimaryFunder.isActive
-          ? publicationStatusLabels[matchingPrimaryFunder.publicationStatus]
-          : 'Desactivado'
-        : 'Estado no disponible'
+          ? i18n.t(publicationStatusKeys[matchingPrimaryFunder.publicationStatus])
+          : i18n.t('editorial.inactive')
+        : i18n.t('adminFunding.stateUnavailable')
   const geographyReady = item.geographicScope === 2
     ? item.countryIds.length === 0 && item.regionIds.length === 0
     : item.geographicScope === 1 && item.countryIds.length > 0
   const checks = [
-    { label: 'Resumen y descripción', ready: Boolean(item.summary?.trim() && item.description?.trim()) },
+    { label: i18n.t('adminFunding.summaryDescription'), ready: Boolean(item.summary?.trim() && item.description?.trim()) },
     {
       detail: primaryFunderState,
       href: primaryFunderLink ? `/admin/funders/${primaryFunderLink.funderId}` : undefined,
-      label: 'Financiador principal publicado',
+      label: i18n.t('adminFunding.primaryPublished'),
       ready: primaryFunderReady,
     },
-    { label: 'Alcance geográfico', ready: geographyReady },
-    { label: 'Categoría', ready: item.categoryIds.length > 0 },
-    { label: 'Fuente y URL oficial', ready: item.fundingSourceId > 0 && Boolean(item.sourceUrl?.trim()) },
-    { label: 'Última verificación', ready: Boolean(item.lastVerifiedAtUtc) },
+    { label: i18n.t('adminFunding.geographicScope'), ready: geographyReady },
+    { label: i18n.t('adminFunding.category'), ready: item.categoryIds.length > 0 },
+    { label: i18n.t('adminFunding.sourceOfficialUrl'), ready: item.fundingSourceId > 0 && Boolean(item.sourceUrl?.trim()) },
+    { label: i18n.t('adminFunding.verified'), ready: Boolean(item.lastVerifiedAtUtc) },
   ]
   return (
     <Card>
-      <CardHeader><CardTitle>Preparación para publicar</CardTitle></CardHeader>
+      <CardHeader><CardTitle>{i18n.t('adminFunding.readiness')}</CardTitle></CardHeader>
       <CardContent>
         <ul className="grid gap-2 sm:grid-cols-2">
           {checks.map((check) => (
@@ -983,38 +996,39 @@ function ReadinessChecks({
 function publicVisibilityIssues(item: AdminFundingOpportunityDetail) {
   const issues: string[] = []
   if (item.categoryIds.length === 0) {
-    issues.push('Selecciona al menos un área o categoría de financiamiento.')
+    issues.push(i18n.t('adminFunding.visibilityCategory'))
   }
   if (item.geographicScope === 0) {
-    issues.push('Define el alcance geográfico como específico o global.')
+    issues.push(i18n.t('editorialValidation.readyScope'))
   } else if (item.geographicScope === 1 && item.countryIds.length === 0) {
-    issues.push('El alcance específico requiere al menos un país elegible.')
+    issues.push(i18n.t('adminFunding.visibilitySpecific'))
   } else if (item.geographicScope === 2 && (item.countryIds.length > 0 || item.regionIds.length > 0)) {
-    issues.push('El alcance global no debe conservar países ni regiones específicas.')
+    issues.push(i18n.t('adminFunding.visibilityGlobal'))
   }
   return issues
 }
 
 function TraceabilityPanel({ item }: { item: AdminFundingOpportunityDetail }) {
+  useTranslation()
   const evidence = item.evidence ?? []
   const sources = item.sources ?? []
   return (
     <Card>
-      <CardHeader><CardTitle>Trazabilidad y calidad</CardTitle></CardHeader>
+      <CardHeader><CardTitle>{i18n.t('adminFunding.traceability')}</CardTitle></CardHeader>
       <CardContent className="space-y-4 text-sm">
         <div className="grid gap-3 sm:grid-cols-3">
-          <p><span className="text-muted-foreground">Calidad</span><strong className="mt-1 block text-lg">{Math.round(item.dataQualityScore)}/100</strong></p>
-          <p><span className="text-muted-foreground">Última verificación</span><strong className="mt-1 block">{formatAdminDate(item.lastVerifiedAtUtc)}</strong></p>
-          <p><span className="text-muted-foreground">Evidencias</span><strong className="mt-1 block text-lg">{evidence.length}</strong></p>
+          <p><span className="text-muted-foreground">{i18n.t('adminFunding.quality')}</span><strong className="mt-1 block text-lg">{Math.round(item.dataQualityScore)}/100</strong></p>
+          <p><span className="text-muted-foreground">{i18n.t('adminFunding.verified')}</span><strong className="mt-1 block">{formatAdminDate(item.lastVerifiedAtUtc)}</strong></p>
+          <p><span className="text-muted-foreground">{i18n.t('adminFunding.evidence')}</span><strong className="mt-1 block text-lg">{evidence.length}</strong></p>
         </div>
         {sources.length > 0 && (
           <div className="border-t pt-4">
-            <h2 className="font-semibold">Fuentes vinculadas</h2>
+            <h2 className="font-semibold">{i18n.t('adminFunding.sources')}</h2>
             <ul className="mt-2 grid gap-2">
               {sources.map((source) => (
                 <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2" key={`${source.fundingSourceId}-${source.sourceUrl}`}>
-                  <span><strong>{source.sourceName}</strong>{source.externalId ? ` · ${source.externalId}` : ''}{source.isPrimary ? ' · Principal' : ''}</span>
-                  <a className="inline-flex items-center gap-1 font-semibold text-primary underline" href={source.sourceUrl} rel="noopener noreferrer" target="_blank">Abrir <ExternalLink className="size-3.5" /></a>
+                  <span><strong>{source.sourceName}</strong>{source.externalId ? ` · ${source.externalId}` : ''}{source.isPrimary ? i18n.t('adminFunding.primarySuffix') : ''}</span>
+                  <a className="inline-flex items-center gap-1 font-semibold text-primary underline" href={source.sourceUrl} rel="noopener noreferrer" target="_blank">{i18n.t('adminFunding.open')} <ExternalLink className="size-3.5" /></a>
                 </li>
               ))}
             </ul>
@@ -1026,6 +1040,7 @@ function TraceabilityPanel({ item }: { item: AdminFundingOpportunityDetail }) {
 }
 
 export function AdminFundingDetailPage() {
+  useTranslation()
   const { id = '' } = useParams()
   const creating = id === 'new'
   const [dirty, setDirty] = useState(false)
@@ -1040,10 +1055,10 @@ export function AdminFundingDetailPage() {
     staleTime: 30_000,
   })
 
-  if (!creating && opportunity.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> Cargando oportunidad…</p>
-  if (!creating && (opportunity.isError || !opportunity.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">No pudimos abrir la oportunidad</h1><p className="text-destructive">{adminErrorMessage(opportunity.error)}</p><Button asChild variant="outline"><Link to="/admin/funding">Volver</Link></Button></CardContent></Card>
+  if (!creating && opportunity.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunding.loadingDetail')}</p>
+  if (!creating && (opportunity.isError || !opportunity.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">{i18n.t('adminFunding.openFailed')}</h1><p className="text-foreground">{adminErrorMessage(opportunity.error)}</p><Button asChild variant="outline"><Link to="/admin/funding">{i18n.t('editorial.back')}</Link></Button></CardContent></Card>
 
   const data = opportunity.data
   const visibilityIssues = data ? publicVisibilityIssues(data) : []
-  return <div className="space-y-6"><Button asChild variant="ghost"><Link to="/admin/funding"><ArrowLeft className="size-4" /> Volver a oportunidades</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Administración</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? 'Crear oportunidad' : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>Versión {data.contentVersion}</span><span>Actualizado {formatAdminDate(data.updatedAtUtc)}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>Ver público <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>Este fondo está pendiente de revisión.</strong> Revisa sus datos y apruébalo para publicarlo.</p><Button asChild size="sm"><a href="#flujo-editorial">Ir a revisar y publicar</a></Button></div>}{data && <><ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel commands={adminFundingOpportunitiesApi} disabledReason={dirty ? 'Guarda o descarta los cambios del formulario antes de ejecutar una acción editorial.' : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName="la oportunidad" notReadyAction={{ href: '#financiadores-alcance', label: 'Corregir financiador y alcance' }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
+  return <div className="space-y-6"><Button asChild variant="ghost"><Link to="/admin/funding"><ArrowLeft className="size-4" /> {i18n.t('adminFunding.back')}</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunding.create') : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{i18n.t('editorial.version', { version: data.contentVersion })}</span><span>{i18n.t('editorial.updated', { date: formatAdminDate(data.updatedAtUtc) })}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>{i18n.t('adminFunding.viewPublic')} <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>{i18n.t('adminFunding.pendingNotice')}</strong> {i18n.t('adminFunding.pendingHelp')}</p><Button asChild size="sm"><a href="#flujo-editorial">{i18n.t('adminFunding.goReview')}</a></Button></div>}{data && <><ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel commands={adminFundingOpportunitiesApi} disabledReason={dirty ? i18n.t('editorial.dirty') : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName={i18n.t('editorial.opportunityEntity')} notReadyAction={{ href: '#financiadores-alcance', label: i18n.t('adminFunding.correctScope') }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
 }
