@@ -33,4 +33,3 @@ export function ProfessionalDirectoryPage() {
     <Paging page={filters.page} total={query.data.totalCount} disabled={query.isFetching} setPage={page => setFilters(current => ({ ...current, page }))} /></>}
   </div>
 }
-

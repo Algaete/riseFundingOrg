@@ -22,4 +22,3 @@ export function invitationIssue(data: InvitationInput): 'invitationRequired' | '
     || data.message.trim().length < 10 || data.message.trim().length > 500) return 'invitationRequired'
   return /@|https?:|www\.|\d{8}/i.test(data.message) ? 'messagePrivacy' : null
 }
-

@@ -58,4 +58,3 @@ export function ProfessionalProfilePage() {
     <button className={button} onClick={() => { void query.refetch() }}>{t('collaboration.refresh')}</button>
   </div>
 }
-

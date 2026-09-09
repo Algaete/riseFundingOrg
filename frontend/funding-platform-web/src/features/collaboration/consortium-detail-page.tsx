@@ -104,4 +104,3 @@ export function ConsortiumDetailPage() {
     <button className={button} onClick={() => { void query.refetch() }}>{t('collaboration.refresh')}</button>
   </div>
 }
-

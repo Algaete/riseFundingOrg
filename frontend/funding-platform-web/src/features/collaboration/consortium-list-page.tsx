@@ -62,4 +62,3 @@ export function ConsortiumListPage() {
     {organizations.data && <CreateConsortium organizations={organizations.data.filter(org => org.membershipRole === 'admin')} />}
   </div>
 }
-

@@ -45,4 +45,3 @@ describe('collaboration', () => {
     expect(fetchMock.mock.calls[8][1]?.body).toBe('{"action":1}')
   })
 })
-
