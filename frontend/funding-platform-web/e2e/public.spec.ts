@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { registerWorkspaceLanguageTests } from './workspace-checks'
 import { registerProjectEnrichmentTests } from './project-enrichment-checks'
+import { registerProjectMapTests } from './project-map-checks'
 import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
@@ -106,6 +107,7 @@ test.afterEach(async ({ page }) => {
 
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
 registerProjectEnrichmentTests(expectNoSeriousAccessibilityViolations)
+registerProjectMapTests(expectNoSeriousAccessibilityViolations)
 registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDiscoveryLanguageTests(expectNoSeriousAccessibilityViolations)
 registerOrganizationFundingLanguageTests(expectNoSeriousAccessibilityViolations)

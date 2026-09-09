@@ -69,6 +69,8 @@ const RegisterPage = localizedLazy(() => import('@/pages/public-pages').then((mo
 const ResetPasswordPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ResetPasswordPage })), ["auth","validation"])
 const VerifyEmailPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.VerifyEmailPage })), ["auth","validation"])
 
+const ProjectMapPage = localizedLazy(() => import('@/features/project-map/project-map-page').then(module => ({ default: module.ProjectMapPage })), ['projectMap', 'projects', 'catalogs', 'validation'])
+
 function LegacyMatchingRedirect() {
   const location = useLocation()
   return <Navigate replace to={{ pathname: '/matching', search: location.search }} />
@@ -83,6 +85,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/funding', element: <FundingPage /> },
       { path: '/funding/:slug', element: <FundingDetailPage /> },
       { path: '/marketplace', element: <MarketplacePage /> },
+      { path: '/marketplace/map', element: <ProjectMapPage /> },
       { path: '/marketplace/projects/:slug', element: <MarketplaceProjectDetailPage /> },
       { path: '/marketplace/organizations/:organizationId', element: <MarketplaceOrganizationPage /> },
       { path: '/login', element: <LoginPage /> },

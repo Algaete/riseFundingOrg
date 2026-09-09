@@ -2,6 +2,7 @@ import type { marketplaceEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const marketplaceEn = {
+  "map": "Explore project map",
   "noAmount": "Amount not reported",
   "noSummary": "The organization did not publish a summary.",
   "gap": "Reported funding gap",

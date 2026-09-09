@@ -245,6 +245,8 @@ builder.Services.AddSingleton<IProjectAssetTrustedContentPromoter,
 builder.Services.AddSingleton<IProjectAssetImageSanitizationProbe>(
     projectAssetImageSanitizationProbe);
 builder.Services.AddScoped<IMarketplaceRepository, SqlMarketplaceRepository>();
+builder.Services.AddScoped<IProjectMapRepository, SqlProjectMapRepository>();
+builder.Services.AddScoped<ProjectMapService>();
 builder.Services.AddScoped<MarketplaceService>();
 builder.Services.AddScoped<IFundingApplicationRepository, SqlFundingApplicationRepository>();
 builder.Services.AddScoped<FundingApplicationService>();
@@ -823,6 +825,7 @@ app.MapAdminUserEndpoints();
 app.MapAdminOperationsEndpoints();
 app.MapPublicProjectEndpoints();
 app.MapMarketplaceEndpoints();
+app.MapProjectMapEndpoints();
 app.MapFundingApplicationEndpoints();
 app.MapProjectMatchingEndpoints();
 app.MapAdminSemanticEvaluationEndpoints();

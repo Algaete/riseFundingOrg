@@ -82,6 +82,12 @@ IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS 
         (N'FundingPlatform_usp_ProjectAssetContentRetention_Complete'),
         (N'FundingPlatform_usp_ProjectAssetContentRetention_Fail')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
+           WHERE expected.ObjectId IS NULL)
+    THROW 54867, N'Explicit later procedure is missing.', 1;
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search'), N'FundingPlatform_usp_ProjectMap_Search');
+IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions
                 WHERE permissions.grantee_principal_id = expected.RoleId

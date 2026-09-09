@@ -13,7 +13,9 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
   formatos restantes y carga diferida de recursos por módulo/idioma. Los tres pendientes
   técnicos se completan juntos, sobre el primer corte I18N-05E.1.
 - Bloque funcional 2, proyecto enriquecido, implementado localmente; ver su contrato abajo.
-- Quedan seis bloques funcionales (3–8), empezando por el mapa, más validación integrada y despliegue.
+- Bloque 3, mapa, implementado localmente: filtros, puntos opt-in y agrupación por página.
+  Contrato y pruebas: [mapa de proyectos](PROJECT-MAP.md).
+- Quedan cinco bloques funcionales (4–8), empezando por financiadores, más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
 ## Base implementada localmente
@@ -555,7 +557,7 @@ Sin push, despliegue ni activación de adjuntos en este corte.
 
 | Bloque | Desarrollo pendiente |
 | --- | --- |
-| 3. Mapa | Descubrimiento geográfico de proyectos publicados, filtros y fichas; privacidad de ubicación y agrupación de puntos. Depende del bloque 2. |
+| 3. Mapa — local completo | Descubrimiento publicado con filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`; aún no desplegado. |
 | 4. Financiadores | Registro/propiedad del perfil y espacio propio para gestionar oportunidades con revisión editorial. El rol global Admin no debe sustituir permisos de un financiador. |
 | 5. Profesionales y alianzas | Perfiles profesionales, capacidades, necesidades de colaboración y gestión de consorcios sobre la base del directorio/conexiones. |
 | 6. Matching ampliado | Financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. Depende de los nuevos perfiles y datos. |

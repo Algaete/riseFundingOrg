@@ -1,4 +1,5 @@
 export const marketplaceEs = {
+  "map": "Explorar mapa de proyectos",
   "noAmount": "Monto no informado",
   "noSummary": "La organización no publicó un resumen.",
   "gap": "Brecha declarada",

@@ -232,6 +232,7 @@ export function MarketplacePage() {
       <header className="rounded-2xl border bg-card p-6 sm:p-8">
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('marketplace.eyebrow')}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{t('marketplace.title')}</h1>
+        <Link className="mt-3 inline-block text-primary underline" to="/marketplace/map">{t('marketplace.map')}</Link>
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">{t('marketplace.description')}</p>
         <label className="relative mt-6 block max-w-3xl" htmlFor="marketplace-search">
           <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />

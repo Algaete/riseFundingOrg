@@ -1,5 +1,10 @@
 # Base de datos
 
+Bloque 3 local: `041_project_map.sql` y smoke `041_project_map_smoke.sql` agregan
+consulta paginada con consentimiento de ubicación y redondeo. `027` incorpora el
+permiso exacto de la nueva consulta. Parser validado; ejecución SQL real y Azure
+pendientes. Contrato: [mapa de proyectos](../docs/PROJECT-MAP.md).
+
 Esta carpeta contiene los artefactos SQL versionados de FundingPlatform. El baseline
 ejecutable de **FASE 2** fue validado y aplicado contra Azure SQL real.
 
