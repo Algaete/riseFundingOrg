@@ -9,6 +9,7 @@ import { MarketplacePage, MarketplaceOrganizationPage, MarketplaceProjectDetailP
 import { setInterfaceLanguage } from '@/i18n'
 import { discoveryOrganization, discoveryProject } from '@/test/fixtures/public-discovery'
 import { workspaceCatalogs, workspacePublicProject } from '@/test/fixtures/project-workspace'
+import { consumerCatalogs, consumerPublicOrganization } from '@/test/fixtures/catalog-consumers'
 
 function renderMarketplace(path = '/marketplace') {
   const client = createAppQueryClient()
@@ -43,7 +44,7 @@ describe('marketplace language changes', () => {
     expect(screen.getByText('Page 2 of 3')).toBeVisible()
     expect(screen.getByText('$75,000.00')).toBeVisible()
     expect(screen.getByText('Jan 1, 2027 — Dec 31, 2027')).toBeVisible()
-    expect(screen.getByRole('option', { name: 'Medio ambiente' })).toHaveAttribute('lang', 'es')
+    expect(screen.getByRole('option', { name: 'Environment' })).toHaveAttribute('lang', 'en')
     expect(router.state.location.search).toBe(query)
     expect(marketplaceApi.catalogs).toHaveBeenCalledOnce()
     expect(marketplaceApi.search).toHaveBeenCalledExactlyOnceWith({ query: 'Ñandú', countryIds: [152], categoryIds: [1], projectTypeIds: [4], projectStatus: 2, currency: 'USD', sort: 'funding-gap-desc', page: 2, pageSize: 12 }, expect.any(AbortSignal))
@@ -65,6 +66,46 @@ describe('marketplace language changes', () => {
     expect(new URLSearchParams(router.state.location.search).get('countryId')).toBe('152')
     await act(() => setInterfaceLanguage('es'))
     expect(marketplaceApi.search).toHaveBeenCalledTimes(2)
+  })
+
+  it('preserves renamed filter options and applies original IDs only after an explicit selection', async () => {
+    vi.mocked(marketplaceApi.catalogs).mockResolvedValue(consumerCatalogs)
+    const router = renderMarketplace('/marketplace?categoryId=81&projectTypeId=16&currency=EUR&page=2')
+    await screen.findByRole('heading', { name: discoveryProject.title })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByRole('option', { name: 'Environment and biodiversity' })).toHaveAttribute('lang', 'en')
+    expect(screen.getByRole('option', { name: 'Educación comunitaria Ñandú' })).toHaveAttribute('lang', 'es')
+    expect(screen.getByRole('option', { name: 'EUR · Euro de prueba Ñandú' })).toHaveAttribute('lang', 'es')
+    expect(screen.getByRole('combobox', { name: 'Impact area' })).toHaveValue('81')
+    expect(screen.getByRole('combobox', { name: 'Project type' })).toHaveValue('16')
+    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR')
+    expect(marketplaceApi.search).toHaveBeenCalledOnce()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Impact area' }), '1')
+    await waitFor(() => expect(marketplaceApi.search).toHaveBeenCalledTimes(2))
+    expect(marketplaceApi.search).toHaveBeenLastCalledWith(expect.objectContaining({ categoryIds: [1], projectTypeIds: [16], currency: 'EUR', page: 1 }), expect.any(AbortSignal))
+    expect(new URLSearchParams(router.state.location.search).get('categoryId')).toBe('1')
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getByRole('combobox', { name: 'Área de impacto' })).toHaveValue('1')
+    expect(marketplaceApi.search).toHaveBeenCalledTimes(2)
+    expect(marketplaceApi.catalogs).toHaveBeenCalledOnce()
+  })
+
+  it('keeps equal IDs/codes from different catalog kinds and never translates public author content', async () => {
+    vi.mocked(marketplaceApi.getOrganization).mockResolvedValue(consumerPublicOrganization)
+    renderMarketplace('/marketplace/organizations/' + consumerPublicOrganization.publicId)
+    await screen.findByRole('heading', { name: consumerPublicOrganization.name, level: 1 })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getAllByText('Other', { exact: true })).toHaveLength(2)
+    expect(screen.getByText('Foundation', { exact: true })).toHaveAttribute('lang', 'en')
+    expect(screen.getByText('Environment and biodiversity')).toHaveAttribute('lang', 'en')
+    expect(screen.getByText('Educación comunitaria Ñandú')).toHaveAttribute('lang', 'es')
+    expect(screen.getByText('Nueva área Ñandú')).toHaveAttribute('lang', 'es')
+    expect(screen.getByText(consumerPublicOrganization.description)).toBeVisible()
+    expect(consumerPublicOrganization.categories[0].name).toBe('Medio ambiente y biodiversidad')
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getAllByText('Otros', { exact: true })).toHaveLength(2)
+    expect(marketplaceApi.getOrganization).toHaveBeenCalledOnce()
+    expect(marketplaceApi.catalogs).not.toHaveBeenCalled()
   })
 
   it('keeps financial ordering unavailable without a currency and clears filters only explicitly', async () => {
@@ -99,7 +140,7 @@ describe('marketplace language changes', () => {
     expect(screen.getByText('Since 2010')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Projects by Fundación Ñandú' })).toBeVisible()
     expect(screen.queryByText(/private@example|private-tax-id|Private draft/)).not.toBeInTheDocument()
-    expect(screen.getByText('Medio ambiente')).toHaveAttribute('lang', 'es')
+    expect(screen.getByText('Environment')).toHaveAttribute('lang', 'en')
     expect(marketplaceApi.getOrganization).toHaveBeenCalledOnce()
   })
 

@@ -70,6 +70,9 @@ export function registerTrackingBillingTests(accessibility: (page: Page) => Prom
           await expect(page.getByLabel('Project for application')).toHaveValue(workspaceProject.publicId)
           await expect(page.getByLabel('Opportunity for application')).toHaveValue(organizationOpportunity.publicId)
         }
+        if (area === 'applications' || area === 'application-new') {
+          await expect(page.getByRole('option', { name: 'USD · US dollar', exact: true })).toHaveAttribute('lang', 'en')
+        }
         if (area === 'calendar') {
           await expect(page.getByRole('heading', { name: 'Monday, February 15, 2027' })).toBeVisible()
           await expect(page.getByText('00:00 UTC')).toBeVisible()

@@ -101,7 +101,7 @@ export function registerMatchingNetworkLanguageTests(checkAccessibility: (page: 
       await expect(page.getByRole('button', { name: 'Incoming', exact: true })).toHaveAttribute('aria-pressed', 'true')
       await expect(page.getByRole('button', { name: 'Join the directory and receive requests', exact: true })).toBeEnabled()
       await expect(page.getByText('1 public project', { exact: true })).toBeVisible()
-      await expect(page.getByText('Medio ambiente', { exact: true })).toHaveAttribute('lang', 'es')
+      await expect(page.getByText('Environment', { exact: true })).toHaveAttribute('lang', 'en')
       await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
       expect(reads).toHaveLength(3)
       await checkAccessibility(page)

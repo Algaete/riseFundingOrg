@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { useTranslation } from 'react-i18next'
+import { catalogName, catalogLanguage } from '@/i18n/catalog-labels'
 import i18n from '@/i18n'
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import { discoveryErrorMessage } from '@/i18n/discovery-feedback'
@@ -257,17 +258,17 @@ export function MarketplacePage() {
       <section aria-label={t('marketplace.filters')} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.country')}<select className={selectClass} onChange={(event) => replaceParameter('countryId', event.target.value)} value={countryId ?? ''}>
             <option value="">{t('marketplace.all')}</option>
-            {catalogs.data?.countries.map((item) => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
+            {catalogs.data?.countries.map((item) => <option lang={catalogLanguage('countries', item)} key={item.id} value={item.id}>{catalogName('countries', item)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.category')}<select className={selectClass} onChange={(event) => replaceParameter('categoryId', event.target.value)} value={categoryId ?? ''}>
             <option value="">{t('marketplace.allFeminine')}</option>
-            {catalogs.data?.fundingCategories.map((item) => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
+            {catalogs.data?.fundingCategories.map((item) => <option lang={catalogLanguage('fundingCategories', item)} key={item.id} value={item.id}>{catalogName('fundingCategories', item)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.projectType')}<select className={selectClass} onChange={(event) => replaceParameter('projectTypeId', event.target.value)} value={projectTypeId ?? ''}>
             <option value="">{t('marketplace.all')}</option>
-            {catalogs.data?.projectTypes.map((item) => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
+            {catalogs.data?.projectTypes.map((item) => <option lang={catalogLanguage('projectTypes', item)} key={item.id} value={item.id}>{catalogName('projectTypes', item)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.status')}<select className={selectClass} onChange={(event) => replaceParameter('status', event.target.value)} value={projectStatus ?? ''}>
@@ -277,7 +278,7 @@ export function MarketplacePage() {
         </label>
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.currency')}<select className={selectClass} onChange={(event) => replaceParameter('currency', event.target.value)} value={currency ?? ''}>
             <option value="">{t('marketplace.allFeminine')}</option>
-            {catalogs.data?.currencies.map((item) => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}
+            {catalogs.data?.currencies.map((item) => <option lang={catalogLanguage('currencies', item)} key={item.code} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-semibold">{t('marketplace.sort')}<select className={selectClass} onChange={(event) => replaceParameter('sort', event.target.value)} value={sort}>
@@ -343,13 +344,13 @@ export function MarketplaceOrganizationPage() {
             <p className="mt-4 whitespace-pre-line leading-7 text-muted-foreground">{data.description ?? i18n.t('marketplace.organizationNoDescription')}</p>
           </div>
           <div className="grid gap-2 text-sm">
-            {data.homeCountry && <p className="flex items-center gap-2"><MapPin className="size-4 text-primary" /><span lang="es">{data.homeCountry.name}</span></p>}
+            {data.homeCountry && <p className="flex items-center gap-2"><MapPin className="size-4 text-primary" /><span lang={catalogLanguage('countries', data.homeCountry)}>{catalogName('countries', data.homeCountry)}</span></p>}
             {data.establishedYear && <p className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" />{t('marketplace.since', { year: data.establishedYear })}</p>}
-            {data.organizationType && <p className="flex items-center gap-2"><Building2 className="size-4 text-primary" /><span lang="es">{data.organizationType.name}</span></p>}
+            {data.organizationType && <p className="flex items-center gap-2"><Building2 className="size-4 text-primary" /><span lang={catalogLanguage('organizationTypes', data.organizationType)}>{catalogName('organizationTypes', data.organizationType)}</span></p>}
             {website && <Button asChild size="sm" variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">{t('marketplace.officialSite')}<ExternalLink className="size-4" /></a></Button>}
           </div>
         </div>
-        {(data.categories.length > 0 || data.projectTypes.length > 0) && <div className="mt-6 flex flex-wrap gap-2 border-t pt-5">{[...data.categories, ...data.projectTypes].map((item) => <span className="rounded-full border px-3 py-1.5 text-xs" key={`${item.code}-${item.id}`} lang="es">{item.name}</span>)}</div>}
+        {(data.categories.length > 0 || data.projectTypes.length > 0) && <div className="mt-6 flex flex-wrap gap-2 border-t pt-5">{[{ catalog: 'fundingCategories' as const, values: data.categories }, { catalog: 'projectTypes' as const, values: data.projectTypes }].flatMap(({ catalog, values }) => values.map(item => <span className="rounded-full border px-3 py-1.5 text-xs" key={`${catalog}-${item.id}`} lang={catalogLanguage(catalog, item)}>{catalogName(catalog, item)}</span>))}</div>}
       </header>
 
       <section className="space-y-5">

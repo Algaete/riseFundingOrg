@@ -7,6 +7,7 @@ import { ApiError } from '@/api/http-client'
 import { createAppQueryClient } from '@/api/query-client'
 import { organizationApi } from '@/features/organizations/organization-api'
 import { setInterfaceLanguage } from '@/i18n'
+import { consumerCatalogs, consumerOpportunity } from '@/test/fixtures/catalog-consumers'
 import { fundingOrganizationId, fundingOrganizations, organizationFundingCatalogs, organizationFundingResponse, organizationOpportunity } from '@/test/fixtures/organization-funding'
 import { organizationFundingApi } from './organization-funding-api'
 import { OrganizationFavoritesPage, OrganizationFundingCatalogPage, OrganizationFundingDetailPage } from './organization-funding-pages'
@@ -95,7 +96,7 @@ describe('organization funding ES/EN', () => {
     }, expect.any(AbortSignal))
     await userEvent.click(details.querySelector('summary')!)
     expect(screen.getByRole('combobox', { name: 'Country' })).toHaveValue('152')
-    expect(screen.getByRole('option', { name: 'Medio ambiente' })).toHaveAttribute('lang', 'es')
+    expect(screen.getByRole('option', { name: 'Environment' })).toHaveAttribute('lang', 'en')
     expect(screen.getByRole('checkbox', { name: 'Open opportunities only' })).not.toBeChecked()
     await userEvent.click(screen.getByRole('button', { name: 'Next' }))
     await screen.findByText('Page 3 of 3')
@@ -146,7 +147,7 @@ describe('organization funding ES/EN', () => {
     expect(organizationFundingApi.removeFavorite).not.toHaveBeenCalled()
   })
 
-  it('keeps original conditions, catalog names, exact UTC deadline and application destination', async () => {
+  it('translates reviewed catalog names but keeps conditions, exact UTC deadline and application destination', async () => {
     mount('/opportunities/' + organizationOpportunity.slug)
     await screen.findByRole('heading', { name: 'Condiciones publicadas' })
     expect(screen.getByText('12,5%')).toBeVisible()
@@ -166,9 +167,12 @@ describe('organization funding ES/EN', () => {
       organizationOpportunity.restrictions, organizationOpportunity.targetOrganizationsDescription, organizationOpportunity.targetPopulationsDescription,
     ]) expect(screen.getByText(value)).toHaveAttribute('lang', 'es')
     const eligible = screen.getByRole('heading', { name: 'Organization types' }).parentElement!
-    expect(eligible).toHaveTextContent('Fundación · eligible')
-    expect(within(eligible).getByText('Fundación')).toHaveAttribute('lang', 'es')
-    expect(screen.getByRole('heading', { name: 'Legal entity types' }).parentElement).toHaveTextContent('Fundación · excluded')
+    expect(eligible).toHaveTextContent('Foundation · eligible')
+    expect(within(eligible).getByText('Foundation')).toHaveAttribute('lang', 'en')
+    expect(screen.getByRole('heading', { name: 'Legal entity types' }).parentElement).toHaveTextContent('Foundation · excluded')
+    for (const name of ['Grant', 'Children and adolescents', 'Institutional strengthening', 'Spanish']) {
+      expect(screen.getByText(name, { exact: true })).toHaveAttribute('lang', 'en')
+    }
     expect(screen.getByRole('link', { name: 'Start application' })).toHaveAttribute('href', '/applications?new=1&fundingOpportunityId=' + organizationOpportunity.publicId)
     expect(screen.getByRole('link', { name: 'Fuente vinculada Ñandú' })).toHaveAttribute('href', organizationOpportunity.sources[0].sourceUrl)
     expect(screen.getByText('Reference ORIGINAL-01')).toBeVisible()
@@ -176,6 +180,47 @@ describe('organization funding ES/EN', () => {
     expect(organizationFundingApi.getByIdOrSlug).toHaveBeenCalledExactlyOnceWith(fundingOrganizationId, organizationOpportunity.slug, expect.any(AbortSignal))
     expect(organizationFundingApi.addFavorite).not.toHaveBeenCalled()
     expect(organizationFundingApi.removeFavorite).not.toHaveBeenCalled()
+  })
+
+  it('keeps unreviewed labels, topics, missing references and distinct classification IDs without rewriting the cache', async () => {
+    const data = { ...consumerOpportunity, categoryIds: [...consumerOpportunity.categoryIds, 81, 999] }
+    vi.mocked(organizationApi.catalogs).mockResolvedValue(consumerCatalogs)
+    vi.mocked(organizationFundingApi.getByIdOrSlug).mockResolvedValue(data)
+    const { client } = mount('/opportunities/' + data.slug)
+    await screen.findByRole('heading', { name: 'Cobertura y clasificaciones de las bases' })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByText('Environment and biodiversity')).toHaveAttribute('lang', 'en')
+    for (const name of ['Educación comunitaria Ñandú', 'Nueva área Ñandú', 'Medio ambiente']) {
+      expect(screen.getByText(name, { exact: true })).toHaveAttribute('lang', 'es')
+    }
+    expect(screen.getAllByText('Other', { exact: true })).toHaveLength(2)
+    expect(screen.queryByText('999')).not.toBeInTheDocument()
+    expect(screen.getByText('English', { exact: true })).toHaveAttribute('lang', 'en')
+    expect(client.getQueryData(['organization-catalogs'])).toBe(consumerCatalogs)
+    expect(client.getQueryData(['organization-funding', fundingOrganizationId, 'detail', data.slug])).toBe(data)
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getByText('Medio ambiente y biodiversidad')).toHaveAttribute('lang', 'es')
+    expect(screen.getAllByText('Otros', { exact: true })).toHaveLength(2)
+    expect(organizationApi.catalogs).toHaveBeenCalledOnce()
+    expect(organizationFundingApi.getByIdOrSlug).toHaveBeenCalledOnce()
+    expect(organizationFundingApi.addFavorite).not.toHaveBeenCalled()
+    expect(organizationFundingApi.removeFavorite).not.toHaveBeenCalled()
+  })
+
+  it('renders a pending catalog in the current language without restarting either read', async () => {
+    const pending = deferred<typeof consumerCatalogs>()
+    vi.mocked(organizationApi.catalogs).mockReturnValue(pending.promise)
+    mount('/opportunities/' + organizationOpportunity.slug)
+    await screen.findByRole('heading', { name: 'Condiciones publicadas' })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.queryByText('Foundation · eligible')).not.toBeInTheDocument()
+    await act(async () => pending.resolve(consumerCatalogs))
+    const eligible = await screen.findByRole('heading', { name: 'Organization types' })
+    expect(eligible.parentElement).toHaveTextContent('Foundation · eligible')
+    expect(screen.getByText('Environment and biodiversity')).toHaveAttribute('lang', 'en')
+    expect(organizationApi.catalogs).toHaveBeenCalledOnce()
+    expect(organizationFundingApi.getByIdOrSlug).toHaveBeenCalledOnce()
+    expect(organizationFundingApi.addFavorite).not.toHaveBeenCalled()
   })
 
   it('rolls back a failed favorite across this organization’s caches without touching another organization', async () => {

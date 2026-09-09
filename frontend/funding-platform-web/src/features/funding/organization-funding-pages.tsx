@@ -23,6 +23,7 @@ import {
   useState,
 } from 'react'
 import { useTranslation } from 'react-i18next'
+import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -211,6 +212,7 @@ function FavoriteButton({
 }
 
 function CatalogSelect({
+  catalog,
   id,
   label,
   description,
@@ -218,6 +220,7 @@ function CatalogSelect({
   value,
   onChange,
 }: {
+  catalog: CatalogKind
   id: string
   label: string
   description?: string
@@ -231,7 +234,7 @@ function CatalogSelect({
       {label}
       <select className={selectClass} id={id} onChange={(event) => onChange(event.target.value)} value={value}>
         <option value="">{t('organizationFunding.all')}</option>
-        {items.map((item) => <option key={item.id} lang="es" value={item.id}>{item.name}</option>)}
+        {items.map((item) => <option key={item.id} lang={catalogLanguage(catalog, item)} value={item.id}>{catalogName(catalog, item)}</option>)}
       </select>
       {description && <span className="text-xs font-normal text-muted-foreground">{description}</span>}
     </label>
@@ -297,24 +300,30 @@ function toDisplayDetail(item: OrganizationFundingOpportunityDetail): FundingOpp
   }
 }
 
-function catalogNames(ids: readonly number[], items: readonly CatalogOption<number>[] = []) {
-  const names = new Map(items.map((item) => [item.id, item.name]))
-  return [...new Set(ids.map((id) => names.get(id)).filter((name): name is string => Boolean(name)))]
+function catalogChip(catalog: CatalogKind, item: CatalogOption<number>) {
+  return { key: item.id, name: catalogName(catalog, item), language: catalogLanguage(catalog, item) }
 }
 
-type EligibilityChip = { key: number; name: string; suffix: string }
+function catalogChips(catalog: CatalogKind, ids: readonly number[], items: readonly CatalogOption<number>[] = []) {
+  const options = new Map(items.map((item) => [item.id, item]))
+  // Keep identity separate from the translated label: distinct options can share a name.
+  return [...new Set(ids)].flatMap(id => {
+    const item = options.get(id)
+    return item?.name ? [catalogChip(catalog, item)] : []
+  })
+}
 
-function DetailChips({ label, values }: { label: string; values: readonly (string | EligibilityChip)[] }) {
+type DetailChip = ReturnType<typeof catalogChip> & { suffix?: string }
+
+function DetailChips({ label, values }: { label: string; values: readonly DetailChip[] }) {
   if (values.length === 0) return null
   return (
     <div>
       <h3 className="text-sm font-bold">{label}</h3>
       <ul className="mt-2 flex flex-wrap gap-2">
         {values.map((value) => (
-          <li className="rounded-full border bg-background px-3 py-1.5 text-xs" key={typeof value === 'string' ? value : value.key}>
-            {typeof value === 'string'
-              ? <span lang="es">{value}</span>
-              : <><span lang="es">{value.name}</span> · {value.suffix}</>}
+          <li className="rounded-full border bg-background px-3 py-1.5 text-xs" key={value.key}>
+            <span lang={value.language}>{value.name}</span>{value.suffix && <> · {value.suffix}</>}
           </li>
         ))}
       </ul>
@@ -353,27 +362,27 @@ function OrganizationSpecificDetails({
     [t('organizationFunding.targetPopulations'), item.targetPopulationsDescription],
   ].filter((entry): entry is [string, string] => Boolean(entry[1]))
   const organizationTypes = item.organizationTypes.map((value) => {
-    const name = catalogs?.organizationTypes.find((option) => option.id === value.id)?.name
-    return name ? { key: value.id, name, suffix: value.eligibilityMode === 1 ? t('organizationFunding.admitted') : t('organizationFunding.excluded') } : null
+    const option = catalogs?.organizationTypes.find((option) => option.id === value.id)
+    return option?.name ? { ...catalogChip('organizationTypes', option), suffix: value.eligibilityMode === 1 ? t('organizationFunding.admitted') : t('organizationFunding.excluded') } : null
   }).filter((value) => value !== null)
   const legalEntityTypes = item.legalEntityTypes.map((value) => {
-    const name = catalogs?.legalEntityTypes.find((option) => option.id === value.id)?.name
-    return name ? { key: value.id, name, suffix: value.eligibilityMode === 1 ? t('organizationFunding.admittedFeminine') : t('organizationFunding.excludedFeminine') } : null
+    const option = catalogs?.legalEntityTypes.find((option) => option.id === value.id)
+    return option?.name ? { ...catalogChip('legalEntityTypes', option), suffix: value.eligibilityMode === 1 ? t('organizationFunding.admittedFeminine') : t('organizationFunding.excludedFeminine') } : null
   }).filter((value) => value !== null)
-  const languages = catalogNames(item.languages.map((value) => value.id), catalogs?.languages)
+  const languages = catalogChips('languages', item.languages.map((value) => value.id), catalogs?.languages)
   const classifications = [
-    catalogNames(item.countryIds, catalogs?.countries),
-    catalogNames(item.regionIds, catalogs?.regions),
-    catalogNames(item.categoryIds, catalogs?.fundingCategories),
-    catalogNames(item.beneficiaryTypeIds, catalogs?.beneficiaryTypes),
-    catalogNames(item.projectTypeIds, catalogs?.projectTypes),
-    catalogNames(item.tagIds, catalogs?.tags),
+    catalogChips('countries', item.countryIds, catalogs?.countries),
+    catalogChips('regions', item.regionIds, catalogs?.regions),
+    catalogChips('fundingCategories', item.categoryIds, catalogs?.fundingCategories),
+    catalogChips('beneficiaryTypes', item.beneficiaryTypeIds, catalogs?.beneficiaryTypes),
+    catalogChips('projectTypes', item.projectTypeIds, catalogs?.projectTypes),
+    catalogChips('tags', item.tagIds, catalogs?.tags),
     organizationTypes,
     legalEntityTypes,
     languages,
   ].some((values) => values.length > 0)
-  const fundingType = catalogs?.fundingTypes.find((value) => value.id === item.fundingTypeId)?.name
-  const issuerCountry = catalogs?.countries.find((value) => value.id === item.issuerCountryId)?.name
+  const fundingType = catalogs?.fundingTypes.find((value) => value.id === item.fundingTypeId)
+  const issuerCountry = catalogs?.countries.find((value) => value.id === item.issuerCountryId)
   const deadline = item.deadlineType === 2 ? t('organizationFunding.continuous')
     : item.deadlineType === 1 ? t('organizationFunding.fixedDeadline') : t('organizationFunding.notReported')
   const deadlinePrecision = item.deadlinePrecision === 2 ? t('organizationFunding.dateTime')
@@ -394,8 +403,8 @@ function OrganizationSpecificDetails({
           </p>
         </div>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div><dt className="font-semibold">{t('organizationFunding.fundingType')}</dt><dd className="mt-1 text-muted-foreground">{fundingType ? <span lang="es">{fundingType}</span> : t('organizationFunding.notReported')}</dd></div>
-          <div><dt className="font-semibold">{t('organizationFunding.issuerCountry')}</dt><dd className="mt-1 text-muted-foreground">{issuerCountry ? <span lang="es">{issuerCountry}</span> : t('organizationFunding.notReported')}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.fundingType')}</dt><dd className="mt-1 text-muted-foreground">{fundingType ? <span lang={catalogLanguage('fundingTypes', fundingType)}>{catalogName('fundingTypes', fundingType)}</span> : t('organizationFunding.notReported')}</dd></div>
+          <div><dt className="font-semibold">{t('organizationFunding.issuerCountry')}</dt><dd className="mt-1 text-muted-foreground">{issuerCountry ? <span lang={catalogLanguage('countries', issuerCountry)}>{catalogName('countries', issuerCountry)}</span> : t('organizationFunding.notReported')}</dd></div>
           <div><dt className="font-semibold">{t('organizationFunding.deadlineType')}</dt><dd className="mt-1 text-muted-foreground">{deadline}</dd></div>
           <div><dt className="font-semibold">{t('organizationFunding.deadlinePrecision')}</dt><dd className="mt-1 text-muted-foreground">{deadlinePrecision}</dd></div>
           {exactClose && <div><dt className="font-semibold">{t('organizationFunding.exactClose')}</dt><dd className="mt-1 text-muted-foreground">{exactClose}</dd></div>}
@@ -418,12 +427,12 @@ function OrganizationSpecificDetails({
       {classifications && (
         <section className="space-y-4">
           <h2 className="text-xl font-bold">{t('organizationFunding.classifications')}</h2>
-          <DetailChips label={t('organizationFunding.countries')} values={catalogNames(item.countryIds, catalogs?.countries)} />
-          <DetailChips label={t('organizationFunding.regions')} values={catalogNames(item.regionIds, catalogs?.regions)} />
-          <DetailChips label={t('organizationFunding.categories')} values={catalogNames(item.categoryIds, catalogs?.fundingCategories)} />
-          <DetailChips label={t('organizationFunding.beneficiaries')} values={catalogNames(item.beneficiaryTypeIds, catalogs?.beneficiaryTypes)} />
-          <DetailChips label={t('organizationFunding.projectTypes')} values={catalogNames(item.projectTypeIds, catalogs?.projectTypes)} />
-          <DetailChips label={t('organizationFunding.topics')} values={catalogNames(item.tagIds, catalogs?.tags)} />
+          <DetailChips label={t('organizationFunding.countries')} values={catalogChips('countries', item.countryIds, catalogs?.countries)} />
+          <DetailChips label={t('organizationFunding.regions')} values={catalogChips('regions', item.regionIds, catalogs?.regions)} />
+          <DetailChips label={t('organizationFunding.categories')} values={catalogChips('fundingCategories', item.categoryIds, catalogs?.fundingCategories)} />
+          <DetailChips label={t('organizationFunding.beneficiaries')} values={catalogChips('beneficiaryTypes', item.beneficiaryTypeIds, catalogs?.beneficiaryTypes)} />
+          <DetailChips label={t('organizationFunding.projectTypes')} values={catalogChips('projectTypes', item.projectTypeIds, catalogs?.projectTypes)} />
+          <DetailChips label={t('organizationFunding.topics')} values={catalogChips('tags', item.tagIds, catalogs?.tags)} />
           <DetailChips label={t('organizationFunding.organizationTypes')} values={organizationTypes} />
           <DetailChips label={t('organizationFunding.legalTypes')} values={legalEntityTypes} />
           <DetailChips label={t('organizationFunding.languages')} values={languages} />
@@ -596,28 +605,28 @@ export function OrganizationFundingCatalogPage() {
               {filterCount > 0 && <span className="rounded-full bg-accent px-2 py-1 text-xs">{t('organizationFunding.active', { count: filterCount })}</span>}
             </summary>
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <CatalogSelect id="filter-country" items={catalogs.data.countries} label={t('organizationFunding.country')} onChange={(value) => replaceParameter('countryIds', value)} value={firstId(searchParams.get('countryIds'))} />
-              <CatalogSelect id="filter-region" items={catalogs.data.regions} label={t('organizationFunding.region')} onChange={(value) => replaceParameter('regionIds', value)} value={firstId(searchParams.get('regionIds'))} />
-              <CatalogSelect id="filter-category" items={catalogs.data.fundingCategories} label={t('organizationFunding.category')} onChange={(value) => replaceParameter('categoryIds', value)} value={firstId(searchParams.get('categoryIds'))} />
-              <CatalogSelect id="filter-tag" items={catalogs.data.tags} label={t('organizationFunding.topic')} onChange={(value) => replaceParameter('tagIds', value)} value={firstId(searchParams.get('tagIds'))} />
-              <CatalogSelect id="filter-funding-type" items={catalogs.data.fundingTypes} label={t('organizationFunding.fundingType')} onChange={(value) => replaceParameter('fundingTypeIds', value)} value={firstId(searchParams.get('fundingTypeIds'))} />
+              <CatalogSelect catalog="countries" id="filter-country" items={catalogs.data.countries} label={t('organizationFunding.country')} onChange={(value) => replaceParameter('countryIds', value)} value={firstId(searchParams.get('countryIds'))} />
+              <CatalogSelect catalog="regions" id="filter-region" items={catalogs.data.regions} label={t('organizationFunding.region')} onChange={(value) => replaceParameter('regionIds', value)} value={firstId(searchParams.get('regionIds'))} />
+              <CatalogSelect catalog="fundingCategories" id="filter-category" items={catalogs.data.fundingCategories} label={t('organizationFunding.category')} onChange={(value) => replaceParameter('categoryIds', value)} value={firstId(searchParams.get('categoryIds'))} />
+              <CatalogSelect catalog="tags" id="filter-tag" items={catalogs.data.tags} label={t('organizationFunding.topic')} onChange={(value) => replaceParameter('tagIds', value)} value={firstId(searchParams.get('tagIds'))} />
+              <CatalogSelect catalog="fundingTypes" id="filter-funding-type" items={catalogs.data.fundingTypes} label={t('organizationFunding.fundingType')} onChange={(value) => replaceParameter('fundingTypeIds', value)} value={firstId(searchParams.get('fundingTypeIds'))} />
               <CatalogSelect
                 description={t('organizationFunding.organizationTypeHelp')}
                 id="filter-organization-type"
-                items={catalogs.data.organizationTypes}
+                catalog="organizationTypes" items={catalogs.data.organizationTypes}
                 label={t('organizationFunding.admittedOrganizationType')}
                 onChange={(value) => replaceParameter('organizationTypeIds', value)}
                 value={firstId(searchParams.get('organizationTypeIds'))}
               />
-              <CatalogSelect id="filter-beneficiary" items={catalogs.data.beneficiaryTypes} label={t('organizationFunding.beneficiary')} onChange={(value) => replaceParameter('beneficiaryTypeIds', value)} value={firstId(searchParams.get('beneficiaryTypeIds'))} />
-              <CatalogSelect id="filter-project-type" items={catalogs.data.projectTypes} label={t('organizationFunding.projectType')} onChange={(value) => replaceParameter('projectTypeIds', value)} value={firstId(searchParams.get('projectTypeIds'))} />
+              <CatalogSelect catalog="beneficiaryTypes" id="filter-beneficiary" items={catalogs.data.beneficiaryTypes} label={t('organizationFunding.beneficiary')} onChange={(value) => replaceParameter('beneficiaryTypeIds', value)} value={firstId(searchParams.get('beneficiaryTypeIds'))} />
+              <CatalogSelect catalog="projectTypes" id="filter-project-type" items={catalogs.data.projectTypes} label={t('organizationFunding.projectType')} onChange={(value) => replaceParameter('projectTypeIds', value)} value={firstId(searchParams.get('projectTypeIds'))} />
               <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-sponsor">{t('organizationFunding.sponsor')}
                 <input className={inputClass} id="filter-sponsor" maxLength={250} onChange={(event) => replaceParameter('sponsor', event.target.value)} placeholder={t('organizationFunding.sponsorPlaceholder')} value={searchParams.get('sponsor') ?? ''} />
               </label>
               <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-currency">{t('organizationFunding.currency')}
                 <select className={selectClass} id="filter-currency" onChange={(event) => replaceParameter('currency', event.target.value)} value={currency}>
                   <option value="">{t('organizationFunding.allCurrencies')}</option>
-                  {catalogs.data.currencies.map((item) => <option key={item.code} lang="es" value={item.code}>{item.code} · {item.name}</option>)}
+                  {catalogs.data.currencies.map((item) => <option key={item.code} lang={catalogLanguage('currencies', item)} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}
                 </select>
               </label>
               <label className="grid gap-1.5 text-sm font-semibold" htmlFor="filter-minimum">{t('organizationFunding.minimumAmount')}

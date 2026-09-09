@@ -8,6 +8,7 @@ import { createAppQueryClient } from '@/api/query-client'
 import { organizationApi } from '@/features/organizations/organization-api'
 import { projectApi } from '@/features/projects/project-api'
 import { setInterfaceLanguage } from '@/i18n'
+import { consumerNetworkOrganization } from '@/test/fixtures/catalog-consumers'
 import { collaborationOrganizations, networkConnection, networkConnections, networkDirectory, networkOrganization, networkPreference, workspaceOrganizationId, workspaceProject, workspaceProjectId } from '@/test/fixtures/matching-network'
 import { networkApi, type OrganizationConnection } from './network-api'
 import { NetworkWorkspacePage } from './network-pages'
@@ -60,7 +61,7 @@ describe('organization network ES/EN', () => {
     expect(screen.getByText('1 public project')).toBeVisible()
     expect(screen.getByText(networkConnection.message)).toHaveAttribute('lang', 'es')
     expect(screen.queryByText('SECRET-DRAFT')).not.toBeInTheDocument()
-    expect(screen.getByText('Medio ambiente')).toHaveAttribute('lang', 'es')
+    expect(screen.getByText('Environment')).toHaveAttribute('lang', 'en')
     expect(networkApi.directory).toHaveBeenCalledExactlyOnceWith(workspaceOrganizationId, '', 1, expect.any(AbortSignal))
     expect(networkApi.settings).toHaveBeenCalledOnce()
     expect(networkApi.connections).toHaveBeenCalledTimes(2)
@@ -91,6 +92,28 @@ describe('organization network ES/EN', () => {
     await act(() => setInterfaceLanguage('es'))
     expect(screen.getByText('Solicitud enviada. La otra organización debe aceptarla explícitamente.')).toBeVisible()
     expect(networkApi.create).toHaveBeenCalledOnce()
+    expect(networkApi.putSettings).not.toHaveBeenCalled()
+    expect(networkApi.action).not.toHaveBeenCalled()
+  })
+
+  it('localizes only reviewed directory labels without fetching catalogs, exposing more fields or sending the draft', async () => {
+    vi.mocked(networkApi.directory).mockResolvedValue({ ...networkDirectory, items: [consumerNetworkOrganization] })
+    const catalogs = vi.spyOn(organizationApi, 'catalogs')
+    mount()
+    await prepareInvitation()
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByText('Foundation', { exact: true })).toHaveAttribute('lang', 'en')
+    expect(screen.getByText('Environment and biodiversity')).toHaveAttribute('lang', 'en')
+    for (const text of ['Territorio Ñandú', 'Educación comunitaria Ñandú', 'Nueva área Ñandú']) {
+      expect(screen.getByText(text)).toHaveAttribute('lang', 'es')
+    }
+    expect(screen.getByText(consumerNetworkOrganization.description)).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'Private message' })).toHaveValue('  Invitación original Ñandú para colaborar.  ')
+    await act(() => setInterfaceLanguage('es'))
+    expect(screen.getByText('Fundación', { exact: true })).toHaveAttribute('lang', 'es')
+    expect(networkApi.directory).toHaveBeenCalledOnce()
+    expect(catalogs).not.toHaveBeenCalled()
+    expect(networkApi.create).not.toHaveBeenCalled()
     expect(networkApi.putSettings).not.toHaveBeenCalled()
     expect(networkApi.action).not.toHaveBeenCalled()
   })

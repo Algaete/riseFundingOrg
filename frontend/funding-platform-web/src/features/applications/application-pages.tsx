@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import i18n from '@/i18n'
 import { useTranslation } from 'react-i18next'
+import { catalogName, catalogLanguage } from '@/i18n/catalog-labels'
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import { trackingErrorMessage, applicationStatusLabel } from '@/i18n/tracking-messages'
 
@@ -214,7 +215,7 @@ function CreateApplicationPanel({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.plannedDate')}<Input onChange={(event) => setApplicationDate(event.target.value)} type="date" value={applicationDate} /></label>
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.amount')}<Input min="0.0001" onChange={(event) => setRequestedAmount(event.target.value)} step="0.0001" type="number" value={requestedAmount} /></label>
-        <label className="grid gap-1.5 text-sm font-semibold">{t('tracking.currency')}<select className={selectClass} onChange={(event) => setCurrency(event.target.value)} value={currency}><option value="">{t('tracking.notProvided')}</option>{catalogs.data?.currencies.map((item) => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select></label>
+        <label className="grid gap-1.5 text-sm font-semibold">{t('tracking.currency')}<select className={selectClass} onChange={(event) => setCurrency(event.target.value)} value={currency}><option value="">{t('tracking.notProvided')}</option>{catalogs.data?.currencies.map((item) => <option key={item.code} lang={catalogLanguage('currencies', item)} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select></label>
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.resultDate')}<Input onChange={(event) => setResultDate(event.target.value)} type="date" value={resultDate} /></label>
       </div>
       {create.isError && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">{mutationErrorMessage(create.error)}</p>}
@@ -306,7 +307,7 @@ function ApplicationEditor({ organizationId, applicationId, onClose, onSaved }: 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.date')}<Input disabled={!data.canEdit} onChange={(event) => setApplicationDate(event.target.value)} type="date" value={applicationDate} /></label>
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.amount')}<Input disabled={!data.canEdit} min="0.0001" onChange={(event) => setRequestedAmount(event.target.value)} step="0.0001" type="number" value={requestedAmount} /></label>
-        <label className="grid gap-1.5 text-sm font-semibold">{t('tracking.currency')}<select className={selectClass} disabled={!data.canEdit} onChange={(event) => setCurrency(event.target.value)} value={currency}><option value="">{t('tracking.notProvided')}</option>{catalogs.data?.currencies.map((item) => <option key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select></label>
+        <label className="grid gap-1.5 text-sm font-semibold">{t('tracking.currency')}<select className={selectClass} disabled={!data.canEdit} onChange={(event) => setCurrency(event.target.value)} value={currency}><option value="">{t('tracking.notProvided')}</option>{catalogs.data?.currencies.map((item) => <option key={item.code} lang={catalogLanguage('currencies', item)} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select></label>
         <label className="grid gap-1.5 text-sm font-semibold">{t('applications.resultDate')}<Input disabled={!data.canEdit} onChange={(event) => setResultDate(event.target.value)} type="date" value={resultDate} /></label>
       </div>
       {concurrencyNotice && <p className="rounded-lg bg-amber-500/10 p-3 text-sm" role="alert">{t('applications.concurrency')}</p>}
