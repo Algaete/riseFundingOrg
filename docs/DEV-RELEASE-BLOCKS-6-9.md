@@ -30,16 +30,23 @@ sujetos al flujo editorial, no se publican ni completan artificialmente para pas
 3. Desde checkout limpio de ese SHA ejecutar `infra/scripts/check-dev-database.sh --release`
    con `RF_DEV_RELEASE_SHA` y `RF_DEV_DATABASE_CONFIRMATION=DEPLOY-DEV-DATABASE`.
    El wrapper valida destino, CI, recuperación, preflight, apply idempotente y smokes.
-4. Ejecutar el release existente de API por SHA/digest. Publicar el artefacto validado de CI
+4. Publicar primero el artefacto de worker validado de CI
    con `release-general-worker-dev.sh <directorio>` y
    `RF_DEV_WORKER_CONFIRMATION=DEPLOY-DEV-GENERAL-WORKER`: conserva los tres imports existentes
    y exige apagar los tres triggers nuevos antes de indexar el código. No publica el host de
-   extracción ni habilita otros trabajos. Después, frontend del mismo SHA.
+   extracción ni habilita otros trabajos. Después, API por SHA/digest y frontend del mismo SHA.
 5. Verificar API, catálogo, rutas nuevas y metadatos de revisión del sitio publicado.
 
 `--release` no es el bootstrap `prepare-database-dev.sh`: no solicita ni configura contraseñas,
 SuperAdmin, identidades adicionales, Full-Text o servicios de pago. Si algún paso falla, detener
 la publicación y conservar la evidencia; no forzar history/checksums ni restaurar datos a ciegas.
+
+Los workflows de código usan `AZURE_DEV_VERIFICATION_PROFILE=imports-only`: comprueban
+exactamente la frontera observada (cuatro contenedores privados incluyendo Data Protection,
+CORS Blob vacío, sólo lifecycle original de fuentes, tres imports activos y adjuntos apagados).
+El perfil por defecto `foundation` sigue exigiendo los contenedores/políticas de adjuntos y todos
+los triggers apagados. `base` no acepta `imports-only`. No se omiten las verificaciones de
+identidad, escala, SQL, TLS, retención, credenciales básicas deshabilitadas, salud ni digest.
 
 ## Activaciones separadas
 

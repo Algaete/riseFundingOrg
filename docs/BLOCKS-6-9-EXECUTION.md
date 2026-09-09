@@ -46,10 +46,13 @@ La bandera de Azure permanece apagada hasta comprobar Defender y permisos reales
 
 ## Bloque 9 en curso
 
-Suite local: 874 unitarias .NET, 298 HTTP, 937 frontend y 185 E2E aprobadas;
+Suite local: 887 unitarias .NET, 298 HTTP, 937 frontend y 185 E2E aprobadas;
 se omite únicamente el metadato de revisión Azure en la ejecución local. Build, lint y tipos
 aprobados. Preflight real completo aprobado: 16 migraciones (031–046), 144 lotes y
 46 smokes sobre la base dev con 30 migraciones aplicadas; todo revertido y firewall limpiado.
-CI Linux detectó desbordes móviles que no aparecieron en macOS: se corrigen en los
-componentes compartidos sin ocultar contenido ni reducir las comprobaciones de accesibilidad.
+CI Linux detectó desbordes móviles que no aparecieron en macOS: corregidos en los
+componentes compartidos y aprobados en CI, sin ocultar contenido ni reducir accesibilidad.
+El verificador diferencia explícitamente la infraestructura futura de adjuntos del perfil
+`imports-only` observado en dev; las pruebas rechazan CORS, contenedores y retención ajenos
+a cada perfil. El worker se publica antes de API/frontend para cerrar los tres triggers nuevos.
 No se ha aplicado la actualización ni publicado este corte.

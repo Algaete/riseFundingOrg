@@ -7,6 +7,16 @@ case "$stage" in
   *) echo "stage must be base, api or frontend" >&2; exit 2 ;;
 esac
 
+# Foundation rollout and a code-only release have different reviewed boundaries.
+# The latter preserves the observed import-only dev environment; it does not
+# certify Blob uploads, project assets or Defender as activated.
+verification_profile="${AZURE_DEV_VERIFICATION_PROFILE:-foundation}"
+case "$verification_profile" in
+  foundation) ;;
+  imports-only) [[ "$stage" != 'base' ]] || { echo 'Base requires the foundation profile.' >&2; exit 2; } ;;
+  *) echo 'Unknown dev verification profile.' >&2; exit 2 ;;
+esac
+
 expected_frontend_release_sha="${EXPECTED_FRONTEND_RELEASE_SHA:-}"
 if [[ "$stage" == "frontend" && ! "$expected_frontend_release_sha" =~ ^[0-9a-f]{40}$ ]]; then
   echo "EXPECTED_FRONTEND_RELEASE_SHA must be the exact 40-character commit deployed to the frontend" >&2
@@ -89,9 +99,9 @@ if [[ "$documents_storage_count" != "1" ]]; then
 fi
 documents_storage_name="$(az storage account list --resource-group "$resource_group" \
   --query "[?tags.boundary=='private-documents'].name | [0]" --output tsv)"
-documents_storage_shape="$(az storage account show --resource-group "$resource_group" \
-  --name "$documents_storage_name" \
-  --query "join('|', [to_string(allowBlobPublicAccess), to_string(allowSharedKeyAccess), to_string(defaultToOAuthAuthentication), minimumTlsVersion, to_string(supportsHttpsTrafficOnly), publicNetworkAccess])" \
+documents_storage_shape="$(az resource show --resource-group "$resource_group" \
+  --name "$documents_storage_name" --resource-type Microsoft.Storage/storageAccounts --api-version 2023-05-01 \
+  --query "properties | join('|', [to_string(allowBlobPublicAccess), to_string(allowSharedKeyAccess), to_string(defaultToOAuthAuthentication), minimumTlsVersion, to_string(supportsHttpsTrafficOnly), publicNetworkAccess])" \
   --output tsv)"
 if [[ "$documents_storage_shape" != "false|false|true|TLS1_2|true|Enabled" ]]; then
   echo "The private document storage account has unsafe or drifted security settings" >&2
@@ -108,19 +118,20 @@ fi
 expected_upload_origin="https://${frontend_hostname}"
 documents_blob_resource_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${resource_group}/providers/Microsoft.Storage/storageAccounts/${documents_storage_name}/blobServices/default?api-version=2023-05-01"
 documents_blob_json="$(az rest --method get --url "$documents_blob_resource_url" --output json)"
-documents_blob_valid="$(jq -r --arg origin "$expected_upload_origin" '
+documents_blob_valid="$(jq -r --arg origin "$expected_upload_origin" --arg profile "$verification_profile" '
   (.properties.isVersioningEnabled == true) and
   (.properties.deleteRetentionPolicy.enabled == true) and
   (.properties.deleteRetentionPolicy.days == 14) and
   (.properties.containerDeleteRetentionPolicy.enabled == true) and
   (.properties.containerDeleteRetentionPolicy.days == 14) and
+  (if $profile == "imports-only" then .properties.cors.corsRules == [] else
   ((.properties.cors.corsRules | length) == 1) and
   (.properties.cors.corsRules[0] as $rule |
     (($rule.allowedOrigins | sort) == [$origin]) and
     (($rule.allowedMethods | sort) == ["PUT"]) and
     (($rule.allowedHeaders | sort) == ["content-type", "if-none-match", "x-ms-blob-type", "x-ms-client-request-id", "x-ms-version"]) and
     (($rule.exposedHeaders | sort) == ["etag", "x-ms-request-id", "x-ms-version-id"]) and
-    ($rule.maxAgeInSeconds == 300))
+    ($rule.maxAgeInSeconds == 300)) end)
 ' <<<"$documents_blob_json")"
 if [[ "$documents_blob_valid" != "true" ]]; then
   echo "The private document Blob service has unsafe versioning, retention or CORS settings" >&2
@@ -129,15 +140,19 @@ fi
 
 documents_containers_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${resource_group}/providers/Microsoft.Storage/storageAccounts/${documents_storage_name}/blobServices/default/containers?api-version=2023-05-01"
 documents_containers_json="$(az rest --method get --url "$documents_containers_url" --output json)"
-documents_containers_valid="$(jq -r '
+documents_containers_valid="$(jq -r --arg profile "$verification_profile" '
   . as $response |
+  all(.value[]; (.properties.publicAccess // "None") == "None") and
+  (if $profile == "imports-only" then
+    ([.value[].name] | sort) == ["dataprotection", "fp-source-incoming", "fp-source-quarantine", "fp-source-trusted"]
+  else
   all(
     ["fp-source-incoming", "fp-source-quarantine", "fp-source-trusted", "fp-project-incoming", "fp-project-quarantine", "fp-project-trusted"][];
     . as $required |
     ([$response.value[] |
       select(.name == $required and ((.properties.publicAccess // "None") == "None"))] |
       length) == 1
-  )
+  ) end)
 ' <<<"$documents_containers_json")"
 if [[ "$documents_containers_valid" != "true" ]]; then
   echo "A required source/project container is missing, duplicated or publicly accessible" >&2
@@ -146,7 +161,7 @@ fi
 
 documents_lifecycle_url="https://management.azure.com/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${resource_group}/providers/Microsoft.Storage/storageAccounts/${documents_storage_name}/managementPolicies/default?api-version=2023-05-01"
 documents_lifecycle_json="$(az rest --method get --url "$documents_lifecycle_url" --output json)"
-documents_lifecycle_valid="$(jq -r '
+documents_lifecycle_valid="$(jq -r --arg profile "$verification_profile" '
   def one_rule($name):
     [.properties.policy.rules[] | select(.name == $name)] |
     if length == 1 then .[0] else null end;
@@ -158,6 +173,9 @@ documents_lifecycle_valid="$(jq -r '
     $source.definition.actions.version.delete.daysAfterCreationGreaterThan == 14 and
     ($source.definition.filters.blobTypes | sort) == ["blockBlob"] and
     ($source.definition.filters.prefixMatch | sort) == ["fp-source-incoming/uploads/"]) and
+  (if $profile == "imports-only" then
+    [.properties.policy.rules[].name] == ["delete-abandoned-source-uploads"]
+  else
   ($project != null and $project.enabled == true and $project.type == "Lifecycle" and
     $project.definition.actions.baseBlob.delete.daysAfterModificationGreaterThan == 1 and
     ($project.definition.filters.blobTypes | sort) == ["blockBlob"] and
@@ -165,7 +183,7 @@ documents_lifecycle_valid="$(jq -r '
   ($versions != null and $versions.enabled == true and $versions.type == "Lifecycle" and
     $versions.definition.actions.version.delete.daysAfterCreationGreaterThan == 14 and
     ($versions.definition.filters.blobTypes | sort) == ["blockBlob"] and
-    ($versions.definition.filters.prefixMatch | sort) == ["fp-project-incoming/", "fp-project-quarantine/", "fp-project-trusted/"])
+    ($versions.definition.filters.prefixMatch | sort) == ["fp-project-incoming/", "fp-project-quarantine/", "fp-project-trusted/"]) end)
 ' <<<"$documents_lifecycle_json")"
 if [[ "$documents_lifecycle_valid" != "true" ]]; then
   echo "The private document lifecycle policy is missing or has drifted" >&2
@@ -242,6 +260,11 @@ verify_disabled_function_settings() {
   local actual_settings
 
   expected_settings="$(printf '%s\n' "$@" | LC_ALL=C sort)"
+  if [[ "$verification_profile" == 'imports-only' && "$function_app_name" == "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" ]]; then
+    for import_function in ImportOutboxDispatcherFunction ImportQueueFunction ImportSchedulerFunction; do
+      expected_settings="${expected_settings/AzureWebJobs.${import_function}.Disabled=true/AzureWebJobs.${import_function}.Disabled=false}"
+    done
+  fi
   actual_settings="$(az functionapp config appsettings list \
     --resource-group "$resource_group" \
     --name "$function_app_name" \
@@ -278,6 +301,20 @@ verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
 verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-extract" \
   'AzureWebJobs.SourceDocumentExtractionQueueFunction.Disabled=true' \
   'AzureWebJobs.SourceDocumentExtractionWatchdogFunction.Disabled=true'
+
+if [[ "$verification_profile" == 'imports-only' ]]; then
+  # Missing API flag resolves to false in the application. The newly published
+  # worker must carry an explicit false flag before any new function is indexed.
+  api_asset_flags="$(az resource show --name "$api_name" --resource-group "$resource_group" \
+    --resource-type Microsoft.App/containerApps --api-version 2025-01-01 \
+    --query "properties.template.containers[0].env[?name=='PROJECT_ASSETS_ENABLED' || name=='ProjectAssets__Enabled'].{name:name,value:value,secretRef:secretRef}" --output json)"
+  worker_asset_flags="$(az functionapp config appsettings list --resource-group "$resource_group" \
+    --name "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
+    --query "[?name=='PROJECT_ASSETS_ENABLED' || name=='ProjectAssets__Enabled'].{name:name,value:value}" --output json)"
+  jq -e 'all(.[]; .value == "false" and .secretRef == null)' <<< "$api_asset_flags" >/dev/null || { echo 'Project assets must remain disabled in the API.' >&2; exit 3; }
+  jq -e 'all(.[]; .value == "false") and ([.[] | select(.name == "PROJECT_ASSETS_ENABLED")] | length) == 1' <<< "$worker_asset_flags" >/dev/null || { echo 'Project assets must remain explicitly disabled in the worker.' >&2; exit 3; }
+  echo 'Verified import-only code-release boundary; upload/Defender activation remains pending.'
+fi
 
 if [[ "$stage" == "api" || "$stage" == "frontend" ]]; then
   require_count Microsoft.App/containerApps 1
