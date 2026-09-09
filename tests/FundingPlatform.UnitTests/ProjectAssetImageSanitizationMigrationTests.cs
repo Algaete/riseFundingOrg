@@ -80,9 +80,9 @@ public sealed class ProjectAssetImageSanitizationMigrationTests
             StringComparison.Ordinal);
         Assert.Contains("TrustedContentHash IS NOT NULL", sql, StringComparison.Ordinal);
         Assert.Contains("TrustedCreatedAtUtc >= CreatedAtUtc", sql, StringComparison.Ordinal);
-        Assert.Contains("TrustedProcessingVersion = N'skia-4.151.2-image-v1'", sql,
+        Assert.Contains("TrustedProcessingVersion = N'skia-4.151.2-image-v1'", sql.Replace("''", "'", StringComparison.Ordinal),
             StringComparison.Ordinal);
-        Assert.Contains("TrustedProcessingVersion = N'pdf-copy-v1'", sql,
+        Assert.Contains("TrustedProcessingVersion = N'pdf-copy-v1'", sql.Replace("''", "'", StringComparison.Ordinal),
             StringComparison.Ordinal);
 
         Assert.Contains("@TrustedContentHash BINARY(32) = NULL", applySignature,
@@ -118,7 +118,8 @@ public sealed class ProjectAssetImageSanitizationMigrationTests
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
         var migration = SqlScriptCatalog.DiscoverMigrations(root)
             .Single(script => script.Sequence == 38);
-        var backfill = migration.Batches[0];
+        // The backfill is compiled after ALTER TABLE so new columns resolve on Azure SQL.
+        var backfill = migration.Batches[0].Replace("''", "'", StringComparison.Ordinal);
 
         Assert.Contains("SET TrustedMimeType = LOWER(VerifiedMimeType)", backfill,
             StringComparison.Ordinal);
@@ -260,7 +261,7 @@ public sealed class ProjectAssetImageSanitizationMigrationTests
         Assert.Contains("ResultCode COLLATE Latin1_General_100_BIN2 <>", sql,
             StringComparison.Ordinal);
         Assert.Contains("NULLIF(LTRIM(RTRIM(RevokedTrustedBlobVersionId)), N'')",
-            sql, StringComparison.Ordinal);
+            sql.Replace("''", "'", StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
     [Fact]

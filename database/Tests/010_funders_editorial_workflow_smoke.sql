@@ -95,6 +95,11 @@ IF EXISTS
     SELECT 1
     FROM dbo.FundingPlatform_FundingOpportunities AS opportunities
     WHERE NULLIF(LTRIM(RTRIM(opportunities.SponsorName)), N'') IS NOT NULL
+      /* This checks the 010 backfill, not later imported/editorial drafts that
+         legitimately still need a primary funder and selected evidence. Updated
+         records are governed by their version/publication contracts below. */
+      AND opportunities.CreatedAtUtc <= (SELECT AppliedAtUtc FROM dbo.FundingPlatform_SchemaVersions WHERE Version = 10)
+      AND opportunities.UpdatedAtUtc <= (SELECT AppliedAtUtc FROM dbo.FundingPlatform_SchemaVersions WHERE Version = 10)
       AND
       (
           NOT EXISTS

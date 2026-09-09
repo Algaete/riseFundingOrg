@@ -3,22 +3,22 @@
 SET XACT_ABORT ON;
 CREATE TABLE dbo.FundingPlatform_FundingDiscovery
 (
-    FundingOpportunityId BIGINT NOT NULL PRIMARY KEY REFERENCES dbo.FundingPlatform_FundingOpportunities(Id),
-    ContentVersion INT NOT NULL CHECK(ContentVersion > 0),
-    DataJson NVARCHAR(MAX) NOT NULL CHECK(ISJSON(DataJson) = 1),
-    ReviewedByUserId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Users(Id),
+    FundingOpportunityId BIGINT NOT NULL CONSTRAINT FundingPlatform_PK_FundingDiscovery_FundingOpportunityId PRIMARY KEY CONSTRAINT FundingPlatform_FK_FundingDiscovery_FundingOpportunityId REFERENCES dbo.FundingPlatform_FundingOpportunities(Id),
+    ContentVersion INT NOT NULL CONSTRAINT FundingPlatform_CK_FundingDiscovery_ContentVersion CHECK(ContentVersion > 0),
+    DataJson NVARCHAR(MAX) NOT NULL CONSTRAINT FundingPlatform_CK_FundingDiscovery_DataJson CHECK(ISJSON(DataJson) = 1),
+    ReviewedByUserId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_FundingDiscovery_ReviewedByUserId REFERENCES dbo.FundingPlatform_Users(Id),
     ReviewedAtUtc DATETIME2(3) NOT NULL,
     RowVersion ROWVERSION NOT NULL
 );
 CREATE TABLE dbo.FundingPlatform_FundingDiscoveryReviews
 (
-    Id BIGINT IDENTITY NOT NULL PRIMARY KEY,
-    FundingOpportunityId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_FundingOpportunities(Id),
-    ActorUserId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Users(Id),
+    Id BIGINT IDENTITY NOT NULL CONSTRAINT FundingPlatform_PK_FundingDiscoveryReviews_Id PRIMARY KEY,
+    FundingOpportunityId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_FundingDiscoveryReviews_FundingOpportunityId REFERENCES dbo.FundingPlatform_FundingOpportunities(Id),
+    ActorUserId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_FundingDiscoveryReviews_ActorUserId REFERENCES dbo.FundingPlatform_Users(Id),
     ContentVersion INT NOT NULL,
-    DataJson NVARCHAR(MAX) NOT NULL CHECK(ISJSON(DataJson) = 1),
+    DataJson NVARCHAR(MAX) NOT NULL CONSTRAINT FundingPlatform_CK_FundingDiscoveryReviews_DataJson CHECK(ISJSON(DataJson) = 1),
     KeyHash BINARY(32) NOT NULL, RequestHash BINARY(32) NOT NULL, ResultVersion BINARY(8) NOT NULL,
-    CreatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_FundingDiscoveryReviews_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FundingPlatform_UQ_FundingDiscoveryReviews_Key UNIQUE(ActorUserId, KeyHash)
 );
 GO
@@ -30,7 +30,7 @@ BEGIN
  IF dbo.FundingPlatform_fn_AdminAccessState(@UserPublicId) <> 2 THROW 51601, N'Administrative access required.', 1;
  SELECT (SELECT p.PublicId AS opportunityId, p.Title AS title, p.ContentVersion AS contentVersion,
     metadata.ContentVersion AS reviewedContentVersion, JSON_QUERY(metadata.DataJson) AS data,
-    CASE WHEN metadata.RowVersion IS NOT NULL THEN N'"' + CONVERT(NVARCHAR(16), metadata.RowVersion, 2) + N'"' END AS eTag,
+    CASE WHEN metadata.RowVersion IS NOT NULL THEN N'"' + CONVERT(VARCHAR(16), CONVERT(BINARY(8), metadata.RowVersion), 2) + N'"' END AS eTag,
     JSON_QUERY(COALESCE((SELECT N'[' + STRING_AGG(CONVERT(NVARCHAR(MAX), N'"' + STRING_ESCAPE(url, 'json') + N'"'), N',') + N']'
       FROM (SELECT links.SourceUrl AS url FROM dbo.FundingPlatform_FundingOpportunitySourceLinks links
             WHERE links.FundingOpportunityId = p.Id AND links.IsActive = 1

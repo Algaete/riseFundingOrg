@@ -16,8 +16,8 @@ IF COL_LENGTH(N'dbo.FundingPlatform_ProjectAssets', N'TrustedContentHash') IS NU
 
 CREATE TABLE dbo.FundingPlatform_ProjectAssetContentRetentionTasks
 (
-    Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    PublicId UNIQUEIDENTIFIER NOT NULL DEFAULT (NEWSEQUENTIALID()) UNIQUE,
+    Id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT FundingPlatform_PK_ProjectAssetRetention PRIMARY KEY,
+    PublicId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FundingPlatform_DF_ProjectAssetRetention_PublicId DEFAULT (NEWSEQUENTIALID()) CONSTRAINT FundingPlatform_UQ_ProjectAssetRetention_PublicId UNIQUE,
     SourceKind TINYINT NOT NULL,
     SourceId BIGINT NOT NULL,
     ProjectAssetPublicId UNIQUEIDENTIFIER NOT NULL,
@@ -33,9 +33,9 @@ CREATE TABLE dbo.FundingPlatform_ProjectAssetContentRetentionTasks
     ManifestProcessingVersion NVARCHAR(100) NULL,
     IdentityHash BINARY(32) NOT NULL,
     RetentionUntilUtc DATETIME2(3) NOT NULL,
-    Status TINYINT NOT NULL DEFAULT (0),
-    AttemptCount SMALLINT NOT NULL DEFAULT (0),
-    MaxAttempts SMALLINT NOT NULL DEFAULT (8),
+    Status TINYINT NOT NULL CONSTRAINT FundingPlatform_DF_ProjectAssetRetention_Status DEFAULT (0),
+    AttemptCount SMALLINT NOT NULL CONSTRAINT FundingPlatform_DF_ProjectAssetRetention_AttemptCount DEFAULT (0),
+    MaxAttempts SMALLINT NOT NULL CONSTRAINT FundingPlatform_DF_ProjectAssetRetention_MaxAttempts DEFAULT (8),
     LeaseId UNIQUEIDENTIFIER NULL,
     LeaseUntilUtc DATETIME2(3) NULL,
     NextAttemptAtUtc DATETIME2(3) NULL,
@@ -83,8 +83,8 @@ CREATE TABLE dbo.FundingPlatform_ProjectAssetContentRetentionAttempts
     ClaimedAtUtc DATETIME2(3) NOT NULL,
     FinishedAtUtc DATETIME2(3) NULL,
     OutcomeCode NVARCHAR(100) NULL,
-    PRIMARY KEY (TaskId, AttemptCount),
-    FOREIGN KEY (TaskId) REFERENCES dbo.FundingPlatform_ProjectAssetContentRetentionTasks (Id)
+    CONSTRAINT FundingPlatform_PK_ProjectAssetRetentionAttempts PRIMARY KEY (TaskId, AttemptCount),
+    CONSTRAINT FundingPlatform_FK_ProjectAssetRetentionAttempts_Task FOREIGN KEY (TaskId) REFERENCES dbo.FundingPlatform_ProjectAssetContentRetentionTasks (Id)
 );
 GO
 

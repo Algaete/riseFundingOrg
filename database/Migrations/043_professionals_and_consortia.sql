@@ -4,15 +4,15 @@ SET XACT_ABORT ON;
 GO
 CREATE TABLE dbo.FundingPlatform_ProfessionalProfiles
 (
-    Id BIGINT IDENTITY NOT NULL PRIMARY KEY,
-    PublicId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID() UNIQUE,
-    UserId BIGINT NOT NULL UNIQUE REFERENCES dbo.FundingPlatform_Users(Id),
+    Id BIGINT IDENTITY NOT NULL CONSTRAINT FundingPlatform_PK_ProfessionalProfiles_Id PRIMARY KEY,
+    PublicId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FundingPlatform_DF_ProfessionalProfiles_PublicId DEFAULT NEWSEQUENTIALID() CONSTRAINT FundingPlatform_UQ_ProfessionalProfiles_PublicId UNIQUE,
+    UserId BIGINT NOT NULL CONSTRAINT FundingPlatform_UQ_ProfessionalProfiles_UserId UNIQUE CONSTRAINT FundingPlatform_FK_ProfessionalProfiles_UserId REFERENCES dbo.FundingPlatform_Users(Id),
     DataJson NVARCHAR(MAX) NOT NULL,
-    CountryId SMALLINT NULL REFERENCES dbo.FundingPlatform_Countries(Id),
-    IsDiscoverable BIT NOT NULL DEFAULT 0,
-    AllowsInvitations BIT NOT NULL DEFAULT 0,
-    CreatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    CountryId SMALLINT NULL CONSTRAINT FundingPlatform_FK_ProfessionalProfiles_CountryId REFERENCES dbo.FundingPlatform_Countries(Id),
+    IsDiscoverable BIT NOT NULL CONSTRAINT FundingPlatform_DF_ProfessionalProfiles_IsDiscoverable DEFAULT 0,
+    AllowsInvitations BIT NOT NULL CONSTRAINT FundingPlatform_DF_ProfessionalProfiles_AllowsInvitations DEFAULT 0,
+    CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_ProfessionalProfiles_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_ProfessionalProfiles_UpdatedAtUtc DEFAULT SYSUTCDATETIME(),
     RowVersion ROWVERSION NOT NULL,
     CONSTRAINT FundingPlatform_CK_ProfessionalProfiles_Json CHECK (ISJSON(DataJson) = 1 AND LEFT(LTRIM(DataJson), 1) = N'{'),
     CONSTRAINT FundingPlatform_CK_ProfessionalProfiles_Consent CHECK (IsDiscoverable = 1 OR AllowsInvitations = 0)
@@ -20,16 +20,16 @@ CREATE TABLE dbo.FundingPlatform_ProfessionalProfiles
 CREATE INDEX FundingPlatform_IX_ProfessionalProfiles_Discovery ON dbo.FundingPlatform_ProfessionalProfiles(IsDiscoverable, CountryId, UpdatedAtUtc DESC);
 CREATE TABLE dbo.FundingPlatform_Consortia
 (
-    Id BIGINT IDENTITY NOT NULL PRIMARY KEY,
-    PublicId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID() UNIQUE,
-    ProjectId BIGINT NOT NULL UNIQUE,
+    Id BIGINT IDENTITY NOT NULL CONSTRAINT FundingPlatform_PK_Consortia_Id PRIMARY KEY,
+    PublicId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FundingPlatform_DF_Consortia_PublicId DEFAULT NEWSEQUENTIALID() CONSTRAINT FundingPlatform_UQ_Consortia_PublicId UNIQUE,
+    ProjectId BIGINT NOT NULL CONSTRAINT FundingPlatform_UQ_Consortia_ProjectId UNIQUE,
     LeadOrganizationId BIGINT NOT NULL,
     Name NVARCHAR(160) NOT NULL,
     Summary NVARCHAR(1000) NULL,
-    Status TINYINT NOT NULL DEFAULT 0,
-    CreatedByUserId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Users(Id),
-    CreatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    Status TINYINT NOT NULL CONSTRAINT FundingPlatform_DF_Consortia_Status DEFAULT 0,
+    CreatedByUserId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_Consortia_CreatedByUserId REFERENCES dbo.FundingPlatform_Users(Id),
+    CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_Consortia_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_Consortia_UpdatedAtUtc DEFAULT SYSUTCDATETIME(),
     RowVersion ROWVERSION NOT NULL,
     CONSTRAINT FundingPlatform_FK_Consortia_ProjectOrganization FOREIGN KEY (ProjectId, LeadOrganizationId) REFERENCES dbo.FundingPlatform_Projects(Id, OrganizationId),
     CONSTRAINT FundingPlatform_CK_Consortia_Name CHECK (LEN(LTRIM(RTRIM(Name))) BETWEEN 2 AND 160),
@@ -37,18 +37,18 @@ CREATE TABLE dbo.FundingPlatform_Consortia
 );
 CREATE TABLE dbo.FundingPlatform_ConsortiumParticipants
 (
-    Id BIGINT IDENTITY NOT NULL PRIMARY KEY,
-    PublicId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID() UNIQUE,
-    ConsortiumId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Consortia(Id),
+    Id BIGINT IDENTITY NOT NULL CONSTRAINT FundingPlatform_PK_ConsortiumParticipants_Id PRIMARY KEY,
+    PublicId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FundingPlatform_DF_ConsortiumParticipants_PublicId DEFAULT NEWSEQUENTIALID() CONSTRAINT FundingPlatform_UQ_ConsortiumParticipants_PublicId UNIQUE,
+    ConsortiumId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_ConsortiumParticipants_ConsortiumId REFERENCES dbo.FundingPlatform_Consortia(Id),
     Kind TINYINT NOT NULL,
-    OrganizationId BIGINT NULL REFERENCES dbo.FundingPlatform_Organizations(Id),
-    ProfessionalProfileId BIGINT NULL REFERENCES dbo.FundingPlatform_ProfessionalProfiles(Id),
+    OrganizationId BIGINT NULL CONSTRAINT FundingPlatform_FK_ConsortiumParticipants_OrganizationId REFERENCES dbo.FundingPlatform_Organizations(Id),
+    ProfessionalProfileId BIGINT NULL CONSTRAINT FundingPlatform_FK_ConsortiumParticipants_ProfessionalProfileId REFERENCES dbo.FundingPlatform_ProfessionalProfiles(Id),
     Contribution NVARCHAR(160) NOT NULL,
     Message NVARCHAR(500) NOT NULL,
-    Status TINYINT NOT NULL DEFAULT 0,
-    InvitedByUserId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Users(Id),
-    CreatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    Status TINYINT NOT NULL CONSTRAINT FundingPlatform_DF_ConsortiumParticipants_Status DEFAULT 0,
+    InvitedByUserId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_ConsortiumParticipants_InvitedByUserId REFERENCES dbo.FundingPlatform_Users(Id),
+    CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_ConsortiumParticipants_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_ConsortiumParticipants_UpdatedAtUtc DEFAULT SYSUTCDATETIME(),
     RowVersion ROWVERSION NOT NULL,
     CONSTRAINT FundingPlatform_CK_ConsortiumParticipants_Kind CHECK
         ((Kind = 1 AND OrganizationId IS NOT NULL AND ProfessionalProfileId IS NULL)
@@ -67,15 +67,15 @@ CREATE INDEX FundingPlatform_IX_ConsortiumParticipants_ProfessionalInbox ON dbo.
 CREATE INDEX FundingPlatform_IX_ConsortiumParticipants_OrganizationInbox ON dbo.FundingPlatform_ConsortiumParticipants(OrganizationId, Status, ConsortiumId);
 CREATE TABLE dbo.FundingPlatform_CollaborationEvents
 (
-    Id BIGINT IDENTITY NOT NULL PRIMARY KEY,
-    ActorUserId BIGINT NOT NULL REFERENCES dbo.FundingPlatform_Users(Id),
+    Id BIGINT IDENTITY NOT NULL CONSTRAINT FundingPlatform_PK_CollaborationEvents_Id PRIMARY KEY,
+    ActorUserId BIGINT NOT NULL CONSTRAINT FundingPlatform_FK_CollaborationEvents_ActorUserId REFERENCES dbo.FundingPlatform_Users(Id),
     EntityPublicId UNIQUEIDENTIFIER NOT NULL,
     ActionCode NVARCHAR(40) NOT NULL,
     IdempotencyKeyHash BINARY(32) NOT NULL,
     RequestHash BINARY(32) NOT NULL,
     ResultRowVersion BINARY(8) NOT NULL,
     SnapshotJson NVARCHAR(MAX) NOT NULL,
-    CreatedAtUtc DATETIME2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_CollaborationEvents_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FundingPlatform_UQ_CollaborationEvents_Command UNIQUE (ActorUserId, IdempotencyKeyHash),
     CONSTRAINT FundingPlatform_CK_CollaborationEvents_Snapshot CHECK (ISJSON(SnapshotJson) = 1)
 );
@@ -115,7 +115,7 @@ BEGIN
     DECLARE @UserId BIGINT;
     EXEC dbo.FundingPlatform_usp_Collaboration_User @UserPublicId, @UserId OUTPUT;
     SELECT (SELECT PublicId AS profileId, JSON_QUERY(DataJson) AS data,
-        N'"' + CONVERT(NVARCHAR(16), RowVersion, 2) + N'"' AS eTag,
+        N'"' + CONVERT(VARCHAR(16), CONVERT(BINARY(8), RowVersion), 2) + N'"' AS eTag,
         TODATETIMEOFFSET(UpdatedAtUtc, '+00:00') AS updatedAtUtc
         FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS Json
     FROM dbo.FundingPlatform_ProfessionalProfiles WHERE UserId = @UserId;
@@ -259,7 +259,7 @@ RETURNS TABLE AS RETURN
         consortia.Name, consortia.Summary, organizations.PublicId AS LeadOrganizationId, organizations.Name AS LeadOrganizationName, consortia.Status,
         access.CanManage, access.CanViewRoster, access.HasPendingInvitation,
         CASE WHEN access.CanViewRoster = 1 THEN (SELECT COUNT(1) FROM dbo.FundingPlatform_ConsortiumParticipants WHERE ConsortiumId = consortia.Id AND Status = 1) ELSE 0 END AS AcceptedCount,
-        N'"' + CONVERT(NVARCHAR(16), consortia.RowVersion, 2) + N'"' AS ETag,
+        N'"' + CONVERT(VARCHAR(16), CONVERT(BINARY(8), consortia.RowVersion), 2) + N'"' AS ETag,
         TODATETIMEOFFSET(consortia.UpdatedAtUtc, '+00:00') AS UpdatedAtUtc
     FROM dbo.FundingPlatform_Consortia AS consortia
     INNER JOIN dbo.FundingPlatform_ifn_ConsortiumAccess(@UserId) AS access ON access.ConsortiumId = consortia.Id
@@ -306,7 +306,7 @@ BEGIN
             CONVERT(BIT, CASE WHEN recipient.IsRecipient = 1 AND participants.Status = 1 THEN 1 ELSE 0 END) AS canLeave,
             CONVERT(BIT, CASE WHEN @Manage = 1 AND participants.Status = 0 THEN 1 ELSE 0 END) AS canCancel,
             CONVERT(BIT, CASE WHEN @Manage = 1 AND participants.Status = 1 THEN 1 ELSE 0 END) AS canRemove,
-            N'"' + CONVERT(NVARCHAR(16), participants.RowVersion, 2) + N'"' AS eTag,
+            N'"' + CONVERT(VARCHAR(16), CONVERT(BINARY(8), participants.RowVersion), 2) + N'"' AS eTag,
             TODATETIMEOFFSET(participants.UpdatedAtUtc, '+00:00') AS updatedAtUtc
             FROM dbo.FundingPlatform_ConsortiumParticipants AS participants
             INNER JOIN dbo.FundingPlatform_Consortia AS consortia ON consortia.Id = participants.ConsortiumId

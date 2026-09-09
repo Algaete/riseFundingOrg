@@ -18,7 +18,7 @@ public sealed class ProjectAssetDefenderMigrationTests
 
         Assert.Equal("project_asset_defender_pipeline", migration.Name);
         Assert.Equal("project_asset_defender_pipeline_smoke", smoke.Name);
-        Assert.Equal(13, migration.Batches.Count);
+        Assert.Equal(15, migration.Batches.Count);
         Assert.Single(smoke.Batches);
         AssertValidAzureSql(migration.FileName, migration.Batches);
         AssertValidAzureSql(smoke.FileName, smoke.Batches);

@@ -41,6 +41,20 @@ DECLARE @CalendarDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OrganizationCalendar_List'));
 DECLARE @OutboxDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge'));
+/* Later sinks delegate to the preserved 019 sink. Verify the delegation before
+   inspecting that implementation; unrelated legacy objects cannot satisfy this guard. */
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', N'P') IS NOT NULL
+BEGIN
+    IF CHARINDEX(N'EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', @OutboxDefinition) = 0
+        THROW 53702, N'Current audit sink does not delegate to its preserved implementation.', 1;
+    SET @OutboxDefinition += OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038'));
+END;
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037', N'P') IS NOT NULL
+BEGIN
+    IF CHARINDEX(N'EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037', @OutboxDefinition) = 0
+        THROW 53702, N'Current audit sink does not delegate to the application sink.', 1;
+    SET @OutboxDefinition += OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037'));
+END;
 IF @MarketplaceDefinition NOT LIKE N'%funding-gap-desc%'
    OR @MarketplaceDefinition NOT LIKE N'%projects.Currency = @NormalizedCurrency%'
    OR @MarketplaceDefinition NOT LIKE N'%@NormalizedSort = N''funding-gap-desc'' AND @NormalizedCurrency IS NULL%'

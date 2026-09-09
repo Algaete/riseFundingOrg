@@ -65,13 +65,16 @@ function ClassificationForm({ item, reload }: { item: ClassificationAdmin; reloa
   const { t } = useTranslation(); const actor = useCollaborationActor(); const [saved, setSaved] = useState(false)
   const [data, setData] = useState<DiscoveryClassification>(item.data ?? { funderKind: null, requiresConsortium: null, requiresInternationalPartner: null, evidenceUrl: null })
   const [eTag, setETag] = useState(item.eTag)
+  const [reviewedVersion, setReviewedVersion] = useState(item.reviewedContentVersion)
   const save = useMutation({ mutationFn: () => executeEditorialCommand(`classification:${actor}:${item.opportunityId}`, { data, eTag, contentVersion: item.contentVersion }, key => fundingDiscoveryApi.review(item.opportunityId, item.contentVersion, data, eTag, key)),
-    onSuccess: result => { setETag(result.eTag); setSaved(true) } })
+    onSuccess: result => { setETag(result.eTag); setReviewedVersion(item.contentVersion); setSaved(true) } })
   return <form className={panel} onSubmit={event => { event.preventDefault(); setSaved(false); save.mutate() }}><h2 className="text-xl font-semibold">{item.title}</h2><p>{t('fundingDiscovery.adminHelp')}</p>
-    {item.reviewedContentVersion !== null && item.reviewedContentVersion !== item.contentVersion && <p role="status">{t('fundingDiscovery.stale')}</p>}
+    {reviewedVersion !== null && reviewedVersion !== item.contentVersion && <p role="status">{t('fundingDiscovery.stale')}</p>}
+    <fieldset className="space-y-4" disabled={save.isPending} onChange={() => setSaved(false)}>
     <Field label={t('fundingDiscovery.funderKind')}><select className={control} value={data.funderKind ?? ''} onChange={e => setData(current => ({ ...current, funderKind: e.target.value ? Number(e.target.value) : null }))}><option value="">{t('fundingDiscovery.unknown')}</option><KindOptions /></select></Field>
     {booleanFields.map(key => <Field key={key} label={t(`fundingDiscovery.${key}`)}><select className={control} value={data[key] === null ? '' : String(data[key])} onChange={e => setData(current => ({ ...current, [key]: e.target.value === '' ? null : e.target.value === 'true' }))}><option value="">{t('fundingDiscovery.unknown')}</option><option value="true">{t('fundingDiscovery.yes')}</option><option value="false">{t('fundingDiscovery.no')}</option></select></Field>)}
     <Field label={t('fundingDiscovery.evidenceUrl')} required><select required className={control} value={data.evidenceUrl ?? ''} onChange={e => setData(current => ({ ...current, evidenceUrl: e.target.value }))}><option value="">{t('fundingDiscovery.unknown')}</option>{item.sourceUrls.filter(url => url.startsWith('https://')).map(url => <option key={url} value={url}>{url}</option>)}</select></Field>
+    </fieldset>
     <Feedback error={save.error} />{saved && <p role="status">{t('fundingDiscovery.saved')}</p>}<div className="flex flex-wrap gap-3"><button className={button} disabled={save.isPending}>{t('fundingDiscovery.save')}</button><button type="button" className={button} disabled={save.isPending} onClick={() => void reload()}>{t('fundingDiscovery.reload')}</button></div>
   </form>
 }

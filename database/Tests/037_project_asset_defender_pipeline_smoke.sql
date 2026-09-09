@@ -39,6 +39,12 @@ DECLARE @WatchdogDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectAssetScan_WatchdogTimeout', N'P'));
 DECLARE @OutboxAuditDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge', N'P'));
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', N'P') IS NOT NULL
+BEGIN
+    IF CHARINDEX(N'EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', @OutboxAuditDefinition) = 0
+        THROW 55732, N'Current audit sink does not delegate to the asset sink.', 1;
+    SET @OutboxAuditDefinition += OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038'));
+END;
 
 IF @UpsertDefinition NOT LIKE N'%@WorkloadKind TINYINT%'
    OR @UpsertDefinition NOT LIKE N'%WorkloadKind = @WorkloadKind%'
@@ -97,6 +103,11 @@ IF @ApiRoleId IS NULL OR @WorkerRoleId IS NULL
          AND permissions.state IN (N'G', N'W'))
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @ApiRoleId) <> 162
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NULL THEN 0 ELSE 9 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FundingDiscovery', N'U') IS NULL THEN 0 ELSE 3 END
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @WorkerRoleId) <> 53 +
        CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS NULL THEN 0 ELSE 3 END
@@ -448,7 +459,13 @@ BEGIN TRY
         RevokedTrustedBlobContainer NVARCHAR(63) NULL,
         RevokedTrustedBlobObjectName NVARCHAR(1024) NULL,
         RevokedTrustedBlobETag NVARCHAR(100) NULL,
-        RevokedTrustedBlobVersionId NVARCHAR(200) NULL
+        RevokedTrustedBlobVersionId NVARCHAR(200) NULL,
+        RevokedTrustedMimeType NVARCHAR(100) NULL,
+        RevokedTrustedContentLength BIGINT NULL,
+        RevokedTrustedContentHash BINARY(32) NULL,
+        RevokedTrustedPixelWidth INT NULL, RevokedTrustedPixelHeight INT NULL,
+        RevokedTrustedProcessingVersion NVARCHAR(100) NULL,
+        RevokedTrustedCreatedAtUtc DATETIME2(3) NULL
     );
     DECLARE @TrustedETag NVARCHAR(100) = N'"trusted-' + LEFT(@Suffix, 12) + N'"';
     DECLARE @BeforeMissingVersionRowVersion BINARY(8) =
@@ -462,7 +479,10 @@ BEGIN TRY
         @TrustedBlobContainer = N'project-trusted',
         @TrustedBlobObjectName = @TrustedObject,
         @TrustedBlobETag = @TrustedETag,
-        @TrustedBlobVersionId = NULL;
+        @TrustedBlobVersionId = NULL,
+        @TrustedMimeType = N'image/png', @TrustedContentLength = 1024,
+        @TrustedContentHash = @AssetHash, @TrustedPixelWidth = 800, @TrustedPixelHeight = 600,
+        @TrustedProcessingVersion = N'skia-4.151.2-image-v1';
     IF NOT EXISTS
        (SELECT 1 FROM @ApplyResult
         WHERE Succeeded = 0 AND Code = N'invalid-scan-result')
@@ -488,7 +508,10 @@ BEGIN TRY
         @TrustedBlobContainer = N'project-trusted',
         @TrustedBlobObjectName = @TrustedObject,
         @TrustedBlobETag = @TrustedETag,
-        @TrustedBlobVersionId = N'trusted-bypass-v1';
+        @TrustedBlobVersionId = N'trusted-bypass-v1',
+        @TrustedMimeType = N'image/png', @TrustedContentLength = 1024,
+        @TrustedContentHash = @AssetHash, @TrustedPixelWidth = 800, @TrustedPixelHeight = 600,
+        @TrustedProcessingVersion = N'skia-4.151.2-image-v1';
     IF NOT EXISTS
        (SELECT 1 FROM @ApplyResult
         WHERE Succeeded = 0 AND Code = N'defender-receipt-required')
@@ -511,7 +534,10 @@ BEGIN TRY
         @TrustedBlobContainer = N'project-trusted',
         @TrustedBlobObjectName = @TrustedObject,
         @TrustedBlobETag = @TrustedETag,
-        @TrustedBlobVersionId = N'trusted-v1';
+        @TrustedBlobVersionId = N'trusted-v1',
+        @TrustedMimeType = N'image/png', @TrustedContentLength = 1024,
+        @TrustedContentHash = @AssetHash, @TrustedPixelWidth = 800, @TrustedPixelHeight = 600,
+        @TrustedProcessingVersion = N'skia-4.151.2-image-v1';
     IF NOT EXISTS
        (SELECT 1 FROM @ApplyResult
         WHERE Succeeded = 1 AND Code = N'scan-result-applied'

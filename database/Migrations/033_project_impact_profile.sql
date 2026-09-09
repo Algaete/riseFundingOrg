@@ -23,6 +23,7 @@ IF OBJECT_ID(N'dbo.FundingPlatform_Projects', N'U') IS NULL
 
 IF COL_LENGTH(N'dbo.FundingPlatform_Projects', N'ProjectStage') IS NULL
     ALTER TABLE dbo.FundingPlatform_Projects ADD ProjectStage TINYINT NULL;
+GO
 
 IF NOT EXISTS
 (

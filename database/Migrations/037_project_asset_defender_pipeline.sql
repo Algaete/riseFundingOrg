@@ -24,6 +24,7 @@ IF OBJECT_ID(N'dbo.FundingPlatform_EventIngressTrustPolicies', N'U') IS NULL
 ALTER TABLE dbo.FundingPlatform_EventIngressTrustPolicies
     ADD WorkloadKind TINYINT NULL
         CONSTRAINT FundingPlatform_DF_EventIngressTrustPolicies_Workload DEFAULT (1);
+GO
 UPDATE dbo.FundingPlatform_EventIngressTrustPolicies SET WorkloadKind = 1;
 ALTER TABLE dbo.FundingPlatform_EventIngressTrustPolicies
     ALTER COLUMN WorkloadKind TINYINT NOT NULL;
@@ -96,6 +97,7 @@ ALTER TABLE dbo.FundingPlatform_ProjectAssetScanEvents ADD
     RevokedTrustedBlobObjectName NVARCHAR(1024) NULL,
     RevokedTrustedBlobETag NVARCHAR(100) NULL,
     RevokedTrustedBlobVersionId NVARCHAR(200) NULL;
+GO
 
 ALTER TABLE dbo.FundingPlatform_ProjectAssetScanEvents WITH CHECK
     ADD CONSTRAINT FundingPlatform_CK_ProjectAssetScanEvents_Status

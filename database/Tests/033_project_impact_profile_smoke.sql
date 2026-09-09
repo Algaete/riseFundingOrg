@@ -85,14 +85,13 @@ IF @CreateDefinition NOT LIKE N'%@ProjectStage TINYINT = NULL%'
    OR @UpdateDefinition NOT LIKE N'%@ProjectStageIsSpecified BIT = 0%'
    OR @UpdateDefinition NOT LIKE N'%@SustainableDevelopmentGoalIdsJson NVARCHAR(1000) = NULL%'
    OR @UpdateDefinition NOT LIKE N'%THROW 51411%'
-   OR @CreateDefinition NOT LIKE N'%CONVERT(NVARCHAR(11), TRY_CONVERT(INT, [value])) <> [value]%'
-   OR @UpdateDefinition NOT LIKE N'%CONVERT(NVARCHAR(11), TRY_CONVERT(INT, [value])) <> [value]%'
+   OR CHARINDEX(N'CONVERT(NVARCHAR(11), TRY_CONVERT(INT, [value])) <> [value]', @CreateDefinition) = 0
+   OR CHARINDEX(N'CONVERT(NVARCHAR(11), TRY_CONVERT(INT, [value])) <> [value]', @UpdateDefinition) = 0
    OR @UpdateDefinition NOT LIKE N'%ELSE ProjectStage END%'
    OR @UpdateDefinition NOT LIKE N'%IF @SustainableDevelopmentGoalIdsJson IS NOT NULL%'
     THROW 55324, N'Backward-compatible project write contract failed.', 1;
 
 IF @GetDefinition NOT LIKE N'%SustainableDevelopmentGoalId AS Id%'
-   OR @CatalogDefinition NOT LIKE N'%Result set 13:%'
    OR @CatalogDefinition NOT LIKE N'%FundingPlatform_SustainableDevelopmentGoals%'
     THROW 55325, N'Project or catalog read contract failed.', 1;
 

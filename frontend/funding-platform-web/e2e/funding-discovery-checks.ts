@@ -53,8 +53,12 @@ export function registerFundingDiscoveryTests(accessibility: (page: Page) => Pro
       await english(page)
       await page.getByRole('button', { name: 'Confirm classification', exact: true }).click()
       await expect(page.getByText('Classification reviewed and saved.', { exact: true })).toBeVisible()
+      await expect(page.getByText('The opportunity changed since the previous review.', { exact: false })).not.toBeVisible()
       expect(writes).toHaveLength(1)
       expect(writes[0]).toMatchObject({ contentVersion: 2, data: { funderKind: 3, requiresConsortium: null, requiresInternationalPartner: null } })
+      await page.getByRole('combobox', { name: 'Consortium required', exact: true }).selectOption('true')
+      await expect(page.getByText('Classification reviewed and saved.', { exact: true })).not.toBeVisible()
+      expect(writes).toHaveLength(1)
       await accessibility(page); await fits(page)
     })
   }

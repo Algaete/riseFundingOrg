@@ -18,6 +18,20 @@ DECLARE @LedgerDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_FundingOpportunityFunderIdentityConflict_Record'));
 DECLARE @AuditSinkDefinition NVARCHAR(MAX) =
     OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge'));
+/* Later sinks delegate to the preserved 019 sink. Verify the delegation before
+   inspecting that implementation; unrelated legacy objects cannot satisfy this guard. */
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', N'P') IS NOT NULL
+BEGIN
+    IF CHARINDEX(N'EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038', @AuditSinkDefinition) = 0
+        THROW 53702, N'Current audit sink does not delegate to its preserved implementation.', 1;
+    SET @AuditSinkDefinition += OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre038'));
+END;
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037', N'P') IS NOT NULL
+BEGIN
+    IF CHARINDEX(N'EXEC dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037', @AuditSinkDefinition) = 0
+        THROW 53702, N'Current audit sink does not delegate to the application sink.', 1;
+    SET @AuditSinkDefinition += OBJECT_DEFINITION(OBJECT_ID(N'dbo.FundingPlatform_usp_OutboxAuditEvents_Acknowledge_Pre037'));
+END;
 IF CHARINDEX(N'FundingPlatform_fn_StrongHttpsIdentityUrlHash', COALESCE(@HelperDefinition, N'')) = 0
    OR CHARINDEX(N'Latin1_General_100_BIN2', COALESCE(@HelperDefinition, N'')) = 0
    OR CHARINDEX(N'FundingPlatform_usp_FundingOpportunityFunderIdentityConflict_Record',

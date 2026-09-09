@@ -111,6 +111,11 @@ IF @ApiRoleId IS NULL OR @WorkerRoleId IS NULL
          AND permissions.state IN (N'G', N'W'))
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @ApiRoleId) <> 162
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NULL THEN 0 ELSE 9 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NULL THEN 0 ELSE 1 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FundingDiscovery', N'U') IS NULL THEN 0 ELSE 3 END
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @WorkerRoleId) <> 53 +
        CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS NULL THEN 0 ELSE 3 END

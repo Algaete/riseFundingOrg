@@ -66,6 +66,9 @@ BEGIN TRY
         RevokedTrustedProcessingVersion NVARCHAR(100) NULL,
         RevokedTrustedCreatedAtUtc DATETIME2(3) NULL;
 
+    /* Compile references to the new columns only after both ALTER TABLE statements.
+       Keep the backfill and all WITH CHECK constraints inside the original transaction. */
+    EXEC sys.sp_executesql N'
     /* Historical scan events had one status/result domain. Preserve it exactly. */
     UPDATE dbo.FundingPlatform_ProjectAssetScanEvents
     SET ProviderObservedStatus = ToStatus,
@@ -80,8 +83,8 @@ BEGIN TRY
         RevokedTrustedPixelWidth = assets.PixelWidth,
         RevokedTrustedPixelHeight = assets.PixelHeight,
         RevokedTrustedProcessingVersion =
-            CASE WHEN assets.Kind = 1 THEN N'pdf-copy-v1'
-                 ELSE N'legacy-unsanitized-v0' END,
+            CASE WHEN assets.Kind = 1 THEN N''pdf-copy-v1''
+                 ELSE N''legacy-unsanitized-v0'' END,
         RevokedTrustedCreatedAtUtc = COALESCE
         (
             (SELECT MAX(cleanEvents.OccurredAtUtc)
@@ -104,7 +107,7 @@ BEGIN TRY
         TrustedContentHash = ContentHash,
         TrustedPixelWidth = NULL,
         TrustedPixelHeight = NULL,
-        TrustedProcessingVersion = N'pdf-copy-v1',
+        TrustedProcessingVersion = N''pdf-copy-v1'',
         TrustedCreatedAtUtc = COALESCE(ScanCompletedAtUtc, CreatedAtUtc)
     WHERE StorageStatus = 2 AND ScanStatus = 1 AND Kind = 1;
 
@@ -138,7 +141,7 @@ BEGIN TRY
     UPDATE assets
     SET StorageStatus = 3,
         ScanStatus = 3,
-        ScanResultCode = N'legacy-image-unsanitized',
+        ScanResultCode = N''legacy-image-unsanitized'',
         ScanCompletedAtUtc = @MigrationUtc,
         TrustedBlobContainer = NULL,
         TrustedBlobObjectName = NULL,
@@ -176,7 +179,7 @@ BEGIN TRY
 
     UPDATE legacy
     SET EventId = NEWID(),
-        ProviderEventId = N'migration-038-legacy-image:'
+        ProviderEventId = N''migration-038-legacy-image:''
                           + CONVERT(NVARCHAR(36), legacy.AssetPublicId),
         ProviderResultCode = COALESCE
         (
@@ -186,7 +189,7 @@ BEGIN TRY
                AND cleanEvents.FromStatus = 0 AND cleanEvents.ToStatus = 1
              ORDER BY cleanEvents.OccurredAtUtc DESC, cleanEvents.Id DESC),
             legacy.OriginalScanResultCode,
-            N'clean'
+            N''clean''
         )
     FROM @LegacyImages AS legacy;
 
@@ -204,10 +207,10 @@ BEGIN TRY
          RevokedTrustedCreatedAtUtc)
     SELECT legacy.EventId, legacy.ProjectAssetId, legacy.ScanProvider,
            legacy.ProviderEventId,
-           HASHBYTES('SHA2_256', CONVERT(VARBINARY(MAX), CONVERT(VARCHAR(MAX),
+           HASHBYTES(''SHA2_256'', CONVERT(VARBINARY(MAX), CONVERT(VARCHAR(MAX),
                legacy.ProviderEventId COLLATE Latin1_General_100_BIN2_UTF8))),
            1, 3, 1, legacy.QuarantineBlobETag, legacy.ContentHash,
-           N'legacy-image-unsanitized', legacy.ProviderResultCode,
+           N''legacy-image-unsanitized'', legacy.ProviderResultCode,
            legacy.ResultRowVersion, @MigrationUtc, @MigrationUtc,
            legacy.RevokedTrustedBlobContainer,
            legacy.RevokedTrustedBlobObjectName,
@@ -218,20 +221,20 @@ BEGIN TRY
            legacy.RevokedTrustedContentHash,
            legacy.RevokedTrustedPixelWidth,
            legacy.RevokedTrustedPixelHeight,
-           N'legacy-unsanitized-v0',
+           N''legacy-unsanitized-v0'',
            legacy.RevokedTrustedCreatedAtUtc
     FROM @LegacyImages AS legacy;
 
     INSERT INTO dbo.FundingPlatform_OutboxMessages
         (MessageId, MessageType, AggregateType, AggregateId, PayloadJson,
          OccurredAtUtc, AvailableAtUtc)
-    SELECT legacy.EventId, N'ProjectAssetLegacyTrustRevoked', N'ProjectAsset',
+    SELECT legacy.EventId, N''ProjectAssetLegacyTrustRevoked'', N''ProjectAsset'',
            CONVERT(NVARCHAR(100), legacy.AssetPublicId),
            (SELECT legacy.EventId AS eventId,
                    legacy.AssetPublicId AS assetPublicId,
                    CAST(3 AS TINYINT) AS scanStatus,
                    CAST(3 AS TINYINT) AS storageStatus,
-                   N'legacy-image-unsanitized' AS resultCode,
+                   N''legacy-image-unsanitized'' AS resultCode,
                    legacy.RevokedTrustedBlobContainer AS revokedTrustedBlobContainer,
                    legacy.RevokedTrustedBlobObjectName AS revokedTrustedBlobObjectName,
                    legacy.RevokedTrustedBlobETag AS revokedTrustedBlobETag,
@@ -242,7 +245,7 @@ BEGIN TRY
                        AS revokedTrustedContentHashSha256,
                    legacy.RevokedTrustedPixelWidth AS revokedTrustedPixelWidth,
                    legacy.RevokedTrustedPixelHeight AS revokedTrustedPixelHeight,
-                   N'legacy-unsanitized-v0' AS revokedTrustedProcessingVersion,
+                   N''legacy-unsanitized-v0'' AS revokedTrustedProcessingVersion,
                    legacy.RevokedTrustedCreatedAtUtc AS revokedTrustedCreatedAtUtc
             FOR JSON PATH, WITHOUT_ARRAY_WRAPPER, INCLUDE_NULL_VALUES),
            @MigrationUtc, @MigrationUtc
@@ -264,9 +267,9 @@ BEGIN TRY
         CHECK
         (
             (StorageStatus = 2 AND ScanStatus = 1
-             AND NULLIF(LTRIM(RTRIM(TrustedBlobContainer)), N'') IS NOT NULL
-             AND NULLIF(LTRIM(RTRIM(TrustedBlobObjectName)), N'') IS NOT NULL
-             AND NULLIF(LTRIM(RTRIM(TrustedBlobETag)), N'') IS NOT NULL
+             AND NULLIF(LTRIM(RTRIM(TrustedBlobContainer)), N'''') IS NOT NULL
+             AND NULLIF(LTRIM(RTRIM(TrustedBlobObjectName)), N'''') IS NOT NULL
+             AND NULLIF(LTRIM(RTRIM(TrustedBlobETag)), N'''') IS NOT NULL
              AND NOT (TrustedBlobContainer = QuarantineBlobContainer
                       AND TrustedBlobObjectName = QuarantineBlobObjectName))
             OR
@@ -282,30 +285,30 @@ BEGIN TRY
             TrustedBlobObjectName IS NULL
             OR
             (TRY_CONVERT(UNIQUEIDENTIFIER, LEFT(TrustedBlobObjectName, 36)) IS NOT NULL
-             AND SUBSTRING(TrustedBlobObjectName, 37, 1) = N'/'
+             AND SUBSTRING(TrustedBlobObjectName, 37, 1) = N''/''
              AND SUBSTRING(TrustedBlobObjectName, 38, 32) =
                  LOWER(SUBSTRING(TrustedBlobObjectName, 38, 32))
              AND SUBSTRING(TrustedBlobObjectName, 38, 32)
-                 COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9a-f]%'
-             AND SUBSTRING(TrustedBlobObjectName, 70, 1) = N'.'
-             AND CHARINDEX(N'/', TrustedBlobObjectName, 38) = 0
-             AND CHARINDEX(N'\', TrustedBlobObjectName) = 0
-             AND CHARINDEX(N'?', TrustedBlobObjectName) = 0
-             AND CHARINDEX(N'#', TrustedBlobObjectName) = 0
+                 COLLATE Latin1_General_100_BIN2 NOT LIKE N''%[^0-9a-f]%''
+             AND SUBSTRING(TrustedBlobObjectName, 70, 1) = N''.''
+             AND CHARINDEX(N''/'', TrustedBlobObjectName, 38) = 0
+             AND CHARINDEX(N''\'', TrustedBlobObjectName) = 0
+             AND CHARINDEX(N''?'', TrustedBlobObjectName) = 0
+             AND CHARINDEX(N''#'', TrustedBlobObjectName) = 0
              AND
              (
-                 (LOWER(TrustedMimeType) = N'image/jpeg'
-                  AND (RIGHT(LOWER(TrustedBlobObjectName), 4) = N'.jpg'
-                       OR RIGHT(LOWER(TrustedBlobObjectName), 5) = N'.jpeg')
+                 (LOWER(TrustedMimeType) = N''image/jpeg''
+                  AND (RIGHT(LOWER(TrustedBlobObjectName), 4) = N''.jpg''
+                       OR RIGHT(LOWER(TrustedBlobObjectName), 5) = N''.jpeg'')
                   AND LEN(TrustedBlobObjectName) IN (73, 74))
-                 OR (LOWER(TrustedMimeType) = N'image/png'
-                     AND RIGHT(LOWER(TrustedBlobObjectName), 4) = N'.png'
+                 OR (LOWER(TrustedMimeType) = N''image/png''
+                     AND RIGHT(LOWER(TrustedBlobObjectName), 4) = N''.png''
                      AND LEN(TrustedBlobObjectName) = 73)
-                 OR (LOWER(TrustedMimeType) = N'image/webp'
-                     AND RIGHT(LOWER(TrustedBlobObjectName), 5) = N'.webp'
+                 OR (LOWER(TrustedMimeType) = N''image/webp''
+                     AND RIGHT(LOWER(TrustedBlobObjectName), 5) = N''.webp''
                      AND LEN(TrustedBlobObjectName) = 74)
-                 OR (LOWER(TrustedMimeType) = N'application/pdf'
-                     AND RIGHT(LOWER(TrustedBlobObjectName), 4) = N'.pdf'
+                 OR (LOWER(TrustedMimeType) = N''application/pdf''
+                     AND RIGHT(LOWER(TrustedBlobObjectName), 4) = N''.pdf''
                      AND LEN(TrustedBlobObjectName) = 73)
              ))
         );
@@ -335,7 +338,7 @@ BEGIN TRY
              AND
              (
                  (Kind = 0
-                  AND TrustedMimeType IN (N'image/jpeg', N'image/png', N'image/webp')
+                  AND TrustedMimeType IN (N''image/jpeg'', N''image/png'', N''image/webp'')
                   AND TrustedMimeType COLLATE Latin1_General_100_BIN2 =
                       LOWER(VerifiedMimeType) COLLATE Latin1_General_100_BIN2
                   AND TrustedContentLength BETWEEN 1 AND 10485760
@@ -345,10 +348,10 @@ BEGIN TRY
                   AND TrustedPixelHeight BETWEEN 1 AND 32768
                   AND CONVERT(BIGINT, TrustedPixelWidth)
                       * CONVERT(BIGINT, TrustedPixelHeight) <= 25000000
-                  AND TrustedProcessingVersion = N'skia-4.151.2-image-v1')
+                  AND TrustedProcessingVersion = N''skia-4.151.2-image-v1'')
                  OR
                  (Kind = 1
-                  AND TrustedMimeType = N'application/pdf'
+                  AND TrustedMimeType = N''application/pdf''
                   AND TrustedMimeType COLLATE Latin1_General_100_BIN2 =
                       LOWER(VerifiedMimeType) COLLATE Latin1_General_100_BIN2
                   AND TrustedContentLength BETWEEN 1 AND 26214400
@@ -356,7 +359,7 @@ BEGIN TRY
                   AND TrustedContentHash = ContentHash
                   AND TrustedPixelWidth IS NULL
                   AND TrustedPixelHeight IS NULL
-                  AND TrustedProcessingVersion = N'pdf-copy-v1')
+                  AND TrustedProcessingVersion = N''pdf-copy-v1'')
              ))
         );
 
@@ -373,7 +376,7 @@ BEGIN TRY
                  AND ((ScanProvider = 1 AND ToStatus BETWEEN 2 AND 4)
                       OR (ToStatus = 3
                           AND ResultCode COLLATE Latin1_General_100_BIN2 =
-                              N'legacy-image-unsanitized')))
+                              N''legacy-image-unsanitized'')))
             )
         );
 
@@ -381,14 +384,14 @@ BEGIN TRY
         ADD CONSTRAINT FundingPlatform_CK_ProjectAssetScanEvents_Result
         CHECK
         (
-            NULLIF(LTRIM(RTRIM(ProviderEventId)), N'') IS NOT NULL
-            AND NULLIF(LTRIM(RTRIM(QuarantineBlobETag)), N'') IS NOT NULL
-            AND NULLIF(LTRIM(RTRIM(ResultCode)), N'') IS NOT NULL
-            AND NULLIF(LTRIM(RTRIM(ProviderResultCode)), N'') IS NOT NULL
+            NULLIF(LTRIM(RTRIM(ProviderEventId)), N'''') IS NOT NULL
+            AND NULLIF(LTRIM(RTRIM(QuarantineBlobETag)), N'''') IS NOT NULL
+            AND NULLIF(LTRIM(RTRIM(ResultCode)), N'''') IS NOT NULL
+            AND NULLIF(LTRIM(RTRIM(ProviderResultCode)), N'''') IS NOT NULL
             AND CHARINDEX(CHAR(10), ProviderEventId) = 0
             AND CHARINDEX(CHAR(13), ProviderEventId) = 0
-            AND LEFT(QuarantineBlobETag, 1) = N'"'
-            AND RIGHT(QuarantineBlobETag, 1) = N'"'
+            AND LEFT(QuarantineBlobETag, 1) = N''"''
+            AND RIGHT(QuarantineBlobETag, 1) = N''"''
             AND CHARINDEX(CHAR(10), QuarantineBlobETag) = 0
             AND CHARINDEX(CHAR(13), QuarantineBlobETag) = 0
             AND CHARINDEX(CHAR(10), ResultCode) = 0
@@ -406,13 +409,13 @@ BEGIN TRY
                 (ScanProvider BETWEEN 0 AND 1 AND FromStatus = 0
                  AND ProviderObservedStatus = 1 AND ToStatus = 3
                  AND ResultCode COLLATE Latin1_General_100_BIN2 IN
-                     (N'image-format-rejected', N'image-decode-rejected',
-                      N'image-frame-count-rejected', N'image-dimensions-rejected',
-                      N'image-output-too-large'))
+                     (N''image-format-rejected'', N''image-decode-rejected'',
+                      N''image-frame-count-rejected'', N''image-dimensions-rejected'',
+                      N''image-output-too-large''))
                 OR
                 (FromStatus = 1 AND ProviderObservedStatus = 1 AND ToStatus = 3
                  AND ResultCode COLLATE Latin1_General_100_BIN2 =
-                     N'legacy-image-unsanitized')
+                     N''legacy-image-unsanitized'')
             )
             AND
             (
@@ -430,41 +433,41 @@ BEGIN TRY
                  AND RevokedTrustedCreatedAtUtc IS NULL)
                 OR
                 (FromStatus = 1
-                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobContainer)), N'') IS NOT NULL
-                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobObjectName)), N'') IS NOT NULL
-                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobETag)), N'') IS NOT NULL
+                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobContainer)), N'''') IS NOT NULL
+                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobObjectName)), N'''') IS NOT NULL
+                 AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobETag)), N'''') IS NOT NULL
                  AND RevokedTrustedMimeType IS NOT NULL
                  AND RevokedTrustedContentLength IS NOT NULL
                  AND RevokedTrustedContentHash IS NOT NULL
                  AND RevokedTrustedProcessingVersion IS NOT NULL
                  AND RevokedTrustedCreatedAtUtc IS NOT NULL
-                 AND CHARINDEX(N'&', RevokedTrustedBlobContainer) = 0
-                 AND CHARINDEX(N'#', RevokedTrustedBlobContainer) = 0
-                 AND CHARINDEX(N'?', RevokedTrustedBlobContainer) = 0
-                 AND CHARINDEX(N'&', RevokedTrustedBlobObjectName) = 0
-                 AND CHARINDEX(N'#', RevokedTrustedBlobObjectName) = 0
-                 AND CHARINDEX(N'?', RevokedTrustedBlobObjectName) = 0
+                 AND CHARINDEX(N''&'', RevokedTrustedBlobContainer) = 0
+                 AND CHARINDEX(N''#'', RevokedTrustedBlobContainer) = 0
+                 AND CHARINDEX(N''?'', RevokedTrustedBlobContainer) = 0
+                 AND CHARINDEX(N''&'', RevokedTrustedBlobObjectName) = 0
+                 AND CHARINDEX(N''#'', RevokedTrustedBlobObjectName) = 0
+                 AND CHARINDEX(N''?'', RevokedTrustedBlobObjectName) = 0
                  AND
                  (
                      (ResultCode COLLATE Latin1_General_100_BIN2 =
-                          N'legacy-image-unsanitized'
+                          N''legacy-image-unsanitized''
                       AND CHARINDEX(CHAR(10),
-                          COALESCE(RevokedTrustedBlobVersionId, N'')) = 0
+                          COALESCE(RevokedTrustedBlobVersionId, N'''')) = 0
                       AND CHARINDEX(CHAR(13),
-                          COALESCE(RevokedTrustedBlobVersionId, N'')) = 0)
+                          COALESCE(RevokedTrustedBlobVersionId, N'''')) = 0)
                      OR
                      (ResultCode COLLATE Latin1_General_100_BIN2 <>
-                          N'legacy-image-unsanitized'
-                      AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobVersionId)), N'')
+                          N''legacy-image-unsanitized''
+                      AND NULLIF(LTRIM(RTRIM(RevokedTrustedBlobVersionId)), N'''')
                           IS NOT NULL
-                      AND CHARINDEX(N'&', RevokedTrustedBlobVersionId) = 0
-                      AND CHARINDEX(N'#', RevokedTrustedBlobVersionId) = 0
-                      AND CHARINDEX(N'?', RevokedTrustedBlobVersionId) = 0)
+                      AND CHARINDEX(N''&'', RevokedTrustedBlobVersionId) = 0
+                      AND CHARINDEX(N''#'', RevokedTrustedBlobVersionId) = 0
+                      AND CHARINDEX(N''?'', RevokedTrustedBlobVersionId) = 0)
                  )
                  AND
                  (
                      (RevokedTrustedMimeType IN
-                          (N'image/jpeg', N'image/png', N'image/webp')
+                          (N''image/jpeg'', N''image/png'', N''image/webp'')
                       AND RevokedTrustedContentLength BETWEEN 1 AND 10485760
                       AND RevokedTrustedPixelWidth IS NOT NULL
                       AND RevokedTrustedPixelHeight IS NOT NULL
@@ -473,16 +476,18 @@ BEGIN TRY
                       AND CONVERT(BIGINT, RevokedTrustedPixelWidth)
                           * CONVERT(BIGINT, RevokedTrustedPixelHeight) <= 25000000
                       AND RevokedTrustedProcessingVersion IN
-                          (N'skia-4.151.2-image-v1', N'legacy-unsanitized-v0'))
+                          (N''skia-4.151.2-image-v1'', N''legacy-unsanitized-v0''))
                      OR
-                     (RevokedTrustedMimeType = N'application/pdf'
+                     (RevokedTrustedMimeType = N''application/pdf''
                       AND RevokedTrustedContentLength BETWEEN 1 AND 26214400
                       AND RevokedTrustedPixelWidth IS NULL
                       AND RevokedTrustedPixelHeight IS NULL
-                      AND RevokedTrustedProcessingVersion = N'pdf-copy-v1')
+                      AND RevokedTrustedProcessingVersion = N''pdf-copy-v1'')
                  ))
             )
         );
+
+', N'@MigrationUtc DATETIME2(3)', @MigrationUtc = @MigrationUtc;
 
     IF @InitialTransactionCount = 0 COMMIT TRANSACTION;
 END TRY

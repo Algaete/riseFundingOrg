@@ -89,7 +89,8 @@ IF @CreateDefinition NOT LIKE N'%@ExpectedProjectRowVersion BINARY(8)%'
 IF @ListDefinition LIKE N'%TrustedBlobContainer%'
    OR @ListDefinition LIKE N'%QuarantineBlobContainer%'
    OR @ListDefinition LIKE N'%IncomingBlobContainer%'
-   OR @ListDefinition LIKE N'%ContentHash%'
+   /* 038 checks hash presence inside ContentAvailable without projecting it. */
+   OR REPLACE(@ListDefinition, N'AND TrustedContentHash IS NOT NULL', N'') LIKE N'%ContentHash%'
    OR @ListDefinition NOT LIKE N'%ProjectRowVersion%'
    OR @ListDefinition LIKE N'%memberships.Role = 1%'
    OR @TrustedDefinition LIKE N'%memberships.Role = 1%'
@@ -402,7 +403,10 @@ BEGIN TRY
         @TrustedBlobContainer = N'project-trusted',
         @TrustedBlobObjectName = @TrustedObject,
         @TrustedBlobETag = N'"trusted-etag"',
-        @TrustedBlobVersionId = N'trusted-version';
+        @TrustedBlobVersionId = N'trusted-version',
+        @TrustedMimeType = N'image/png', @TrustedContentLength = 1024,
+        @TrustedContentHash = @AssetHash, @TrustedPixelWidth = 800, @TrustedPixelHeight = 600,
+        @TrustedProcessingVersion = N'skia-4.151.2-image-v1';
 
     IF NOT EXISTS
        (SELECT 1 FROM dbo.FundingPlatform_ProjectAssets

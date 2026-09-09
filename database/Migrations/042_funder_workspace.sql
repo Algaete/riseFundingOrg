@@ -7,7 +7,7 @@ SET XACT_ABORT ON;
 GO
 CREATE TABLE dbo.FundingPlatform_FunderWorkspaceOwners
 (
-    FunderId BIGINT NOT NULL PRIMARY KEY,
+    FunderId BIGINT NOT NULL CONSTRAINT FundingPlatform_PK_FunderWorkspaceOwners_FunderId PRIMARY KEY,
     UserId BIGINT NOT NULL,
     IsActive BIT NOT NULL CONSTRAINT FundingPlatform_DF_FunderWorkspaceOwners_Active DEFAULT (1),
     CreatedAtUtc DATETIME2(3) NOT NULL CONSTRAINT FundingPlatform_DF_FunderWorkspaceOwners_Created DEFAULT SYSUTCDATETIME(),
@@ -17,7 +17,7 @@ CREATE TABLE dbo.FundingPlatform_FunderWorkspaceOwners
 CREATE INDEX FundingPlatform_IX_FunderWorkspaceOwners_User ON dbo.FundingPlatform_FunderWorkspaceOwners(UserId, IsActive);
 CREATE TABLE dbo.FundingPlatform_OpportunityWorkspaceOwners
 (
-    FundingOpportunityId BIGINT NOT NULL PRIMARY KEY,
+    FundingOpportunityId BIGINT NOT NULL CONSTRAINT FundingPlatform_PK_OpportunityWorkspaceOwners_FundingOpportunityId PRIMARY KEY,
     FunderId BIGINT NOT NULL,
     CONSTRAINT FundingPlatform_FK_OpportunityWorkspaceOwners_Opportunity FOREIGN KEY (FundingOpportunityId) REFERENCES dbo.FundingPlatform_FundingOpportunities(Id),
     CONSTRAINT FundingPlatform_FK_OpportunityWorkspaceOwners_Funder FOREIGN KEY (FunderId) REFERENCES dbo.FundingPlatform_Funders(Id)
@@ -2613,4 +2613,3 @@ BEGIN
            COALESCE(@ResultRowVersion, @CurrentRowVersion) AS RowVersion, @WasReplay AS WasReplay;
 END;
 GO
-

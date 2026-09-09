@@ -40,7 +40,9 @@ try
     var runner = new DatabaseMigrationRunner(
         connectionFactory,
         expectedDatabaseName,
-        expectedServerFqdn);
+        expectedServerFqdn,
+        Environment.GetEnvironmentVariable("MIGRATION_REPORT_PROGRESS") == "true"
+            ? Console.WriteLine : null);
 
     switch (args[0])
     {
@@ -140,7 +142,10 @@ catch (MigrationException exception)
         ? sqlException.Errors
             .Cast<SqlError>()
             .Where(error => error.LineNumber > 0)
-            .Select(error => $" Línea SQL: {error.LineNumber}.")
+            .Select(error => $" Línea SQL: {error.LineNumber}." +
+                (System.Text.RegularExpressions.Regex.IsMatch(error.Procedure ?? string.Empty,
+                    @"\A(?:dbo\.)?FundingPlatform_[A-Za-z0-9_]+\z")
+                    ? $" Objeto SQL: {error.Procedure}." : string.Empty))
             .FirstOrDefault() ?? string.Empty
         : string.Empty;
     Console.Error.WriteLine(

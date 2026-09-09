@@ -51,7 +51,7 @@ DECLARE @CatalogDefinition NVARCHAR(MAX) =
 IF @CoreUpdateDefinition NOT LIKE N'%@PreviousFunderTypeIdsJson NVARCHAR(1000) = NULL%'
    OR @PublicUpdateDefinition NOT LIKE N'%@PreviousFunderTypeIdsJson NVARCHAR(1000) = NULL%'
    OR @CoreUpdateDefinition NOT LIKE N'%THROW 51011%'
-   OR @CoreUpdateDefinition NOT LIKE N'%CONVERT(NVARCHAR(6), TRY_CONVERT(SMALLINT, [value]))%'
+   OR CHARINDEX(N'CONVERT(NVARCHAR(6), TRY_CONVERT(SMALLINT, [value]))', @CoreUpdateDefinition) = 0
    OR @CoreUpdateDefinition NOT LIKE N'%$.fundingExperienceTypeIds%'
    OR @GetDefinition NOT LIKE N'%FundingExperienceTypeId AS Id%'
    OR @CatalogDefinition NOT LIKE N'%Result set 14:%'

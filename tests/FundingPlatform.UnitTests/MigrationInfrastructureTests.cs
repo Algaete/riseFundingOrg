@@ -310,7 +310,7 @@ public sealed class MigrationInfrastructureTests
             StringComparison.Ordinal);
 
         var executePendingStart = source.IndexOf(
-            "private static async Task<MigrationRunResult> ExecutePendingAsync",
+            "private async Task<MigrationRunResult> ExecutePendingAsync",
             StringComparison.Ordinal);
         Assert.True(executePendingStart >= 0);
         var executePending = source[executePendingStart..];

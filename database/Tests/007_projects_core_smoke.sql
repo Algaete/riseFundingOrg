@@ -98,7 +98,7 @@ BEGIN TRY
     DECLARE @ListedA TABLE
     (
         PublicId UNIQUEIDENTIFIER, Slug NVARCHAR(180), Title NVARCHAR(250), Summary NVARCHAR(1000),
-        ProjectStatus TINYINT, PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
+        ProjectStatus TINYINT, ProjectStage TINYINT, PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
         BudgetTotal DECIMAL(19,4), ConfirmedFunding DECIMAL(19,4), Currency CHAR(3),
         FundingGap DECIMAL(19,4), ProjectVersion INT, UpdatedAtUtc DATETIME2(3)
     );
@@ -110,7 +110,7 @@ BEGIN TRY
     DECLARE @ListedB TABLE
     (
         PublicId UNIQUEIDENTIFIER, Slug NVARCHAR(180), Title NVARCHAR(250), Summary NVARCHAR(1000),
-        ProjectStatus TINYINT, PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
+        ProjectStatus TINYINT, ProjectStage TINYINT, PublicationStatus TINYINT, StartDate DATE, EndDate DATE,
         BudgetTotal DECIMAL(19,4), ConfirmedFunding DECIMAL(19,4), Currency CHAR(3),
         FundingGap DECIMAL(19,4), ProjectVersion INT, UpdatedAtUtc DATETIME2(3)
     );

@@ -7,7 +7,8 @@ namespace FundingPlatform.Infrastructure.Persistence.Migrations;
 public sealed class DatabaseMigrationRunner(
     ISqlConnectionFactory connectionFactory,
     string? expectedDatabaseName = null,
-    string? expectedServerFqdn = null)
+    string? expectedServerFqdn = null,
+    Action<string>? reportProgress = null)
 {
     private const string LockResource = "FundingPlatform:DatabaseMigrations";
     private const string FullTextLockResource = "FundingPlatform:FullTextProvisioning";
@@ -424,7 +425,7 @@ public sealed class DatabaseMigrationRunner(
         return new FullTextProvisioningStatus(state);
     }
 
-    private static async Task<MigrationRunResult> ExecutePendingAsync(
+    private async Task<MigrationRunResult> ExecutePendingAsync(
         SqlConnection connection,
         SqlTransaction transaction,
         IReadOnlyList<SqlScript> scripts,
@@ -438,6 +439,7 @@ public sealed class DatabaseMigrationRunner(
 
         foreach (var script in scripts.Where(item => !appliedVersions.Contains(item.Sequence)))
         {
+            reportProgress?.Invoke($"{(recordHistory ? "Migration" : "Smoke")} {script.Sequence:D3}");
             try
             {
                 foreach (var batch in script.Batches)
