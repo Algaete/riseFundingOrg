@@ -1,6 +1,7 @@
 // Complete resource shape for type checking and parity tests. Runtime loading
 // imports individual modules via resource-loader.ts, never this aggregate.
 import { coreEs } from './core/es'
+import { ecosystemEs } from './ecosystem/es'
 import { collaborationEs } from './collaboration/es'
 import { validationEs } from './validation/es'
 import { operationsEs } from './operations/es'
@@ -43,6 +44,7 @@ import { workspaceFeedbackEs } from './workspace-feedback/es'
 export const es = {
   translation: {
     ...coreEs,
+    ecosystem: ecosystemEs,
     collaboration: collaborationEs,
     validation: validationEs,
     operations: operationsEs,

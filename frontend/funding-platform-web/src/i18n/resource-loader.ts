@@ -3,6 +3,7 @@ import type { InterfaceLanguage } from './language'
 // Each language/module is an independent build chunk; no eager aggregate import.
 export const resourceLoaders = {
   es: {
+    ecosystem: () => import('./ecosystem/es').then(module => ({ ecosystem: module.ecosystemEs })),
     collaboration: () => import('./collaboration/es').then(module => ({ collaboration: module.collaborationEs })),
     funderWorkspace: () => import('./funder-workspace/es').then(module => ({ funderWorkspace: module.funderWorkspaceEs })),
     projectMap: () => import('./project-map/es').then(module => ({ projectMap: module.projectMapEs })),
@@ -44,6 +45,7 @@ export const resourceLoaders = {
     workspaceFeedback: () => import('./workspace-feedback/es').then(module => ({ workspaceFeedback: module.workspaceFeedbackEs })),
   },
   en: {
+    ecosystem: () => import('./ecosystem/en').then(module => ({ ecosystem: module.ecosystemEn })),
     collaboration: () => import('./collaboration/en').then(module => ({ collaboration: module.collaborationEn })),
     funderWorkspace: () => import('./funder-workspace/en').then(module => ({ funderWorkspace: module.funderWorkspaceEn })),
     projectMap: () => import('./project-map/en').then(module => ({ projectMap: module.projectMapEn })),

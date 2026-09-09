@@ -22,6 +22,7 @@ export const coreEs = {
     administration: 'Administración',
     connections: 'Conexiones',
     collaboration: 'Profesionales y consorcios',
+    ecosystem: 'Encontrar aliados y proyectos',
     projectReview: 'Revisión de proyectos',
     funds: 'Fondos',
     funders: 'Financiadores',

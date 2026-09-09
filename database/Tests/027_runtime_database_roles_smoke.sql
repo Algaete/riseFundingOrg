@@ -103,6 +103,9 @@ IF OBJECT_ID(N'dbo.FundingPlatform_Consortia', N'U') IS NOT NULL
         (N'FundingPlatform_usp_Consortium_Update'),
         (N'FundingPlatform_usp_Consortium_Invite'),
         (N'FundingPlatform_usp_Consortium_ParticipantAction')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context'), N'FundingPlatform_usp_DiscoveryMatching_Context');
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions

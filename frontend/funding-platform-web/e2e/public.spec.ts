@@ -5,6 +5,7 @@ import { registerProjectEnrichmentTests } from './project-enrichment-checks'
 import { registerProjectMapTests } from './project-map-checks'
 import { registerFunderWorkspaceTests } from './funder-workspace-checks'
 import { registerCollaborationTests } from './collaboration-checks'
+import { registerEcosystemTests } from './ecosystem-checks'
 import { registerDashboardAccountLanguageTests } from './dashboard-account-checks'
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
@@ -108,6 +109,7 @@ test.afterEach(async ({ page }) => {
 })
 
 registerWorkspaceLanguageTests(expectNoSeriousAccessibilityViolations)
+registerEcosystemTests(expectNoSeriousAccessibilityViolations)
 registerProjectEnrichmentTests(expectNoSeriousAccessibilityViolations)
 registerCollaborationTests(expectNoSeriousAccessibilityViolations)
 registerProjectMapTests(expectNoSeriousAccessibilityViolations)

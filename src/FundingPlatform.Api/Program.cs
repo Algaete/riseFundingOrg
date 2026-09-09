@@ -228,6 +228,8 @@ builder.Services.AddScoped<IProfessionalProfileRepository, SqlProfessionalProfil
 builder.Services.AddScoped<IConsortiumRepository, SqlConsortiumRepository>();
 builder.Services.AddScoped<ProfessionalProfileService>();
 builder.Services.AddScoped<ConsortiumService>();
+builder.Services.AddScoped<IDiscoveryMatchingRepository, SqlDiscoveryMatchingRepository>();
+builder.Services.AddScoped<DiscoveryMatchingService>();
 builder.Services.AddScoped<IFundingOpportunityEditorialRepository,
     SqlFundingOpportunityEditorialRepository>();
 builder.Services.AddScoped<FundingOpportunityEditorialService>();
@@ -826,6 +828,7 @@ app.MapAdminFundingEditorialEndpoints();
 app.MapFunderWorkspaceEndpoints();
 app.MapProfessionalProfileEndpoints();
 app.MapConsortiumEndpoints();
+app.MapDiscoveryMatchingEndpoints();
 app.MapAdminImportRunEndpoints();
 app.MapAdminSourceDocumentEndpoints();
 app.MapAdminFundingDuplicateEndpoints();

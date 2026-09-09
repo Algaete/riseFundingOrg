@@ -41,6 +41,7 @@ const memberNavigation: NavigationItem[] = [
   { label: 'overview', to: '/dashboard', icon: LayoutDashboard },
   { label: 'availableFunding', to: '/opportunities', icon: Radar },
   { label: 'recommended', to: '/matching', icon: Gauge },
+  { label: 'ecosystem', to: '/matching/ecosystem', icon: Radar },
   { label: 'favorites', to: '/favorites', icon: Heart },
   { label: 'applications', to: '/applications', icon: ClipboardList },
   { label: 'calendar', to: '/calendar', icon: CalendarDays },
@@ -88,7 +89,7 @@ function NavigationLink({ item }: { item: NavigationItem }) {
 export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const translatedContent = /^\/(?:professional\/profile|professionals|collaboration\/consortia(?:\/[^/]+)?)\/?$/i.test(pathname) || /^\/funder-workspace(?:\/(?:funders|funding)(?:\/[^/]+)?)?\/?$/i.test(pathname) || /^\/(?:dashboard|account|onboarding|organization\/profile|projects(?:\/[^/]+)?|opportunities(?:\/[^/]+)?|favorites|matching|network|applications|calendar|alerts|subscription|admin(?:\/(?:funding|funders|projects|organizations|imports)(?:\/[^/]+)?|\/(?:users|sources|subscriptions|errors)|\/source-documents\/[^/]+)?)\/?$/i.test(pathname)
+  const translatedContent = pathname === '/matching/ecosystem' || /^\/(?:professional\/profile|professionals|collaboration\/consortia(?:\/[^/]+)?)\/?$/i.test(pathname) || /^\/funder-workspace(?:\/(?:funders|funding)(?:\/[^/]+)?)?\/?$/i.test(pathname) || /^\/(?:dashboard|account|onboarding|organization\/profile|projects(?:\/[^/]+)?|opportunities(?:\/[^/]+)?|favorites|matching|network|applications|calendar|alerts|subscription|admin(?:\/(?:funding|funders|projects|organizations|imports)(?:\/[^/]+)?|\/(?:users|sources|subscriptions|errors)|\/source-documents\/[^/]+)?)\/?$/i.test(pathname)
   const navigation = mode === 'admin' ? adminNavigation : memberNavigation
   const auth = useAuth()
   const isPlatformAdministrator = auth.session?.user.roles.some(

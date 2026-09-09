@@ -83,6 +83,8 @@ const ProfessionalDirectoryPage = localizedLazy(() => import('@/features/collabo
 const ConsortiumListPage = localizedLazy(() => import('@/features/collaboration/consortium-list-page').then(module => ({ default: module.ConsortiumListPage })), ['collaboration', 'validation'])
 const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboration/consortium-detail-page').then(module => ({ default: module.ConsortiumDetailPage })), ['collaboration', 'validation'])
 
+const DiscoveryMatchingPage = localizedLazy(() => import('@/features/matching/discovery-matching-page').then(module => ({ default: module.DiscoveryMatchingPage })), ['ecosystem', 'collaboration', 'projects', 'catalogs', 'validation'])
+
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -115,6 +117,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/opportunities', element: <OrganizationFundingPage /> },
       { path: '/opportunities/:slug', element: <OrganizationFundingDetailPage /> },
       { path: '/matching', element: <MatchingPage /> },
+      { path: '/matching/ecosystem', element: <DiscoveryMatchingPage /> },
       { path: '/recommended', element: <LegacyMatchingRedirect /> },
       { path: '/favorites', element: <OrganizationFavoritesPage /> },
       { path: '/applications', element: <ApplicationsPage /> },

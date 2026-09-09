@@ -22,6 +22,7 @@ export const coreEn = {
     administration: 'Administration',
     connections: 'Connections',
     collaboration: 'Professionals and consortia',
+    ecosystem: 'Find partners and projects',
     projectReview: 'Project review',
     funds: 'Funding opportunities',
     funders: 'Funders',
