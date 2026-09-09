@@ -87,6 +87,9 @@ IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
 IF OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search', N'P') IS NOT NULL
     INSERT @LaterProcedurePermissions VALUES
         (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ProjectMap_Search'), N'FundingPlatform_usp_ProjectMap_Search');
+IF OBJECT_ID(N'dbo.FundingPlatform_FunderWorkspaceOwners', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_FunderWorkspace_Sources'), N'FundingPlatform_usp_FunderWorkspace_Sources');
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions

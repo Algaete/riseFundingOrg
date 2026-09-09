@@ -11,10 +11,10 @@ entre ellos. No incluye push, despliegue, cambios de cuentas reales ni ejecució
 
 ## 4. Espacio de financiadores
 
-- [ ] Registro de un perfil nuevo, propiedad explícita vinculada al usuario y aislamiento por financiador.
-- [ ] Gestión de perfil/oportunidades propias con borrador y envío a revisión, sin permisos globales Admin.
-- [ ] Aprobación/rechazo exclusivos de administración; concurrencia, trazabilidad y pruebas de aislamiento.
-- [ ] Interfaz ES/EN, migración/smoke, verificación y commit local.
+- [x] Registro de un perfil nuevo, propiedad explícita vinculada al usuario y aislamiento por financiador.
+- [x] Gestión de perfil/oportunidades propias con borrador y envío a revisión, sin permisos globales Admin.
+- [x] Aprobación/rechazo exclusivos de administración; concurrencia, trazabilidad y pruebas de aislamiento.
+- [x] Interfaz ES/EN, migración/smoke, verificación y commit local.
 
 ## 5. Profesionales, alianzas y consorcios
 

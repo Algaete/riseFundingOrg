@@ -76,6 +76,8 @@ function LegacyMatchingRedirect() {
   return <Navigate replace to={{ pathname: '/matching', search: location.search }} />
 }
 
+const FunderWorkspaceLayout = localizedLazy(() => import('@/features/funder-workspace/funder-workspace-layout').then(module => ({ default: module.FunderWorkspaceLayout })), ['funderWorkspace'])
+
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
@@ -119,6 +121,13 @@ export const appRoutes: RouteObject[] = [
       { path: '/projects/:projectId', element: <ProjectDetailPage /> },
       { path: '/account', element: <AccountPage /> },
       { path: '/subscription', element: <SubscriptionPage /> },
+      { path: '/funder-workspace', element: <FunderWorkspaceLayout />, children: [
+        { index: true, element: <Navigate replace to="/funder-workspace/funders" /> },
+        { path: 'funders', element: <AdminFundersPage /> },
+        { path: 'funders/:id', element: <AdminFunderDetailPage /> },
+        { path: 'funding', element: <AdminFundingPage /> },
+        { path: 'funding/:id', element: <AdminFundingDetailPage /> },
+      ] },
     ],
   },
   {

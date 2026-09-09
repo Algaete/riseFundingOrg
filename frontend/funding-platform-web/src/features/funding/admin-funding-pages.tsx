@@ -1,3 +1,4 @@
+import { useFundingEditorialScope } from '@/features/funder-workspace/editorial-scope'
 import { formatMoneyValue } from '@/i18n/formats'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -42,9 +43,6 @@ import {
   publicationStatusKeys,
 } from '@/features/funding/admin-editorial'
 import {
-  adminFundersApi,
-  adminFundingOpportunitiesApi,
-  adminFundingSourcesApi,
   type AdminFunderDetail,
   type AdminFundingOpportunityDetail,
   type AmountStatus,
@@ -458,6 +456,7 @@ function FundingPartnerChoices({
   totalCount: number
 }) {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
   const lastPage = Math.max(1, Math.ceil(totalCount / pageSize))
   return (
     <fieldset className="min-w-0 space-y-3">
@@ -479,7 +478,7 @@ function FundingPartnerChoices({
         <p className="rounded-lg border p-3 text-sm">
           {search.trim()
             ? i18n.t('adminFunding.noFunderResults')
-            : <>{i18n.t('adminFunding.noFunders')} <Link className="font-semibold text-primary underline" to="/admin/funders/new">{i18n.t('adminFunding.createFunder')}</Link>.</>}
+            : <>{i18n.t('adminFunding.noFunders')} <Link className="font-semibold text-primary underline" to={`${editorialScope.basePath}/funders/new`}>{i18n.t('adminFunding.createFunder')}</Link>.</>}
         </p>
       ) : (
         <div className="grid gap-2 lg:grid-cols-2">
@@ -493,7 +492,7 @@ function FundingPartnerChoices({
                       checked={Boolean(association)}
                       onChange={() => {
                         if (association) onChange(selected.filter((value) => value.funderId !== funder.funderId))
-                        else onChange([...selected, { funderId: funder.funderId, role: selected.length === 0 ? 1 : 2 }])
+                        else onChange(editorialScope.owner ? [{ funderId: funder.funderId, role: 1 }] : [...selected, { funderId: funder.funderId, role: selected.length === 0 ? 1 : 2 }])
                       }}
                       type="checkbox"
                     />
@@ -502,7 +501,7 @@ function FundingPartnerChoices({
                   </label>
                   {association && (
                     <Button asChild size="sm" variant="ghost">
-                      <Link aria-label={i18n.t('adminFunding.manageFunder', { name: funder.name })} to={`/admin/funders/${funder.funderId}`}>{i18n.t('editorial.manage')}</Link>
+                      <Link aria-label={i18n.t('adminFunding.manageFunder', { name: funder.name })} to={`${editorialScope.basePath}/funders/${funder.funderId}`}>{i18n.t('editorial.manage')}</Link>
                     </Button>
                   )}
                 </div>
@@ -515,8 +514,8 @@ function FundingPartnerChoices({
                       value={association.role}
                     >
                       <option value={1}>{i18n.t('adminFunding.primary')}</option>
-                      <option value={2}>{i18n.t('adminFunding.cofunder')}</option>
-                      <option value={3}>{i18n.t('adminFunding.administrator')}</option>
+                      {!editorialScope.owner && <option value={2}>{i18n.t('adminFunding.cofunder')}</option>}
+                      {!editorialScope.owner && <option value={3}>{i18n.t('adminFunding.administrator')}</option>}
                     </select>
                   </label>
                 )}
@@ -545,6 +544,8 @@ function AdminOpportunityForm({
   onDirtyChange?: (dirty: boolean) => void
 }) {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const { funders: adminFundersApi, opportunities: adminFundingOpportunitiesApi, sources: adminFundingSourcesApi } = editorialScope.apis
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [funderSearch, setFunderSearch] = useState('')
@@ -556,12 +557,12 @@ function AdminOpportunityForm({
   )
   const catalogs = useQuery({ queryKey: ['organization-catalogs'], queryFn: ({ signal }) => organizationApi.catalogs(signal), staleTime: 60 * 60 * 1000 })
   const funders = useQuery({
-    queryKey: ['admin-funders', 'editor-options', debouncedFunderSearch, funderPage],
+    queryKey: [editorialScope.key('admin-funders'), 'editor-options', debouncedFunderSearch, funderPage],
     queryFn: ({ signal }) => adminFundersApi.list({ query: debouncedFunderSearch || undefined, page: funderPage, pageSize: funderChoicePageSize }, signal),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   })
-  const sources = useQuery({ queryKey: ['admin-funding-sources'], queryFn: ({ signal }) => adminFundingSourcesApi.list(signal), staleTime: 60_000 })
+  const sources = useQuery({ queryKey: [editorialScope.key('admin-funding-sources')], queryFn: ({ signal }) => adminFundingSourcesApi.list(signal), staleTime: 60_000 })
   const form = useForm<OpportunityFormValues>({ resolver: zodResolver(opportunitySchema), defaultValues: toFormValues(item) })
 
   useEffect(() => { form.reset(toFormValues(item)) }, [form, item])
@@ -587,19 +588,19 @@ function AdminOpportunityForm({
       setSaveMessage(null)
       const input = toWriteInput(values)
       const scope = item ? `opportunity:${item.opportunityId}:update` : 'opportunity:create'
-      return executeEditorialCommand(scope, { eTag: item?.eTag, input }, (idempotencyKey) => (
+      return executeEditorialCommand(editorialScope.key(scope), { eTag: item?.eTag, input }, (idempotencyKey) => (
         item
           ? adminFundingOpportunitiesApi.update(item.opportunityId, item.eTag, input, idempotencyKey)
           : adminFundingOpportunitiesApi.create(input, idempotencyKey)
       ))
     },
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] })
+      await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunities')] })
       if (!item) {
-        void navigate(`/admin/funding/${result.entityId}`, { replace: true })
+        void navigate(`${editorialScope.basePath}/funding/${result.entityId}`, { replace: true })
         return
       }
-      await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunity', item.opportunityId] })
+      await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunity'), item.opportunityId] })
       setSaveMessage('adminFunding.saved')
     },
     onError: error => {
@@ -870,7 +871,7 @@ function AdminOpportunityForm({
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">
           <p>{adminErrorMessage(save.error)}</p>
           {serverValidation.length > 0 && <ul className="mt-2 list-disc pl-5">{serverValidation.map((message) => <li key={message}>{message}</li>)}</ul>}
-          {isConcurrencyConflict(save.error) && item && <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunity', item.opportunityId] })} size="sm" type="button" variant="outline"><RefreshCw className="size-4" /> {i18n.t('editorial.reload')}</Button>}
+          {isConcurrencyConflict(save.error) && item && <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunity'), item.opportunityId] })} size="sm" type="button" variant="outline"><RefreshCw className="size-4" /> {i18n.t('editorial.reload')}</Button>}
         </div>
       )}
       {!locked && (
@@ -897,12 +898,14 @@ function formatAmount(minimum: number | null, maximum: number | null, currency: 
 
 export function AdminFundingPage() {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const adminFundingOpportunitiesApi = editorialScope.apis.opportunities
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<PublicationStatus | ''>('')
   const [page, setPage] = useState(1)
   const opportunities = useQuery({
-    queryKey: ['admin-funding-opportunities', query, status, page],
+    queryKey: [editorialScope.key('admin-funding-opportunities'), query, status, page],
     queryFn: ({ signal }) => adminFundingOpportunitiesApi.list({ query, status: status === '' ? null : status, includeInactive: true, page, pageSize: listPageSize }, signal),
     placeholderData: keepPreviousData,
   })
@@ -917,14 +920,14 @@ export function AdminFundingPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p><h1 className="mt-1 text-3xl font-bold">{i18n.t('adminFunding.opportunities')}</h1><p className="mt-2 max-w-3xl text-muted-foreground">{i18n.t('adminFunding.intro')}</p></div>
-        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/admin/funders"><Building2Icon /> {i18n.t('adminFunders.title')}</Link></Button><Button asChild><Link to="/admin/funding/new"><Plus className="size-4" /> {i18n.t('adminFunding.new')}</Link></Button></div>
+        <div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p><h1 className="mt-1 text-3xl font-bold">{i18n.t('adminFunding.opportunities')}</h1><p className="mt-2 max-w-3xl text-muted-foreground">{i18n.t('adminFunding.intro')}</p></div>
+        <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to={`${editorialScope.basePath}/funders`}><Building2Icon /> {i18n.t('adminFunders.title')}</Link></Button><Button asChild><Link to={`${editorialScope.basePath}/funding/new`}><Plus className="size-4" /> {i18n.t('adminFunding.new')}</Link></Button></div>
       </div>
       <Card><CardContent className="p-4"><form className="grid gap-3 sm:grid-cols-[1fr_14rem_auto]" onSubmit={search}><label className="relative"><span className="sr-only">{i18n.t('adminFunding.search')}</span><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" onChange={(event) => setDraftQuery(event.target.value)} placeholder={i18n.t('adminFunding.searchPlaceholder')} value={draftQuery} /></label><label><span className="sr-only">{i18n.t('editorial.filterStatus')}</span><select className={inputClass} onChange={(event) => { setStatus(event.target.value === '' ? '' : Number(event.target.value) as PublicationStatus); setPage(1) }} value={status}><option value="">{i18n.t('editorial.allStatuses')}</option>{Object.entries(publicationStatusKeys).map(([value, label]) => <option key={value} value={value}>{i18n.t(label)}</option>)}</select></label><Button type="submit">{i18n.t('editorial.search')}</Button></form></CardContent></Card>
 
       {opportunities.isPending && <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunding.loading')}</p>}
       {opportunities.isError && <Card><CardContent className="space-y-3 p-6" role="alert"><p className="text-foreground">{adminErrorMessage(opportunities.error)}</p><Button onClick={() => void opportunities.refetch()} variant="outline">{i18n.t('editorial.retry')}</Button></CardContent></Card>}
-      {opportunities.data && <section aria-busy={opportunities.isFetching} className="space-y-4"><p className="text-sm text-muted-foreground">{i18n.t('adminFunding.count', { count: opportunities.data.totalCount })}</p>{opportunities.data.items.length === 0 ? <Card><CardContent className="p-10 text-center"><FileSearch className="mx-auto size-10 text-primary" /><h2 className="mt-3 text-xl font-bold">{i18n.t('adminFunding.empty')}</h2><p className="mt-2 text-muted-foreground">{i18n.t('adminFunding.emptyHelp')}</p></CardContent></Card> : <div className="grid gap-4 lg:grid-cols-2">{opportunities.data.items.map((item) => <Card key={item.opportunityId}><CardContent className="space-y-4 p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.sponsorName}</p><h2 className="mt-1 text-xl font-bold">{item.title}</h2></div><PublicationStatusBadge status={item.publicationStatus} /></div><p className="line-clamp-2 text-sm text-muted-foreground">{item.summary ?? i18n.t('adminFunding.noSummary')}</p><div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" /> {i18n.t('adminFunding.closing', { date: item.closeDate ? formatWorkspaceDate(item.closeDate) : i18n.t('editorial.noDate') })}</p><p className="flex items-center gap-1.5"><CircleDollarSign className="size-3.5" /> {formatAmount(item.minimumAmount, item.maximumAmount, item.currency)}</p></div><div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3"><p className="text-xs text-muted-foreground">v{item.contentVersion} · {formatAdminDate(item.updatedAtUtc)}</p><Button asChild size="sm" variant={item.publicationStatus === 1 ? 'default' : 'outline'}><Link to={`/admin/funding/${item.opportunityId}`}>{item.publicationStatus === 1 ? i18n.t('adminFunding.reviewPublish') : i18n.t('editorial.manage')}</Link></Button></div></CardContent></Card>)}</div>}{opportunities.data.totalCount > opportunities.data.pageSize && <nav aria-label={i18n.t('adminFunding.pagination')} className="flex flex-wrap items-center justify-end gap-3"><Button disabled={page <= 1 || opportunities.isFetching} onClick={() => setPage((value) => value - 1)} variant="outline"><ChevronLeft className="size-4" />{i18n.t('editorial.previous')}</Button><p className="text-sm">{i18n.t('editorial.page', { page: opportunities.data.page, total: lastPage })}</p><Button disabled={page >= lastPage || opportunities.isFetching} onClick={() => setPage((value) => value + 1)} variant="outline">{i18n.t('editorial.next')}<ChevronRight className="size-4" /></Button></nav>}</section>}
+      {opportunities.data && <section aria-busy={opportunities.isFetching} className="space-y-4"><p className="text-sm text-muted-foreground">{i18n.t('adminFunding.count', { count: opportunities.data.totalCount })}</p>{opportunities.data.items.length === 0 ? <Card><CardContent className="p-10 text-center"><FileSearch className="mx-auto size-10 text-primary" /><h2 className="mt-3 text-xl font-bold">{i18n.t('adminFunding.empty')}</h2><p className="mt-2 text-muted-foreground">{i18n.t('adminFunding.emptyHelp')}</p></CardContent></Card> : <div className="grid gap-4 lg:grid-cols-2">{opportunities.data.items.map((item) => <Card key={item.opportunityId}><CardContent className="space-y-4 p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">{item.sponsorName}</p><h2 className="mt-1 text-xl font-bold">{item.title}</h2></div><PublicationStatusBadge status={item.publicationStatus} /></div><p className="line-clamp-2 text-sm text-muted-foreground">{item.summary ?? i18n.t('adminFunding.noSummary')}</p><div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p className="flex items-center gap-1.5"><CalendarDays className="size-3.5" /> {i18n.t('adminFunding.closing', { date: item.closeDate ? formatWorkspaceDate(item.closeDate) : i18n.t('editorial.noDate') })}</p><p className="flex items-center gap-1.5"><CircleDollarSign className="size-3.5" /> {formatAmount(item.minimumAmount, item.maximumAmount, item.currency)}</p></div><div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3"><p className="text-xs text-muted-foreground">v{item.contentVersion} · {formatAdminDate(item.updatedAtUtc)}</p><Button asChild size="sm" variant={item.publicationStatus === 1 ? 'default' : 'outline'}><Link to={`${editorialScope.basePath}/funding/${item.opportunityId}`}>{item.publicationStatus === 1 ? i18n.t('adminFunding.reviewPublish') : i18n.t('editorial.manage')}</Link></Button></div></CardContent></Card>)}</div>}{opportunities.data.totalCount > opportunities.data.pageSize && <nav aria-label={i18n.t('adminFunding.pagination')} className="flex flex-wrap items-center justify-end gap-3"><Button disabled={page <= 1 || opportunities.isFetching} onClick={() => setPage((value) => value - 1)} variant="outline"><ChevronLeft className="size-4" />{i18n.t('editorial.previous')}</Button><p className="text-sm">{i18n.t('editorial.page', { page: opportunities.data.page, total: lastPage })}</p><Button disabled={page >= lastPage || opportunities.isFetching} onClick={() => setPage((value) => value + 1)} variant="outline">{i18n.t('editorial.next')}<ChevronRight className="size-4" /></Button></nav>}</section>}
     </div>
   )
 }
@@ -943,6 +946,7 @@ function ReadinessChecks({
   primaryFunderLoading: boolean
 }) {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
   const primaryFunderLink = item.funders.find((funder) => funder.role === 1)
   const matchingPrimaryFunder = primaryFunder?.funderId === primaryFunderLink?.funderId
     ? primaryFunder
@@ -965,7 +969,7 @@ function ReadinessChecks({
     { label: i18n.t('adminFunding.summaryDescription'), ready: Boolean(item.summary?.trim() && item.description?.trim()) },
     {
       detail: primaryFunderState,
-      href: primaryFunderLink ? `/admin/funders/${primaryFunderLink.funderId}` : undefined,
+      href: primaryFunderLink ? `${editorialScope.basePath}/funders/${primaryFunderLink.funderId}` : undefined,
       label: i18n.t('adminFunding.primaryPublished'),
       ready: primaryFunderReady,
     },
@@ -1046,14 +1050,16 @@ function TraceabilityPanel({ item }: { item: AdminFundingOpportunityDetail }) {
 
 export function AdminFundingDetailPage() {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const { funders: adminFundersApi, opportunities: adminFundingOpportunitiesApi } = editorialScope.apis
   const { id = '' } = useParams()
   const creating = id === 'new'
   const [dirty, setDirty] = useState(false)
   const queryClient = useQueryClient()
-  const opportunity = useQuery({ queryKey: ['admin-funding-opportunity', id], queryFn: ({ signal }) => adminFundingOpportunitiesApi.get(id, signal), enabled: Boolean(id) && !creating, retry: false })
+  const opportunity = useQuery({ queryKey: [editorialScope.key('admin-funding-opportunity'), id], queryFn: ({ signal }) => adminFundingOpportunitiesApi.get(id, signal), enabled: Boolean(id) && !creating, retry: false })
   const primaryFunderId = opportunity.data?.funders.find((funder) => funder.role === 1)?.funderId ?? ''
   const primaryFunder = useQuery({
-    queryKey: ['admin-funder', primaryFunderId],
+    queryKey: [editorialScope.key('admin-funder'), primaryFunderId],
     queryFn: ({ signal }) => adminFundersApi.get(primaryFunderId, signal),
     enabled: Boolean(primaryFunderId),
     retry: false,
@@ -1061,9 +1067,9 @@ export function AdminFundingDetailPage() {
   })
 
   if (!creating && opportunity.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunding.loadingDetail')}</p>
-  if (!creating && (opportunity.isError || !opportunity.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">{i18n.t('adminFunding.openFailed')}</h1><p className="text-foreground">{adminErrorMessage(opportunity.error)}</p><Button asChild variant="outline"><Link to="/admin/funding">{i18n.t('editorial.back')}</Link></Button></CardContent></Card>
+  if (!creating && (opportunity.isError || !opportunity.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">{i18n.t('adminFunding.openFailed')}</h1><p className="text-foreground">{adminErrorMessage(opportunity.error)}</p><Button asChild variant="outline"><Link to={`${editorialScope.basePath}/funding`}>{i18n.t('editorial.back')}</Link></Button></CardContent></Card>
 
   const data = opportunity.data
   const visibilityIssues = data ? publicVisibilityIssues(data) : []
-  return <div className="space-y-6"><Button asChild variant="ghost"><Link to="/admin/funding"><ArrowLeft className="size-4" /> {i18n.t('adminFunding.back')}</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunding.create') : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{i18n.t('editorial.version', { version: data.contentVersion })}</span><span>{i18n.t('editorial.updated', { date: formatAdminDate(data.updatedAtUtc) })}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>{i18n.t('adminFunding.viewPublic')} <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>{i18n.t('adminFunding.pendingNotice')}</strong> {i18n.t('adminFunding.pendingHelp')}</p><Button asChild size="sm"><a href="#flujo-editorial">{i18n.t('adminFunding.goReview')}</a></Button></div>}{data && <><ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel commands={adminFundingOpportunitiesApi} disabledReason={dirty ? i18n.t('editorial.dirty') : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName={i18n.t('editorial.opportunityEntity')} notReadyAction={{ href: '#financiadores-alcance', label: i18n.t('adminFunding.correctScope') }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: ['admin-funding-opportunities'] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
+  return <div className="space-y-6"><Button asChild variant="ghost"><Link to={`${editorialScope.basePath}/funding`}><ArrowLeft className="size-4" /> {i18n.t('adminFunding.back')}</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunding.create') : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{i18n.t('editorial.version', { version: data.contentVersion })}</span><span>{i18n.t('editorial.updated', { date: formatAdminDate(data.updatedAtUtc) })}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>{i18n.t('adminFunding.viewPublic')} <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && !editorialScope.owner && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>{i18n.t('adminFunding.pendingNotice')}</strong> {i18n.t('adminFunding.pendingHelp')}</p><Button asChild size="sm"><a href="#flujo-editorial">{i18n.t('adminFunding.goReview')}</a></Button></div>}{data && <><ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel canReview={!editorialScope.owner} commands={adminFundingOpportunitiesApi} disabledReason={dirty ? i18n.t('editorial.dirty') : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName={i18n.t('editorial.opportunityEntity')} notReadyAction={{ href: '#financiadores-alcance', label: i18n.t('adminFunding.correctScope') }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunities')] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
 }

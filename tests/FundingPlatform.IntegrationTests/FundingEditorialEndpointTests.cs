@@ -17,7 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace FundingPlatform.IntegrationTests;
 
-public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, IDisposable
+public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, IDisposable
 {
     private const string JwtIssuer = "https://testing.fundingplatform.local";
     private const string JwtAudience = "FundingPlatform.Tests";
@@ -49,6 +49,8 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
                 services.AddSingleton<IFundingOpportunityEditorialRepository>(opportunities);
                 services.AddSingleton<IFundingSourceAdminRepository>(sources);
                 services.AddSingleton<IFundingOpportunityRepository>(publicOpportunities);
+                services.AddKeyedSingleton<FunderEditorialService>("funder-workspace", new FunderEditorialService(workspaceFunders));
+                services.AddKeyedSingleton<FundingOpportunityEditorialService>("funder-workspace", new FundingOpportunityEditorialService(workspaceOpportunities, TimeProvider.System));
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -675,6 +677,7 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
 
     private sealed class FakeFunderRepository : IFunderRepository
     {
+        public bool DenyAccess { get; set; }
         public int Calls { get; private set; }
         public int CreateCalls { get; private set; }
         public int UpdateCalls { get; private set; }
@@ -704,6 +707,7 @@ public sealed class FundingEditorialEndpointTests : IClassFixture<ApiFactory>, I
             CancellationToken cancellationToken)
         {
             Calls++;
+            if (DenyAccess) throw new FundingEditorialDataException("workspace read", 51601, new InvalidOperationException());
             return Task.FromResult<FunderDetails?>(null);
         }
 

@@ -16,6 +16,7 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
                 context.Request.Path.StartsWithSegments("/api/v1/me") ||
                 context.Request.Path.StartsWithSegments("/api/v1/organizations") ||
                 context.Request.Path.StartsWithSegments("/api/v1/admin") ||
+                context.Request.Path.StartsWithSegments("/api/v1/funder-workspace") ||
                 context.Request.Path.StartsWithSegments("/api/v1/alerts"))
             {
                 headers.CacheControl = "no-store";

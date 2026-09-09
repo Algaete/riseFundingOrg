@@ -9,8 +9,18 @@ using Microsoft.Data.SqlClient;
 namespace FundingPlatform.Infrastructure.Persistence.FundingOpportunities;
 
 public sealed class SqlFunderRepository(
-    ISqlConnectionFactory connectionFactory) : IFunderRepository
+    ISqlConnectionFactory connectionFactory, bool ownerWorkspace = false) : IFunderRepository
 {
+    private object ScopeParameters(string procedure, object parameters)
+    {
+        if (!ownerWorkspace) return parameters;
+        if (procedure.EndsWith("_AdminReview", StringComparison.Ordinal))
+            throw new InvalidOperationException("Workspace repositories cannot approve or reject publication.");
+        var scoped = new DynamicParameters(parameters);
+        scoped.Add("OwnerWorkspace", true);
+        return scoped;
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<FunderPage> ListAdminAsync(
@@ -30,6 +40,7 @@ public sealed class SqlFunderRepository(
                 new
                 {
                     AdminUserPublicId = adminUserPublicId,
+                    OwnerWorkspace = ownerWorkspace,
                     Query = query,
                     PublicationStatus = publicationStatus.HasValue
                         ? (byte?)publicationStatus.Value
@@ -64,6 +75,7 @@ public sealed class SqlFunderRepository(
                 new
                 {
                     AdminUserPublicId = adminUserPublicId,
+                    OwnerWorkspace = ownerWorkspace,
                     FunderPublicId = funderPublicId
                 },
                 commandType: CommandType.StoredProcedure,
@@ -327,7 +339,7 @@ public sealed class SqlFunderRepository(
         {
             var row = await connection.QuerySingleAsync<FunderMutationRow>(new CommandDefinition(
                 procedure,
-                parameters,
+                ScopeParameters(procedure, parameters),
                 commandType: CommandType.StoredProcedure,
                 commandTimeout: 30,
                 cancellationToken: cancellationToken));
@@ -355,7 +367,7 @@ public sealed class SqlFunderRepository(
             {
                 using var reader = await connection.QueryMultipleAsync(new CommandDefinition(
                     procedure,
-                    parameters,
+                    ScopeParameters(procedure, parameters),
                     commandType: CommandType.StoredProcedure,
                     commandTimeout: 30,
                     cancellationToken: cancellationToken));
@@ -366,7 +378,7 @@ public sealed class SqlFunderRepository(
             {
                 row = await connection.QuerySingleAsync<FunderMutationRow>(new CommandDefinition(
                     procedure,
-                    parameters,
+                    ScopeParameters(procedure, parameters),
                     commandType: CommandType.StoredProcedure,
                     commandTimeout: 30,
                     cancellationToken: cancellationToken));

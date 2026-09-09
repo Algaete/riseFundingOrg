@@ -24,6 +24,7 @@ export const coreEn = {
     projectReview: 'Project review',
     funds: 'Funding opportunities',
     funders: 'Funders',
+    funderWorkspace: 'Funder workspace',
     imports: 'Imports',
     sources: 'Sources',
     users: 'Users',

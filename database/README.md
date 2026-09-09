@@ -1,5 +1,10 @@
 # Base de datos
 
+Bloque 4 local: `042_funder_workspace.sql` agrega propiedad explícita y reutiliza
+14 procedimientos editoriales con ámbito de propietario opcional; revisión Admin/MFA
+intacta. Smoke `042` sintético con rollback y manifiesto `027` actualizado. Validado
+por parser; ejecución SQL real pendiente. [Contrato](../docs/FUNDER-WORKSPACE.md).
+
 Bloque 3 local: `041_project_map.sql` y smoke `041_project_map_smoke.sql` agregan
 consulta paginada con consentimiento de ubicación y redondeo. `027` incorpora el
 permiso exacto de la nueva consulta. Parser validado; ejecución SQL real y Azure

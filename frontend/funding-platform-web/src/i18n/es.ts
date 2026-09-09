@@ -36,6 +36,7 @@ import { organizationEs } from './organization/es'
 import { projectsEs } from './projects/es'
 import { projectAssetsEs } from './project-assets/es'
 import { projectMapEs } from './project-map/es'
+import { funderWorkspaceEs } from './funder-workspace/es'
 import { workspaceFeedbackEs } from './workspace-feedback/es'
 
 export const es = {
@@ -76,6 +77,7 @@ export const es = {
     projects: projectsEs,
     projectAssets: projectAssetsEs,
     projectMap: projectMapEs,
+    funderWorkspace: funderWorkspaceEs,
     workspaceFeedback: workspaceFeedbackEs,
   },
 } as const

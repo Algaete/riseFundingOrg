@@ -84,6 +84,7 @@ type EditorialCommand =
 
 export function EditorialWorkflowPanel({
   commands,
+  canReview = true,
   disabledReason,
   eTag,
   entityId,
@@ -95,6 +96,7 @@ export function EditorialWorkflowPanel({
   rejectionReason,
 }: {
   commands: EditorialCommands
+  canReview?: boolean
   disabledReason?: string
   eTag: string
   entityId: string
@@ -112,7 +114,7 @@ export function EditorialWorkflowPanel({
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
   const command = useMutation({
     mutationFn: (input: EditorialCommand) => executeEditorialCommand(
-      `workflow:${entityId}:${input.action}`,
+      `${canReview ? '' : 'funder-workspace:'}workflow:${entityId}:${input.action}`,
       { eTag, ...input },
       (idempotencyKey) => {
         if (input.action === 'submit') {
@@ -205,7 +207,7 @@ export function EditorialWorkflowPanel({
           <p className="rounded-lg border p-3 text-sm text-muted-foreground">{disabledReason}</p>
         )}
 
-        {publicationStatus === 1 && (
+        {publicationStatus === 1 && canReview && (
           <label className="grid gap-1.5 text-sm font-semibold">
             <span>{i18n.t('editorial.rejectionReason')}</span>
             <textarea
@@ -312,7 +314,7 @@ export function EditorialWorkflowPanel({
               {i18n.t('editorial.submit')}
             </Button>
           )}
-          {publicationStatus === 1 && !confirmDeactivate && (
+          {publicationStatus === 1 && canReview && !confirmDeactivate && (
             <>
               <Button
                 disabled={command.isPending || Boolean(disabledReason)}

@@ -15,7 +15,9 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 - Bloque funcional 2, proyecto enriquecido, implementado localmente; ver su contrato abajo.
 - Bloque 3, mapa, implementado localmente: filtros, puntos opt-in y agrupación por página.
   Contrato y pruebas: [mapa de proyectos](PROJECT-MAP.md).
-- Quedan cinco bloques funcionales (4–8), empezando por financiadores, más validación integrada y despliegue.
+- Bloque 4, financiadores, implementado localmente: propiedad explícita, espacio propio
+  y oportunidades con revisión. Contrato: [espacio financiador](FUNDER-WORKSPACE.md).
+- Quedan cuatro bloques funcionales (5–8), empezando por profesionales/consorcios, más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
 ## Base implementada localmente
@@ -558,7 +560,7 @@ Sin push, despliegue ni activación de adjuntos en este corte.
 | Bloque | Desarrollo pendiente |
 | --- | --- |
 | 3. Mapa — local completo | Descubrimiento publicado con filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`; aún no desplegado. |
-| 4. Financiadores | Registro/propiedad del perfil y espacio propio para gestionar oportunidades con revisión editorial. El rol global Admin no debe sustituir permisos de un financiador. |
+| 4. Financiadores — local completo | Registro de perfiles nuevos y oportunidades propias con revisión administrativa, sin conceder Admin. Ver `FUNDER-WORKSPACE.md`; aún no desplegado. |
 | 5. Profesionales y alianzas | Perfiles profesionales, capacidades, necesidades de colaboración y gestión de consorcios sobre la base del directorio/conexiones. |
 | 6. Matching ampliado | Financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. Depende de los nuevos perfiles y datos. |
 | 7. Oportunidades e ingesta | Tipos de financiador, filtros faltantes (idioma y socios/consorcios, entre otros), conectores nuevos y actualización/deduplicación. FundsforNGOs depende de acceso autorizado. |

@@ -48,6 +48,7 @@ const memberNavigation: NavigationItem[] = [
   { label: 'connections', to: '/network', icon: Users },
   { label: 'profile', to: '/organization/profile', icon: Building2 },
   { label: 'projects', to: '/projects', icon: Target },
+  { label: 'funderWorkspace', to: '/funder-workspace/funders', icon: WalletCards },
 ]
 
 const adminNavigation: NavigationItem[] = [
@@ -86,7 +87,7 @@ function NavigationLink({ item }: { item: NavigationItem }) {
 export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const translatedContent = /^\/(?:dashboard|account|onboarding|organization\/profile|projects(?:\/[^/]+)?|opportunities(?:\/[^/]+)?|favorites|matching|network|applications|calendar|alerts|subscription|admin(?:\/(?:funding|funders|projects|organizations|imports)(?:\/[^/]+)?|\/(?:users|sources|subscriptions|errors)|\/source-documents\/[^/]+)?)\/?$/i.test(pathname)
+  const translatedContent = /^\/funder-workspace(?:\/(?:funders|funding)(?:\/[^/]+)?)?\/?$/i.test(pathname) || /^\/(?:dashboard|account|onboarding|organization\/profile|projects(?:\/[^/]+)?|opportunities(?:\/[^/]+)?|favorites|matching|network|applications|calendar|alerts|subscription|admin(?:\/(?:funding|funders|projects|organizations|imports)(?:\/[^/]+)?|\/(?:users|sources|subscriptions|errors)|\/source-documents\/[^/]+)?)\/?$/i.test(pathname)
   const navigation = mode === 'admin' ? adminNavigation : memberNavigation
   const auth = useAuth()
   const isPlatformAdministrator = auth.session?.user.roles.some(

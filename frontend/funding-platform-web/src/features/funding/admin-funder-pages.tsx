@@ -1,3 +1,4 @@
+import { useFundingEditorialScope } from '@/features/funder-workspace/editorial-scope'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -34,7 +35,6 @@ import {
   publicationStatusKeys,
 } from '@/features/funding/admin-editorial'
 import {
-  adminFundersApi,
   type AdminFunderDetail,
   type FunderWriteInput,
   type PublicationStatus,
@@ -53,7 +53,7 @@ const optionalHttpUrl = z.string().trim().refine(
 
 const funderSchema = z.object({
   name: z.string().trim().min(2, 'editorialValidation.nameMin').max(250, 'editorialValidation.max250'),
-  description: z.string().trim().max(4000, 'editorialValidation.max4000'),
+  description: z.string().trim().max(2000, 'editorialValidation.max2000'),
   websiteUrl: optionalHttpUrl,
   countryId: z.string(),
   aliasesText: z.string().max(2000, 'editorialValidation.max2000'),
@@ -61,11 +61,11 @@ const funderSchema = z.object({
 
 type FunderFormValues = z.infer<typeof funderSchema>
 
-function Field({ children, error, label }: { children: ReactNode; error?: string; label: string }) {
+function Field({ children, error, label, required = false }: { children: ReactNode; error?: string; label: string; required?: boolean }) {
   useTranslation()
   return (
     <label className="grid gap-1.5 text-sm font-semibold">
-      <span>{label}</span>
+      <span>{label}{required && <span aria-hidden="true"> *</span>}</span>
       {children}
       {error && <span className="text-xs font-normal text-foreground" role="alert">{editorialFieldMessage(error)}</span>}
     </label>
@@ -99,6 +99,8 @@ function toWriteInput(values: FunderFormValues): FunderWriteInput {
 
 function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail; onDirtyChange?: (dirty: boolean) => void }) {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const adminFundersApi = editorialScope.apis.funders
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const catalogs = useQuery({
@@ -118,19 +120,19 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
     mutationFn: (values: FunderFormValues) => {
       const input = toWriteInput(values)
       const scope = funder ? `funder:${funder.funderId}:update` : 'funder:create'
-      return executeEditorialCommand(scope, { eTag: funder?.eTag, input }, (idempotencyKey) => (
+      return executeEditorialCommand(editorialScope.key(scope), { eTag: funder?.eTag, input }, (idempotencyKey) => (
         funder
           ? adminFundersApi.update(funder.funderId, funder.eTag, input, idempotencyKey)
           : adminFundersApi.create(input, idempotencyKey)
       ))
     },
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['admin-funders'] })
+      await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funders')] })
       if (!funder) {
-        void navigate(`/admin/funders/${result.entityId}`, { replace: true })
+        void navigate(`${editorialScope.basePath}/funders/${result.entityId}`, { replace: true })
         return
       }
-      await queryClient.invalidateQueries({ queryKey: ['admin-funder', funder.funderId] })
+      await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funder'), funder.funderId] })
     },
   })
   const locked = Boolean(funder && [1, 2, 4].includes(funder.publicationStatus))
@@ -149,8 +151,8 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
         <CardHeader><CardTitle>{funder ? i18n.t('adminFunders.details') : i18n.t('adminFunders.new')}</CardTitle></CardHeader>
         <CardContent>
           <fieldset className="grid gap-5 disabled:opacity-65" disabled={locked || save.isPending}>
-            <Field error={form.formState.errors.name?.message} label={i18n.t('adminFunders.name')}>
-              <Input {...form.register('name')} autoComplete="organization" placeholder={i18n.t('adminFunders.namePlaceholder')} />
+            <Field error={form.formState.errors.name?.message} label={i18n.t('adminFunders.name')} required>
+              <Input {...form.register('name')} aria-label={i18n.t('adminFunders.name')} aria-required="true" autoComplete="organization" placeholder={i18n.t('adminFunders.namePlaceholder')} />
             </Field>
             <Field error={form.formState.errors.description?.message} label={i18n.t('adminFunders.description')}>
               <textarea {...form.register('description')} className={textareaClass} placeholder={i18n.t('adminFunders.descriptionPlaceholder')} />
@@ -180,7 +182,7 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
               <p>{adminErrorMessage(save.error)}</p>
               {serverValidation.length > 0 && <ul className="mt-2 list-disc pl-5">{serverValidation.map((message) => <li key={message}>{message}</li>)}</ul>}
               {isConcurrencyConflict(save.error) && funder && (
-                <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin-funder', funder.funderId] })} size="sm" type="button" variant="outline">
+                <Button className="mt-3" onClick={() => void queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funder'), funder.funderId] })} size="sm" type="button" variant="outline">
                   <RefreshCw className="size-4" /> {i18n.t('editorial.reload')}
                 </Button>
               )}
@@ -202,12 +204,14 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
 
 export function AdminFundersPage() {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const adminFundersApi = editorialScope.apis.funders
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<PublicationStatus | ''>('')
   const [page, setPage] = useState(1)
   const funders = useQuery({
-    queryKey: ['admin-funders', query, status, page],
+    queryKey: [editorialScope.key('admin-funders'), query, status, page],
     queryFn: ({ signal }) => adminFundersApi.list({ query, status: status === '' ? null : status, includeInactive: true, page, pageSize: listPageSize }, signal),
     placeholderData: keepPreviousData,
   })
@@ -224,11 +228,11 @@ export function AdminFundersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p>
           <h1 className="mt-1 text-3xl font-bold">{i18n.t('adminFunders.title')}</h1>
-          <p className="mt-2 max-w-3xl text-muted-foreground">{i18n.t('adminFunders.intro')}</p>
+          <p className="mt-2 max-w-3xl text-muted-foreground">{i18n.t(editorialScope.owner ? 'funderWorkspace.intro' : 'adminFunders.intro')}</p>
         </div>
-        <Button asChild><Link to="/admin/funders/new"><Plus className="size-4" /> {i18n.t('adminFunders.new')}</Link></Button>
+        <Button asChild><Link to={`${editorialScope.basePath}/funders/new`}><Plus className="size-4" /> {i18n.t('adminFunders.new')}</Link></Button>
       </div>
 
       <Card>
@@ -275,7 +279,7 @@ export function AdminFundersPage() {
                     </div>
                     <p className="line-clamp-2 text-sm text-muted-foreground">{funder.description ?? i18n.t('editorial.noDescription')}</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button asChild size="sm" variant="outline"><Link to={`/admin/funders/${funder.funderId}`}>{i18n.t('editorial.manage')}</Link></Button>
+                      <Button asChild size="sm" variant="outline"><Link to={`${editorialScope.basePath}/funders/${funder.funderId}`}>{i18n.t('editorial.manage')}</Link></Button>
                       {funder.websiteUrl && <Button asChild size="sm" variant="ghost"><a href={funder.websiteUrl} rel="noopener noreferrer" target="_blank">{i18n.t('adminFunders.officialSite')} <ExternalLink className="size-3.5" /></a></Button>}
                     </div>
                   </CardContent>
@@ -298,26 +302,28 @@ export function AdminFundersPage() {
 
 export function AdminFunderDetailPage() {
   useTranslation()
+  const editorialScope = useFundingEditorialScope()
+  const adminFundersApi = editorialScope.apis.funders
   const { id = '' } = useParams()
   const creating = id === 'new'
   const [dirty, setDirty] = useState(false)
   const queryClient = useQueryClient()
   const funder = useQuery({
-    queryKey: ['admin-funder', id],
+    queryKey: [editorialScope.key('admin-funder'), id],
     queryFn: ({ signal }) => adminFundersApi.get(id, signal),
     enabled: Boolean(id) && !creating,
     retry: false,
   })
 
   if (!creating && funder.isPending) return <p className="flex items-center gap-2" role="status"><LoaderCircle className="size-5 animate-spin" /> {i18n.t('adminFunders.loadingDetail')}</p>
-  if (!creating && (funder.isError || !funder.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">{i18n.t('adminFunders.openFailed')}</h1><p className="text-foreground">{adminErrorMessage(funder.error)}</p><Button asChild variant="outline"><Link to="/admin/funders">{i18n.t('editorial.back')}</Link></Button></CardContent></Card>
+  if (!creating && (funder.isError || !funder.data)) return <Card><CardContent className="space-y-4 p-8" role="alert"><h1 className="text-2xl font-bold">{i18n.t('adminFunders.openFailed')}</h1><p className="text-foreground">{adminErrorMessage(funder.error)}</p><Button asChild variant="outline"><Link to={`${editorialScope.basePath}/funders`}>{i18n.t('editorial.back')}</Link></Button></CardContent></Card>
 
   const data = funder.data
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost"><Link to="/admin/funders"><ArrowLeft className="size-4" /> {i18n.t('adminFunders.back')}</Link></Button>
+      <Button asChild variant="ghost"><Link to={`${editorialScope.basePath}/funders`}><ArrowLeft className="size-4" /> {i18n.t('adminFunders.back')}</Link></Button>
       <div>
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p>
+        <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunders.create') : data!.name}</h1>
           {data && <PublicationStatusBadge status={data.publicationStatus} />}
@@ -325,14 +331,14 @@ export function AdminFunderDetailPage() {
         {data && <p className="mt-2 text-sm text-muted-foreground">{i18n.t('editorial.versionUpdated', { version: data.contentVersion, date: formatAdminDate(data.updatedAtUtc) })}</p>}
       </div>
       {data && (
-        <EditorialWorkflowPanel
+        <EditorialWorkflowPanel canReview={!editorialScope.owner}
           commands={adminFundersApi}
           disabledReason={dirty ? i18n.t('editorial.dirty') : undefined}
           eTag={data.eTag}
           entityId={data.funderId}
           entityName={i18n.t('editorial.funderEntity')}
           onChanged={async () => {
-            await queryClient.invalidateQueries({ queryKey: ['admin-funders'] })
+            await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funders')] })
             await funder.refetch()
           }}
           publicationStatus={data.publicationStatus}

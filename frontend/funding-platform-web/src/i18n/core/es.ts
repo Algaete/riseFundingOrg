@@ -24,6 +24,7 @@ export const coreEs = {
     projectReview: 'Revisión de proyectos',
     funds: 'Fondos',
     funders: 'Financiadores',
+    funderWorkspace: 'Espacio financiador',
     imports: 'Importaciones',
     sources: 'Fuentes',
     users: 'Usuarios',

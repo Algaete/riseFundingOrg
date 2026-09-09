@@ -217,6 +217,11 @@ builder.Services.AddScoped<ISavedSearchAlertRepository, SqlSavedSearchAlertRepos
 builder.Services.AddScoped<SavedSearchAlertService>();
 builder.Services.AddScoped<IFunderRepository, SqlFunderRepository>();
 builder.Services.AddScoped<FunderEditorialService>();
+builder.Services.AddKeyedScoped<FunderEditorialService>("funder-workspace", (services, _) =>
+    new FunderEditorialService(new SqlFunderRepository(services.GetRequiredService<ISqlConnectionFactory>(), ownerWorkspace: true)));
+builder.Services.AddKeyedScoped<FundingOpportunityEditorialService>("funder-workspace", (services, _) =>
+    new FundingOpportunityEditorialService(new SqlFundingOpportunityEditorialRepository(services.GetRequiredService<ISqlConnectionFactory>(), ownerWorkspace: true), services.GetRequiredService<TimeProvider>()));
+builder.Services.AddScoped<IFunderWorkspaceSourceRepository, SqlFunderWorkspaceSourceRepository>();
 builder.Services.AddScoped<IFundingOpportunityEditorialRepository,
     SqlFundingOpportunityEditorialRepository>();
 builder.Services.AddScoped<FundingOpportunityEditorialService>();
@@ -812,6 +817,7 @@ app.MapFundingOpportunityEndpoints();
 app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();
 app.MapAdminFundingEditorialEndpoints();
+app.MapFunderWorkspaceEndpoints();
 app.MapAdminImportRunEndpoints();
 app.MapAdminSourceDocumentEndpoints();
 app.MapAdminFundingDuplicateEndpoints();
