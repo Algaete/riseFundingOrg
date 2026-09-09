@@ -6,12 +6,12 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
 
 ## Corte de avance
 
-- Once entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C,
-  además de la base funcional descrita abajo. Son entregas de distinto tamaño, no once módulos
+- Doce entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D,
+  además de la base funcional descrita abajo. Son entregas de distinto tamaño, no doce módulos
   nuevos del producto ni un porcentaje del feedback completo.
-- Idiomas sigue en curso: faltan administración operativa, validaciones de API y optimización de carga.
-  El siguiente corte es I18N-05D: resumen, usuarios, organizaciones, fuentes/importaciones,
-  suscripciones y errores administrativos.
+- Idiomas sigue en curso: faltan validaciones de API, formatos restantes y optimización de carga.
+  El siguiente corte es I18N-05E: códigos estables por campo y sus consumidores, formatos
+  pendientes y carga diferida de recursos.
 - Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
@@ -418,11 +418,51 @@ el fallback seguro actual no sustituye ese contrato. La carga diferida de recurs
 sigue pendiente: el chunk principal mide aproximadamente 547,30 kB sin comprimir
 (168,32 kB gzip), manteniendo visible el aviso de Vite. Sin push ni despliegue Azure.
 
-La traducción completa de la aplicación NO está terminada. Próximos cortes de I18N-05:
+### I18N-05D: administración operativa y documentos fuente
 
-1. I18N-05D: administración operativa: resumen, usuarios, organizaciones, fuentes/importaciones,
-   suscripciones y errores.
-2. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
+Implementado localmente:
+
+- Resumen, usuarios, organizaciones (lista/ficha), suscripciones, errores operacionales,
+  importaciones (lista/detalle/duplicados), fuentes y carga/seguimiento de PDF en ES/EN.
+  Recursos separados por área y adaptador tipado en `operations-messages.ts`.
+- Estados y avisos se resuelven al renderizar. Cambiar de idioma conserva búsqueda sin enviar,
+  filtros/URL/página, motivo de duplicidad, archivo seleccionado y credencial de finalización
+  exclusivamente en memoria; no dispara mutaciones ni reinicia el seguimiento automático.
+- Se mantienen payloads, códigos de decisión, IDs, ETags, idempotencia, frecuencia de polling,
+  permisos y revisión editorial. Ni la importación ni una decisión de duplicidad publican fondos.
+- Carga directa sin JWT de plataforma hacia almacenamiento; validación de formato/tamaño,
+  cuarentena y condición Clean + Trusted intactas. El aviso de escáner simulado no se convierte
+  en una garantía de Defender real. El reescaneo de Defender sigue bloqueado si no está habilitado.
+- Errores HTTP desconocidos usan fallbacks traducidos, sin reflejar detalles arbitrarios del servidor.
+  Códigos técnicos, diagnósticos sanitizados del historial, nombres y contenido original se conservan.
+  Suscripciones incorpora carga, error, reintento y vacío independientes, exclusivamente de lectura.
+- Fechas y contadores usan el idioma de interfaz sin modificar valores almacenados ni zona horaria.
+  Países reutiliza código + etiqueta revisada. Tipo de organización, entidad jurídica y tamaño
+  sin código en el contrato administrativo conservan su etiqueta original marcada como español;
+  no se deducen IDs ni equivalencias a partir del nombre.
+- Tablas desplazables con región accesible y foco de teclado, formularios/paginación adaptables
+  y avisos con contraste legible. Corregidos dos desbordamientos: etiqueta oculta de la tabla
+  de organizaciones y ancho mínimo/tarjeta de las importaciones.
+- Las rutas operativas heredan el idioma seleccionado; rutas no cubiertas conservan su límite
+  de español. Cambiar idioma no modifica la preferencia de la cuenta ni concede permisos.
+
+Validación del corte I18N-05D: build, lint y typecheck E2E aprobados; 570 pruebas de frontend
+(64 archivos) y 149 pruebas de navegador aprobadas. Se omite únicamente el SHA de Azure en local.
+Son 54 casos adicionales de frontend y 28 escenarios nuevos de navegador, a 320/1024px,
+con cambio ES/EN, claro/oscuro, accesibilidad automatizada y controles contra desbordamiento.
+Las pruebas de solicitudes pendientes comprueban payloads/ETags/idempotencia, reanudación de PDF
+sin repetir su transferencia, ausencia de JWT en el PUT y ausencia de secretos en almacenamiento
+del navegador. Todas las APIs están simuladas; ninguna cuenta, importación, pago ni PDF real fue operado.
+
+Límites: no modifica backend, SQL, SSO, cuentas, datos editoriales ni flags de seguridad/adjuntos.
+No traduce contenido libre, nombres de planes/licencias, códigos técnicos ni mensajes de terceros.
+Los diagnósticos por campo con códigos estables y formatos restantes siguen en 05E.
+El recurso inicial aún no se carga por módulo/idioma: el chunk principal ronda 586 kB
+sin comprimir (180 kB gzip); el aviso de tamaño de Vite sigue visible. Sin push ni despliegue Azure.
+
+La traducción completa de la aplicación NO está terminada. Próximo corte de I18N-05:
+
+1. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
    y optimización de carga de recursos por módulo/idioma.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe

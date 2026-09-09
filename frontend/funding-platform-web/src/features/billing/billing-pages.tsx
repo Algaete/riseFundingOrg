@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, CreditCard, LoaderCircle, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { useRef, useState } from 'react'
@@ -13,9 +14,8 @@ import { checkoutStatusLabel, subscriptionStatusLabel, trackingErrorMessage, typ
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import { billingApi, billingCommandId, type SubscriptionPlan } from './billing-api'
 
-// Administration remains in Spanish until I18N-05.
 function date(value: string | null) {
-  return value ? new Intl.DateTimeFormat('es-CL', { dateStyle: 'long' }).format(new Date(value)) : 'Sin fecha'
+  return value ? new Intl.DateTimeFormat(workspaceLocale(), { dateStyle: 'long' }).format(new Date(value)) : i18n.t('editorial.noDate')
 }
 
 function ReadState({ pending, error, loading, failed, onRetry }: {
@@ -119,14 +119,18 @@ export function SubscriptionWorkspacePage() {
 }
 
 export function AdminBillingPage() {
+  useTranslation()
   const [query, setQuery] = useState('')
   const [submitted, setSubmitted] = useState('')
   const dashboard = useQuery({ queryKey: ['admin-billing-dashboard'], queryFn: ({ signal }) => billingApi.adminDashboard(signal) })
   const subscriptions = useQuery({ queryKey: ['admin-subscriptions', submitted], queryFn: ({ signal }) => billingApi.adminList(1, submitted, '', signal) })
-  return <div className="space-y-8"><header><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">Administración</p><h1 className="mt-1 text-3xl font-bold">Suscripciones</h1><p className="mt-2 text-muted-foreground">Vista operativa sin datos de tarjeta, secretos ni payloads del proveedor.</p></header>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{dashboard.data && [[dashboard.data.activeOrganizations, 'ONG activas'], [dashboard.data.activePaidSubscriptions, 'Pagadas activas'], [dashboard.data.pastDueSubscriptions, 'En mora'], [dashboard.data.pendingCheckouts, 'Checkouts pendientes'], [dashboard.data.failedWebhookEvents, 'Webhooks fallidos']].map(([value, label]) => <Card key={label}><CardContent className="p-4"><p className="text-2xl font-bold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></CardContent></Card>)}</div>
-    {dashboard.data && dashboard.data.failedWebhookEvents > 0 && <p className="flex gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"><TriangleAlert className="size-4" />Hay eventos que requieren reconciliación o soporte.</p>}
-    <form className="flex max-w-xl gap-2" onSubmit={(event) => { event.preventDefault(); setSubmitted(query.trim()) }}><Input aria-label="Buscar organización" maxLength={200} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar organización" value={query} /><Button type="submit">Buscar</Button></form>
-    <div className="space-y-3">{subscriptions.data?.items.map((item) => <Card key={item.organizationId}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold">{item.organizationName}</p><p className="text-sm text-muted-foreground">{item.planName} · {item.status}</p></div><p className="text-sm">{item.currentPeriodEndUtc ? `Hasta ${date(item.currentPeriodEndUtc)}` : 'Plan Free'}</p></CardContent></Card>)}</div>
+  return <div className="min-w-0 space-y-8"><header><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t('editorial.administration')}</p><h1 className="mt-1 text-3xl font-bold">{i18n.t('adminBilling.title')}</h1><p className="mt-2 text-muted-foreground">{i18n.t('adminBilling.intro')}</p></header>
+    <ReadState pending={dashboard.isPending} error={dashboard.isError} loading={i18n.t('adminBilling.loadingDashboard')} failed={i18n.t('adminBilling.dashboardFailed')} onRetry={() => void dashboard.refetch()} />
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{dashboard.data && [[dashboard.data.activeOrganizations, i18n.t('adminBilling.activeOrgs')], [dashboard.data.activePaidSubscriptions, i18n.t('adminBilling.activePaid')], [dashboard.data.pastDueSubscriptions, i18n.t('adminBilling.pastDue')], [dashboard.data.pendingCheckouts, i18n.t('adminBilling.pendingCheckouts')], [dashboard.data.failedWebhookEvents, i18n.t('adminBilling.failedWebhooks')]].map(([value, label]) => <Card key={label}><CardContent className="p-4"><p className="text-2xl font-bold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></CardContent></Card>)}</div>
+    {dashboard.data && dashboard.data.failedWebhookEvents > 0 && <p className="flex gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert"><TriangleAlert className="size-4" />{i18n.t('adminBilling.issues')}</p>}
+    <form className="flex max-w-xl flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); setSubmitted(query.trim()) }}><Input aria-label={i18n.t('adminBilling.search')} maxLength={200} onChange={(event) => setQuery(event.target.value)} placeholder={i18n.t('adminBilling.search')} value={query} /><Button type="submit">{i18n.t('editorial.search')}</Button></form>
+    <ReadState pending={subscriptions.isPending} error={subscriptions.isError} loading={i18n.t('adminBilling.loading')} failed={i18n.t('adminBilling.failed')} onRetry={() => void subscriptions.refetch()} />
+    {subscriptions.data?.items.length === 0 && <p role="status">{i18n.t('adminBilling.empty')}</p>}
+    <div className="space-y-3">{subscriptions.data?.items.map((item) => <Card key={item.organizationId}><CardContent className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold">{item.organizationName}</p><p className="text-sm text-muted-foreground">{item.planName} · {subscriptionStatusLabel(item.status)}</p></div><p className="text-sm">{item.currentPeriodEndUtc ? i18n.t('operations.until', { date: date(item.currentPeriodEndUtc) }) : i18n.t('adminBilling.free')}</p></CardContent></Card>)}</div>
   </div>
 }

@@ -9,6 +9,7 @@ import { registerTrackingBillingTests } from './tracking-billing-checks'
 import { registerCatalogTests } from './catalog-checks'
 import { registerCatalogConsumerTests } from './catalog-consumer-checks'
 import { registerEditorialTests } from './editorial-checks'
+import { registerOperationalTests } from './operations-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -97,6 +98,7 @@ registerTrackingBillingTests(expectNoSeriousAccessibilityViolations)
 registerCatalogTests(expectNoSeriousAccessibilityViolations)
 registerCatalogConsumerTests(expectNoSeriousAccessibilityViolations)
 registerEditorialTests(expectNoSeriousAccessibilityViolations)
+registerOperationalTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

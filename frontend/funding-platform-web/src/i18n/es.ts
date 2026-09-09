@@ -26,6 +26,15 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 
 export const es = {
   translation: {
+    operations: operationsEs,
+    adminDashboard: adminDashboardEs,
+    adminUsers: adminUsersEs,
+    adminOrganizations: adminOrganizationsEs,
+    adminIncidents: adminIncidentsEs,
+    adminBilling: adminBillingEs,
+    adminImports: adminImportsEs,
+    sourceDocuments: sourceDocumentsEs,
+    operationalLabels: operationalLabelsEs,
     editorial: editorialEs,
     adminFunders: adminFundersEs,
     adminFunding: adminFundingEs,
@@ -125,3 +134,12 @@ export const es = {
     },
   },
 } as const
+import { operationsEs } from '@/i18n/operations/es'
+import { adminDashboardEs } from '@/i18n/admin-dashboard/es'
+import { adminUsersEs } from '@/i18n/admin-users/es'
+import { adminOrganizationsEs } from '@/i18n/admin-organizations/es'
+import { adminIncidentsEs } from '@/i18n/admin-incidents/es'
+import { adminBillingEs } from '@/i18n/admin-billing/es'
+import { adminImportsEs } from '@/i18n/admin-imports/es'
+import { sourceDocumentsEs } from '@/i18n/source-documents/es'
+import { operationalLabelsEs } from '@/i18n/operational-labels/es'

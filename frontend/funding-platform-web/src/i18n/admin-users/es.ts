@@ -1,0 +1,28 @@
+export const adminUsersEs = {
+  "intro": "Consulta cuentas, estado de acceso, roles globales y seguridad.",
+  "count": "{{count}} cuentas",
+  "pendingActivation": "Pendiente de activación",
+  "pendingVerification": "Pendiente de verificación",
+  "blocked": "Bloqueada",
+  "disabled": "Deshabilitada",
+  "globalRole": "Rol global",
+  "search": "Buscar usuarios",
+  "searchPlaceholder": "Nombre o correo",
+  "loading": "Cargando usuarios…",
+  "failed": "No pudimos cargar los usuarios",
+  "loadError": "No fue posible cargar los usuarios. Comprueba la conexión e intenta nuevamente.",
+  "empty": "No hay usuarios con estos filtros",
+  "emptyHelp": "Limpia la búsqueda o cambia el estado y rol seleccionados.",
+  "user": "Usuario",
+  "security": "Seguridad",
+  "verified": "Correo verificado",
+  "unverified": "Correo no verificado",
+  "noRole": "Sin rol global",
+  "mfa": "MFA activo",
+  "noMfa": "MFA no configurado",
+  "locale": "Idioma {{locale}}",
+  "lastLogin": "Último acceso: {{date}}",
+  "pagination": "Paginación de usuarios",
+  "table": "Cuentas y seguridad"
+} as const
+

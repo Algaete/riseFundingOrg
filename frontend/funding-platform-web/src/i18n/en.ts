@@ -28,6 +28,15 @@ import type { TranslationShape } from '@/i18n/resource-types'
 
 export const en = {
   translation: {
+    operations: operationsEn,
+    adminDashboard: adminDashboardEn,
+    adminUsers: adminUsersEn,
+    adminOrganizations: adminOrganizationsEn,
+    adminIncidents: adminIncidentsEn,
+    adminBilling: adminBillingEn,
+    adminImports: adminImportsEn,
+    sourceDocuments: sourceDocumentsEn,
+    operationalLabels: operationalLabelsEn,
     editorial: editorialEn,
     adminFunders: adminFundersEn,
     adminFunding: adminFundingEn,
@@ -127,3 +136,12 @@ export const en = {
     },
   },
 } as const satisfies TranslationShape<typeof es>
+import { operationsEn } from '@/i18n/operations/en'
+import { adminDashboardEn } from '@/i18n/admin-dashboard/en'
+import { adminUsersEn } from '@/i18n/admin-users/en'
+import { adminOrganizationsEn } from '@/i18n/admin-organizations/en'
+import { adminIncidentsEn } from '@/i18n/admin-incidents/en'
+import { adminBillingEn } from '@/i18n/admin-billing/en'
+import { adminImportsEn } from '@/i18n/admin-imports/en'
+import { sourceDocumentsEn } from '@/i18n/source-documents/en'
+import { operationalLabelsEn } from '@/i18n/operational-labels/en'

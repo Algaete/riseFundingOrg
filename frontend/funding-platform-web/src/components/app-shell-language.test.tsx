@@ -10,7 +10,11 @@ describe('editorial route language boundaries', () => {
   it.each([
     ['/admin/funding', false], ['/admin/funding/new', false],
     ['/admin/funders/synthetic', false], ['/admin/projects/synthetic', false],
-    ['/admin/users', true], ['/admin/imports/synthetic', true],
+    ['/admin/users', false], ['/admin/imports/synthetic', false],
+    ['/admin', false], ['/admin/organizations/synthetic', false],
+    ['/admin/imports/upload-document', false], ['/admin/sources', false],
+    ['/admin/subscriptions', false], ['/admin/errors', false],
+    ['/admin/source-documents/synthetic', false], ['/admin/unknown', true],
     ['/admin/funding/synthetic/history', true],
   ] as const)('sets the correct content language for %s', async (path, legacy) => {
     trackingPage(<ThemeProvider><AppShell mode="admin" /></ThemeProvider>, path)
