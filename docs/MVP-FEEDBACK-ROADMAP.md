@@ -4,6 +4,16 @@ Este tablero compara el feedback entregado con el código, no con el estado del 
 «Implementado localmente» no significa desplegado ni validado contra servicios reales.
 Completar adjuntos `036`–`039` no completa todo el feedback.
 
+## Corte de avance
+
+- Nueve entregas locales de idiomas terminadas: I18N-01/02/03/04A/04B/04B.2/04C/04D/05A,
+  además de la base funcional descrita abajo. Son entregas de distinto tamaño, no nueve módulos
+  nuevos del producto ni un porcentaje del feedback completo.
+- Idiomas sigue en curso: faltan consumidores de catálogos, administración y validaciones de API.
+  El siguiente corte es I18N-05B, reutilizando la capa compartida de catálogos.
+- Después quedan siete bloques funcionales (2–8), más validación integrada y despliegue.
+  La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
+
 ## Base implementada localmente
 
 - Mejoras del perfil de organización: tamaños, catálogos, selecciones múltiples, opciones privadas,
@@ -296,9 +306,47 @@ organización de la lista: no incorpora selector global. No presenta postulacion
 Los códigos de validación por campo y catálogos bilingües generales siguen en I18N-05.
 Sin push ni despliegue Azure; migraciones `031`–`039` y rollout de adjuntos siguen pendientes.
 
-La traducción completa de la aplicación NO está terminada. Siguiente bloque:
+### I18N-05A: catálogos compartidos, organización y proyectos
 
-1. I18N-05: administración, estados/errores de API, catálogos bilingües y formatos restantes de fechas/montos.
+Implementado localmente:
+
+- Recursos tipados ES/EN en `src/i18n/catalogs` y presentación centralizada en
+  `catalog-labels.ts`: 95 códigos y 102 variantes de etiqueta de 12 tipos de catálogo.
+  Incluye los 17 ODS, tamaños por personas, áreas de impacto, beneficiarios, tipos de proyecto,
+  idiomas, experiencia de financiamiento, tipos de organización/personería y monedas.
+- Aplicación en alta/perfil de organización, formulario de proyectos y ficha pública de proyecto.
+  Los consumidores de fondos, marketplace, red, postulaciones y administración quedan para después;
+  disponer de los recursos no significa que todas esas pantallas ya los usen.
+- La traducción exige tipo de catálogo, código y etiqueta original exacta. Conserva diferencias
+  entre versiones antiguas y nuevas, incluidos tamaños históricos y el tipo Programa seleccionado.
+  Regiones, tags y códigos o etiquetas desconocidos se mantienen originales, sin traducción supuesta.
+- Las opciones privadas, nombres y descripciones del usuario permanecen intactos. Al agregar una
+  opción propia se rechaza un duplicado de la opción oficial tanto en español como en inglés;
+  no se reescriben ni normalizan automáticamente los valores privados ya guardados.
+- Cambiar idioma conserva IDs, caché, selecciones, borradores y estado limpio/modificado.
+  No repite consultas, guarda datos ni publica proyectos. Los guardados explícitos conservan
+  IDs, moneda, ETag y contenido original, también si el idioma cambia mientras responde la API.
+
+Validación del corte I18N-05A: build, lint y typecheck E2E aprobados; 470 pruebas de frontend
+(56 archivos) y 99 pruebas de navegador aprobadas. Se omite únicamente la comprobación del SHA
+de Azure en esta ejecución local. Una prueba lee los seeds SQL versionados para comprobar las etiquetas conocidas,
+sin incorporarlos al bundle ni ampliar el acceso de archivos del servidor de desarrollo.
+Los escenarios nuevos de navegador cubren 320/1024px, claro/oscuro, accesibilidad,
+catálogos antiguos/nuevos y guardado explícito sintético bajo la guarda de API.
+Persiste el aviso no bloqueante por el chunk principal mayor a 500 kB sin comprimir;
+su optimización sigue pendiente, sin aumentar ni ocultar el umbral del aviso.
+
+Límites: no modifica backend, SQL, IDs, contratos, permisos, `preferredLocale`, SSO ni adjuntos.
+La revisión administrativa conserva su presentación previa en español. Sin push ni Azure.
+
+La traducción completa de la aplicación NO está terminada. Próximos cortes de I18N-05:
+
+1. I18N-05B: aplicar la capa de catálogos en fondos públicos/privados, marketplace, red y postulaciones.
+2. I18N-05C: administración editorial de fondos, financiadores y revisión de proyectos.
+3. I18N-05D: administración operativa: resumen, usuarios, organizaciones, fuentes/importaciones,
+   suscripciones y errores.
+4. I18N-05E: códigos estables de validación por campo en API y sus consumidores, formatos restantes
+   y optimización de carga de recursos por módulo/idioma.
 
 Cada bloque incorpora recursos ES/EN, pruebas y actualización de sus límites `lang`. No se debe
 presentar una pantalla como traducida sólo porque su menú ya cambió de idioma.
@@ -319,7 +367,7 @@ presentar una pantalla como traducida sólo porque su menú ya cambió de idioma
 
 Las migraciones locales `031`–`039`, infraestructura y adjuntos necesitan preflight SQL, pruebas
 reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C no requieren
+[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A no requieren
 migración SQL, pero siguen siendo cambios locales hasta publicar el frontend.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros

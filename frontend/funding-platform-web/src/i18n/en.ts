@@ -1,5 +1,6 @@
 import type { es } from '@/i18n/es'
 import { authEn } from '@/i18n/auth/en'
+import { catalogsEn } from '@/i18n/catalogs/en'
 import { trackingEn } from '@/i18n/tracking/en'
 import { applicationsEn } from '@/i18n/applications/en'
 import { calendarEn } from '@/i18n/calendar/en'
@@ -23,6 +24,7 @@ import type { TranslationShape } from '@/i18n/resource-types'
 export const en = {
   translation: {
     auth: authEn,
+    catalogs: catalogsEn,
     tracking: trackingEn,
     applications: applicationsEn,
     calendar: calendarEn,

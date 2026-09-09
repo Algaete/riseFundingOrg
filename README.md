@@ -67,7 +67,7 @@ malicioso. Las guardas de compatibilidad de `034`/`035` rechazan de forma segura
 una API antigua cuando ya existen esas relaciones o valores personalizados.
 
 El [tablero de feedback](docs/MVP-FEEDBACK-ROADMAP.md) separa lo implementado, el desarrollo
-pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2/04C/04D incorporan selector español/inglés,
+pendiente y el despliegue. Los bloques locales I18N-01/02/03/04A/04B/04B.2/04C/04D/05A incorporan selector español/inglés,
 portada, navegación, autenticación (incluidas validaciones y MFA), onboarding, perfil de organización
 y pantallas de proyectos: formularios, publicación, ficha pública y panel de adjuntos. También
 incluyen Resumen y Mi cuenta, con estados de carga, fallos parciales y avisos de vinculación;
@@ -84,8 +84,12 @@ Planes públicos enlaza a Suscripción en lugar de ofrecer un checkout sin acci�
 precios, proveedores ni cobros. Se muestran fallos de lectura y reintentos explícitos de suscripción.
 Cambiar el idioma conserva borradores, organización seleccionada, confirmaciones y cargas pendientes;
 no inicia ni repite vinculaciones Microsoft. Mi cuenta distingue fallos de consulta de SSO deshabilitado.
-**La traducción completa sigue pendiente**: nombres de catálogos, administración y códigos de
-validación por campo de la API (I18N-05). Se conservan el contenido original
+I18N-05A agrega catálogos bilingües compartidos (95 códigos/102 variantes) al alta/perfil de
+organización, formularios de proyectos y su ficha pública. Respeta versiones históricas, IDs,
+opciones privadas y etiquetas desconocidas; cambiar idioma no ensucia formularios ni guarda datos.
+**La traducción completa sigue pendiente**: aplicar catálogos en los demás consumidores,
+administración y códigos de validación por campo de la API (I18N-05B–05E).
+Se conservan el contenido original
 y las atribuciones de fuentes, los parámetros de búsqueda y la confirmación de salida externa.
 No cambian el idioma de la cuenta, plantillas de correo, habilitación de SSO ni el flag de adjuntos.
 Favoritos conserva la intención del clic mientras responde la API y revierte el estado ante fallos;

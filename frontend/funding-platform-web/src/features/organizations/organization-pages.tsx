@@ -3,6 +3,7 @@ import { Building2, Check, ChevronLeft, ChevronRight, LoaderCircle, Plus, Save, 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm, type FieldPath } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { catalogName, catalogLanguage, catalogAliases, type CatalogKind } from '@/i18n/catalog-labels'
 import { workspaceMessage, workspaceRequestError, type OrganizationTextKey } from '@/i18n/workspace-messages'
 
 import { ApiError } from '@/api/http-client'
@@ -357,7 +358,7 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
                   id="create-organization-country"
                   required
                 >
-                  {catalogs.countries.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
+                  {catalogs.countries.map(item => <option lang={catalogLanguage('countries', item)} key={item.id} value={item.id}>{catalogName('countries', item)}</option>)}
                 </select>
               </Field>
               <Field error={formState.errors.organizationTypeId?.message} label={t('organization.organizationType')} requirement="required">
@@ -372,7 +373,7 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
                   id="create-organization-type"
                   required
                 >
-                  {catalogs.organizationTypes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}
+                  {catalogs.organizationTypes.map(item => <option lang={catalogLanguage('organizationTypes', item)} key={item.id} value={item.id}>{catalogName('organizationTypes', item)}</option>)}
                 </select>
               </Field>
             </div>
@@ -389,6 +390,7 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
 }
 
 function MultiChoice({
+  catalog,
   label,
   items,
   selected,
@@ -398,7 +400,8 @@ function MultiChoice({
   requirement = 'optional',
 }: {
   label: string
-  items: CatalogOption<number>[]
+  catalog: CatalogKind
+  items: (CatalogOption<number> & { legacy?: true })[]
   selected: number[]
   onChange: (value: number[]) => void
   error?: string
@@ -416,7 +419,7 @@ function MultiChoice({
         {items.map(item => (
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
             <input checked={selected.includes(item.id)} onChange={() => toggle(item.id)} type="checkbox" />
-            <span lang="es">{item.name}</span>
+            <span lang={catalogLanguage(catalog, item)}>{catalogName(catalog, item)}</span>
           </label>
         ))}
       </div>
@@ -431,6 +434,7 @@ function customComparison(value: string) {
 }
 
 function CustomTaxonomyChoice({
+  catalog,
   label,
   items,
   selected,
@@ -444,7 +448,8 @@ function CustomTaxonomyChoice({
   otherCode,
 }: {
   label: string
-  items: CatalogOption<number>[]
+  catalog: CatalogKind
+  items: (CatalogOption<number> & { legacy?: true })[]
   selected: number[]
   onSelectedChange: (value: number[]) => void
   customValues: string[]
@@ -495,7 +500,7 @@ function CustomTaxonomyChoice({
       setLocalError('organization.customDuplicate')
       return
     }
-    if (items.some(item => customComparison(item.name) === normalized)) {
+    if (items.some(item => catalogAliases(catalog, item).some(name => customComparison(name) === normalized))) {
       setLocalError('organization.customOfficial')
       return
     }
@@ -521,7 +526,7 @@ function CustomTaxonomyChoice({
             ><Plus className="size-4" /> {t('organization.addOther')}</button>
           : <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
               <input checked={selected.includes(item.id)} onChange={() => toggle(item)} type="checkbox" />
-              <span lang="es">{item.name}</span>{item.id === other?.id ? t('organization.legacyValue') : ''}
+              <span lang={catalogLanguage(catalog, item)}>{catalogName(catalog, item)}</span>{item.legacy ? t('organization.legacyType', { name: '' }) : ''}{item.id === other?.id ? t('organization.legacyValue') : ''}
             </label>)}
       </div>
       {officialError && <span className="block text-xs text-destructive" role="alert">{workspaceMessage(officialError)}</span>}
@@ -686,7 +691,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
   const visibleOrganizationSizes = selectedLegacyOrganizationSize
     ? [...sizeOptionsBase, {
         ...selectedLegacyOrganizationSize,
-        name: t('organization.legacySize', { name: selectedLegacyOrganizationSize.name }),
+        legacy: true as const,
       }]
     : sizeOptionsBase
   const currentProjectTypes = currentProjectTypeCodes.flatMap(code => {
@@ -704,7 +709,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
         ...currentProjectTypes,
         ...(selectedLegacyProgram ? [{
           ...selectedLegacyProgram,
-          name: t('organization.legacyType', { name: selectedLegacyProgram.name }),
+          legacy: true as const,
         }] : []),
       ]
     : catalogs.projectTypes
@@ -888,7 +893,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                     className={selectClass}
                     id="organization-home-country"
                     required
-                  >{catalogs.countries.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  >{catalogs.countries.map(item => <option lang={catalogLanguage('countries', item)} key={item.id} value={item.id}>{catalogName('countries', item)}</option>)}</select>
                 </Field>
                 <Field error={formState.errors.organizationTypeId?.message} label={t('organization.organizationType')} requirement="required">
                   <select
@@ -901,10 +906,10 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                     className={selectClass}
                     id="organization-type"
                     required
-                  >{catalogs.organizationTypes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  >{catalogs.organizationTypes.map(item => <option lang={catalogLanguage('organizationTypes', item)} key={item.id} value={item.id}>{catalogName('organizationTypes', item)}</option>)}</select>
                 </Field>
                 <Field error={formState.errors.legalEntityTypeId?.message} label={t('organization.legalEntity')} requirement="recommended">
-                  <select {...register('legalEntityTypeId', optionalNumber)} aria-invalid={Boolean(formState.errors.legalEntityTypeId)} className={selectClass} id="organization-legal-entity"><option value="">{t('organization.unspecified')}</option>{catalogs.legalEntityTypes.filter(item => item.countryId === null || item.countryId === watch('homeCountryId')).map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  <select {...register('legalEntityTypeId', optionalNumber)} aria-invalid={Boolean(formState.errors.legalEntityTypeId)} className={selectClass} id="organization-legal-entity"><option value="">{t('organization.unspecified')}</option>{catalogs.legalEntityTypes.filter(item => item.countryId === null || item.countryId === watch('homeCountryId')).map(item => <option lang={catalogLanguage('legalEntityTypes', item)} key={item.id} value={item.id}>{catalogName('legalEntityTypes', item)}</option>)}</select>
                 </Field>
                 <Field
                   error={formState.errors.organizationSizeId?.message}
@@ -912,7 +917,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                   label={t('organization.teamSize')}
                   requirement="recommended"
                 >
-                  <select {...register('organizationSizeId', optionalNumber)} aria-invalid={Boolean(formState.errors.organizationSizeId)} className={selectClass} id="organization-size"><option value="">{t('organization.unspecified')}</option>{visibleOrganizationSizes.map(item => <option lang="es" key={item.id} value={item.id}>{item.name}</option>)}</select>
+                  <select {...register('organizationSizeId', optionalNumber)} aria-invalid={Boolean(formState.errors.organizationSizeId)} className={selectClass} id="organization-size"><option value="">{t('organization.unspecified')}</option>{visibleOrganizationSizes.map(item => <option lang={catalogLanguage('organizationSizes', item)} key={item.id} value={item.id}>{'legacy' in item && item.legacy ? t('organization.legacySize', { name: catalogName('organizationSizes', item) }) : catalogName('organizationSizes', item)}</option>)}</select>
                 </Field>
               </div>
               <Field
@@ -933,13 +938,13 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
             </>}
 
             {step === 1 && <>
-              <MultiChoice error={formErrorMessage(formState.errors.countryIds)} id="organization-countries" label={t('organization.countries')} items={catalogs.countries} requirement="recommended" selected={countries} onChange={value => {
+              <MultiChoice error={formErrorMessage(formState.errors.countryIds)} id="organization-countries" label={t('organization.countries')} catalog="countries" items={catalogs.countries} requirement="recommended" selected={countries} onChange={value => {
                 setValue('countryIds', value, { shouldDirty: true })
                 clearErrors('countryIds')
                 const validRegionIds = catalogs.regions.filter(region => value.includes(region.countryId)).map(region => region.id)
                 setValue('regionIds', regions.filter(regionId => validRegionIds.includes(regionId)), { shouldDirty: true })
               }} />
-              {visibleRegions.length > 0 && <MultiChoice error={formErrorMessage(formState.errors.regionIds)} id="organization-regions" label={t('organization.regions')} items={visibleRegions} selected={regions} onChange={value => {
+              {visibleRegions.length > 0 && <MultiChoice error={formErrorMessage(formState.errors.regionIds)} id="organization-regions" label={t('organization.regions')} catalog="regions" items={visibleRegions} selected={regions} onChange={value => {
                 setValue('regionIds', value, { shouldDirty: true })
                 clearErrors('regionIds')
               }} />}
@@ -951,7 +956,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 customError={formErrorMessage(formState.errors.customImpactAreas)}
                 id="organization-categories"
                 inputId="organization-custom-impact-areas"
-                items={catalogs.fundingCategories}
+                catalog="fundingCategories" items={catalogs.fundingCategories}
                 label={t('organization.impactAreas')}
                 officialError={formErrorMessage(formState.errors.categoryIds)}
                 onCustomChange={value => {
@@ -970,7 +975,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 customError={formErrorMessage(formState.errors.customBeneficiaryTypes)}
                 id="organization-beneficiaries"
                 inputId="organization-custom-beneficiary-types"
-                items={catalogs.beneficiaryTypes}
+                catalog="beneficiaryTypes" items={catalogs.beneficiaryTypes}
                 label={t('organization.beneficiaries')}
                 officialError={formErrorMessage(formState.errors.beneficiaryTypeIds)}
                 onCustomChange={value => {
@@ -989,7 +994,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 customError={formErrorMessage(formState.errors.customProjectTypes)}
                 id="organization-project-types"
                 inputId="organization-custom-project-types"
-                items={visibleProjectTypes}
+                catalog="projectTypes" items={visibleProjectTypes}
                 label={t('organization.projectTypes')}
                 officialError={formErrorMessage(formState.errors.projectTypeIds)}
                 onCustomChange={value => {
@@ -1020,7 +1025,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 <MultiChoice
                   error={formErrorMessage(formState.errors.fundingExperienceTypeIds)}
                   id="organization-funding-experience-types"
-                  items={catalogs.fundingExperienceTypes ?? []}
+                  catalog="fundingExperienceTypes" items={catalogs.fundingExperienceTypes ?? []}
                   label={t('organization.experienceTypes')}
                   onChange={value => {
                     setValue('fundingExperienceTypeIds', value, { shouldDirty: true })
@@ -1054,7 +1059,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       aria-required={desiredFundingMin !== null || desiredFundingMax !== null}
                       className={selectClass}
                       id="organization-desired-funding-currency"
-                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
+                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang={catalogLanguage('currencies', item)} key={item.code} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select>
                   </Field>
                   <Field error={formState.errors.desiredFundingMin?.message} label={t('organization.fundingMinimum')}>
                     <Input
@@ -1104,7 +1109,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                       aria-required={annualBudgetMin !== null || annualBudgetMax !== null}
                       className={selectClass}
                       id="organization-annual-budget-currency"
-                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select>
+                    ><option value="">{t('organization.unspecified')}</option>{catalogs.currencies.map(item => <option lang={catalogLanguage('currencies', item)} key={item.code} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select>
                   </Field>
                   <Field error={formState.errors.annualBudgetMin?.message} label={t('organization.annualMinimum')}>
                     <Input
@@ -1138,7 +1143,7 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
                 customError={formErrorMessage(formState.errors.customLanguages)}
                 id="organization-languages"
                 inputId="organization-custom-languages"
-                items={catalogs.languages}
+                catalog="languages" items={catalogs.languages}
                 label={t('organization.languages')}
                 officialError={formErrorMessage(formState.errors.languages)}
                 onCustomChange={value => {

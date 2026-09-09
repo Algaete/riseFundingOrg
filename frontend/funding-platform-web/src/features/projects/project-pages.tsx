@@ -17,6 +17,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
 import i18n from '@/i18n'
 import { workspaceMessage, workspaceRequestError, workspaceLocale, formatWorkspaceDate } from '@/i18n/workspace-messages'
 
@@ -67,8 +68,9 @@ function formatDate(value: string | null) {
     : null
 }
 
-function MultiChoice({ label, items, selected, onChange }: {
+function MultiChoice({ catalog, label, items, selected, onChange }: {
   label: string
+  catalog: CatalogKind
   items: CatalogOption<number>[]
   selected: number[]
   onChange: (value: number[]) => void
@@ -78,7 +80,7 @@ function MultiChoice({ label, items, selected, onChange }: {
     <div className="grid gap-2 sm:grid-cols-2">
       {items.map(item => <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm" key={item.id}>
         <input checked={selected.includes(item.id)} onChange={() => onChange(selected.includes(item.id) ? selected.filter(id => id !== item.id) : [...selected, item.id])} type="checkbox" />
-        <span lang="es">{item.name}</span>
+        <span>{catalog === 'sustainableDevelopmentGoals' && <>{t('projects.sdgPrefix', { id: item.id })} · </>}<span lang={catalogLanguage(catalog, item)}>{catalogName(catalog, item)}</span></span>
       </label>)}
     </div>
   </fieldset>
@@ -188,18 +190,18 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
         <div className="grid gap-4 sm:grid-cols-3">
           <Field error={formState.errors.budgetTotal?.message} hint={t('projects.budgetHelp')} label={t('projects.budgetTotal')} required={budgetRequired}><Input aria-invalid={Boolean(formState.errors.budgetTotal)} aria-required={budgetRequired} min="0" required={budgetRequired} step="0.01" type="number" {...register('budgetTotal', { ...optionalNumber, validate: value => !budgetRequired || value !== null || 'projects.budgetRequired' })} /></Field>
           <Field error={formState.errors.confirmedFunding?.message} label={t('projects.confirmedFunding')}><Input aria-invalid={Boolean(formState.errors.confirmedFunding)} min="0" step="0.01" type="number" {...register('confirmedFunding', optionalNumber)} /></Field>
-          <Field error={formState.errors.currency?.message} hint={t('projects.currencyHelp')} label={t('projects.currency')} required={currencyRequired}><select aria-invalid={Boolean(formState.errors.currency)} aria-required={currencyRequired} className={selectClass} required={currencyRequired} {...register('currency', { setValueAs: value => value || null, validate: value => !currencyRequired || Boolean(value) || 'projects.currencyRequired' })}><option value="">{t('projects.unspecified')}</option>{catalogs.currencies.map(item => <option lang="es" key={item.code} value={item.code}>{item.code} · {item.name}</option>)}</select></Field>
+          <Field error={formState.errors.currency?.message} hint={t('projects.currencyHelp')} label={t('projects.currency')} required={currencyRequired}><select aria-invalid={Boolean(formState.errors.currency)} aria-required={currencyRequired} className={selectClass} required={currencyRequired} {...register('currency', { setValueAs: value => value || null, validate: value => !currencyRequired || Boolean(value) || 'projects.currencyRequired' })}><option value="">{t('projects.unspecified')}</option>{catalogs.currencies.map(item => <option lang={catalogLanguage('currencies', item)} key={item.code} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select></Field>
         </div>
-        <MultiChoice label={t('projects.countries')} items={catalogs.countries} selected={countries} onChange={value => {
+        <MultiChoice label={t('projects.countries')} catalog="countries" items={catalogs.countries} selected={countries} onChange={value => {
           setValue('countryIds', value, { shouldDirty: true })
           const allowed = catalogs.regions.filter(region => value.includes(region.countryId)).map(region => region.id)
           setValue('regionIds', regions.filter(id => allowed.includes(id)), { shouldDirty: true })
         }} />
-        {visibleRegions.length > 0 && <MultiChoice label={t('projects.regions')} items={visibleRegions} selected={regions} onChange={value => setValue('regionIds', value, { shouldDirty: true })} />}
-        <MultiChoice label={t('projects.impactAreas')} items={catalogs.fundingCategories} selected={categories} onChange={value => setValue('categoryIds', value, { shouldDirty: true })} />
-        <MultiChoice label={t('projects.beneficiaries')} items={catalogs.beneficiaryTypes} selected={beneficiaries} onChange={value => setValue('beneficiaryTypeIds', value, { shouldDirty: true })} />
-        <MultiChoice label={t('projects.projectType')} items={catalogs.projectTypes} selected={projectTypes} onChange={value => setValue('projectTypeIds', value, { shouldDirty: true })} />
-        <MultiChoice label={t('projects.sdgs')} items={(catalogs.sustainableDevelopmentGoals ?? []).map(item => ({ ...item, name: `${t('projects.sdgPrefix', { id: item.id })} · ${item.name}` }))} selected={sustainableDevelopmentGoals} onChange={value => setValue('sustainableDevelopmentGoalIds', value, { shouldDirty: true, shouldValidate: true })} />
+        {visibleRegions.length > 0 && <MultiChoice label={t('projects.regions')} catalog="regions" items={visibleRegions} selected={regions} onChange={value => setValue('regionIds', value, { shouldDirty: true })} />}
+        <MultiChoice label={t('projects.impactAreas')} catalog="fundingCategories" items={catalogs.fundingCategories} selected={categories} onChange={value => setValue('categoryIds', value, { shouldDirty: true })} />
+        <MultiChoice label={t('projects.beneficiaries')} catalog="beneficiaryTypes" items={catalogs.beneficiaryTypes} selected={beneficiaries} onChange={value => setValue('beneficiaryTypeIds', value, { shouldDirty: true })} />
+        <MultiChoice label={t('projects.projectType')} catalog="projectTypes" items={catalogs.projectTypes} selected={projectTypes} onChange={value => setValue('projectTypeIds', value, { shouldDirty: true })} />
+        <MultiChoice label={t('projects.sdgs')} catalog="sustainableDevelopmentGoals" items={catalogs.sustainableDevelopmentGoals ?? []} selected={sustainableDevelopmentGoals} onChange={value => setValue('sustainableDevelopmentGoalIds', value, { shouldDirty: true, shouldValidate: true })} />
         {formState.errors.sustainableDevelopmentGoalIds?.message && <p className="text-xs text-destructive" role="alert">{workspaceMessage(formState.errors.sustainableDevelopmentGoalIds.message)}</p>}
         {contentLocked && <p className="rounded-lg bg-muted p-3 text-sm">{t('projects.contentLocked', { status: t(publicationNames[project!.publicationStatus]).toLocaleLowerCase() })}</p>}
         {save.isError && <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground">{errorMessage(save.error)}</p>}

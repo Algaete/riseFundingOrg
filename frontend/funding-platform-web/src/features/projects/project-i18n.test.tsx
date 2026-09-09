@@ -89,7 +89,7 @@ describe('project language changes', () => {
     expect(screen.getByText('January 1, 2027 — December 31, 2027')).toBeVisible()
     expect(screen.getByText('$75,000.00')).toBeVisible()
     expect(screen.getByText(workspaceProject.description!)).toBeVisible()
-    expect(screen.getByText('Agua limpia y saneamiento')).toHaveAttribute('lang', 'es')
+    expect(screen.getByText('Clean Water and Sanitation')).toHaveAttribute('lang', 'en')
     expect(get).toHaveBeenCalledOnce()
   })
 })

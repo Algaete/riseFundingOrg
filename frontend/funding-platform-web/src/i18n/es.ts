@@ -1,4 +1,5 @@
 import { authEs } from '@/i18n/auth/es'
+import { catalogsEs } from '@/i18n/catalogs/es'
 import { trackingEs } from '@/i18n/tracking/es'
 import { applicationsEs } from '@/i18n/applications/es'
 import { calendarEs } from '@/i18n/calendar/es'
@@ -21,6 +22,7 @@ import { workspaceFeedbackEs } from '@/i18n/workspace-feedback/es'
 export const es = {
   translation: {
     auth: authEs,
+    catalogs: catalogsEs,
     tracking: trackingEs,
     applications: applicationsEs,
     calendar: calendarEs,
