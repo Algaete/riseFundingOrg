@@ -12,7 +12,8 @@ export function registerLazyLanguageTests(accessibility: (page: Page) => Promise
     expect(englishChunks.size).toBe(0)
     await page.getByRole('combobox', { name: 'Idioma', exact: true }).selectOption('en')
     await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toHaveValue('en')
-    expect(englishChunks.size).toBe(1) // Only the shell, not all administrative resources.
+    // The home now includes public country/sector filters: shell plus catalogs only.
+    expect(englishChunks.size).toBe(2)
     await page.getByRole('link', { name: 'Sign in', exact: true }).click()
     await expect(page.getByRole('textbox', { name: 'Email address', exact: true })).toBeVisible()
     const loginChunks = englishChunks.size

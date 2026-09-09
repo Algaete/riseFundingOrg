@@ -14,6 +14,8 @@ import { organizationApi } from '@/features/organizations/organization-api'
 import { projectApi } from '@/features/projects/project-api'
 import { AppShell } from '@/components/app-shell'
 import { languageStorageKey } from '@/i18n/language'
+import { marketplaceApi } from '@/features/marketplace/marketplace-api'
+import { projectMapApi } from '@/features/project-map/project-map-api'
 
 function authenticate(roles = ['Professional']) {
   setAuthenticatedSession({
@@ -41,6 +43,9 @@ describe('aplicación', () => {
     localStorage.clear()
     sessionStorage.clear()
     document.documentElement.classList.remove('dark')
+    vi.spyOn(marketplaceApi, 'search').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 3 })
+    vi.spyOn(marketplaceApi, 'catalogs').mockResolvedValue({ countries: [], fundingCategories: [], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] })
+    vi.spyOn(projectMapApi, 'search').mockResolvedValue({ items: [], totalCount: 0, withoutPublicLocationCount: 0, page: 1, pageSize: 100 })
     vi.spyOn(organizationApi, 'list').mockResolvedValue([{
       publicId: '11111111-2222-3333-4444-555555555555',
       name: 'Espacio de organización',
@@ -156,7 +161,7 @@ describe('aplicación', () => {
     expect(screen.getByRole('link', { name: 'Find funding' })).toHaveAttribute('href', '/funding')
     expect(screen.getByRole('link', { name: 'Publish my project' })).toHaveAttribute('href', '/projects')
     expect(screen.getByRole('link', { name: 'Opportunities' })).toHaveAttribute('href', '/funding')
-    expect(screen.getByText('FundingPlatform · MVP technical foundation')).toBeInTheDocument()
+    expect(screen.getByText('Funding. Partnerships. Impact.')).toBeInTheDocument()
     expect(screen.getAllByRole('combobox', { name: 'Language' })).toHaveLength(2)
     for (const selector of selectors) expect(selector).toHaveValue('en')
     expect(within(screen.getAllByRole('combobox', { name: 'Change theme' })[0]).getByRole('option', { name: 'System' })).toBeInTheDocument()

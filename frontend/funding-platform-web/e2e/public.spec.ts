@@ -18,6 +18,7 @@ import { registerEditorialTests } from './editorial-checks'
 import { registerOperationalTests } from './operations-checks'
 import { registerValidationTests } from './validation-checks'
 import { registerLazyLanguageTests } from './lazy-language-checks'
+import { registerHomeReferenceTests } from './home-reference-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -42,6 +43,17 @@ async function useGuestSession(page: Page) {
       body: '[]',
     })
   })
+  // Exact, read-only public home dependencies. Any other API call remains blocked below.
+  for (const [pattern, data] of [
+    ['**/api/v1/marketplace/catalogs', { countries: [], fundingCategories: [], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] }],
+    ['**/api/v1/marketplace/projects?*', { items: [], totalCount: 0, pageNumber: 1, pageSize: 3 }],
+    ['**/api/v1/marketplace/project-map?*', { items: [], totalCount: 0, withoutPublicLocationCount: 0, page: 1, pageSize: 100 }],
+  ] as const) {
+    await page.route(pattern, async route => {
+      if (route.request().method() !== 'GET') { unexpectedRequests.push(`${route.request().method()} ${route.request().url()}`); await route.abort('blockedbyclient'); return }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
+    })
+  }
   await page.route('**/api/v1/funding-opportunities?*', async (route) => {
     await route.fulfill({
       status: 200,
@@ -127,6 +139,7 @@ registerEditorialTests(expectNoSeriousAccessibilityViolations)
 registerOperationalTests(expectNoSeriousAccessibilityViolations)
 registerValidationTests(expectNoSeriousAccessibilityViolations)
 registerLazyLanguageTests(expectNoSeriousAccessibilityViolations)
+registerHomeReferenceTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

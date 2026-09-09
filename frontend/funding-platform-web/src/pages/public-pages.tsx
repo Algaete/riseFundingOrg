@@ -1,4 +1,3 @@
-import { ArrowRight, Handshake, SearchCheck, Target } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -16,80 +15,6 @@ import {
   ResetPasswordForm,
   VerifyEmailForm,
 } from '@/features/auth/auth-forms'
-import { useAuth } from '@/features/auth/use-auth'
-
-const benefits = [
-  {
-    key: 'projects',
-    icon: Target,
-  },
-  {
-    key: 'funding',
-    icon: SearchCheck,
-  },
-  {
-    key: 'partners',
-    icon: Handshake,
-  },
-] as const
-
-export function HomePage() {
-  const { t } = useTranslation()
-  const auth = useAuth()
-  const isAuthenticated = auth.status === 'authenticated' && auth.session !== null
-  const workspaceUrl = auth.session?.user.roles.some(role => role === 'Admin' || role === 'SuperAdmin')
-    ? '/admin'
-    : '/dashboard'
-
-  return (
-    <>
-      <section className="relative overflow-hidden px-4 py-20 sm:px-6 sm:py-28">
-        <div className="absolute inset-x-0 top-0 -z-10 mx-auto h-72 max-w-3xl rounded-full bg-accent/70 blur-3xl" />
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
-            {t('home.eyebrow')}
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            {t('home.title')}
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            {t('home.description')}
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button size="default" asChild>
-              <Link to="/funding">
-                {t('actions.findFunding')} <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to={isAuthenticated ? '/projects' : '/register'}>{t('actions.publishProject')}</Link>
-            </Button>
-          </div>
-          {isAuthenticated && (
-            <Link className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline" to={workspaceUrl}>
-              {t('actions.workspace')}
-            </Link>
-          )}
-        </div>
-      </section>
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-20 sm:px-6 md:grid-cols-3">
-        {benefits.map(({ key, icon: Icon }) => (
-          <Card key={key}>
-            <CardHeader>
-              <span className="mb-2 grid size-10 place-items-center rounded-xl bg-accent text-accent-foreground">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <CardTitle>{t(`home.benefits.${key}.title`)}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm leading-6 text-muted-foreground">
-              {t(`home.benefits.${key}.description`)}
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-    </>
-  )
-}
 
 function AuthPanel({
   title,

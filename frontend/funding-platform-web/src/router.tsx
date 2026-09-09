@@ -59,7 +59,7 @@ const AdminUsersPage = localizedLazy(() => import('@/pages/admin-pages').then((m
 
 const ForgotPasswordPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ForgotPasswordPage })), ["auth","validation"])
 const ExternalAuthenticationCallbackPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ExternalAuthenticationCallbackPage })), ["auth","validation"])
-const HomePage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.HomePage })), [])
+const HomePage = localizedLazy(() => import('@/features/home/home-page').then((module) => ({ default: module.HomePage })), ['catalogs'])
 const LoginPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.LoginPage })), ["auth","validation"])
 const MfaChallengePage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaChallengePage })), ["auth","validation"])
 const MfaSetupPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaSetupPage })), ["auth","validation"])
