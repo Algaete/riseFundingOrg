@@ -1,8 +1,18 @@
 # Feedback MVP: desarrollo y despliegue separados
 
-Este tablero compara el feedback entregado con el código, no con el estado del sitio Azure.
-«Implementado localmente» no significa desplegado ni validado contra servicios reales.
-Completar adjuntos `036`–`039` no completa todo el feedback.
+Este tablero distingue desarrollo, despliegue y activación de integraciones. Los cortes
+locales descritos más abajo conservan su evidencia histórica; su estado de despliegue
+actual se resume aquí. Completar adjuntos `036`–`039` no completa todo el feedback.
+
+## Estado de Azure dev — 2026-09-09
+
+PR #13 fusionada y commit `4db49d40d8d950ce640e03caa7882ae87b19edb5` desplegado:
+migraciones hasta `046`, worker general, API y frontend. CI e infraestructura aprobados;
+46 pruebas SQL posteriores y 186 pruebas de navegador sobre Azure aprobadas.
+Los bloques 6–9 quedan cerrados en el alcance autorizado de código y despliegue dev.
+Los adjuntos siguen **deshabilitados** hasta validar Defender, almacenamiento y permisos
+reales; su desarrollo no equivale a activación. SSO, correo y fuentes restringidas tampoco
+se habilitaron. Ver [evidencia de release](runbooks/mvp-feedback-dev-release-2026-09-09.md).
 
 ## Corte de avance
 
@@ -19,8 +29,8 @@ Completar adjuntos `036`–`039` no completa todo el feedback.
   y oportunidades con revisión. Contrato: [espacio financiador](FUNDER-WORKSPACE.md).
 - Bloque 5, profesionales/consorcios, implementado localmente: perfiles opt-in, invitaciones
   y participación explícita. Contrato: [profesionales y consorcios](PROFESSIONALS-AND-CONSORTIA.md).
-- Bloques 6–8 implementados localmente: matching ampliado, explorador/clasificación de fondos
-  y multimedia privada MP4/TXT. Queda validar la actualización SQL completa y desplegar dev;
+- Bloques 6–8 implementados y su código desplegado: matching ampliado, explorador/clasificación
+  de fondos y multimedia privada MP4/TXT, esta última aún deshabilitada;
   ver [bloques 6–9](BLOCKS-6-9-EXECUTION.md).
   La publicación en Azure y la activación segura de adjuntos no están incluidas en los cortes locales.
 
@@ -559,25 +569,25 @@ aprobados. Solo se omite el SHA de Azure en el servidor local. El parser valida 
 `040`, su smoke y el `008` actualizado; ninguna de esas pruebas ejecuta SQL real.
 Sin push, despliegue ni activación de adjuntos en este corte.
 
-## Desarrollo posterior, en orden de dependencias
+## Estado de los bloques funcionales
 
-| Bloque | Desarrollo pendiente |
+| Bloque | Estado actual |
 | --- | --- |
-| 3. Mapa — local completo | Descubrimiento publicado con filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`; aún no desplegado. |
-| 4. Financiadores — local completo | Registro de perfiles nuevos y oportunidades propias con revisión administrativa, sin conceder Admin. Ver `FUNDER-WORKSPACE.md`; aún no desplegado. |
-| 5. Profesionales y alianzas — local completo | Perfiles opt-in, capacidades y consorcios por proyecto con invitación, aceptación y permisos. Ver `PROFESSIONALS-AND-CONSORTIA.md`; aún no desplegado. |
-| 6. Matching ampliado | Financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. Depende de los nuevos perfiles y datos. |
-| 7. Oportunidades e ingesta | Tipos de financiador, filtros faltantes (idioma y socios/consorcios, entre otros), conectores nuevos y actualización/deduplicación. FundsforNGOs depende de acceso autorizado. |
-| 8. Multimedia adicional | Video y otros formatos requieren políticas propias de límites, seguridad, procesamiento y costes. No basta con agregarlos al selector de archivos. |
+| 3. Mapa | Desplegado en dev: filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`. |
+| 4. Financiadores | Desplegado en dev: perfiles y oportunidades propias con revisión, sin conceder Admin. Ver `FUNDER-WORKSPACE.md`. |
+| 5. Profesionales y alianzas | Desplegado en dev: perfiles opt-in, capacidades y consorcios con invitación, aceptación y permisos. Ver `PROFESSIONALS-AND-CONSORTIA.md`. |
+| 6. Matching ampliado | Desplegado en dev: financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. |
+| 7. Oportunidades e ingesta | Desplegado en dev: clasificación, filtros e ingesta RSS/Atom reforzada. Sin autopublicación. FundsforNGOs sigue condicionado a acceso autorizado. |
+| 8. Multimedia adicional | MP4/TXT privados implementados, migración y código desplegados; adjuntos deshabilitados hasta validar almacenamiento/Defender. Sin reproducción pública ni transcodificación. |
 
 ## Validación y despliegue — trabajo diferente
 
-Las migraciones locales `031`–`043`, infraestructura y adjuntos necesitan preflight SQL, pruebas
-reales de almacenamiento/Defender y publicación coordinada. Ver
-[activación de adjuntos](runbooks/project-assets-rollout.md). Los idiomas de I18N-01/02/03/04A/04B/04B.2/04C/04D/05A/05B/05C/05D no requieren
-migración SQL, pero siguen siendo cambios locales hasta publicar el frontend. I18N-05E tampoco
-requiere migración SQL; contiene además cambios de API, que se deben publicar para recibir
-los nuevos códigos. El despliegue escalonado conserva el contrato de clientes anteriores.
+Las migraciones `031`–`046` ya se validaron y aplicaron en dev; API y frontend incluyen
+los cortes I18N y códigos de validación por campo. Sigue pendiente la activación segura
+de adjuntos con evidencia real de almacenamiento/Defender y permisos, según el
+[runbook de activación](runbooks/project-assets-rollout.md). El release conservó el perfil
+`imports-only`: solo tres triggers de importación activos, ningún proceso adicional habilitado.
+La verificación pública automatizada no reemplaza una aceptación funcional con cuentas reales.
 
 No se asigna un porcentaje global: algunos bloques son ampliaciones de módulos existentes y otros
 son módulos nuevos. El cierre se acredita por criterios y pruebas de cada bloque.
