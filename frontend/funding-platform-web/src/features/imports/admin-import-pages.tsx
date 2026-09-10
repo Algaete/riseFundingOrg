@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { executeEditorialCommand } from '@/features/funding/editorial-command-cache'
+import { useImportPolling } from '@/features/imports/use-import-polling'
 import {
   adminImportApi,
   isImportRunActive,
@@ -222,6 +223,7 @@ function validStatus(value: string | null) {
 export function AdminImportRunsPage() {
   useTranslation()
   const navigate = useNavigate()
+  const polling = useImportPolling('list')
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [keyword, setKeyword] = useState('nonprofit')
@@ -253,7 +255,8 @@ export function AdminImportRunsPage() {
     queryKey: ['admin', 'import-runs', filters],
     queryFn: ({ signal }) => adminImportApi.list(filters, signal),
     placeholderData: keepPreviousData,
-    refetchInterval: (query) => shouldPollImportRuns(query.state.data?.items ?? []) ? 3_000 : false,
+    refetchInterval: (query) => polling.enabled && shouldPollImportRuns(query.state.data?.items ?? []) ? 3_000 : false,
+    refetchOnWindowFocus: false,
   })
 
   const createRun = useMutation({
@@ -313,7 +316,7 @@ export function AdminImportRunsPage() {
   }
 
   const totalPages = Math.max(1, Math.ceil((runs.data?.totalCount ?? 0) / pageSize))
-  const isPolling = shouldPollImportRuns(runs.data?.items ?? [])
+  const isPolling = polling.enabled && shouldPollImportRuns(runs.data?.items ?? [])
 
   return (
     <div className="min-w-0 space-y-6">
@@ -395,8 +398,12 @@ export function AdminImportRunsPage() {
               <CardTitle>{i18n.t('adminImports.recentRuns')}</CardTitle>
               <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground" role="status">
                 {isPolling && <><RefreshCw className="size-3.5 animate-spin" aria-hidden />{i18n.t('adminImports.polling')}</>}
-                {!isPolling && i18n.t('adminImports.pollingHelp')}
+                {!isPolling && i18n.t(polling.enabled ? 'adminImports.pollingHelp' : 'adminImports.pollingPaused')}
               </p>
+              <Button className="mt-2" size="sm" type="button" variant="outline"
+                onClick={() => { polling.restart(); void runs.refetch() }} disabled={runs.isFetching}>
+                <RefreshCw className="size-4" aria-hidden />{i18n.t('adminImports.refresh')}
+              </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-xs font-semibold">
@@ -588,6 +595,7 @@ function CandidateComparisonCard({
 export function AdminImportRunDetailPage() {
   useTranslation()
   const { id = '' } = useParams()
+  const polling = useImportPolling(id)
   const queryClient = useQueryClient()
   const [selectedDedupeCandidateId, setSelectedDedupeCandidateId] = useState<string | null>(null)
   const [pendingDecision, setPendingDecision] = useState<ImportDedupeDecision | null>(null)
@@ -598,7 +606,17 @@ export function AdminImportRunDetailPage() {
     queryKey: ['admin', 'import-run', id],
     queryFn: ({ signal }) => adminImportApi.get(id, signal),
     enabled: Boolean(id),
-    refetchInterval: (query) => query.state.data && isImportRunActive(query.state.data) ? 2_000 : false,
+    refetchInterval: (query) => polling.enabled && query.state.data && isImportRunActive(query.state.data) ? 2_000 : false,
+    refetchOnWindowFocus: false,
+  })
+  const dispatchRun = useMutation({
+    mutationKey: ['admin', 'import-dispatch', id],
+    mutationFn: () => adminImportApi.dispatch(id),
+    onSuccess: async () => {
+      polling.restart()
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'import-run', id] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'import-runs'] })
+    },
   })
   const comparison = useQuery({
     queryKey: ['admin', 'funding-duplicate-candidate', selectedDedupeCandidateId],
@@ -684,17 +702,33 @@ export function AdminImportRunDetailPage() {
     <div className="min-w-0 space-y-6">
       <Button asChild size="sm" variant="ghost"><Link to="/admin/imports"><ArrowLeft className="size-4" aria-hidden />{i18n.t('adminImports.back')}</Link></Button>
       <PageHeading
-        actions={<StatusBadge status={detail.status} />}
+        actions={(
+          <>
+            <StatusBadge status={detail.status} />
+            <Button size="sm" type="button" variant="outline" disabled={run.isFetching}
+              onClick={() => { polling.restart(); void run.refetch() }}>
+              <RefreshCw className="size-4" aria-hidden />{i18n.t('adminImports.refresh')}
+            </Button>
+            {isImportRunActive(detail) && (
+              <Button size="sm" type="button" variant="outline" disabled={dispatchRun.isPending}
+                onClick={() => dispatchRun.mutate()}>
+                <Play className="size-4" aria-hidden />{i18n.t('adminImports.dispatch')}
+              </Button>
+            )}
+          </>
+        )}
         description={`${detail.sourceName} · ${operationStatus(triggerLabels, detail.triggerType)} · ${i18n.t('adminImports.created', { date: formatDate(detail.createdAtUtc) })}`}
         title={detail.keyword ? i18n.t('adminImports.importOf', { keyword: detail.keyword }) : i18n.t('adminImports.detailTitle')}
       />
 
       {isImportRunActive(detail) && (
         <p className="flex items-center gap-2 rounded-xl border bg-card p-4 text-sm" role="status">
-          <RefreshCw className="size-4 animate-spin text-primary" aria-hidden />
-          {i18n.t('adminImports.activeRun')}
+          <RefreshCw className={`size-4 text-primary ${polling.enabled ? 'animate-spin' : ''}`} aria-hidden />
+          {i18n.t(polling.enabled ? 'adminImports.activeRun' : 'adminImports.pollingPaused')}
         </p>
       )}
+      {dispatchRun.isSuccess && <p role="status" className="text-sm">{i18n.t('adminImports.dispatched')}</p>}
+      {dispatchRun.isError && <ErrorNotice>{operationsMessage(importOperationsErrorKey(dispatchRun.error))}</ErrorNotice>}
       {detail.status === 'failed' && (
         <ErrorNotice>{i18n.t('adminImports.failedRun', { code: detail.lastErrorCode ? ` (${detail.lastErrorCode})` : '' })}</ErrorNotice>
       )}

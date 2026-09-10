@@ -16,6 +16,7 @@ public sealed class ImportSchedulerFunction(
         [TimerTrigger("0 */5 * * * *")] TimerInfo timer,
         CancellationToken cancellationToken)
     {
+        if (options.Value.OnDemandOnly) return;
         var requeued = await scheduler.RequeueStrandedAsync(
             options.Value.SchedulerBatchSize, cancellationToken);
         var runs = await scheduler.ScheduleDueAsync(

@@ -463,6 +463,8 @@ builder.Services.AddSingleton(serviceProvider =>
 builder.Services.AddSingleton<AzureImportQueuePublisher>();
 builder.Services.AddSingleton<IImportQueuePublisher>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureImportQueuePublisher>());
+builder.Services.AddSingleton<IImportRetryQueuePublisher>(serviceProvider =>
+    serviceProvider.GetRequiredService<AzureImportQueuePublisher>());
 builder.Services.AddSingleton<IImportQueueProvisioningClient>(serviceProvider =>
     serviceProvider.GetRequiredService<AzureImportQueuePublisher>());
 builder.Services.AddSingleton(serviceProvider => new ImportQueueProvisioningService(
@@ -505,6 +507,8 @@ builder.Services.AddScoped<ImportRunService>();
 builder.Services.AddScoped<IImportRunService>(serviceProvider =>
     serviceProvider.GetRequiredService<ImportRunService>());
 builder.Services.AddScoped<ImportSchedulerService>();
+builder.Services.AddScoped<IImportQueueDeliveryRepository, SqlImportQueueDeliveryRepository>();
+builder.Services.AddScoped<OnDemandImportQueueService>();
 builder.Services.AddScoped(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ImportWorkerOptions>>().Value;

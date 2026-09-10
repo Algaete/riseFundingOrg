@@ -36,6 +36,8 @@ public sealed class ImportRunEndpointTests : IClassFixture<ApiFactory>, IDisposa
             {
                 services.RemoveAll<IImportRunService>();
                 services.AddSingleton<IImportRunService>(service);
+                services.RemoveAll<IImportRunDispatchService>();
+                services.AddSingleton<IImportRunDispatchService>(service);
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -47,6 +49,7 @@ public sealed class ImportRunEndpointTests : IClassFixture<ApiFactory>, IDisposa
     [InlineData("GET", "/api/v1/admin/import-runs")]
     [InlineData("GET", "/api/v1/admin/import-runs/71717171-7171-7171-7171-717171717171")]
     [InlineData("POST", "/api/v1/admin/funding-sources/1/import-runs")]
+    [InlineData("POST", "/api/v1/admin/import-runs/71717171-7171-7171-7171-717171717171/dispatch")]
     public async Task Import_routes_require_an_admin_session_with_recent_MFA(
         string method,
         string path)
@@ -57,6 +60,39 @@ public sealed class ImportRunEndpointTests : IClassFixture<ApiFactory>, IDisposa
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
         Assert.Equal(0, service.Calls);
+    }
+
+    [Fact]
+    public async Task Dispatch_returns_existing_identifier_without_creating_a_run()
+    {
+        using var request = AuthenticatedRequest(HttpMethod.Post,
+            $"/api/v1/admin/import-runs/{RunId:D}/dispatch");
+        using var response = await client.SendAsync(request);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        Assert.Equal(RunId, payload.RootElement.GetProperty("runId").GetGuid());
+        Assert.True(payload.RootElement.GetProperty("wasReplay").GetBoolean());
+        Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
+        Assert.Equal(0, service.CreateCalls);
+        Assert.Equal(1, service.DispatchCalls);
+    }
+
+    [Theory]
+    [InlineData(ImportRunOutcome.Forbidden, null, HttpStatusCode.Forbidden, "admin-role-required")]
+    [InlineData(ImportRunOutcome.NotFound, null, HttpStatusCode.NotFound, "import-run-not-found")]
+    [InlineData(ImportRunOutcome.Unavailable, "queue-unavailable", HttpStatusCode.ServiceUnavailable, "import-queue-unavailable")]
+    public async Task Dispatch_preserves_auth_and_safe_queue_errors(ImportRunOutcome outcome,
+        string? code, HttpStatusCode expected, string problemType)
+    {
+        service.DispatchOutcome = outcome;
+        service.DispatchCode = code;
+        using var request = AuthenticatedRequest(HttpMethod.Post,
+            $"/api/v1/admin/import-runs/{RunId:D}/dispatch");
+        using var response = await client.SendAsync(request);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(expected, response.StatusCode);
+        Assert.EndsWith($"/{problemType}", problem.RootElement.GetProperty("type").GetString());
+        Assert.Equal(0, service.CreateCalls);
     }
 
     [Fact]
@@ -168,8 +204,20 @@ public sealed class ImportRunEndpointTests : IClassFixture<ApiFactory>, IDisposa
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private sealed class FakeImportRunService : IImportRunService
+    private sealed class FakeImportRunService : IImportRunService, IImportRunDispatchService
     {
+        public int DispatchCalls { get; private set; }
+        public ImportRunOutcome DispatchOutcome { get; set; } = ImportRunOutcome.Success;
+        public string? DispatchCode { get; set; }
+        public Task<ImportRunResult<ImportRunAccepted>> DispatchAsync(Guid adminUserPublicId,
+            Guid runId, CancellationToken cancellationToken)
+        {
+            Calls++;
+            DispatchCalls++;
+            return Task.FromResult(new ImportRunResult<ImportRunAccepted>(DispatchOutcome,
+                new ImportRunAccepted(runId, 1, "Grants.gov", ImportRunStatus.Queued, CreatedAt, true),
+                Code: DispatchCode));
+        }
         public int Calls { get; private set; }
         public int CreateCalls { get; private set; }
         public int ListCalls { get; private set; }

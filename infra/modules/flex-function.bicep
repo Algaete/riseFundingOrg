@@ -11,6 +11,7 @@ param sqlDatabaseName string
 param sqlIdentityClientId string = ''
 param appSettings object
 param tags object
+param importQueueSenderPrincipalId string = ''
 
 var compact = take(replace(appName, '-', ''), 20)
 var hostStorageName = take('st${compact}${uniqueString(resourceGroup().id, appName)}', 24)
@@ -73,6 +74,18 @@ module hostRbac './flex-function-rbac.bicep' = {
     hostIdentityPrincipalId: hostIdentity.properties.principalId
     hostStorageName: hostStorage.name
     applicationInsightsName: applicationInsights.name
+  }
+}
+
+// The API may only enqueue import requests, never inspect/consume the queue or
+// use host storage keys. Empty by default; only the general host receives it.
+resource importQueueSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(importQueueSenderPrincipalId)) {
+  name: guid(hostStorage::queues::imports.id, importQueueSenderPrincipalId, 'import-sender')
+  scope: hostStorage::queues::imports
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+    principalId: importQueueSenderPrincipalId
+    principalType: 'ServicePrincipal'
   }
 }
 

@@ -2,6 +2,11 @@ import type { adminImportsEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const adminImportsEn = {
+  "refresh": "Refresh status",
+  "dispatch": "Resend to queue",
+  "dispatched": "Delivery confirmed. The same run is preserved without resetting attempts or duplicating opportunities.",
+  "pollingPaused": "Automatic refresh paused after 5 minutes to save resources. The import may still be running; select Refresh status to check its progress.",
+  "queueUnavailable": "Delivery could not be confirmed. Retry the same request; if it is already in the history, open its details and select Resend to queue.",
   "noPublicInfo": "No public information",
   "waiting": "Waiting for results",
   "noResults": "No results",
@@ -24,7 +29,7 @@ export const adminImportsEn = {
   "intro": "Start and monitor controlled searches. Each candidate awaits editorial review and is never published automatically.",
   "title": "Imports",
   "grantsTitle": "Import from Grants.gov",
-  "backgroundHelp": "The task runs in the background and can be checked without keeping this page open.",
+  "backgroundHelp": "Imports start on demand. Work continues in the background after you close this page; automatic schedules are disabled in dev.",
   "noEnabledSource": "There is no enabled Grants.gov source. Check its status in Sources before importing.",
   "keyword": "Keyword",
   "keywordPlaceholder": "E.g. climate resilience",
@@ -58,7 +63,7 @@ export const adminImportsEn = {
   "rssConfigured": "RSS configured",
   "rssHelp": "Only the allowlisted URL is requested; this screen does not accept arbitrary feeds.",
   "lastSuccess": "Last success",
-  "nextRun": "Next run",
+  "nextRun": "Saved schedule (inactive in dev)",
   "viewRuns": "View runs",
   "create": "Create import",
   "newImport": "New import",

@@ -191,6 +191,31 @@ describe('consola administrativa de importaciones', () => {
     expect(await screen.findByText('Esta ejecución sigue activa.', { exact: false })).toBeInTheDocument()
   })
 
+  it.each([202, 503])('reenvía el mismo run explícitamente y maneja respuesta %s sin crear otro', async (status) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith(`/admin/import-runs/${runId}/dispatch`) && init?.method === 'POST') {
+        return Promise.resolve(json(status === 202
+          ? { ...summary({ status: 0 }), wasReplay: true, statusUrl: `/api/v1/admin/import-runs/${runId}` }
+          : { status: 503, type: 'https://fundingplatform.local/problems/import-queue-unavailable', detail: 'sensitive-upstream' }, status))
+      }
+      if (url.endsWith(`/admin/import-runs/${runId}`)) return Promise.resolve(json(detail({ status: 0, items: [], errors: [] })))
+      return Promise.resolve(json({}, 404))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    renderRoute(`/admin/imports/${runId}`)
+    const button = await screen.findByRole('button', { name: 'Reenviar a la cola' })
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+    await user.click(button)
+    if (status === 202) expect(await screen.findByText(/Envío confirmado/)).toBeInTheDocument()
+    else expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo confirmar el envío')
+    const writes = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')
+    expect(writes).toHaveLength(1)
+    expect(String(writes[0][0])).toMatch(new RegExp(`/admin/import-runs/${runId}/dispatch$`))
+    expect(screen.queryByText('sensitive-upstream')).not.toBeInTheDocument()
+  })
+
   it('rechaza en cliente un maximumResults mayor que 25', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
       const url = String(input)

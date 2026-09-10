@@ -81,6 +81,9 @@ IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS 
         (N'FundingPlatform_usp_ProjectAssetContentRetention_Claim'),
         (N'FundingPlatform_usp_ProjectAssetContentRetention_Complete'),
         (N'FundingPlatform_usp_ProjectAssetContentRetention_Fail')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_ImportRun_QueueDelivery', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES
+        (@GeneralWorkerRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ImportRun_QueueDelivery'), N'FundingPlatform_usp_ImportRun_QueueDelivery');
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL)
     THROW 54867, N'Explicit later procedure is missing.', 1;

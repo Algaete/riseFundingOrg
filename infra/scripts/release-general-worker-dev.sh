@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release code only to the existing dev general worker; preserve exactly three import triggers.
+# Release code to the existing dev general worker; preserve the queue flag and keep SQL timers off.
 set -euo pipefail
 task_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 [[ "${RF_DEV_WORKER_CONFIRMATION:-}" == 'DEPLOY-DEV-GENERAL-WORKER' && "${RF_DEV_RELEASE_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo 'Explicit worker release confirmation and SHA required.' >&2; exit 2; }
@@ -19,27 +19,30 @@ jq -e --arg name "$task_app" '.name == $name and .kind == "functionapp,linux" an
 task_manifest="$task_artifacts/general-workers.manifest.json"
 read_flags() {
   az functionapp config appsettings list -g "$task_group" -n "$task_app" \
-    --query "[?starts_with(name, 'AzureWebJobs.') || name=='PROJECT_ASSETS_ENABLED' || name=='ProjectAssets__Enabled'].{name:name,value:value}" -o json
+    --query "[?starts_with(name, 'AzureWebJobs.') || name=='PROJECT_ASSETS_ENABLED' || name=='ProjectAssets__Enabled' || name=='ImportWorkers__OnDemandOnly'].{name:name,value:value}" -o json
 }
 validate_flags() {
   local task_allow_missing="$1"
-  jq -e --argjson allowMissing "$task_allow_missing" --slurpfile manifest "$task_manifest" '
-    def imports: ["ImportSchedulerFunction", "ImportOutboxDispatcherFunction", "ImportQueueFunction"];
+  jq -e --argjson allowMissing "$task_allow_missing" --arg queueDisabled "$task_queue_disabled" --slurpfile manifest "$task_manifest" '
     def assets: ["ProjectAssetContentRetentionFunction", "ProjectAssetDefenderEventGridFunction", "ProjectAssetDefenderScanWatchdogFunction"];
     . as $settings | all($manifest[0].functions[]; . as $function |
       [$settings[] | select(.name == ("AzureWebJobs." + $function + ".Disabled")) | .value] as $values |
-      if (imports | index($function)) != null then $values == ["false"]
+      if $function == "ImportQueueFunction" then $values == [$queueDisabled]
       else $values == ["true"] or ($allowMissing and ($values | length) == 0 and (assets | index($function)) != null) end)
     and all(.[] | select(.name == "PROJECT_ASSETS_ENABLED" or .name == "ProjectAssets__Enabled"); .value == "false")
+    and ([.[] | select(.name == "ImportWorkers__OnDemandOnly") | .value] as $mode |
+      $mode == ["true"] or ($allowMissing and $mode == []))
   ' <<< "$task_flags" >/dev/null
 }
 task_flags="$(read_flags)"
-validate_flags true || { echo 'Trigger or asset flags differ from the reviewed import-only boundary.' >&2; exit 3; }
+task_queue_disabled="$(jq -er '[.[] | select(.name == "AzureWebJobs.ImportQueueFunction.Disabled") | .value] | select(length == 1) | .[0] | select(. == "true" or . == "false")' <<< "$task_flags")"
+validate_flags true || { echo 'Expected all jobs disabled or queue-only; SQL timers must stay disabled.' >&2; exit 3; }
 # New functions must be disabled before their code is indexed. Do not enable other jobs.
 az functionapp config appsettings set -g "$task_group" -n "$task_app" --settings \
   AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled=true \
   AzureWebJobs.ProjectAssetDefenderEventGridFunction.Disabled=true \
   AzureWebJobs.ProjectAssetDefenderScanWatchdogFunction.Disabled=true \
+  ImportWorkers__OnDemandOnly=true \
   PROJECT_ASSETS_ENABLED=false --only-show-errors -o none
 task_flags="$(read_flags)"
 validate_flags false || { echo 'New trigger disable flags were not confirmed; code was not published.' >&2; exit 3; }
@@ -47,4 +50,4 @@ az functionapp deployment source config-zip -g "$task_group" -n "$task_app" \
   --src "$task_artifacts/general-workers.zip" --build-remote false --timeout 300 --only-show-errors -o none
 task_flags="$(read_flags)"
 validate_flags false || { echo 'Post-release trigger flags drifted; inspect worker before proceeding.' >&2; exit 3; }
-echo "General worker code published for $RF_DEV_RELEASE_SHA; only the three existing import triggers are enabled."
+echo "General worker code published for $RF_DEV_RELEASE_SHA; queue disable flag preserved ($task_queue_disabled), SQL timers disabled."
