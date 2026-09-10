@@ -239,7 +239,17 @@ builder.Services.AddScoped<IFundingDuplicateReviewRepository,
 builder.Services.AddScoped<FundingDuplicateReviewService>();
 builder.Services.AddScoped<IFundingSourceAdminRepository, SqlFundingSourceAdminRepository>();
 builder.Services.AddScoped<FundingSourceAdminService>();
-builder.Services.AddScoped<IImportRunService, ImportRunService>();
+builder.Services.AddSingleton(ImportDispatchConfiguration.Resolve(
+    builder.Configuration, builder.Environment.IsDevelopment()));
+builder.Services.AddSingleton<IImportRunActivation, FundingPlatform.Infrastructure.Imports.AzureImportRunActivation>();
+builder.Services.AddScoped<ImportRunService>();
+builder.Services.AddScoped(serviceProvider => new OnDemandImportRunService(
+    serviceProvider.GetRequiredService<ImportRunService>(),
+    serviceProvider.GetRequiredService<IImportRunActivation>()));
+builder.Services.AddScoped<IImportRunService>(serviceProvider =>
+    serviceProvider.GetRequiredService<OnDemandImportRunService>());
+builder.Services.AddScoped<IImportRunDispatchService>(serviceProvider =>
+    serviceProvider.GetRequiredService<OnDemandImportRunService>());
 builder.Services.AddScoped<IImportRunRepository, SqlImportRunRepository>();
 builder.Services.AddScoped<IOrganizationRepository, SqlOrganizationRepository>();
 builder.Services.AddScoped<OrganizationProfileService>();

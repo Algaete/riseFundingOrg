@@ -13,7 +13,7 @@ esac
 verification_profile="${AZURE_DEV_VERIFICATION_PROFILE:-foundation}"
 case "$verification_profile" in
   foundation) ;;
-  imports-only) [[ "$stage" != 'base' ]] || { echo 'Base requires the foundation profile.' >&2; exit 2; } ;;
+  imports-only|on-demand-imports) [[ "$stage" != 'base' ]] || { echo 'Base requires the foundation profile.' >&2; exit 2; } ;;
   *) echo 'Unknown dev verification profile.' >&2; exit 2 ;;
 esac
 
@@ -124,7 +124,7 @@ documents_blob_valid="$(jq -r --arg origin "$expected_upload_origin" --arg profi
   (.properties.deleteRetentionPolicy.days == 14) and
   (.properties.containerDeleteRetentionPolicy.enabled == true) and
   (.properties.containerDeleteRetentionPolicy.days == 14) and
-  (if $profile == "imports-only" then .properties.cors.corsRules == [] else
+  (if $profile == "imports-only" or $profile == "on-demand-imports" then .properties.cors.corsRules == [] else
   ((.properties.cors.corsRules | length) == 1) and
   (.properties.cors.corsRules[0] as $rule |
     (($rule.allowedOrigins | sort) == [$origin]) and
@@ -143,7 +143,7 @@ documents_containers_json="$(az rest --method get --url "$documents_containers_u
 documents_containers_valid="$(jq -r --arg profile "$verification_profile" '
   . as $response |
   all(.value[]; (.properties.publicAccess // "None") == "None") and
-  (if $profile == "imports-only" then
+  (if $profile == "imports-only" or $profile == "on-demand-imports" then
     ([.value[].name] | sort) == ["dataprotection", "fp-source-incoming", "fp-source-quarantine", "fp-source-trusted"]
   else
   all(
@@ -173,7 +173,7 @@ documents_lifecycle_valid="$(jq -r --arg profile "$verification_profile" '
     $source.definition.actions.version.delete.daysAfterCreationGreaterThan == 14 and
     ($source.definition.filters.blobTypes | sort) == ["blockBlob"] and
     ($source.definition.filters.prefixMatch | sort) == ["fp-source-incoming/uploads/"]) and
-  (if $profile == "imports-only" then
+  (if $profile == "imports-only" or $profile == "on-demand-imports" then
     [.properties.policy.rules[].name] == ["delete-abandoned-source-uploads"]
   else
   ($project != null and $project.enabled == true and $project.type == "Lifecycle" and
@@ -264,6 +264,8 @@ verify_disabled_function_settings() {
     for import_function in ImportOutboxDispatcherFunction ImportQueueFunction ImportSchedulerFunction; do
       expected_settings="${expected_settings/AzureWebJobs.${import_function}.Disabled=true/AzureWebJobs.${import_function}.Disabled=false}"
     done
+  elif [[ "$verification_profile" == 'on-demand-imports' && "$function_app_name" == "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" ]]; then
+    expected_settings="${expected_settings/AzureWebJobs.ImportQueueFunction.Disabled=true/AzureWebJobs.ImportQueueFunction.Disabled=false}"
   fi
   actual_settings="$(az functionapp config appsettings list \
     --resource-group "$resource_group" \
@@ -302,7 +304,7 @@ verify_disabled_function_settings "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-extract" \
   'AzureWebJobs.SourceDocumentExtractionQueueFunction.Disabled=true' \
   'AzureWebJobs.SourceDocumentExtractionWatchdogFunction.Disabled=true'
 
-if [[ "$verification_profile" == 'imports-only' ]]; then
+if [[ "$verification_profile" == 'imports-only' || "$verification_profile" == 'on-demand-imports' ]]; then
   # Missing API flag resolves to false in the application. The newly published
   # worker must carry an explicit false flag before any new function is indexed.
   api_asset_flags="$(az resource show --name "$api_name" --resource-group "$resource_group" \
@@ -313,7 +315,28 @@ if [[ "$verification_profile" == 'imports-only' ]]; then
     --query "[?name=='PROJECT_ASSETS_ENABLED' || name=='ProjectAssets__Enabled'].{name:name,value:value}" --output json)"
   jq -e 'all(.[]; .value == "false" and .secretRef == null)' <<< "$api_asset_flags" >/dev/null || { echo 'Project assets must remain disabled in the API.' >&2; exit 3; }
   jq -e 'all(.[]; .value == "false") and ([.[] | select(.name == "PROJECT_ASSETS_ENABLED")] | length) == 1' <<< "$worker_asset_flags" >/dev/null || { echo 'Project assets must remain explicitly disabled in the worker.' >&2; exit 3; }
-  echo 'Verified import-only code-release boundary; upload/Defender activation remains pending.'
+  echo 'Verified import code-release boundary; upload/Defender activation remains pending.'
+fi
+
+if [[ "$verification_profile" == 'on-demand-imports' ]]; then
+  worker_on_demand="$(az functionapp config appsettings list --resource-group "$resource_group" \
+    --name "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
+    --query "[?name=='ImportWorkers__OnDemandOnly'].value | [0]" --output tsv)"
+  [[ "$worker_on_demand" == 'true' ]] || { echo 'On-demand imports require the explicit SQL timer guard.' >&2; exit 3; }
+  import_storage="$(az functionapp config appsettings list --resource-group "$resource_group" \
+    --name "func-rf-dev-${AZURE_UNIQUE_SUFFIX}-general" \
+    --query "[?name=='AzureWebJobsStorage__accountName'].value | [0]" --output tsv)"
+  import_sender_client="$(az identity show --name "$api_identity_name" --resource-group "$resource_group" --query clientId --output tsv)"
+  import_api_settings="$(az resource show --name "$api_name" --resource-group "$resource_group" \
+    --resource-type Microsoft.App/containerApps --api-version 2025-01-01 \
+    --query "properties.template.containers[0].env[?starts_with(name, 'ImportDispatch__')].{name:name,value:value,secretRef:secretRef}" --output json)"
+  jq -e --arg endpoint "https://${import_storage}.queue.core.windows.net" --arg client "$import_sender_client" '
+    all(.[]; .secretRef == null) and
+    ([.[] | select(.name == "ImportDispatch__Enabled") | .value] == ["true"]) and
+    ([.[] | select(.name == "ImportDispatch__QueueServiceUri") | .value] == [$endpoint]) and
+    ([.[] | select(.name == "ImportDispatch__ManagedIdentityClientId") | .value] == [$client]) and
+    all(.[] | select(.name == "ImportDispatch__UseDevelopmentStorage"); .value == "false")
+  ' <<< "$import_api_settings" >/dev/null || { echo 'Import API queue configuration drifted.' >&2; exit 3; }
 fi
 
 if [[ "$stage" == "api" || "$stage" == "frontend" ]]; then

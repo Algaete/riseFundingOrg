@@ -47,6 +47,8 @@ export function importOperationsErrorKey(error: unknown): OperationsKey {
       case 401: return 'operations.expired'
       case 403: return 'operations.importsMfa'
       case 429: return 'operations.importRate'
+      case 503: return typeof error.problem.type === 'string' && error.problem.type.endsWith('/import-queue-unavailable')
+        ? 'adminImports.queueUnavailable' : 'operations.importError'
       case 409: case 412: return 'operations.importConflict'
       case 400: case 422: return 'operations.invalidState'
     }

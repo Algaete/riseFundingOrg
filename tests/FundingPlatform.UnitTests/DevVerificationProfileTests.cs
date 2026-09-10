@@ -9,6 +9,8 @@ public sealed class DevVerificationProfileTests
     [Theory]
     [InlineData("imports-only", false, true)]
     [InlineData("imports-only", true, false)]
+    [InlineData("on-demand-imports", false, true)]
+    [InlineData("on-demand-imports", true, false)]
     [InlineData("foundation", false, false)]
     [InlineData("foundation", true, true)]
     public async Task Blob_profiles_require_their_exact_CORS_boundary(string profile, bool uploads, bool expected)
@@ -22,6 +24,8 @@ public sealed class DevVerificationProfileTests
     [Theory]
     [InlineData("imports-only", false, true)]
     [InlineData("imports-only", true, false)]
+    [InlineData("on-demand-imports", false, true)]
+    [InlineData("on-demand-imports", true, false)]
     [InlineData("foundation", false, false)]
     [InlineData("foundation", true, true)]
     public async Task Container_profiles_reject_public_or_unreviewed_storage(string profile, bool assets, bool expected)
@@ -38,6 +42,8 @@ public sealed class DevVerificationProfileTests
     [Theory]
     [InlineData("imports-only", false, true)]
     [InlineData("imports-only", true, false)]
+    [InlineData("on-demand-imports", false, true)]
+    [InlineData("on-demand-imports", true, false)]
     [InlineData("foundation", false, false)]
     [InlineData("foundation", true, true)]
     public async Task Retention_profiles_reject_broader_deletion_or_missing_rules(string profile, bool assets, bool expected)
@@ -55,7 +61,7 @@ public sealed class DevVerificationProfileTests
     }
 
     [Fact]
-    public void Code_release_explicitly_selects_imports_only_without_changing_foundation_defaults()
+    public void Code_release_explicitly_selects_on_demand_imports_without_changing_foundation_defaults()
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
         var script = File.ReadAllText(Path.Combine(root, "infra", "scripts", "verify-dev.sh"));
@@ -63,9 +69,11 @@ public sealed class DevVerificationProfileTests
         Assert.Contains("[[ \"$stage\" != 'base' ]]", script, StringComparison.Ordinal);
         Assert.Contains("ImportOutboxDispatcherFunction ImportQueueFunction ImportSchedulerFunction", script, StringComparison.Ordinal);
         Assert.Contains("Project assets must remain explicitly disabled in the worker", script, StringComparison.Ordinal);
+        Assert.Contains("ImportWorkers__OnDemandOnly", script, StringComparison.Ordinal);
+        Assert.Contains("ImportDispatch__ManagedIdentityClientId", script, StringComparison.Ordinal);
         foreach (var workflow in new[] { "api-dev.yml", "frontend-dev.yml" })
-            Assert.Contains("AZURE_DEV_VERIFICATION_PROFILE: imports-only", File.ReadAllText(Path.Combine(root, ".github", "workflows", workflow)), StringComparison.Ordinal);
-        Assert.DoesNotContain("AZURE_DEV_VERIFICATION_PROFILE: imports-only", File.ReadAllText(Path.Combine(root, ".github", "workflows", "infra-dev.yml")), StringComparison.Ordinal);
+            Assert.Contains("AZURE_DEV_VERIFICATION_PROFILE: on-demand-imports", File.ReadAllText(Path.Combine(root, ".github", "workflows", workflow)), StringComparison.Ordinal);
+        Assert.DoesNotContain("AZURE_DEV_VERIFICATION_PROFILE: on-demand-imports", File.ReadAllText(Path.Combine(root, ".github", "workflows", "infra-dev.yml")), StringComparison.Ordinal);
     }
 
     private static JsonObject Blob(bool uploads) => new()

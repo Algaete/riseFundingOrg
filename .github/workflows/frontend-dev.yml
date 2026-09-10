@@ -288,7 +288,7 @@ jobs:
           AZURE_UNIQUE_SUFFIX: ${{ vars.AZURE_UNIQUE_SUFFIX }}
           AZURE_API_MIN_REPLICAS: ${{ needs.resolve_targets.outputs.api_min_replicas }}
           EXPECTED_FRONTEND_RELEASE_SHA: ${{ github.sha }}
-          AZURE_DEV_VERIFICATION_PROFILE: imports-only
+          AZURE_DEV_VERIFICATION_PROFILE: on-demand-imports
         with:
           azcliversion: 2.88.0
           inlineScript: bash infra/scripts/verify-dev.sh frontend

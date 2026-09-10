@@ -1,11 +1,15 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using FundingPlatform.Application.Imports;
+using FundingPlatform.Workers.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace FundingPlatform.Workers.Functions;
 
 public sealed class ImportQueueFunction(
     ImportRunProcessingService service,
+    OnDemandImportQueueService onDemand,
+    IOptions<ImportWorkerOptions> options,
     ILogger<ImportQueueFunction> logger)
 {
     [Function(nameof(ImportQueueFunction))]
@@ -20,6 +24,8 @@ public sealed class ImportQueueFunction(
         }
 
         logger.LogInformation("Processing import run {RunId}.", queueMessage.RunId);
-        return service.ProcessAsync(queueMessage.RunId, cancellationToken);
+        return options.Value.OnDemandOnly
+            ? onDemand.ProcessAsync(queueMessage.RunId, service.ProcessAsync, cancellationToken)
+            : service.ProcessAsync(queueMessage.RunId, cancellationToken);
     }
 }

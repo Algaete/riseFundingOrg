@@ -395,6 +395,9 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       AZURE_KEY_VAULT_DATA_PROTECTION_KEY_URI: '${vault.properties.vaultUri}keys/data-protection'
       AZURE_SQL_CONNECTION_STRING: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${database.name};Encrypt=True;TrustServerCertificate=False;Authentication=Active Directory Managed Identity;User Id=${apiIdentity.properties.clientId};'
       AZURE_STORAGE_BLOB_SERVICE_URI: documents.properties.primaryEndpoints.blob
+      ImportDispatch__Enabled: 'false'
+      ImportDispatch__QueueServiceUri: 'https://${generalWorker!.outputs.hostStorageName}.queue.${environment().suffixes.storage}'
+      ImportDispatch__ManagedIdentityClientId: apiIdentity.properties.clientId
       SOURCE_DOCUMENT_INCOMING_CONTAINER: 'fp-source-incoming'
       SOURCE_DOCUMENT_QUARANTINE_CONTAINER: 'fp-source-quarantine'
       SOURCE_DOCUMENT_TRUSTED_CONTAINER: 'fp-source-trusted'
@@ -456,6 +459,7 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
   name: 'general-worker'
   params: {
     appName: generalWorkerName
+    importQueueSenderPrincipalId: apiIdentity.properties.principalId
     location: location
     applicationInsightsConnectionString: insights.properties.ConnectionString
     applicationInsightsName: insights.name
@@ -470,6 +474,7 @@ module generalWorker './flex-function.bicep' = if (deployCompute) {
       // boundary so publishing code alone cannot start timers, queues or webhooks.
       'AzureWebJobs.HealthFunction.Disabled': 'true'
       'AzureWebJobs.ImportSchedulerFunction.Disabled': 'true'
+      ImportWorkers__OnDemandOnly: 'true'
       'AzureWebJobs.ImportOutboxDispatcherFunction.Disabled': 'true'
       'AzureWebJobs.ImportQueueFunction.Disabled': 'true'
       'AzureWebJobs.DefenderEventGridFunction.Disabled': 'true'

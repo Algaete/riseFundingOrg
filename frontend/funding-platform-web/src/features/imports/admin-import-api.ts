@@ -738,6 +738,13 @@ export const adminImportApi = {
     return mapImportRunDetail(response)
   },
 
+  async dispatch(runId: string) {
+    const response = await apiClient.post<unknown>(
+      `admin/import-runs/${encodeURIComponent(runId)}/dispatch`, {}, { cache: 'no-store' },
+    )
+    return mapAccepted(response)
+  },
+
   async getDedupe(candidateId: string, signal?: AbortSignal) {
     const response = await apiClient.get<unknown>(
       `admin/funding-duplicate-candidates/${encodeURIComponent(candidateId)}`,

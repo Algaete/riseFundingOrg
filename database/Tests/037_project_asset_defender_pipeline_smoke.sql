@@ -111,6 +111,7 @@ IF @ApiRoleId IS NULL OR @WorkerRoleId IS NULL
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @WorkerRoleId) <> 53 +
        CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS NULL THEN 0 ELSE 3 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_ImportRun_QueueDelivery', N'P') IS NULL THEN 0 ELSE 1 END
     THROW 55733, N'Project asset Defender permissions exceed the worker-only allowlist.', 1;
 
 DECLARE @InitialTransactionCount INT = @@TRANCOUNT;

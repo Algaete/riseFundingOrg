@@ -33,6 +33,13 @@ public static class AdminImportRunEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
+        group.MapPost("/import-runs/{runId:guid}/dispatch", DispatchAsync)
+            .RequireRateLimiting("import-run-create")
+            .Produces<ImportRunAcceptedResponse>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
         group.MapGet("/import-runs/{runId:guid}", GetAsync)
             .Produces<ImportRunDetailResponse>()
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -40,6 +47,20 @@ public static class AdminImportRunEndpoints
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         return endpoints;
+    }
+
+    private static async Task<IResult> DispatchAsync(Guid runId, ClaimsPrincipal principal,
+        IImportRunDispatchService service, CancellationToken cancellationToken)
+    {
+        if (!ProjectEndpointResults.TryGetUserId(principal, out var userId))
+            return ProjectEndpointResults.InvalidSession();
+        var result = await service.DispatchAsync(userId, runId, cancellationToken);
+        if (result.Outcome != ImportRunOutcome.Success || result.Value is null)
+            return MapFailure(result);
+        var run = result.Value;
+        var statusUrl = $"/api/v1/admin/import-runs/{run.RunId:D}";
+        return Results.Accepted(statusUrl, new ImportRunAcceptedResponse(run.RunId,
+            run.FundingSourceId, run.SourceName, (byte)run.Status, run.CreatedAtUtc, true, statusUrl));
     }
 
     private static async Task<IResult> CreateAsync(
@@ -211,8 +232,10 @@ public static class AdminImportRunEndpoints
         ImportRunOutcome.Unavailable => ProjectEndpointResults.Problem(
             503,
             "Importaciones temporalmente no disponibles",
-            "Intenta nuevamente en unos minutos.",
-            "import-service-unavailable"),
+            result.Code == "queue-unavailable"
+                ? "La solicitud se conservó, pero no se confirmó su envío a la cola. Reintenta con la misma clave o reenvíala desde su detalle."
+                : "Intenta nuevamente en unos minutos.",
+            result.Code == "queue-unavailable" ? "import-queue-unavailable" : "import-service-unavailable"),
         _ => ProjectEndpointResults.Problem(
             500,
             "No fue posible completar la operación",

@@ -6,6 +6,9 @@ public sealed class ImportWorkerOptions
 {
     public const string SectionName = "ImportWorkers";
 
+    // Defense in depth: even accidentally enabled host timers must not poll SQL.
+    public bool OnDemandOnly { get; set; } = true;
+
     public int LeaseSeconds { get; set; } = 1800;
     public int SchedulerBatchSize { get; set; } = 10;
     public int OutboxBatchSize { get; set; } = 25;

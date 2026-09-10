@@ -43,7 +43,7 @@ public sealed class ForwardReleaseRegressionTests
     }
 
     [Fact]
-    public void Worker_release_preserves_imports_and_disables_new_triggers_before_upload()
+    public void Worker_release_preserves_queue_flag_and_disables_SQL_timers_before_upload()
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
         var script = File.ReadAllText(Path.Combine(root, "infra", "scripts", "release-general-worker-dev.sh"));
@@ -51,7 +51,10 @@ public sealed class ForwardReleaseRegressionTests
         Assert.Contains("package-workers.py\" verify", script, StringComparison.Ordinal);
         Assert.Contains("ls-remote --heads origin main", script, StringComparison.Ordinal);
         Assert.Contains("ci.yml/runs?branch=main&event=push", script, StringComparison.Ordinal);
-        Assert.Contains("def imports: [\"ImportSchedulerFunction\", \"ImportOutboxDispatcherFunction\", \"ImportQueueFunction\"]", script, StringComparison.Ordinal);
+        Assert.Contains("if $function == \"ImportQueueFunction\" then $values == [$queueDisabled]", script, StringComparison.Ordinal);
+        Assert.Contains("else $values == [\"true\"]", script, StringComparison.Ordinal);
+        Assert.Contains("--arg queueDisabled \"$task_queue_disabled\"", script, StringComparison.Ordinal);
+        Assert.Contains("ImportWorkers__OnDemandOnly=true", script, StringComparison.Ordinal);
         var disabled = script.IndexOf("AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled=true", StringComparison.Ordinal);
         var upload = script.IndexOf("az functionapp deployment source config-zip", StringComparison.Ordinal);
         Assert.True(disabled >= 0 && upload > disabled);

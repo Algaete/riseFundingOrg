@@ -16,6 +16,7 @@ public sealed class ImportOutboxDispatcherFunction(
         [TimerTrigger("0 * * * * *")] TimerInfo timer,
         CancellationToken cancellationToken)
     {
+        if (options.Value.OnDemandOnly) return;
         var count = await dispatcher.DispatchAsync(
             options.Value.OutboxBatchSize, cancellationToken);
         logger.LogInformation("Dispatched {MessageCount} import messages.", count);
