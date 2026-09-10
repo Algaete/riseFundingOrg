@@ -1,6 +1,8 @@
 # Inicio público basado en la referencia visual
 
-Fecha: 2026-09-09. Estado: implementado y validado localmente; este cambio aún no está desplegado en Azure.
+Fecha: 2026-09-09. Implementación completada y validada localmente. El usuario autorizó guardar todos los cambios en GitHub y publicar este rediseño en Azure dev.
+
+El estado de publicación se comprueba en [Azure dev frontend](https://github.com/Algaete/riseFundingOrg/actions/workflows/frontend-dev.yml) y en los [metadatos servidos por Azure](https://salmon-glacier-0721afc0f.7.azurestaticapps.net/deploy-meta.json): el SHA y el identificador de ejecución deben coincidir con el release aprobado. Una compilación local correcta no equivale a un despliegue completado.
 
 ## Alcance
 
