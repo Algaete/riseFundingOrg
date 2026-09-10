@@ -11,12 +11,23 @@ export function registerHomeReferenceTests(accessibility: (page: Page) => Promis
     for (const theme of ['light', 'dark']) {
       test(`inicio de referencia vacío accesible a ${width}px en ${theme}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 1024 })
+        if (width === 1024 && theme === 'light') {
+          // Reproduce a slow CDN response: visible layout does not mean the image decoded.
+          await page.route('**/images/home-impact-hero.jpg', async route => {
+            const response = await route.fetch()
+            await new Promise(resolve => setTimeout(resolve, 750))
+            await route.fulfill({ response })
+          })
+        }
         await page.goto('/')
         await expect(page.getByRole('heading', { name: 'El próximo gran proyecto puede ser el tuyo' })).toBeVisible()
         await page.getByRole('combobox', { name: 'Cambiar tema', exact: true }).selectOption(theme)
         const hero = page.locator('.home-hero-photo')
         await expect(hero).toBeVisible()
-        expect(await hero.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+        await expect.poll(() => hero.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0), {
+          message: 'The home photograph must finish loading successfully',
+          timeout: 15_000,
+        }).toBe(true)
         await expect(page.locator('.home-map-marker, .home-project-card')).toHaveCount(0)
         await fits(page)
         await accessibility(page)
