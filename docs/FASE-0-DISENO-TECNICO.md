@@ -585,6 +585,13 @@ Producción usará custom domains del mismo sitio, por ejemplo `app.<dominio>` y
 
 Los dominios predeterminados inconexos de Static Web Apps/Container Apps no son una topología de producción aceptable para esta sesión. Si el negocio no dispone del dominio antes de FASE 3, se debe elegir un proxy/BFF same-origin o diseñar `SameSite=None` + antiforgery y probar bloqueo de third-party cookies; no se improvisa después de implementar auth.
 
+Actualización para dev sin dominio (2026-09-11): se implementa una alternativa explícita CHIPS
+(`SameSite=None; Partitioned; Secure; HttpOnly`) con nombre separado, validación estricta de
+`Origin` en emisión/renovación/cierre y Web Locks entre ventanas. No se extiende MFA ni se usa
+almacenamiento JavaScript para tokens. El modo predeterminado y la recomendación de producción
+siguen siendo same-site/Lax. Configuración, pruebas y aceptación real pendientes de cada despliegue
+se describen en [la guía operativa](AZURE-MVP-DEPLOYMENT.md#sesion-dev-sin-dominio).
+
 ---
 
 ## 7. Modelo de datos inicial

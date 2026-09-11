@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/api/api-config'
+import { AUTH_SESSION_REQUEST_TIMEOUT_MS, withAuthSessionLock } from './auth-session-lock'
 
 export interface AuthenticatedUser {
   publicId: string
@@ -92,12 +93,14 @@ export function clearAuthSession() {
   emit()
 }
 
-async function requestRefresh(): Promise<AuthSession | null> {
-  const versionAtStart = authStateVersion
+async function requestRefresh(versionAtStart: number): Promise<AuthSession | null> {
+  // A queued refresh must not run after this tab has logged out or started a new login.
+  if (authStateVersion !== versionAtStart) return null
   const send = () => fetch(`${getApiBaseUrl()}/auth/refresh`, {
       method: 'POST',
       headers: { Accept: 'application/json' },
       credentials: 'include',
+      signal: AbortSignal.timeout(AUTH_SESSION_REQUEST_TIMEOUT_MS),
     })
 
   let response = await send()
@@ -124,7 +127,8 @@ async function requestRefresh(): Promise<AuthSession | null> {
 
 export function refreshAuthSession() {
   if (!refreshPromise) {
-    const pendingRefresh = requestRefresh().finally(() => {
+    const versionAtStart = authStateVersion
+    const pendingRefresh = withAuthSessionLock(() => requestRefresh(versionAtStart)).finally(() => {
       if (refreshPromise === pendingRefresh) {
         refreshPromise = null
       }
