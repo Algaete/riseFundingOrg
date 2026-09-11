@@ -19,6 +19,7 @@ export const adminFundingEn = {
   "administrator": "Administrator",
   "funderPages": "Funder pages",
   "saved": "Changes saved successfully.",
+  "saveBlocked": "Changes were not saved. Review these fields:",
   "preparing": "Preparing editor…",
   "editorFailed": "Catalogs, sources or funders could not be loaded for the editor.",
   "identity": "Identity and provenance",

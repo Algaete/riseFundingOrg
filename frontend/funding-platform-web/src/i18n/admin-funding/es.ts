@@ -16,6 +16,7 @@ export const adminFundingEs = {
   "administrator": "Administrador",
   "funderPages": "Páginas de financiadores",
   "saved": "Cambios guardados correctamente.",
+  "saveBlocked": "No se guardaron los cambios. Revisa estos campos:",
   "preparing": "Preparando editor…",
   "editorFailed": "No fue posible cargar catálogos, fuentes o financiadores para el editor.",
   "identity": "Identidad y procedencia",

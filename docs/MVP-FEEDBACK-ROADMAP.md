@@ -4,7 +4,26 @@ Este tablero distingue desarrollo, despliegue y activación de integraciones. Lo
 locales descritos más abajo conservan su evidencia histórica; su estado de despliegue
 actual se resume aquí. Completar adjuntos `036`–`039` no completa todo el feedback.
 
-## Estado de Azure dev — 2026-09-09
+## Estado actual y aceptación — 2026-09-10
+
+El release bajo demanda `3776b0a7448229e099958494f92494db8a2ac218` está desplegado
+con migraciones hasta `047`. Solo está activo el trigger de cola de importaciones;
+los temporizadores SQL están apagados. El 10 de septiembre, una consulta de control
+confirmó SQL pausado después de este despliegue. Esto no implica costo total cero.
+
+La aceptación importar → revisar → publicar → catálogo se inició: 197 pruebas
+locales focalizadas aprobadas y lectura pública HTTP 200. El usuario confirmó un
+ítem importado (`363846`, `created`, sin publicar); falta revisar su ficha y probar
+aprobación/visibilidad. No hay navegador conectado para operar su sesión; ver
+[evidencia y pasos pendientes](runbooks/import-review-feed-acceptance-dev-2026-09-10.md).
+El reporte posterior de guardado sin respuesta tiene una mejora local de validación
+visible (960 pruebas frontend, lint y build aprobados), aún sin desplegar. No se ha
+confirmado la causa del bloqueo en el registro real ni su persistencia en Azure.
+No se confunde código desplegado con todas las funciones habilitadas o aceptadas:
+siguen pendientes la activación segura de adjuntos, acceso autorizado a FundsforNGOs,
+filtros avanzados del mapa, búsqueda unificada y recomendaciones ligadas a brechas.
+
+## Release anterior de Azure dev — 2026-09-09
 
 PR #13 fusionada y commit `4db49d40d8d950ce640e03caa7882ae87b19edb5` desplegado:
 migraciones hasta `046`, worker general, API y frontend. CI e infraestructura aprobados;
