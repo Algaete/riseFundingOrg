@@ -125,6 +125,106 @@ describe('administración editorial de fondos', () => {
   beforeEach(setAdminSession)
   afterEach(() => vi.unstubAllGlobals())
 
+  it('guarda categorías de un borrador importado sin exigir publicación ni inventar alcance', async () => {
+    let current = opportunity({
+      publicationStatus: 0, geographicScope: 0, countryIds: [], regionIds: [], categoryIds: [],
+      issuerCountryId: null, sponsorUrl: null, requiresCofunding: false, cofundingPercentage: null,
+      requiresLegalEntity: null, requiresPriorExperience: null, minimumOperatingYears: null,
+      closeAtUtc: null, deadlineTimeZoneId: null, deadlinePrecision: 1,
+    })
+    const writes: unknown[] = []
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          const payload = JSON.parse(String(init.body))
+          writes.push(payload)
+          current = opportunity({ ...current, ...payload, contentVersion: 4, eTag: '"0000000000000004"' })
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0, contentVersion: 4, eTag: current.eTag, wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({ title: 'Unexpected request', status: 404 }, 404))
+    }))
+    const user = userEvent.setup()
+    render(<App router={createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })} queryClient={createAppQueryClient()} />)
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Salud' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Cambios guardados correctamente.')).toBeInTheDocument()
+    expect(writes).toHaveLength(1)
+    expect(writes[0]).toMatchObject({ categoryIds: [1], geographicScope: 0, countryIds: [], issuerCountryId: null })
+    expect(screen.getByRole('checkbox', { name: 'Salud' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled()
+  })
+
+  it('explica junto a Guardar los errores anidados del financiador y enfoca el resumen', async () => {
+    const current = opportunity({
+      publicationStatus: 0, categoryIds: [],
+      funders: [{ funderId: 'invalid-id', name: 'Financiador importado', role: 1 }],
+    })
+    let writes = 0
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PUT' || init?.method === 'POST') writes += 1
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) return Promise.resolve(json(current))
+      return Promise.resolve(json({ title: 'Not found', status: 404 }, 404))
+    }))
+    const user = userEvent.setup()
+    render(<App router={createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })} queryClient={createAppQueryClient()} />)
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Salud' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    const summary = await screen.findByRole('alert', { name: 'No se guardaron los cambios. Revisa estos campos:' })
+    expect(summary).toHaveFocus()
+    expect(summary).toHaveTextContent('Financiadores asociados')
+    expect(summary).not.toHaveTextContent('Invalid uuid')
+    expect(writes).toBe(0)
+    expect(screen.getByRole('checkbox', { name: 'Salud' })).toBeChecked()
+    await user.click(within(summary).getByRole('button', { name: /Financiadores asociados/ }))
+    expect(screen.getByLabelText('Buscar financiador')).toHaveFocus()
+  })
+
+  it('permite localizar y corregir un campo inválido sin perder las categorías elegidas', async () => {
+    let current = opportunity({ publicationStatus: 0, categoryIds: [], summary: 'x'.repeat(2001) })
+    let writes = 0
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          writes += 1
+          current = opportunity({ ...current, ...JSON.parse(String(init.body)), contentVersion: 4, eTag: '"0000000000000004"' })
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0, contentVersion: 4, eTag: current.eTag, wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({ title: 'Not found', status: 404 }, 404))
+    }))
+    const user = userEvent.setup()
+    render(<App router={createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })} queryClient={createAppQueryClient()} />)
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Salud' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    const summary = await screen.findByRole('alert', { name: 'No se guardaron los cambios. Revisa estos campos:' })
+    expect(writes).toBe(0)
+    await user.click(within(summary).getByRole('button', { name: 'Resumen: Usa como máximo 2000 caracteres.' }))
+    const field = screen.getByLabelText(/^Resumen/)
+    expect(field).toHaveFocus()
+    await user.clear(field)
+    await user.type(field, 'Resumen corregido por la persona editora.')
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Cambios guardados correctamente.')).toBeInTheDocument()
+    expect(writes).toBe(1)
+    expect(screen.queryByRole('alert', { name: 'No se guardaron los cambios. Revisa estos campos:' })).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Salud' })).toBeChecked()
+  })
+
   it('publica una oportunidad pendiente usando ETag e Idempotency-Key', async () => {
     let current = opportunity()
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

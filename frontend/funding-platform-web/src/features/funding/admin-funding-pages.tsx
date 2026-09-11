@@ -18,7 +18,7 @@ import {
   Save,
   Search,
 } from 'lucide-react'
-import { type FormEvent, useEffect, useState, type ReactNode } from 'react'
+import { type FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -54,6 +54,8 @@ import {
   type RemoteApplication,
 } from '@/features/funding/admin-funding-api'
 import { executeEditorialCommand } from '@/features/funding/editorial-command-cache'
+import { focusFundingFormField, fundingFormErrors, type FundingFormField } from './funding-form-validation'
+import { FundingFormValidationSummary } from './funding-form-validation-summary'
 import { organizationApi, type CatalogOption } from '@/features/organizations/organization-api'
 
 const listPageSize = 20
@@ -211,12 +213,14 @@ function Field({ children, error, hint, label }: { children: ReactNode; error?: 
 
 function MultiChoice({
   catalog,
+  field,
   items,
   label,
   onChange,
   selected,
 }: {
   catalog: CatalogKind
+  field?: FundingFormField
   items: CatalogOption<number>[]
   label: string
   onChange: (value: number[]) => void
@@ -224,7 +228,7 @@ function MultiChoice({
 }) {
   useTranslation()
   return (
-    <fieldset className="min-w-0 space-y-2">
+    <fieldset className="min-w-0 space-y-2" id={field ? `funding-field-${field}` : undefined} tabIndex={-1}>
       <legend className="text-sm font-semibold">{label}</legend>
       {items.length === 0
         ? <p className="text-sm text-muted-foreground">{i18n.t('adminFunding.optionsEmpty')}</p>
@@ -459,7 +463,7 @@ function FundingPartnerChoices({
   const editorialScope = useFundingEditorialScope()
   const lastPage = Math.max(1, Math.ceil(totalCount / pageSize))
   return (
-    <fieldset className="min-w-0 space-y-3">
+    <fieldset className="min-w-0 space-y-3" id="funding-field-funders" tabIndex={-1}>
       <div><legend className="text-sm font-semibold">{i18n.t('adminFunding.associatedFunders')}</legend><p className="mt-1 text-xs text-muted-foreground">{i18n.t('adminFunding.primaryHelp')}</p></div>
       <label className="grid gap-1.5 text-sm font-semibold">
         {i18n.t('adminFunding.searchFunder')}
@@ -552,6 +556,9 @@ function AdminOpportunityForm({
   const [debouncedFunderSearch, setDebouncedFunderSearch] = useState('')
   const [funderPage, setFunderPage] = useState(1)
   const [saveMessage, setSaveMessage] = useState<'adminFunding.saved' | null>(null)
+  const [invalidSubmitCount, setInvalidSubmitCount] = useState(0)
+  const formElement = useRef<HTMLFormElement>(null)
+  const validationSummary = useRef<HTMLDivElement>(null)
   const [knownFunders, setKnownFunders] = useState<FunderChoice[]>(() =>
     (item?.funders ?? []).map((funder) => ({ funderId: funder.funderId, name: funder.name })),
   )
@@ -563,7 +570,11 @@ function AdminOpportunityForm({
     staleTime: 30_000,
   })
   const sources = useQuery({ queryKey: [editorialScope.key('admin-funding-sources')], queryFn: ({ signal }) => adminFundingSourcesApi.list(signal), staleTime: 60_000 })
-  const form = useForm<OpportunityFormValues>({ resolver: zodResolver(opportunitySchema), defaultValues: toFormValues(item) })
+  const form = useForm<OpportunityFormValues>({ resolver: zodResolver(opportunitySchema), defaultValues: toFormValues(item), shouldFocusError: false })
+
+  useEffect(() => {
+    if (invalidSubmitCount > 0) validationSummary.current?.focus()
+  }, [invalidSubmitCount])
 
   useEffect(() => { form.reset(toFormValues(item)) }, [form, item])
   useEffect(() => { onDirtyChange?.(form.formState.isDirty) }, [form.formState.isDirty, onDirtyChange])
@@ -595,6 +606,7 @@ function AdminOpportunityForm({
       ))
     },
     onSuccess: async (result) => {
+      setInvalidSubmitCount(0)
       await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunities')] })
       if (!item) {
         void navigate(`${editorialScope.basePath}/funding/${result.entityId}`, { replace: true })
@@ -652,6 +664,13 @@ function AdminOpportunityForm({
     ...(funders.data?.items ?? []),
   ]
   const serverValidation = adminValidationMessages(save.error)
+  const clientValidation = invalidSubmitCount > 0 ? fundingFormErrors(form.formState.errors) : []
+
+  function reportInvalidSubmission() {
+    setSaveMessage(null)
+    save.reset()
+    setInvalidSubmitCount(value => value + 1)
+  }
 
   function submit(values: OpportunityFormValues) {
     const eligibleRegionIds = new Set(
@@ -661,13 +680,14 @@ function AdminOpportunityForm({
     )
     if (values.regionIds.some((regionId) => !eligibleRegionIds.has(regionId))) {
       form.setError('regionIds', { message: 'editorialValidation.regions' })
+      reportInvalidSubmission()
       return
     }
     save.mutate(values)
   }
 
   return (
-    <form className="space-y-5" noValidate onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-5" noValidate onSubmit={form.handleSubmit(submit, reportInvalidSubmission)} ref={formElement}>
       <fieldset className="min-w-0 space-y-5 disabled:opacity-65" disabled={locked || save.isPending}>
         <Card>
           <CardHeader><CardTitle>{i18n.t('adminFunding.identity')}</CardTitle></CardHeader>
@@ -845,22 +865,23 @@ function AdminOpportunityForm({
               <Field label={i18n.t('adminFunding.remote')}><select {...form.register('remoteApplication')} className={inputClass}><option value="0">{i18n.t('editorial.notReported')}</option><option value="1">{i18n.t('adminFunding.no')}</option><option value="2">{i18n.t('adminFunding.yes')}</option></select></Field>
             </div>
             {selectedGeographicScope === '1' && <>
-              <MultiChoice catalog='countries' items={catalogs.data.countries} label={i18n.t('adminFunding.countries')} onChange={(value) => {
+              <MultiChoice catalog='countries' field="countryIds" items={catalogs.data.countries} label={i18n.t('adminFunding.countries')} onChange={(value) => {
                 form.setValue('countryIds', value, { shouldDirty: true })
                 const allowedRegionIds = catalogs.data.regions.filter((region) => value.includes(region.countryId)).map((region) => region.id)
                 form.setValue('regionIds', regions.filter((regionId) => allowedRegionIds.includes(regionId)), { shouldDirty: true })
               }} selected={countries} />
               {form.formState.errors.countryIds?.message && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(form.formState.errors.countryIds.message)}</p>}
-              {visibleRegions.length > 0 && <MultiChoice catalog='regions' items={visibleRegions} label={i18n.t('adminFunding.regions')} onChange={(value) => form.setValue('regionIds', value, { shouldDirty: true })} selected={regions} />}
+              {visibleRegions.length > 0 && <MultiChoice catalog='regions' field="regionIds" items={visibleRegions} label={i18n.t('adminFunding.regions')} onChange={(value) => form.setValue('regionIds', value, { shouldDirty: true })} selected={regions} />}
               {form.formState.errors.regionIds?.message && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(form.formState.errors.regionIds.message)}</p>}
             </>}
-            <MultiChoice catalog='fundingCategories' items={catalogs.data.fundingCategories} label={i18n.t('adminFunding.categories')} onChange={(value) => form.setValue('categoryIds', value, { shouldDirty: true })} selected={categories} />
-            <MultiChoice catalog='beneficiaryTypes' items={catalogs.data.beneficiaryTypes} label={i18n.t('adminFunding.beneficiaries')} onChange={(value) => form.setValue('beneficiaryTypeIds', value, { shouldDirty: true })} selected={beneficiaries} />
-            <MultiChoice catalog='projectTypes' items={catalogs.data.projectTypes} label={i18n.t('adminFunding.projectTypes')} onChange={(value) => form.setValue('projectTypeIds', value, { shouldDirty: true })} selected={projectTypes} />
+            <MultiChoice catalog='fundingCategories' field="categoryIds" items={catalogs.data.fundingCategories} label={i18n.t('adminFunding.categories')} onChange={(value) => form.setValue('categoryIds', value, { shouldDirty: true })} selected={categories} />
+            <MultiChoice catalog='beneficiaryTypes' field="beneficiaryTypeIds" items={catalogs.data.beneficiaryTypes} label={i18n.t('adminFunding.beneficiaries')} onChange={(value) => form.setValue('beneficiaryTypeIds', value, { shouldDirty: true })} selected={beneficiaries} />
+            <MultiChoice catalog='projectTypes' field="projectTypeIds" items={catalogs.data.projectTypes} label={i18n.t('adminFunding.projectTypes')} onChange={(value) => form.setValue('projectTypeIds', value, { shouldDirty: true })} selected={projectTypes} />
           </CardContent>
         </Card>
       </fieldset>
 
+      <FundingFormValidationSummary errors={clientValidation} onSelectField={field => focusFundingFormField(formElement.current, field)} summaryRef={validationSummary} />
       {locked && <p className="rounded-lg bg-muted p-3 text-sm">{i18n.t('editorial.lockedContent', { status: i18n.t(publicationStatusKeys[item!.publicationStatus]).toLocaleLowerCase() })}</p>}
       {saveMessage && item && (
         <p className="flex items-center gap-2 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground" role="status">
