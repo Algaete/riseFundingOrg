@@ -43,7 +43,7 @@ import { executeEditorialCommand } from '@/features/funding/editorial-command-ca
 import { organizationApi } from '@/features/organizations/organization-api'
 
 const listPageSize = 20
-const inputClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
+const inputClass = 'h-10 min-w-0 w-full max-w-full rounded-lg border bg-background px-3 text-sm'
 const textareaClass = 'min-h-28 w-full rounded-lg border bg-background px-3 py-2 text-sm'
 
 const optionalHttpUrl = z.string().trim().refine(
@@ -64,7 +64,7 @@ type FunderFormValues = z.infer<typeof funderSchema>
 function Field({ children, error, label, required = false }: { children: ReactNode; error?: string; label: string; required?: boolean }) {
   useTranslation()
   return (
-    <label className="grid gap-1.5 text-sm font-semibold">
+    <label className="grid min-w-0 gap-1.5 text-sm font-semibold">
       <span>{label}{required && <span aria-hidden="true"> *</span>}</span>
       {children}
       {error && <span className="text-xs font-normal text-foreground" role="alert">{editorialFieldMessage(error)}</span>}
@@ -145,6 +145,10 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
     return <p className="rounded-lg bg-destructive/10 p-3 text-sm text-foreground" role="alert">{i18n.t('adminFunders.countriesFailed')}</p>
   }
 
+  const countryCollator = new Intl.Collator(i18n.resolvedLanguage ?? 'es', { sensitivity: 'base' })
+  const countries = catalogs.data.countries.map(country => ({ country, label: catalogName('countries', country) }))
+    .sort((left, right) => countryCollator.compare(left.label, right.label))
+
   return (
     <form className="space-y-5" onSubmit={form.handleSubmit((values) => save.mutate(values))}>
       <Card>
@@ -164,7 +168,7 @@ function AdminFunderForm({ funder, onDirtyChange }: { funder?: AdminFunderDetail
               <Field label={i18n.t('adminFunders.country')}>
                 <select {...form.register('countryId')} className={inputClass}>
                   <option value="">{i18n.t('adminFunders.noCountry')}</option>
-                  {catalogs.data.countries.map((country) => <option key={country.id} value={country.id} lang={catalogLanguage('countries', country)}>{catalogName('countries', country)}</option>)}
+                  {countries.map(({ country, label }) => <option key={country.id} value={country.id} lang={catalogLanguage('countries', country)}>{label}</option>)}
                 </select>
               </Field>
             </div>

@@ -1,5 +1,11 @@
 # Base de datos
 
+Corrección local 2026-09-12: `048_world_country_catalog.sql` amplía el catálogo
+compartido a 249 países y territorios, sin modificar identidades ni filas existentes.
+Soluciona el selector de Financiadores limitado a Chile. Smoke 048 con rollback
+preparado y parseado; aplicación/ejecución SQL real pendientes.
+[Contrato y procedencia](../docs/WORLD-COUNTRY-CATALOG.md).
+
 Bloque 4 local: `042_funder_workspace.sql` agrega propiedad explícita y reutiliza
 14 procedimientos editoriales con ámbito de propietario opcional; revisión Admin/MFA
 intacta. Smoke `042` sintético con rollback y manifiesto `027` actualizado. Validado
