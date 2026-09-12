@@ -1,15 +1,10 @@
 import type { MarketplaceProjectItem } from '@/features/marketplace/marketplace-api'
+import { unifiedSearchUrl, type SearchScope } from '@/features/search/search-model'
 
-export type HomeSearchScope = 'projects' | 'funding'
+export type HomeSearchScope = SearchScope
 export function homeSearchUrl(scope: HomeSearchScope, query: string, country: string, category: string) {
-  const params = new URLSearchParams()
-  const term = query.trim().slice(0, 200)
-  if (term) params.set(scope === 'projects' ? 'q' : 'query', term)
-  for (const [key, value] of [['countryId', country], ['categoryId', category]]) {
-    if (/^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value))) params.set(key, value)
-  }
-  const path = scope === 'projects' ? '/marketplace' : '/funding/explore'
-  return params.size ? `${path}?${params}` : path
+  const id = (value: string, maximum: number) => /^[1-9]\d*$/.test(value) && Number(value) <= maximum ? value : ''
+  return unifiedSearchUrl(scope, query, id(country, 32767), id(category, 2147483647))
 }
 
 export function publishedHomeProjects(items: MarketplaceProjectItem[]) {

@@ -67,6 +67,7 @@ export const coreEs = {
     description: 'Encuentra oportunidades de financiamiento, descubre proyectos, organizaciones y profesionales para colaborar y haz crecer tu impacto.',
     search: {
       title: 'Encuentra tu próxima oportunidad', scope: 'Buscar en', projects: 'Proyectos', funding: 'Oportunidades',
+      all: 'Todo', organizations: 'Organizaciones', professionals: 'Profesionales',
       query: 'Término de búsqueda', placeholder: 'Busca por nombre, tema o palabra clave…', country: 'País',
       allCountries: 'Todos los países', sector: 'Área de impacto', allSectors: 'Todos los sectores', submit: 'Buscar',
       catalogsError: 'No pudimos cargar los filtros. Puedes buscar por palabra clave.', retry: 'Reintentar filtros',

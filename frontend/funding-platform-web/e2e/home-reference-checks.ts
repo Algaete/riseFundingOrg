@@ -40,8 +40,9 @@ export function registerHomeReferenceTests(accessibility: (page: Page) => Promis
     }
   }
 
-  test('inicio de referencia conserva criterios y busca en proyectos u oportunidades', async ({ page }) => {
+  test('inicio de referencia conserva criterios y abre la búsqueda unificada', async ({ page }) => {
     await page.route('**/api/v1/marketplace/catalogs', route => route.fulfill({ json: catalogs }))
+    await page.route('**/api/v1/funding-discovery?*', route => route.fulfill({ json: { items: [], totalCount: 0, page: 1, pageSize: 6 } }))
     await page.goto('/')
     await page.getByRole('searchbox', { name: 'Término de búsqueda', exact: true }).fill('agua & salud')
     await page.getByRole('combobox', { name: 'País', exact: true }).selectOption('152')
@@ -50,17 +51,17 @@ export function registerHomeReferenceTests(accessibility: (page: Page) => Promis
     await expect(page.getByRole('searchbox', { name: 'Search term' })).toHaveValue('agua & salud')
     await expect(page.getByRole('combobox', { name: 'Country', exact: true })).toHaveValue('152')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
-    await expect(page).toHaveURL('/marketplace?q=agua+%26+salud&countryId=152&categoryId=4')
+    await expect(page).toHaveURL('/search?scope=all&q=agua+%26+salud&countryId=152&categoryId=4')
     await page.goto('/')
     await page.route('**/api/v1/funding-discovery/catalogs', route => route.fulfill({ json: { ...catalogs, regions: [], fundingTypes: [], organizationTypes: [], languages: [] } }))
     await page.route('**/api/v1/funding-discovery?*', route => route.fulfill({ json: { items: [], totalCount: 0, page: 1, pageSize: 20 } }))
     await page.getByRole('radio', { name: 'Opportunities', exact: true }).check()
     await page.getByRole('searchbox', { name: 'Search term' }).fill('bosque')
     await page.getByRole('button', { name: 'Search', exact: true }).click()
-    await expect(page).toHaveURL('/funding/explore?query=bosque')
+    await expect(page).toHaveURL('/search?scope=funding&q=bosque')
   })
 
-  test('inicio de referencia abre navegación móvil y enfoca el buscador', async ({ page }) => {
+  test('inicio de referencia abre navegación móvil y entra al buscador', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 900 })
     await page.goto('/')
     const trigger = page.getByRole('button', { name: 'Explorar la plataforma', exact: true })
@@ -76,7 +77,8 @@ export function registerHomeReferenceTests(accessibility: (page: Page) => Promis
     await expect(nav).toHaveCount(0)
     await trigger.click()
     await nav.getByRole('link', { name: 'Buscar en la plataforma', exact: true }).click()
-    await expect(page.getByRole('searchbox', { name: 'Término de búsqueda' })).toBeFocused()
+    await expect(page).toHaveURL('/search')
+    await expect(page.getByRole('searchbox', { name: 'Término de búsqueda' })).toBeVisible()
     await expect(nav).toHaveCount(0)
   })
 
