@@ -414,6 +414,18 @@ minutos y se renueva mediante una familia refresh rotativa de 30 días. Para Adm
 comprobación MFA permanece vigente durante 60 minutos; la renovación conserva la hora original del
 MFA y nunca prolonga artificialmente esa ventana.
 
+Para dev con los hosts predeterminados de Azure (sitios distintos), se activa
+`Authentication__RefreshToken__UsePartitionedCookie=true` (`AUTH_REFRESH_COOKIE_PARTITIONED`).
+La cookie separada `__Secure-fp_refresh_partitioned` usa `SameSite=None; Partitioned` (CHIPS),
+conservando `Secure`, `HttpOnly`, host-only y `Path=/api/v1/auth`. Login, MFA y canje externo
+validan también el `Origin` exacto permitido, además de refresh/logout. No se habilita una
+cookie `SameSite=None` sin particionar. El modo predeterminado sigue siendo `SameSite=Lax`
+para despliegues same-site. Cambiar de modo exige iniciar sesión una vez de nuevo.
+En navegadores actuales, Web Locks serializa las operaciones de esa cookie entre ventanas
+del mismo origen sin compartir tokens por almacenamiento o mensajes. No hay renovación
+periódica en segundo plano ni cambios a la pausa automática de SQL. Ver el procedimiento
+y las limitaciones en [la guía de despliegue](docs/AZURE-MVP-DEPLOYMENT.md#sesion-dev-sin-dominio).
+
 ## Autenticación local (FASE 3)
 
 Antes de iniciar la API, autentica la identidad local y confirma la suscripción:

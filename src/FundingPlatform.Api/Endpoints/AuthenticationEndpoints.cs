@@ -11,7 +11,7 @@ namespace FundingPlatform.Api.Endpoints;
 
 public static class AuthenticationEndpoints
 {
-    public const string RefreshCookieName = "__Secure-fp_refresh";
+    public const string RefreshCookieName = RefreshSessionCookie.SameSiteName;
 
     public static IEndpointRouteBuilder MapAuthenticationEndpoints(
         this IEndpointRouteBuilder endpoints)
@@ -140,8 +140,12 @@ public static class AuthenticationEndpoints
         HttpContext httpContext,
         IAuthenticationService service,
         IOptions<AuthenticationOptions> options,
+        IOptions<WebOptions> webOptions,
         CancellationToken cancellationToken)
     {
+        if (options.Value.RefreshToken.UsePartitionedCookie && !HasAllowedOrigin(httpContext.Request, webOptions.Value))
+            return InvalidOrigin();
+
         var result = await service.LoginAsync(
             new LoginInput(request.Email, request.Password),
             CreateClientContext(httpContext),
@@ -173,8 +177,12 @@ public static class AuthenticationEndpoints
         HttpContext httpContext,
         IAuthenticationService service,
         IOptions<AuthenticationOptions> options,
+        IOptions<WebOptions> webOptions,
         CancellationToken cancellationToken)
     {
+        if (options.Value.RefreshToken.UsePartitionedCookie && !HasAllowedOrigin(httpContext.Request, webOptions.Value))
+            return InvalidOrigin();
+
         var result = await service.CompleteMfaChallengeAsync(
             new MfaChallengeInput(request.ChallengeToken, request.Code),
             CreateClientContext(httpContext),
@@ -202,7 +210,7 @@ public static class AuthenticationEndpoints
             return InvalidOrigin();
         }
 
-        if (!httpContext.Request.Cookies.TryGetValue(RefreshCookieName, out var refreshToken))
+        if (!httpContext.Request.Cookies.TryGetValue(RefreshSessionCookie.Name(authOptions.Value), out var refreshToken))
         {
             return InvalidSession();
         }
@@ -232,7 +240,7 @@ public static class AuthenticationEndpoints
                 type: "https://fundingplatform.local/problems/refresh-conflict");
         }
 
-        DeleteRefreshCookie(httpContext.Response);
+        RefreshSessionCookie.Delete(httpContext.Response, authOptions.Value);
         return InvalidSession(result.Outcome == RefreshOutcome.ReplayDetected
             ? "La sesión fue revocada por reutilización de credenciales."
             : null);
@@ -242,6 +250,7 @@ public static class AuthenticationEndpoints
         HttpContext httpContext,
         IAuthenticationService service,
         IOptions<WebOptions> webOptions,
+        IOptions<AuthenticationOptions> authOptions,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
@@ -252,7 +261,7 @@ public static class AuthenticationEndpoints
 
         try
         {
-            if (httpContext.Request.Cookies.TryGetValue(RefreshCookieName, out var refreshToken))
+            if (httpContext.Request.Cookies.TryGetValue(RefreshSessionCookie.Name(authOptions.Value), out var refreshToken))
             {
                 await service.LogoutAsync(
                     refreshToken,
@@ -274,7 +283,7 @@ public static class AuthenticationEndpoints
         }
         finally
         {
-            DeleteRefreshCookie(httpContext.Response);
+            RefreshSessionCookie.Delete(httpContext.Response, authOptions.Value);
         }
 
         return Results.NoContent();
@@ -284,6 +293,7 @@ public static class AuthenticationEndpoints
         HttpContext httpContext,
         IAuthenticationService service,
         IOptions<WebOptions> webOptions,
+        IOptions<AuthenticationOptions> authOptions,
         CancellationToken cancellationToken)
     {
         if (!HasAllowedOrigin(httpContext.Request, webOptions.Value))
@@ -300,7 +310,7 @@ public static class AuthenticationEndpoints
             publicUserId,
             CreateClientContext(httpContext),
             cancellationToken);
-        DeleteRefreshCookie(httpContext.Response);
+        RefreshSessionCookie.Delete(httpContext.Response, authOptions.Value);
         return Results.NoContent();
     }
 
@@ -451,7 +461,7 @@ public static class AuthenticationEndpoints
         return Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out publicUserId);
     }
 
-    private static bool HasAllowedOrigin(HttpRequest request, WebOptions options)
+    internal static bool HasAllowedOrigin(HttpRequest request, WebOptions options)
     {
         if (!request.Headers.TryGetValue("Origin", out var values) || values.Count != 1)
         {
@@ -464,35 +474,7 @@ public static class AuthenticationEndpoints
     private static void SetRefreshCookie(
         HttpResponse response,
         string refreshToken,
-        AuthenticationOptions options)
-    {
-        response.Cookies.Append(
-            RefreshCookieName,
-            refreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Path = "/api/v1/auth",
-                IsEssential = true,
-                MaxAge = TimeSpan.FromDays(options.RefreshToken.LifetimeDays)
-            });
-    }
-
-    private static void DeleteRefreshCookie(HttpResponse response)
-    {
-        response.Cookies.Delete(
-            RefreshCookieName,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Path = "/api/v1/auth",
-                IsEssential = true
-            });
-    }
+        AuthenticationOptions options) => RefreshSessionCookie.Append(response, refreshToken, options);
 
     private static IResult InvalidCredentials()
     {
@@ -512,7 +494,7 @@ public static class AuthenticationEndpoints
             type: "https://fundingplatform.local/problems/invalid-session");
     }
 
-    private static IResult InvalidOrigin()
+    internal static IResult InvalidOrigin()
     {
         return Results.Problem(
             statusCode: StatusCodes.Status403Forbidden,

@@ -124,6 +124,7 @@ public static class FundingPlatformConfiguration
         ("JWT_AUDIENCE", "Authentication:Jwt:Audience"),
         ("AUTH_ACCESS_TOKEN_MINUTES", "Authentication:Jwt:AccessTokenMinutes"),
         ("AUTH_REFRESH_TOKEN_DAYS", "Authentication:RefreshToken:LifetimeDays"),
+        ("AUTH_REFRESH_COOKIE_PARTITIONED", "Authentication:RefreshToken:UsePartitionedCookie"),
         ("AUTH_ADMIN_SESSION_MINUTES", "Authentication:Mfa:AdminSessionMinutes"),
         ("SECURITY_IP_HASH_PEPPER", "Authentication:SecurityHash:IpHashPepper"),
         ("SECURITY_RECOVERY_CODE_PEPPER", "Authentication:SecurityHash:RecoveryCodePepper"),

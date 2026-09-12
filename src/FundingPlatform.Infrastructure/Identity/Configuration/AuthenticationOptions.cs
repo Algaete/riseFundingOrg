@@ -123,6 +123,9 @@ public sealed class RefreshTokenOptions
     public int LifetimeDays { get; set; } = 30;
 
     public int RotationGraceSeconds { get; set; } = 10;
+
+    // Opt in only for a cross-site browser deployment. Same-site remains the default.
+    public bool UsePartitionedCookie { get; set; }
 }
 
 public sealed class SecurityTokenOptions

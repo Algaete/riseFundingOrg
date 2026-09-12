@@ -419,6 +419,8 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       Authentication__Jwt__Audience: 'FundingPlatform.Web'
       Authentication__Jwt__AccessTokenMinutes: '15'
       Authentication__RefreshToken__LifetimeDays: '30'
+      // Default SWA and API hosts are cross-site; CHIPS keeps refresh private to this web.
+      Authentication__RefreshToken__UsePartitionedCookie: 'true'
       Authentication__Mfa__AdminSessionMinutes: '60'
       Email__Enabled: 'false'
       Email__FrontendBaseUrl: frontendDefaultOrigin

@@ -49,16 +49,62 @@ permisos, políticas y una prueba E2E. El MVP durable nunca autopublica contenid
    Apps y Communication Services. No fijar una región solo por cercanía sin comprobar disponibilidad.
 2. Elegir una sola vez un sufijo único de exactamente 8 caracteres `[a-z0-9]` y reutilizarlo. Ejemplo
    de convención: `rf-mvp-<recurso>-<sufijo8>`.
-3. Comprar o disponer de un dominio. Reservar, como mínimo:
+3. Para producción, disponer de un dominio. Reservar, como mínimo:
    - `app.<dominio>` para React.
    - `api.<dominio>` para la API.
 4. Crear un ambiente `staging` separado antes de producción. No usar la base de desarrollo `res`
    como base pública sin una decisión explícita, backup verificado y revisión de datos.
 5. Definir presupuesto y alertas de costo en la suscripción.
 
-Los subdominios `app` y `api` deben compartir el mismo sitio registrable. La cookie refresh es segura,
-host-only y `SameSite=Lax`; una Static Web App bajo `azurestaticapps.net` y una API bajo
-`azurecontainerapps.io` no constituyen la topología final de sesión.
+Los subdominios `app` y `api` deben compartir el mismo sitio registrable. En ese modo la cookie
+refresh es segura, host-only y `SameSite=Lax`. Para dev sin dominio propio se admite el modo
+particionado que se describe a continuación; no implica comprar recursos ni sustituye la
+decisión de topología y compatibilidad de producción.
+
+### Sesion dev sin dominio
+
+Los hosts predeterminados SWA/Container Apps pertenecen a sitios distintos: una cookie `Lax`
+no acompaña a `fetch` cross-site, incluso con `credentials: include`. Por ello un login podía
+funcionar en memoria pero perderse al recargar o abrir otra ventana.
+
+- Activar únicamente en la API de dev `Authentication__RefreshToken__UsePartitionedCookie=true`
+  (alias `AUTH_REFRESH_COOKIE_PARTITIONED`). El módulo Bicep de hosts predeterminados lo declara;
+  para un entorno existente usar un cambio puntual, **no** reaplicar toda la infraestructura.
+- La cookie es `__Secure-fp_refresh_partitioned`, `HttpOnly; Secure; SameSite=None; Partitioned`,
+  host-only, ruta `/api/v1/auth`, máximo 30 días. CHIPS la aísla por sitio de nivel superior.
+  No se lee la cookie del modo anterior ni se recurre a una cookie cross-site sin particionar.
+- Login, challenge MFA, canje externo, refresh y logout exigen el `Origin` exacto permitido.
+  CORS con credenciales permanece limitado a la web configurada; no usar comodines.
+- Web Locks coordina refresh/login/MFA/canje/logout entre ventanas de la misma web. Cada ventana
+  conserva el access token solo en memoria. La espera de red dentro del bloqueo tiene un límite
+  de 120 segundos por intento, dejando margen para reanudación de SQL, sin timers de renovación.
+- No cambian JWT (15 minutos), familia refresh (30 días), MFA administrativo (60 minutos),
+  revocación por replay, importaciones bajo demanda, escala, SQL ni servicios deshabilitados.
+
+Desplegar primero API compatible, activar el ajuste conservando todas las demás variables,
+y después frontend. Al cambiar de modo, **iniciar sesión y completar MFA una vez** para emitir
+la nueva cookie; no es necesario volver a crear cuentas. Verificar recarga, segunda ventana,
+renovación después de expirar JWT y cierre de sesión. En Admin/SuperAdmin, pasado el límite de
+60 minutos sigue siendo necesario MFA: renovar no cambia la hora del desafío original.
+
+Usar navegadores actuales compatibles con CHIPS y Web Locks. Ventanas privadas, perfiles
+distintos y otros navegadores no comparten sesión. En clientes antiguos puede seguir fallando
+la persistencia; no pedir deshabilitar globalmente la protección contra cookies de terceros.
+Referencias: [CHIPS](https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies/Partitioned_cookies)
+y [Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API).
+
+Cobertura automatizada: `RefreshSessionCookieTests` valida cabeceras, MFA y allowlist con servicio
+sintético; `e2e/session.spec.ts` comprueba aislamiento CHIPS/recarga/segunda ventana/logout usando
+sitios HTTPS `.test` resueltos exclusivamente a loopback, TLS efímero generado en un directorio
+temporal privado y eliminado inmediatamente después de cargarlo en memoria, y un servidor
+sintético local (no respuestas de cookies inyectadas por interceptación); también la coordinación
+Web Locks del frontend real con API simulada. Estos casos se incluyen en `test:e2e:public` y
+requieren OpenSSL local. No sustituyen la aceptación autenticada
+en Azure ni prueban todos los navegadores. No exportar tokens, cookies ni credenciales al reporte.
+
+Reversión: volver el ajuste a `false` recupera el modo `Lax` y exige otro login. En los hosts
+cross-site originales también vuelve su limitación de persistencia; no es una solución funcional
+para esa topología. Un paso futuro a hosts same-site debe validarse antes de desactivar CHIPS.
 
 ## 3. Preparar GitHub
 
@@ -223,6 +269,7 @@ Authentication__Jwt__Issuer=https://api.<dominio>
 Authentication__Jwt__Audience=FundingPlatform.Web
 Authentication__Jwt__AccessTokenMinutes=15
 Authentication__RefreshToken__LifetimeDays=30
+Authentication__RefreshToken__UsePartitionedCookie=false
 Authentication__Mfa__AdminSessionMinutes=60
 Email__Enabled=false
 Email__FrontendBaseUrl=https://app.<dominio>
@@ -335,9 +382,10 @@ seleccionar `DEPLOY-DEV-FRONTEND` e ingresar el SHA completo aprobado. El deploy
 SWA con la identidad OIDC y se enmascara; sólo su copia en el runner vive durante ese job y no se
 almacena en GitHub. La credencial original sigue siendo persistente en Azure hasta que se rote.
 
-El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API. Esto no valida aún
-refresh/login persistente entre hosts cross-site ni PUT directo a Blob; esas pruebas esperan dominios
-same-site y CORS/Functions/Defender para importación.
+El smoke verifica `deploy-meta.json`, raíz, `/funding`, headers y CORS del API. Los E2E públicos
+incluyen pruebas sintéticas de cookies particionadas y coordinación entre ventanas; no certifican
+un login real cross-site en Azure. Esa aceptación sigue el procedimiento de sesión dev anterior.
+PUT directo a Blob espera CORS/Functions/Defender para importación.
 
 Para `036`→`038`, desplegar en este orden: base de datos `036`→`038` → API en el 100 % del tráfico → containers,
 RBAC, CORS, lifecycle, sanitización y worker Defender/Event Grid verificados → frontend. Cambiar
@@ -401,7 +449,8 @@ El primer gate 12A comprueba `/health`, base/migraciones, bootstrap SuperAdmin, 
 arranque fail-closed. Una cuenta local ya aprovisionada puede probar el login manual en dev.
 Con `Email__Enabled=false`, alta autoservicio, reenvío de verificación y recuperación responden `503`
 antes de persistir. SSO Entra sigue sin configurar ni habilitar; el E2E de altas/MFA espera ACS y la
-validación de refresh cross-site espera dominios same-site en 12B. Mantener además deshabilitados
+aceptación de refresh cross-site usa el modo particionado de dev o dominios same-site en 12B.
+Mantener además deshabilitados
 hasta su propia validación:
 
 - pagos y suscripciones reales;

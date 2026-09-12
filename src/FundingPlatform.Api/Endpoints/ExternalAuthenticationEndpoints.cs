@@ -174,8 +174,12 @@ public static class ExternalAuthenticationEndpoints
         HttpContext context,
         ApplicationAuthenticationService service,
         IOptions<PlatformAuthenticationOptions> options,
+        IOptions<WebOptions> webOptions,
         CancellationToken cancellationToken)
     {
+        if (options.Value.RefreshToken.UsePartitionedCookie && !AuthenticationEndpoints.HasAllowedOrigin(context.Request, webOptions.Value))
+            return AuthenticationEndpoints.InvalidOrigin();
+
         var result = await service.ExchangeExternalHandoffAsync(
             request.Code, CreateClientContext(context), cancellationToken);
         if (result.Outcome == LoginOutcome.Success && result.Session is not null && result.RefreshToken is not null)
@@ -240,12 +244,7 @@ public static class ExternalAuthenticationEndpoints
         result.MfaChallengeToken, result.MfaChallengeExpiresAtUtc, result.MfaSetupToken);
 
     private static void SetRefreshCookie(HttpResponse response, string token, PlatformAuthenticationOptions options) =>
-        response.Cookies.Append(AuthenticationEndpoints.RefreshCookieName, token, new CookieOptions
-        {
-            HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
-            Path = "/api/v1/auth", IsEssential = true,
-            MaxAge = TimeSpan.FromDays(options.RefreshToken.LifetimeDays)
-        });
+        RefreshSessionCookie.Append(response, token, options);
 
     private static string NormalizeReturnUrl(string? value) =>
         !string.IsNullOrWhiteSpace(value) && value.StartsWith('/') && !value.StartsWith("//", StringComparison.Ordinal)
