@@ -67,6 +67,7 @@ export const coreEn = {
     description: 'Find funding opportunities, discover projects, organizations and professionals to collaborate with and grow your impact.',
     search: {
       title: 'Find your next opportunity', scope: 'Search in', projects: 'Projects', funding: 'Opportunities',
+      all: 'All', organizations: 'Organizations', professionals: 'Professionals',
       query: 'Search term', placeholder: 'Search by name, topic or keyword…', country: 'Country',
       allCountries: 'All countries', sector: 'Impact area', allSectors: 'All sectors', submit: 'Search',
       catalogsError: 'Filters could not be loaded. You can still search by keyword.', retry: 'Retry filters',

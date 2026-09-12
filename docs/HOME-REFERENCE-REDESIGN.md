@@ -13,7 +13,7 @@ La fotografía decorativa fue generada con la herramienta integrada de imágenes
 ## Módulos
 
 - `src/features/home/home-page.tsx`: composición, portada y accesos rápidos.
-- `home-search.tsx` y `home-model.ts`: búsqueda explícita en proyectos u oportunidades, por texto, país y área de impacto; reutiliza los contratos y destinos existentes.
+- `home-search.tsx` y `home-model.ts`: originalmente búsqueda explícita en proyectos u oportunidades; el corte local del 2026-09-12 agrega Todo, Organizaciones y Profesionales y dirige a `/search`, conservando texto, país y área de impacto. Ver [búsqueda unificada](UNIFIED-SEARCH.md).
 - `home-projects.tsx`: hasta tres proyectos publicados, ordenados por fecha, con importes y avance cuando los datos permiten calcularlo.
 - `home-map.tsx`: vista compacta del mapa existente; solo ubicaciones públicas y agrupaciones de los resultados recibidos.
 - `home.css`: estilos del inicio y adaptación móvil, sin cambiar los tokens de las pantallas administrativas.
@@ -23,7 +23,7 @@ La fotografía decorativa fue generada con la herramienta integrada de imágenes
 
 No se agregan proyectos de demostración, porcentajes, marcadores ni categorías ficticias a la aplicación. El estado vacío invita a publicar una iniciativa; los errores se distinguen del catálogo vacío y permiten reintentar. El buscador conserva texto y filtros al cambiar de idioma y continúa permitiendo buscar por texto si no cargan los catálogos.
 
-Los adjuntos de proyectos siguen siendo privados y su activación no forma parte de este cambio. Las tarjetas usan una ilustración vectorial genérica, no fotos privadas ni fotografías de terceros atribuidas al proyecto. Tampoco se incorpora un botón de favorito sin soporte funcional. El buscador no promete una búsqueda global de organizaciones, aliados o profesionales que los contratos actuales no ofrecen.
+Los adjuntos de proyectos siguen siendo privados y su activación no forma parte de este cambio. Las tarjetas usan una ilustración vectorial genérica, no fotos privadas ni fotografías de terceros atribuidas al proyecto. Tampoco se incorpora un botón de favorito sin soporte funcional. La ampliación local del buscador reúne las APIs existentes sin crear un directorio público adicional: proyectos/fondos públicos, profesionales con sesión y organizaciones desde una membresía verificada.
 
 El mapa muestra hasta 100 ubicaciones de la respuesta pública e informa si hay más resultados. Los marcadores abren el mapa completo. Reutiliza la cartografía y la atribución de Natural Earth existentes. No se generan colores por sector cuando ese dato no está disponible en la respuesta.
 
