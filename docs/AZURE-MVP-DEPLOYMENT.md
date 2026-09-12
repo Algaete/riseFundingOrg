@@ -95,7 +95,8 @@ y [Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API).
 
 Cobertura automatizada: `RefreshSessionCookieTests` valida cabeceras, MFA y allowlist con servicio
 sintético; `e2e/session.spec.ts` comprueba aislamiento CHIPS/recarga/segunda ventana/logout usando
-sitios HTTPS `.test` resueltos exclusivamente a loopback, TLS efímero en memoria y un servidor
+sitios HTTPS `.test` resueltos exclusivamente a loopback, TLS efímero generado en un directorio
+temporal privado y eliminado inmediatamente después de cargarlo en memoria, y un servidor
 sintético local (no respuestas de cookies inyectadas por interceptación); también la coordinación
 Web Locks del frontend real con API simulada. Estos casos se incluyen en `test:e2e:public` y
 requieren OpenSSL local. No sustituyen la aceptación autenticada

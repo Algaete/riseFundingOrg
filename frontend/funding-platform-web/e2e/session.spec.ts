@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { createServer } from 'node:https'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+function createSyntheticTls() {
+  // Node child-process pipes cannot be reopened through /dev/stdout on Linux.
+  // Keep these disposable test credentials outside reports/artifacts and remove them immediately.
+  const directory = mkdtempSync(join(tmpdir(), 'funding-session-tls-'))
+  try {
+    const keyPath = join(directory, 'key.pem')
+    const certPath = join(directory, 'cert.pem')
+    execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+      '-keyout', keyPath, '-out', certPath, '-subj', '/CN=funding-session-api.test', '-days', '1'],
+    { stdio: ['ignore', 'pipe', 'pipe'] })
+    return { key: readFileSync(keyPath), cert: readFileSync(certPath) }
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
 
 // Only the reserved fixture hosts resolve to loopback; other hosts keep normal DNS/TLS.
 test.use({
@@ -13,16 +32,14 @@ test.describe('CHIPS con servidor HTTPS sintético', () => {
 test.use({ ignoreHTTPSErrors: true })
 
 test('sesión cross-site: conserva la cookie entre ventanas, aísla otros sitios y permite salir', async ({ context, page }) => {
-  // Different registrable sites, resolved only to loopback. Generate test-only TLS in memory.
+  // Different registrable sites, resolved only to loopback. TLS is unique to this test run.
   // Use actual HTTP responses: intercepted fulfillment may alter cookie semantics.
-  const pem = execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes',
-    '-keyout', '/dev/stdout', '-out', '/dev/stdout', '-subj', '/CN=funding-session-api.test', '-days', '1'],
-  { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  const tls = createSyntheticTls()
   let app: string, other: string, api: string, html: string
   const cookieName = '__Secure-fp_refresh_partitioned'
   const attributes = '; Path=/api/v1/auth; HttpOnly; Secure; SameSite=None; Partitioned'
   const unexpected: string[] = []
-  const server = createServer({ key: pem, cert: pem }, (request, response) => {
+  const server = createServer(tls, (request, response) => {
     const origin = `https://${request.headers.host}`
     if ([app, other].includes(origin)) {
       response.writeHead(200, { 'content-type': 'text/html' })
