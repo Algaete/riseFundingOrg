@@ -1,5 +1,12 @@
 # Base de datos
 
+Ampliación local pendiente: `049_project_map_advanced_filters.sql` añade al mapa
+filtros por brecha/moneda, tipo de organización, necesidades y IDs de resultados de
+matching. No cambia datos ni tablas, y conserva clientes anteriores y guardas públicas.
+Preflight real aprobado con rollback: 49 smokes y 23 comprobaciones de resultados.
+**Aplicación definitiva y despliegue pendientes**. Publicar SQL → API → frontend.
+[Contrato y validación](../docs/PROJECT-MAP.md).
+
 Corrección local 2026-09-12: `048_world_country_catalog.sql` amplía el catálogo
 compartido a 249 países y territorios, sin modificar identidades ni filas existentes.
 Soluciona el selector de Financiadores limitado a Chile. Smoke 048 con rollback

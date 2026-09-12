@@ -8,7 +8,8 @@ public sealed record MarketplaceCatalogsResponse(
     IReadOnlyList<CurrencyOptionResponse> Currencies,
     IReadOnlyList<CatalogOptionResponse<int>> FundingCategories,
     IReadOnlyList<CatalogOptionResponse<int>> ProjectTypes,
-    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals);
+    IReadOnlyList<CatalogOptionResponse<int>> SustainableDevelopmentGoals,
+    IReadOnlyList<CatalogOptionResponse<short>>? OrganizationTypes = null);
 
 public sealed record MarketplaceProjectOrganizationResponse(
     Guid PublicId,

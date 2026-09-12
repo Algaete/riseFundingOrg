@@ -8,7 +8,8 @@ public sealed class DatabaseMigrationRunner(
     ISqlConnectionFactory connectionFactory,
     string? expectedDatabaseName = null,
     string? expectedServerFqdn = null,
-    Action<string>? reportProgress = null)
+    Action<string>? reportProgress = null,
+    Func<SqlConnection, SqlTransaction, CancellationToken, Task>? verifyResults = null)
 {
     private const string LockResource = "FundingPlatform:DatabaseMigrations";
     private const string FullTextLockResource = "FundingPlatform:FullTextProvisioning";
@@ -197,6 +198,8 @@ public sealed class DatabaseMigrationRunner(
                 recordHistory: false,
                 cancellationToken);
 
+            if (verifyResults is not null)
+                await verifyResults(connection, transaction, cancellationToken);
             await transaction.RollbackAsync(CancellationToken.None);
             return new MigrationPreflightResult(migrationResult, testResult);
         }
@@ -234,6 +237,8 @@ public sealed class DatabaseMigrationRunner(
                 applied: [],
                 recordHistory: false,
                 cancellationToken);
+            if (verifyResults is not null)
+                await verifyResults(connection, transaction, cancellationToken);
             await transaction.RollbackAsync(CancellationToken.None);
             return result;
         }

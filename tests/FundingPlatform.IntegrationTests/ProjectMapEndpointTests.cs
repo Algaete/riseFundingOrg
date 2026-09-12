@@ -19,6 +19,14 @@ public sealed class ProjectMapEndpointTests(ApiFactory factory) : IClassFixture<
     [InlineData("sustainableDevelopmentGoalId=18")]
     [InlineData("countryId=0")]
     [InlineData("categoryId=-1")]
+    [InlineData("organizationTypeId=0")]
+    [InlineData("minimumFundingGap=0")]
+    [InlineData("minimumFundingGap=1&maximumFundingGap=0&currency=USD")]
+    [InlineData("maximumFundingGap=-1&currency=USD")]
+    [InlineData("minimumFundingGap=1.00001&currency=USD")]
+    [InlineData("currency=usd")]
+    [InlineData("projectIds=00000000-0000-0000-0000-000000000000")]
+    [InlineData("projectIds=11111111-1111-1111-1111-111111111111&projectIds=11111111-1111-1111-1111-111111111111")]
     public async Task Rejects_invalid_filters_without_accessing_database(string query)
     {
         var repository = new Repository();
@@ -50,6 +58,41 @@ public sealed class ProjectMapEndpointTests(ApiFactory factory) : IClassFixture<
         Assert.DoesNotContain("enrichment", json);
         Assert.DoesNotContain("email", json);
         Assert.DoesNotContain("33.455", json);
+    }
+
+    [Fact]
+    public async Task Forwards_advanced_filters_to_server_without_exposing_private_matching_context()
+    {
+        var repository = new Repository();
+        await using var app = Create(repository);
+        using var client = app.CreateClient();
+        var id = Guid.NewGuid();
+        using var result = await client.GetAsync($"/api/v1/marketplace/project-map?organizationTypeId=2&minimumFundingGap=0&maximumFundingGap=50000.1234&currency=USD&seekingFunding=true&seekingPartners=true&seekingProfessionals=true&seekingConsortium=true&projectIds={id}");
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        Assert.Equal((short)2, repository.Filters!.OrganizationTypeId);
+        Assert.Equal(0m, repository.Filters.MinimumFundingGap);
+        Assert.Equal(50000.1234m, repository.Filters.MaximumFundingGap);
+        Assert.Equal("USD", repository.Filters.Currency);
+        Assert.True(repository.Filters.SeekingFunding && repository.Filters.SeekingPartners && repository.Filters.SeekingProfessionals && repository.Filters.SeekingConsortium);
+        Assert.Equal(id, Assert.Single(repository.Filters.ProjectIds!));
+        var json = await result.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("sourceId", json);
+        Assert.DoesNotContain("criteria", json);
+        Assert.DoesNotContain("score", json);
+    }
+
+    [Theory]
+    [InlineData("projectIds=not-a-guid")]
+    [InlineData("minimumFundingGap=Infinity&currency=USD")]
+    [InlineData("seekingPartners=perhaps")]
+    public async Task Rejects_unparseable_query_without_database_access(string query)
+    {
+        var repository = new Repository();
+        await using var app = Create(repository);
+        using var client = app.CreateClient();
+        using var result = await client.GetAsync($"/api/v1/marketplace/project-map?{query}");
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal(0, repository.Calls);
     }
 
     private WebApplicationFactory<Program> Create(Repository repository) => factory.WithWebHostBuilder(builder =>

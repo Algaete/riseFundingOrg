@@ -62,6 +62,7 @@ export interface MarketplaceProjectListResponse {
 }
 
 export interface MarketplaceCatalogs {
+  organizationTypes?: PublicProjectCatalogItem[]
   countries: PublicProjectCatalogItem[]
   fundingCategories: PublicProjectCatalogItem[]
   projectTypes: PublicProjectCatalogItem[]
