@@ -42,7 +42,14 @@ try
         expectedDatabaseName,
         expectedServerFqdn,
         Environment.GetEnvironmentVariable("MIGRATION_REPORT_PROGRESS") == "true"
-            ? Console.WriteLine : null);
+            ? Console.WriteLine : null,
+        verifyResults: migrations.Any(migration => migration.Sequence == 49)
+            ? async (connection, transaction, cancellationToken) =>
+            {
+                var checks = await ProjectMapSqlVerifier.VerifyAsync(
+                    connection, transaction, solutionRoot, cancellationToken);
+                Console.WriteLine($"Contrato SQL de mapa: {checks} comprobaciones correctas; fixtures sin commit.");
+            } : null);
 
     switch (args[0])
     {

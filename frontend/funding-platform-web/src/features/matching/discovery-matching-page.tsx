@@ -8,6 +8,7 @@ import { funderOwnerScope } from '@/features/funder-workspace/editorial-scope'
 import { button, control, panel, Field, Paging, LoadState, useCollaborationActor } from '@/features/collaboration/collaboration-ui'
 import { catalogName } from '@/i18n/catalog-labels'
 import { formatDateValue } from '@/i18n/formats'
+import { mapResultsUrl } from '@/features/project-map/map-filters'
 import { discoveryMatchingApi, validDiscoveryInput, type DiscoveryRequest } from './discovery-matching-api'
 
 export function DiscoveryMatchingPage() {
@@ -36,6 +37,7 @@ export function DiscoveryMatchingPage() {
   const results = useQuery({ queryKey: ['ecosystem', actor, 'results', request], enabled: Boolean(request),
     queryFn: ({ signal }) => discoveryMatchingApi.search(request!, signal), refetchOnWindowFocus: false, retry: false })
   const sourceOptions = sourceKind === 2 ? organizations.data?.map(item => ({ id: item.publicId, name: item.name })) : choices.data?.items
+  const mapUrl = request?.targetKind === 1 && results.data ? mapResultsUrl(results.data.items.map(item => item.id)) : null
   function evaluate(event: FormEvent) {
     event.preventDefault()
     const next: DiscoveryRequest = { sourceKind, sourceId, targetKind, page: 1, pageSize: 20 }
@@ -76,6 +78,7 @@ export function DiscoveryMatchingPage() {
       <p>{t('ecosystem.evaluated', { engine: results.data.engineVersion, date: formatDateValue(results.data.evaluatedAtUtc, { dateStyle: 'medium', timeStyle: 'short' }) })}</p>
       {results.data.isTruncated && <p role="status">{t('ecosystem.truncated', { total: results.data.totalCandidateCount })}</p>}
       {results.data.items.length === 0 && <p>{t('ecosystem.empty')}</p>}
+      {mapUrl && <div className="space-y-2"><Link className={button} to={mapUrl}>{t('ecosystem.mapResults')}</Link><p className="text-sm">{t('ecosystem.mapResultsHelp')}</p></div>}
       {results.data.items.map(item => <article className={panel} key={item.id}><h3 className="text-lg font-semibold">{item.name}</h3><p>{item.summary}</p>
         <p>{item.score === null ? t('ecosystem.unknownScore') : t('ecosystem.score', { score: item.score })} · {t('ecosystem.coverage', { coverage: item.evidenceCoverage })}</p>
         <p>{t(`ecosystem.${({ aligned: 'aligned', gaps: 'gaps', 'partial-evidence': 'partialEvidence', 'insufficient-data': 'insufficientData' } as const)[item.classification]}`)}</p>

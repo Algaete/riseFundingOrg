@@ -70,7 +70,8 @@ public static class MarketplaceEndpoints
                 item.Code, item.Name, item.MinorUnits)).ToArray(),
             catalogs.FundingCategories.Select(Map).ToArray(),
             catalogs.ProjectTypes.Select(Map).ToArray(),
-            catalogs.SustainableDevelopmentGoals.Select(Map).ToArray()));
+            catalogs.SustainableDevelopmentGoals.Select(Map).ToArray(),
+            catalogs.OrganizationTypes.Select(Map).ToArray()));
     }
 
     private static async Task<IResult> SearchProjectsAsync(

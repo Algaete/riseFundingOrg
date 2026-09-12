@@ -1,8 +1,39 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mockWorkspace, english, fits } from './workspace-checks'
-import { workspaceOrganizationId, workspaceProjectId } from '../src/test/fixtures/project-workspace'
+import { mockWorkspace, english, fits, readOnlyJson } from './workspace-checks'
+import { workspaceCatalogs, workspaceOrganizationId, workspaceProjectId } from '../src/test/fixtures/project-workspace'
 
 export function registerEcosystemTests(accessibility: (page: Page) => Promise<void>) {
+  test('matching abre mapa con proyectos de la página sin origen privado ni puntajes', async ({ page }) => {
+    await mockWorkspace(page)
+    const sourceId = '22222222-2222-2222-2222-222222222222'
+    const projectIds = ['11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444']
+    await page.route('**/api/v1/funder-workspace/funders?*', readOnlyJson({ items: [{ funderId: sourceId, name: 'Financiador sintético' }], totalCount: 1, page: 1, pageSize: 20 }))
+    await page.route('**/api/v1/matching/discovery', route => route.fulfill({ json: {
+      sourceName: 'Origen privado', engineVersion: 'ecosystem-rules-v1', evaluatedAtUtc: '2026-09-01T12:00:00Z', totalCount: 50, totalCandidateCount: 50, isTruncated: false, page: 1, pageSize: 20,
+      items: projectIds.map((id, n) => ({ id, name: `Proyecto ${n}`, summary: 'Resumen público', href: `/marketplace/projects/project-${n}`, score: 80, evidenceCoverage: 90, classification: 'aligned', reasons: [] })),
+    } }))
+    await page.route('**/api/v1/marketplace/catalogs', readOnlyJson(workspaceCatalogs))
+    const mapReads: URLSearchParams[] = []
+    await page.route('**/api/v1/marketplace/project-map?*', route => {
+      mapReads.push(new URL(route.request().url()).searchParams)
+      return route.fulfill({ json: { items: [], totalCount: 0, withoutPublicLocationCount: 1, page: 1, pageSize: 100 } })
+    })
+    await page.goto(`/matching/ecosystem?kind=3&id=${sourceId}`)
+    await page.getByRole('button', { name: 'Evaluar coincidencias' }).click()
+    const link = page.getByRole('link', { name: 'Ver estos resultados en el mapa', exact: true })
+    await expect(link).toBeVisible()
+    const href = await link.getAttribute('href')
+    expect(href).not.toContain(sourceId)
+    expect(href).not.toMatch(/criteria|score|sourceId|kind=/)
+    await link.click()
+    await expect.poll(() => mapReads.length).toBe(1)
+    expect(mapReads[0].getAll('projectIds')).toEqual(projectIds)
+    expect([...mapReads[0].keys()].sort()).toEqual(['page', 'pageSize', 'projectIds', 'projectIds'])
+    await expect(page.getByRole('heading', { name: 'Mapa de proyectos', exact: true })).toBeVisible()
+    await expect(page.getByText('Origen privado', { exact: true })).toHaveCount(0)
+    await accessibility(page)
+  })
+
   for (const width of [320, 1024]) {
     test(`ecosistema explica datos faltantes y brechas sin invitar ES/EN a ${width}px`, async ({ page }) => {
       await mockWorkspace(page)
