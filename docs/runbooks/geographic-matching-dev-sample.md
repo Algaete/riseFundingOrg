@@ -19,6 +19,9 @@ nuevos, llamadas de IA, cambios de SKU ni procesos periódicos.
 - La cuenta indicada es propietaria únicamente de estas organizaciones nuevas; sus
   organizaciones reales no se editan. El matching permite seleccionarlas o abrirlas
   por `organizationId` comprobado contra las membresías devueltas por la API.
+- Las fechas de perfil de las organizaciones TEST son deliberadamente sintéticas y
+  anteriores a las membresías existentes para no sustituir la organización predeterminada
+  en otras pantallas. Las versiones y membresías registran el instante real de creación.
 - UE devuelve Francia, España y Alemania; excluye Reino Unido y EE. UU.
 - Europa devuelve Reino Unido y dos de los anteriores; excluye EE. UU. El aliado del
   Reino Unido comparte dos áreas de impacto para aparecer entre las tres sugerencias.

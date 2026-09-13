@@ -72,8 +72,16 @@ IF (SELECT COUNT(*) FROM dbo.FundingPlatform_Countries c JOIN @Orgs f ON f.Count
  OR (SELECT COUNT(*) FROM dbo.FundingPlatform_FundingCategories WHERE Id IN (1,6) AND IsActive=1) <> 2
     THROW 55980, N'Required active catalogs are missing.', 1;
 
-INSERT dbo.FundingPlatform_Organizations(PublicId,CreatedByUserId,Name,Description,HomeCountryId,OrganizationTypeId,ProfileStatus,ProfileCompleteness,IsActive)
-SELECT PublicId,@UserId,@Prefix+Label,@Notice,CountryId,2,2,100,1 FROM @Orgs;
+/* Synthetic profile dates sort behind existing memberships, preserving the user's
+   usual default organization. Version and membership audit times remain the real @Now.
+   The private Chile fixture sorts first only if the owner has no existing organizations. */
+DECLARE @SampleProfileAt DATETIME2(3)=(SELECT DATEADD(SECOND,-2,COALESCE(MIN(o.UpdatedAtUtc),@Now))
+ FROM dbo.FundingPlatform_Organizations o JOIN dbo.FundingPlatform_OrganizationUsers m ON m.OrganizationId=o.Id
+ WHERE m.UserId=@UserId AND m.MembershipStatus=1 AND o.IsActive=1);
+INSERT dbo.FundingPlatform_Organizations(PublicId,CreatedByUserId,Name,Description,HomeCountryId,OrganizationTypeId,ProfileStatus,ProfileCompleteness,IsActive,CreatedAtUtc,UpdatedAtUtc)
+SELECT PublicId,@UserId,@Prefix+Label,@Notice,CountryId,2,2,100,1,
+ DATEADD(MILLISECOND,CASE WHEN IsPartner=0 THEN 1 ELSE 0 END,@SampleProfileAt),
+ DATEADD(MILLISECOND,CASE WHEN IsPartner=0 THEN 1 ELSE 0 END,@SampleProfileAt) FROM @Orgs;
 INSERT dbo.FundingPlatform_OrganizationUsers(OrganizationId,UserId,Role,MembershipStatus,JoinedAtUtc)
 SELECT o.Id,@UserId,1,1,@Now FROM dbo.FundingPlatform_Organizations o JOIN @Orgs f ON f.PublicId=o.PublicId;
 INSERT dbo.FundingPlatform_OrganizationNetworkingPreferences(OrganizationId,IsDiscoverable,AllowRequests,UpdatedByUserId,CreatedAtUtc,UpdatedAtUtc)
