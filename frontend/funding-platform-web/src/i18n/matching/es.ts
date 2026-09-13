@@ -1,4 +1,10 @@
+import { matchingGapsEs } from './gaps-es'
+
 export const matchingEs = {
+  gaps: matchingGapsEs,
+  organizationToCompare: 'Organización del proyecto',
+  organizationUnavailable: 'Esta organización no está disponible para tu cuenta. Selecciona una de tus organizaciones.',
+  chooseOrganization: 'Elegir organización',
   "disclaimer": "Resultado orientativo basado en datos disponibles; no confirma elegibilidad ni reemplaza la revisión de las bases del fondo.",
   "noDate": "Sin fecha registrada",
   "exactDeadline": "Cierre exacto: {{date}} UTC",

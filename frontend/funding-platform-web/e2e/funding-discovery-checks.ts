@@ -34,6 +34,7 @@ export function registerFundingDiscoveryTests(accessibility: (page: Page) => Pro
       await accessibility(page); await fits(page)
     })
     test(`clasificación revisada no publica ni inventa requisitos a ${width}px`, async ({ page }) => {
+      await page.route('**/api/v1/funding-discovery/catalogs', route => route.fulfill({ json: editorialCatalogs }))
       await page.setViewportSize({ width, height: 900 })
       const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
       await page.route('**/api/v1/auth/refresh', route => route.fulfill({ json: { status: 'authenticated', accessToken: 'synthetic-ui-only', accessTokenExpiresAtUtc: new Date(Date.now() + 600_000).toISOString(), user: { publicId: id, email: 'admin@example.invalid', displayName: 'Admin', preferredLocale: 'es-CL', roles: ['Admin'], mfaEnabled: true } } }))

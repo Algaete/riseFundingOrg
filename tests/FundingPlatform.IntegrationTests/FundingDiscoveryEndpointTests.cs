@@ -53,10 +53,36 @@ public sealed class FundingDiscoveryEndpointTests(ApiFactory factory) : IClassFi
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", new JwtSecurityTokenHandler().WriteToken(token));
         }
         if (headers) { client.DefaultRequestHeaders.TryAddWithoutValidation("If-None-Match", "*"); client.DefaultRequestHeaders.Add("Idempotency-Key", "discovery-review-123456789"); }
-        using var response = await client.PutAsJsonAsync("/api/v1/admin/funding-discovery/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", new FundingDiscoveryReview(1, new(1, null, null, "https://official.example/fund")));
+        using var response = await client.PutAsJsonAsync("/api/v1/admin/funding-discovery/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", new FundingDiscoveryReview(1,
+            new(1, null, null, "https://official.example/fund", new(PartnerGeographyScope.Specific, [826], ["EU"], PartnerGeographyCatalog.Version))));
         Assert.Equal((HttpStatusCode)status, response.StatusCode);
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
         Assert.Equal(status == 200 ? 1 : 0, repository.Writes);
+    }
+
+    [Theory]
+    [InlineData("{\"scope\":2,\"countryIds\":[],\"regionCodes\":[]}")]
+    [InlineData("{\"scope\":1,\"countryIds\":[250],\"regionCodes\":[]}")]
+    [InlineData("{\"scope\":2,\"countryIds\":null,\"regionCodes\":[]}")]
+    [InlineData("{\"scope\":2,\"countryIds\":[250,250],\"regionCodes\":[]}")]
+    [InlineData("{\"scope\":2,\"countryIds\":[],\"regionCodes\":[\"Schengen\"]}")]
+    [InlineData("{\"scope\":2,\"countryIds\":[],\"regionCodes\":[\"EU\"],\"catalogVersion\":\"old\"}")]
+    public async Task Malformed_partner_geography_never_reaches_storage(string geography)
+    {
+        var repository = new Repository();
+        await using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        { services.RemoveAll<IFundingDiscoveryRepository>(); services.AddSingleton<IFundingDiscoveryRepository>(repository); }));
+        using var client = app.CreateClient();
+        var actor = Guid.NewGuid().ToString(); var now = DateTimeOffset.UtcNow;
+        var jwt = new JwtSecurityToken("https://testing.fundingplatform.local", "FundingPlatform.Tests",
+            [new(JwtRegisteredClaimNames.Sub, actor), new(ClaimTypes.NameIdentifier, actor), new(ClaimTypes.Role, "Admin"), new("auth_level", "full"),
+                new("amr", "mfa"), new("auth_time", now.ToUnixTimeSeconds().ToString())], now.AddMinutes(-1).UtcDateTime, now.AddMinutes(10).UtcDateTime,
+            new SigningCredentials(new SymmetricSecurityKey(new byte[64]), SecurityAlgorithms.HmacSha512));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", new JwtSecurityTokenHandler().WriteToken(jwt));
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-None-Match", "*"); client.DefaultRequestHeaders.Add("Idempotency-Key", "geography-invalid-123456789");
+        using var body = new StringContent("{\"contentVersion\":1,\"data\":{\"funderKind\":1,\"evidenceUrl\":\"https://example.invalid/terms\",\"partnerGeography\":" + geography + "}}", System.Text.Encoding.UTF8, "application/json");
+        using var response = await client.PutAsync("/api/v1/admin/funding-discovery/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", body);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode); Assert.Equal(0, repository.Writes);
     }
     private sealed class Repository : IFundingDiscoveryRepository
     {

@@ -38,6 +38,11 @@ try
         await VerifyDeploymentTargetAsync(cancellationSource.Token);
     }
 
+    if (string.Equals(args[0], "dev-geographic-sample", StringComparison.OrdinalIgnoreCase))
+    {
+        return await DevGeographicSample.RunAsync(args.Skip(1).ToArray(), cancellationSource.Token);
+    }
+
     if (string.Equals(args[0], "bootstrap-superadmin", StringComparison.OrdinalIgnoreCase))
     {
         return await BootstrapSuperAdminAsync(args.Skip(1).ToArray(), cancellationSource.Token);
@@ -908,6 +913,7 @@ static string RequireValue(string[] arguments, ref int index, string option)
 static void PrintUsage()
 {
     Console.WriteLine("FundingPlatform administration commands");
+    Console.WriteLine("  dev-geographic-sample --preview|--apply|--verify|--disable (dev only, existing owner via RF_DEV_SAMPLE_OWNER_EMAIL)");
     Console.WriteLine();
     Console.WriteLine("  bootstrap-superadmin --email <address> --display-name <name>");
     Console.WriteLine("  list-admins");
