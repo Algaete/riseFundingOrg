@@ -3,6 +3,7 @@ import type { InterfaceLanguage } from './language'
 // Each language/module is an independent build chunk; no eager aggregate import.
 export const resourceLoaders = {
   es: {
+    unifiedSearch: () => import('./unified-search/es').then(module => ({ unifiedSearch: module.unifiedSearchEs })),
     fundingDiscovery: () => import('./funding-discovery/es').then(module => ({ fundingDiscovery: module.fundingDiscoveryEs })),
     ecosystem: () => import('./ecosystem/es').then(module => ({ ecosystem: module.ecosystemEs })),
     collaboration: () => import('./collaboration/es').then(module => ({ collaboration: module.collaborationEs })),
@@ -46,6 +47,7 @@ export const resourceLoaders = {
     workspaceFeedback: () => import('./workspace-feedback/es').then(module => ({ workspaceFeedback: module.workspaceFeedbackEs })),
   },
   en: {
+    unifiedSearch: () => import('./unified-search/en').then(module => ({ unifiedSearch: module.unifiedSearchEn })),
     fundingDiscovery: () => import('./funding-discovery/en').then(module => ({ fundingDiscovery: module.fundingDiscoveryEn })),
     ecosystem: () => import('./ecosystem/en').then(module => ({ ecosystem: module.ecosystemEn })),
     collaboration: () => import('./collaboration/en').then(module => ({ collaboration: module.collaborationEn })),

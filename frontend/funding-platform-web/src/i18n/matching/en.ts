@@ -1,7 +1,12 @@
 import type { matchingEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
+import { matchingGapsEn } from './gaps-en'
 
 export const matchingEn = {
+  gaps: matchingGapsEn,
+  organizationToCompare: 'Project organization',
+  organizationUnavailable: 'This organization is not available to your account. Select one of your organizations.',
+  chooseOrganization: 'Choose organization',
   "disclaimer": "Indicative result based on available data; it does not confirm eligibility or replace reviewing the opportunity’s terms.",
   "noDate": "No date recorded",
   "exactDeadline": "Exact closing time: {{date}} UTC",

@@ -60,6 +60,7 @@ const AdminUsersPage = localizedLazy(() => import('@/pages/admin-pages').then((m
 const ForgotPasswordPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ForgotPasswordPage })), ["auth","validation"])
 const ExternalAuthenticationCallbackPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ExternalAuthenticationCallbackPage })), ["auth","validation"])
 const HomePage = localizedLazy(() => import('@/features/home/home-page').then((module) => ({ default: module.HomePage })), ['catalogs'])
+const UnifiedSearchPage = localizedLazy(() => import('@/features/search/search-page').then(module => ({ default: module.UnifiedSearchPage })), ['unifiedSearch', 'catalogs'])
 const LoginPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.LoginPage })), ["auth","validation"])
 const MfaChallengePage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaChallengePage })), ["auth","validation"])
 const MfaSetupPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaSetupPage })), ["auth","validation"])
@@ -86,13 +87,14 @@ const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboratio
 const DiscoveryMatchingPage = localizedLazy(() => import('@/features/matching/discovery-matching-page').then(module => ({ default: module.DiscoveryMatchingPage })), ['ecosystem', 'collaboration', 'projects', 'catalogs', 'validation'])
 
 const FundingExplorerPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingExplorerPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
-const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'validation'])
+const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
 
 export const appRoutes: RouteObject[] = [
   {
     element: <PublicLayout />,
     children: [
       { path: '/', element: <HomePage /> },
+      { path: '/search', element: <UnifiedSearchPage /> },
       { path: '/pricing', element: <PricingPage /> },
       { path: '/funding', element: <FundingPage /> },
       { path: '/funding/explore', element: <FundingExplorerPage /> },

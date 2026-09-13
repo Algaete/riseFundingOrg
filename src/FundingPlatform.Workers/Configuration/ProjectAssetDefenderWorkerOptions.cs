@@ -23,7 +23,8 @@ public sealed class ProjectAssetDefenderWorkerOptions
         ProjectAssetOptions projectAssets,
         string? eventGridFunctionDisabled = null,
         string? scanWatchdogFunctionDisabled = null,
-        bool imageSanitizationAvailable = false)
+        bool imageSanitizationAvailable = false,
+        bool allowSqlPolling = false)
     {
         if (!options.Enabled)
         {
@@ -32,7 +33,9 @@ public sealed class ProjectAssetDefenderWorkerOptions
                     IsExplicitlyDisabled(scanWatchdogFunctionDisabled));
         }
 
-        return imageSanitizationAvailable &&
+        // Do not report a healthy enabled pipeline whose mandatory watchdog cannot run.
+        // On-demand rollout stays blocked until durable event-driven maintenance exists.
+        return allowSqlPolling && imageSanitizationAvailable &&
                IsExplicitlyEnabled(eventGridFunctionDisabled) &&
                IsExplicitlyEnabled(scanWatchdogFunctionDisabled) &&
                sharedDefender.Enabled &&

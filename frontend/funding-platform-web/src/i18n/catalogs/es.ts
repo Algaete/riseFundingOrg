@@ -1,10 +1,8 @@
-// Exact display labels from migrations 001, 031, 033 and 034; never identifiers or matching rules.
+import { countriesEs } from './countries-es'
+
+// Exact display labels from migrations 001, 031, 033, 034 and 048; never matching rules.
 export const catalogsEs = {
-  "countries": {
-    "CL": {
-      "current": "Chile"
-    }
-  },
+  "countries": countriesEs,
   "regions": {},
   "currencies": {
     "CLP": {

@@ -12,6 +12,7 @@ it('keeps reviewed catalog source labels grounded in versioned database seeds', 
     '031_organization_profile_catalog_expansion.sql',
     '033_project_impact_profile.sql',
     '034_organization_funding_experience_types.sql',
+    '048_world_country_catalog.sql',
   ].map(name => readFileSync(resolve(directory, name), 'utf8')).join('\n')
 
   for (const entries of Object.values(catalogsEs)) {

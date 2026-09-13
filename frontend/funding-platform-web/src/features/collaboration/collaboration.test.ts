@@ -21,7 +21,7 @@ describe('collaboration', () => {
   it('usa rutas privadas, sesión, versiones e idempotencia sin campos de roles', async () => {
     setAuthenticatedSession({ status: 'authenticated', accessToken: 'collaboration-token', accessTokenExpiresAtUtc: '2099-01-01T00:00:00Z',
       user: { publicId: 'actor', displayName: 'Nombre', email: 'actor@example.invalid', roles: ['Professional'], preferredLocale: 'es-CL', mfaEnabled: false } })
-    const fetchMock = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } })))
+    const fetchMock = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.resolve(new Response(JSON.stringify({ items: [], totalCount: 0, page: 1, pageSize: 20 }), { headers: { 'Content-Type': 'application/json' } })))
     vi.stubGlobal('fetch', fetchMock)
     const data = { ...blankProfessional, displayName: 'Nombre', headline: 'Especialidad' }
     await collaborationApi.profile()

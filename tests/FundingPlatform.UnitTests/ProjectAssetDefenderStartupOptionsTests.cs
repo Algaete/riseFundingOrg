@@ -40,34 +40,34 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
         Assert.True(ProjectAssetDefenderWorkerOptions.IsValid(
             options, "Production", shared, assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
 
         shared.Enabled = false;
         Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
             options, "Production", shared, assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
         shared.Enabled = true;
 
         assets.Enabled = false;
         Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
             options, "Production", shared, assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
         assets.Enabled = true;
 
         assets.ScanMode = "DevelopmentFake";
         Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
             options, "Production", shared, assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
         assets.ScanMode = "MicrosoftDefender";
 
         options.ExpectedSubscriptionName = shared.ExpectedSubscriptionName;
         Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
             options, "Production", shared, assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
     }
 
     [Theory]
@@ -86,7 +86,7 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
             CompleteProjectAssetOptions(),
             eventGridDisabled,
             watchdogDisabled,
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
             CompleteOptions(),
             "Production",
             CompleteSharedOptions(),
-            CompleteProjectAssetOptions()));
+            CompleteProjectAssetOptions(), "false", "false", allowSqlPolling: true));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
         Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
             CompleteOptions(), "Production", CompleteSharedOptions(), assets,
             "false", "false",
-            imageSanitizationAvailable: true));
+            imageSanitizationAvailable: true, allowSqlPolling: true));
     }
 
     [Fact]
@@ -125,6 +125,15 @@ public sealed class ProjectAssetDefenderStartupOptionsTests
         Assert.Equal(26_214_400, policy.MaxDocumentBytes);
         Assert.Equal(25_000_000, policy.MaxImagePixels);
         Assert.Equal(TimeSpan.FromMinutes(5), policy.MaximumFutureClockSkew);
+    }
+
+    [Fact]
+    public void Timer_pipeline_cannot_be_enabled_without_explicit_SQL_polling_opt_in()
+    {
+        Assert.False(ProjectAssetDefenderWorkerOptions.IsValid(
+            CompleteOptions(), "Production", CompleteSharedOptions(),
+            CompleteProjectAssetOptions(), "false", "false",
+            imageSanitizationAvailable: true));
     }
 
     private static ProjectAssetDefenderWorkerOptions CompleteOptions() => new()

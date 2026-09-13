@@ -1,4 +1,7 @@
+import { partnerGeographyEs } from '../partner-geography/es'
+
 export const fundingDiscoveryEs = {
+  geography: partnerGeographyEs,
   "title": "Búsqueda avanzada de fondos",
   "intro": "Filtra por datos publicados y clasificación revisada. Los campos no informados no equivalen a «No».",
   "query": "Palabras clave",

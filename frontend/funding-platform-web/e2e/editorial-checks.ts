@@ -4,7 +4,7 @@ import { editorialCatalogs, editorialFunder, editorialOpportunity, editorialProj
 import type { PublicationStatus } from '../src/features/funding/admin-funding-api'
 
 // Exact synthetic routes only. public.spec.ts aborts every other API request.
-async function mockEditorial(page: Page, status: PublicationStatus = 0) {
+export async function mockEditorial(page: Page, status: PublicationStatus = 0) {
   await page.route('**/api/v1/auth/refresh', route => route.fulfill({
     json: {
       status: 'authenticated', accessToken: 'synthetic-ui-only', accessTokenExpiresAtUtc: new Date(Date.now() + 600_000).toISOString(),

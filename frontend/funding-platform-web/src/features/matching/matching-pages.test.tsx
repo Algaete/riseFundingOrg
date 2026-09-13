@@ -176,6 +176,44 @@ describe('compatibilidad determinística por proyecto', () => {
     clearAuthSession()
   })
 
+  it('abre la organización solicitada, conserva su selección y limpia el proyecto al cambiarla', async () => {
+    authenticate()
+    const secondId = '70510000-0000-4000-8000-000000000001'
+    const paths: string[] = []
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'http://localhost')
+      paths.push(url.pathname)
+      if (url.pathname.endsWith('/organizations')) return json([organization(), { ...organization(), publicId: secondId, name: 'TEST organización' }])
+      if (url.pathname.endsWith(`/organizations/${secondId}/projects`)) return json([project()])
+      if (url.pathname.endsWith(`/organizations/${organizationId}/projects`)) return json([])
+      if (url.pathname.endsWith('/matching-runs')) return json({ items: [], totalCount: 0, pageNumber: 1, pageSize: 10 })
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/matching?organizationId=${secondId}`] })
+    render(<App queryClient={createAppQueryClient()} router={router} />)
+    const selector = await screen.findByLabelText('Organización del proyecto')
+    expect(selector).toHaveValue(secondId)
+    expect(paths.some((path) => path.endsWith(`/organizations/${organizationId}/projects`))).toBe(false)
+    await userEvent.selectOptions(await screen.findByLabelText('Proyecto a comparar', { exact: false }), projectId)
+    expect(new URLSearchParams(router.state.location.search).get('organizationId')).toBe(secondId)
+    expect(await screen.findByText('Aún no hay cálculos para este proyecto')).toBeInTheDocument()
+    await userEvent.selectOptions(selector, organizationId)
+    expect(new URLSearchParams(router.state.location.search).get('projectId')).toBeNull()
+    expect(new URLSearchParams(router.state.location.search).get('runId')).toBeNull()
+    expect(await screen.findByText('Necesitas un proyecto')).toBeInTheDocument()
+  })
+
+  it('no consulta proyectos de otra organización cuando el enlace no pertenece a la cuenta', async () => {
+    authenticate()
+    const fetcher = vi.fn(() => json([organization()]))
+    vi.stubGlobal('fetch', fetcher)
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/matching?organizationId=70510000-0000-4000-8000-000000000001'] })
+    render(<App queryClient={createAppQueryClient()} router={router} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esta organización no está disponible para tu cuenta')
+    expect(fetcher.mock.calls).toHaveLength(1)
+    expect(screen.queryByLabelText('Proyecto a comparar', { exact: false })).not.toBeInTheDocument()
+  })
+
   it('separa puntaje y condiciones excluyentes, muestra frescura y no expone datos fuera del contrato', async () => {
     authenticate()
     vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {

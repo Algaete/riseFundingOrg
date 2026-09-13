@@ -426,6 +426,7 @@ module apiContainer './container-api.bicep' = if (deployCompute && deployApiCont
       Email__FrontendBaseUrl: frontendDefaultOrigin
       DefenderEventGrid__Enabled: 'false'
       ProjectAssetDefenderEventGrid__Enabled: 'false'
+      ProjectAssetMaintenance__AllowSqlPolling: 'false'
       OfficialRss__Enabled: 'false'
       Semantic__Enabled: 'false'
       OpenAI__Enabled: 'false'

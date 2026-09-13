@@ -97,7 +97,9 @@ public sealed class ProjectAssetContentRetentionTests
         var repo = new Repository(Claim());
         var timer = new ProjectAssetContentRetentionFunction(
             new(repo, new Storage(), new Clock()), Options.Create(new ContentRetentionOptions()),
-            Options.Create(new ProjectAssetOptions()), NullLogger<ProjectAssetContentRetentionFunction>.Instance);
+            Options.Create(new ProjectAssetOptions()),
+            Options.Create(new ProjectAssetMaintenanceOptions { AllowSqlPolling = true }),
+            NullLogger<ProjectAssetContentRetentionFunction>.Instance);
         await timer.RunAsync(new TimerInfo(), default);
         Assert.Equal(Guid.Empty, repo.Lease);
     }

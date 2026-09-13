@@ -6,6 +6,7 @@ import { setAuthenticatedSession } from '@/features/auth/auth-session'
 import { ProjectAssetsPanel } from '@/features/projects/project-assets-panel'
 import type { ProjectAsset, ProjectAssetCollection } from '@/features/projects/project-assets-api'
 import { setInterfaceLanguage } from '@/i18n'
+import { projectAssetPollingIntervalMs, projectAssetPollingWindowMs } from './use-project-asset-polling'
 
 const organizationId = '51ea2f6f-b1af-4e09-856c-6dcbdcfc812f'
 const projectId = 'bd351806-9139-4524-bc01-93c3676729cb'
@@ -53,7 +54,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ProjectAsset
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <ProjectAssetsPanel
         hasUnsavedChanges={false}
@@ -66,7 +67,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof ProjectAsset
       />
     </QueryClientProvider>,
   )
-  return { onProjectChanged, queryClient }
+  return { onProjectChanged, queryClient, ...view }
 }
 
 describe('panel de adjuntos del proyecto', () => {
@@ -88,9 +89,81 @@ describe('panel de adjuntos del proyecto', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it('detiene consultas al ocultarse y al vencer el plazo; Actualizar estado solo vuelve a leer', async () => {
+    vi.useFakeTimers()
+    const visibility = vi.spyOn(document, 'visibilityState', 'get')
+    const fetchMock = vi.fn().mockImplementation(() => json(collection([asset()])))
+    vi.stubGlobal('fetch', fetchMock)
+    const { unmount, queryClient } = renderPanel()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    expect(fetchMock).toHaveBeenCalledOnce()
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingIntervalMs) })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    visibility.mockReturnValue('hidden')
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingWindowMs) })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    visibility.mockReturnValue('visible')
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+      window.dispatchEvent(new Event('online'))
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingIntervalMs) })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('status')).toHaveTextContent('La actualización automática está pausada')
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar estado' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    for (const [, options] of fetchMock.mock.calls) expect(options?.method ?? 'GET').toBe('GET')
+    unmount()
+    queryClient.clear()
+  })
+
+  it('un resultado tardío de un intento no reinicia consultas ni expone contenido después de pausar', async () => {
+    vi.useFakeTimers()
+    let resolveIntent!: (response: Response) => void
+    let reads = 0
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/assets')) { reads++; return json(collection([])) }
+      if (url.endsWith('/asset-upload-intents') && init?.method === 'POST') return json({
+        intentId: 'synthetic-intent', projectETag: '"0000000000000002"',
+        uploadUrl: 'https://synthetic.example.invalid/upload', uploadMethod: 'PUT',
+        requiredHeaders: {}, completionToken: 'synthetic-only',
+      })
+      if (url === 'https://synthetic.example.invalid/upload') return Promise.resolve(new Response(null, { status: 201 }))
+      if (url.endsWith('/synthetic-intent/complete')) return json({ storageStatus: 1, scanStatus: 0, intentStatus: 2 })
+      if (url.endsWith('/synthetic-intent')) return new Promise<Response>(resolve => { resolveIntent = resolve })
+      throw new Error('Unexpected fixture request')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { unmount, queryClient } = renderPanel()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    fireEvent.change(screen.getByLabelText('Seleccionar fotos, videos o documentos'), {
+      target: { files: [new File(['synthetic'], 'informe.txt', { type: 'text/plain' })] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar y verificar archivo' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingIntervalMs) })
+    expect(resolveIntent).toBeTypeOf('function')
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingWindowMs) })
+    const readsAtPause = reads
+    await act(async () => { resolveIntent(await json({ status: 2, storageStatus: 2, scanStatus: 1 })) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(projectAssetPollingWindowMs) })
+    expect(reads).toBe(readsAtPause)
+    expect(screen.getByRole('status')).toHaveTextContent('actualización automática está pausada')
+    expect(document.querySelector('img, video, iframe')).not.toBeInTheDocument()
+    expect(screen.queryByText('synthetic-only')).not.toBeInTheDocument()
+    unmount()
+    queryClient.clear()
   })
 
   it('traduce estados sin perder metadatos, abrir una vista insegura ni confirmar una eliminación', async () => {

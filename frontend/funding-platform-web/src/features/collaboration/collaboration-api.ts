@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/http-client'
 import type { OrganizationConnectionPage } from '@/features/network/network-api'
+import { collaborationList, collaborationPage } from './collaboration-response'
 
 export interface Page<T> { items: T[]; totalCount: number; page: number; pageSize: number }
 export interface ProfessionalData {
@@ -32,7 +33,7 @@ const path = (id: string) => `consortia/${encodeURIComponent(id)}`
 export const collaborationApi = {
   // Unlike the network workspace's first-page shortcut, this picker pages all accepted partners.
   connections: (organizationId: string, page = 1, signal?: AbortSignal) =>
-    apiClient.get<OrganizationConnectionPage>(`organizations/${encodeURIComponent(organizationId)}/network/connections?direction=all&status=accepted&page=${page}&pageSize=20`, { signal, cache: 'no-store' }),
+    apiClient.get<OrganizationConnectionPage>(`organizations/${encodeURIComponent(organizationId)}/network/connections?direction=all&status=accepted&page=${page}&pageSize=20`, { signal, cache: 'no-store' }).then(collaborationPage),
   profile: (signal?: AbortSignal) => apiClient.get<OwnProfessional | null>('me/professional-profile', { signal, cache: 'no-store' }),
   saveProfile: (data: ProfessionalData, key: string, eTag?: string) =>
     apiClient.put<WriteResult>('me/professional-profile', data, options(key, eTag, true)),
@@ -41,10 +42,14 @@ export const collaborationApi = {
     if (q.trim()) params.set('q', q.trim())
     if (countryId) params.set('countryId', countryId)
     if (categoryId) params.set('categoryId', categoryId)
-    return apiClient.get<Page<Professional>>(`professionals?${params}`, { signal, cache: 'no-store' })
+    return apiClient.get<Page<Professional>>(`professionals?${params}`, { signal, cache: 'no-store' }).then(collaborationPage)
   },
-  consortia: (page = 1, signal?: AbortSignal) => apiClient.get<Page<Consortium>>(`consortia?page=${page}&pageSize=20`, { signal, cache: 'no-store' }),
-  consortium: (id: string, signal?: AbortSignal) => apiClient.get<ConsortiumDetails>(path(id), { signal, cache: 'no-store' }),
+  consortia: (page = 1, signal?: AbortSignal) => apiClient.get<Page<Consortium>>(`consortia?page=${page}&pageSize=20`, { signal, cache: 'no-store' }).then(collaborationPage),
+  consortium: async (id: string, signal?: AbortSignal): Promise<ConsortiumDetails> => {
+    const result = await apiClient.get<ConsortiumDetails>(path(id), { signal, cache: 'no-store' })
+    if (!result?.consortium) throw new Error('Missing consortium response.')
+    return { ...result, participants: collaborationList(result.participants) }
+  },
   create: (data: ConsortiumInput & { projectId: string }, key: string) => apiClient.post<WriteResult>('consortia', data, options(key)),
   update: (id: string, data: ConsortiumInput & { status: number }, key: string, eTag: string) =>
     apiClient.put<WriteResult>(path(id), data, options(key, eTag)),

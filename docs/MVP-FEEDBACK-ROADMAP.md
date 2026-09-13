@@ -4,7 +4,76 @@ Este tablero distingue desarrollo, despliegue y activación de integraciones. Lo
 locales descritos más abajo conservan su evidencia histórica; su estado de despliegue
 actual se resume aquí. Completar adjuntos `036`–`039` no completa todo el feedback.
 
-## Estado actual y aceptación — 2026-09-10
+## Decisión vigente — 2026-09-12
+
+Ampliación desarrollada: **matching geográfico de aliados**. El editor puede
+seleccionar países y regiones de sede admitidos para los socios; las sugerencias
+aplican esa selección solo con revisión vigente. Europa M49 y UE son grupos
+separados; no se infiere elegibilidad de un país extranjero. Sin publicación ni
+despliegue. Preflight real 050 + 051 aprobado: 51 smokes y 23 comprobaciones del
+mapa, todo revertido, acceso temporal retirado y capacidad/autopausa sin cambios.
+Regresión aprobada: 987 unitarias .NET, 355 HTTP, 1.078 frontend y 216 de navegador.
+Ver [contrato y pendientes de release](PARTNER-GEOGRAPHIC-MATCHING.md).
+
+Nuevo bloque terminado y validado localmente: **apoyos vinculados a requisitos del fondo** en
+el resultado de matching. Sugiere aliados/profesionales con evidencia, diferencia
+requisitos editoriales de necesidades del proyecto y consulta solo al pulsar un
+botón. No modifica puntajes ni invita automáticamente; no añade servicios ni
+temporizadores. Migración 050 validada con rollback en Azure SQL dev: 50/50 smokes
+y 23 comprobaciones adicionales del mapa aprobados; todavía no aplicada definitivamente.
+Pruebas aprobadas: 963 unitarias .NET, 349 HTTP, 1.073 frontend y 212 de navegador.
+Ver [alcance, límites y validación](MATCHING-GAP-RECOMMENDATIONS.md).
+La publicación anterior en Azure sigue siendo `3784dc8` (mapa, hasta 049).
+
+Corrección adicional solicitada: catálogo mundial de países en Financiadores,
+publicado en Azure dev mediante migración 048 y etiquetas ES/EN (PR 19).
+SQL pasó 48/48 smokes y reapply sin cambios; API pública confirma 249 países/territorios.
+Frontend publicado y E2E Azure aprobado. Ver [evidencia de release](runbooks/world-country-catalog-dev-release-2026-09-12.md).
+
+El usuario rechazó el costo de Defender y pidió dejar **todo el bloque de adjuntos en
+stand by**. No se activará ni desplegará esa preparación, ni se sustituirá el escaneo
+por una aprobación automática o un proveedor distinto sin acordar el alcance.
+Se conserva el trabajo local previo y la configuración bajo demanda.
+
+La **búsqueda unificada** está publicada en Azure dev en `/search` (PR 20):
+entrada desde el inicio y el menú, filtros comunes, resultados separados y paginación.
+Reutiliza APIs existentes; organizaciones y profesionales mantienen sus permisos.
+No añade servicios cloud, procesos periódicos ni migraciones SQL. Ver
+[contrato, límites y verificación](UNIFIED-SEARCH.md). Revisión exacta confirmada;
+CI y verificación final de navegador en Azure aprobadas. [Evidencia](runbooks/unified-search-dev-release-2026-09-12.md).
+
+Avance completado: filtros avanzados del mapa y enlace desde resultados
+de matching a proyectos. Publicado en dev con monto restante/moneda, tipo de
+organización, necesidades combinadas y selección explícita de proyectos públicos.
+Commit aislado `d750805`: 943 pruebas unitarias .NET, 340 HTTP, 1.052 frontend y
+210 de navegador aprobadas. Preflight real SQL aprobado: migración `049`, 49 smokes
+y 23 comprobaciones de resultados; todo revertido y acceso temporal retirado.
+El usuario aprobó publicar los 29 archivos en el repositorio público y desplegar en dev.
+Push y PR 21 completados; el usuario concedió permiso específico para fusionar en main,
+aplicar 049 y desplegar. Revisión fusionada `3784dc8`, CI e infraestructura aprobados.
+SQL 049 aplicada y reaplicación sin cambios; 49 smokes y 23 comprobaciones de resultados
+posteriores aprobadas. API publicada y validada (`34708508309`, revisión `0000008`);
+nueve consultas HTTP públicas correctas. Frontend publicado (`34708798045`) con
+metadatos exactos y ruta de mapa HTTP 200; prueba final de navegador Azure aprobada.
+[Evidencia y continuación](runbooks/advanced-map-verification-2026-09-12.md).
+No completa las recomendaciones ligadas a brechas ni activa adjuntos, reservados
+expresamente por el usuario para el final. [Contrato](PROJECT-MAP.md).
+
+## Adjuntos: preparación local en pausa — 2026-09-11
+
+El usuario solicitó avanzar con los adjuntos después del ajuste de sesión. La
+revisión Azure confirmó que siguen apagados; faltan contenedores privados de
+proyectos, CORS, lifecycle propio y Defender/Event Grid. Se preparó localmente un
+refresco de pantalla acotado y una barrera independiente contra sondeo SQL periódico:
+971 pruebas frontend, 926 unitarias .NET y 328 HTTP aprobadas. Sin despliegue de este
+corte ni servicios nuevos habilitados.
+
+Si se retoma el bloque, falta decidir una solución de escaneo aceptable, implementar
+el mantenimiento durable por eventos y ejecutar la validación real de archivos/permisos.
+**El punto de adjuntos no está cerrado**; su costo/activación no están autorizados.
+Ver [estado, costos y orden de cierre](runbooks/project-assets-rollout.md).
+
+## Corte histórico y aceptación — 2026-09-10
 
 El release bajo demanda `3776b0a7448229e099958494f92494db8a2ac218` está desplegado
 con migraciones hasta `047`. Solo está activo el trigger de cola de importaciones;
@@ -592,12 +661,13 @@ Sin push, despliegue ni activación de adjuntos en este corte.
 
 | Bloque | Estado actual |
 | --- | --- |
+| Búsqueda unificada | Desplegada en dev (PR 20). Entrada común con permisos existentes y consultas bajo demanda. Ver `UNIFIED-SEARCH.md`. |
 | 3. Mapa | Desplegado en dev: filtros, privacidad opt-in, agrupación, zoom y fichas. Ver `PROJECT-MAP.md`. |
 | 4. Financiadores | Desplegado en dev: perfiles y oportunidades propias con revisión, sin conceder Admin. Ver `FUNDER-WORKSPACE.md`. |
 | 5. Profesionales y alianzas | Desplegado en dev: perfiles opt-in, capacidades y consorcios con invitación, aceptación y permisos. Ver `PROFESSIONALS-AND-CONSORTIA.md`. |
-| 6. Matching ampliado | Desplegado en dev: financiador/oportunidad → proyectos y proyecto/ONG → aliados/profesionales, con explicaciones y brechas. |
+| 6. Matching ampliado | Base desplegada en dev. Ampliación de apoyos ligados al fondo implementada localmente: requisitos revisados y necesidades del proyecto → candidatos justificados. Falta publicación; ver `MATCHING-GAP-RECOMMENDATIONS.md`. |
 | 7. Oportunidades e ingesta | Desplegado en dev: clasificación, filtros e ingesta RSS/Atom reforzada. Sin autopublicación. FundsforNGOs sigue condicionado a acceso autorizado. |
-| 8. Multimedia adicional | MP4/TXT privados implementados, migración y código desplegados; adjuntos deshabilitados hasta validar almacenamiento/Defender. Sin reproducción pública ni transcodificación. |
+| 8. Multimedia adicional | Código base desplegado, adjuntos deshabilitados. Bloque en stand by por decisión del usuario del 2026-09-12; Defender rechazado. Preparación local posterior conservada sin desplegar. |
 
 ## Validación y despliegue — trabajo diferente
 

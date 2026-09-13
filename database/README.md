@@ -1,5 +1,40 @@
 # Base de datos
 
+**Release dev 2026-09-13:** 050/051 aplicadas y verificadas en el commit `3d933a4`.
+API y frontend publicados, con muestra persistente claramente marcada TEST.
+Los estados «pendiente» de las notas de preparación siguientes son históricos.
+[Evidencia y acceso a la prueba](../docs/runbooks/geographic-matching-dev-release-2026-09-13.md).
+
+Ampliación local: `051_partner_geography.sql` añade geografía revisada de socios y
+filtra la expansión por países activos. Reutiliza procedimientos y permisos existentes,
+sin tablas/servicios nuevos. Preflight real **050 + 051: siete lotes, 51/51 smokes y
+23 comprobaciones del mapa aprobados**, todo revertido. Regla temporal retirada;
+SQL bajo demanda sin cambios. Ambas migraciones siguen sin aplicar definitivamente.
+[Contrato geográfico y orden de release](../docs/PARTNER-GEOGRAPHIC-MATCHING.md).
+
+Preparación local: `050_gap_recommendations.sql`, una consulta privada por miembro
+del proyecto y fondo público, con requisitos ligados a su versión editorial vigente.
+Sin tablas ni procesos periódicos nuevos. Incluye smoke sintético con rollback y
+permiso EXECUTE exacto en el manifiesto de pruebas; **no aplicada definitivamente**.
+Preflight real aprobado: 050 (tres lotes), 50/50 smokes y 23 comprobaciones adicionales
+del mapa; migración y fixtures revertidos, regla temporal de una IP retirada.
+[Contrato y estado de validación](../docs/MATCHING-GAP-RECOMMENDATIONS.md).
+
+Ampliación publicada en Azure dev: `049_project_map_advanced_filters.sql` añade al mapa
+filtros por brecha/moneda, tipo de organización, necesidades y IDs de resultados de
+matching. No cambia datos de negocio ni tablas, y conserva clientes anteriores y guardas públicas.
+Aplicación de 1 migración/3 lotes, reapply cero cambios, 49 smokes y 23 comprobaciones
+de resultados posteriores aprobadas con rollback de fixtures. SQL → API → frontend
+completados en `3784dc8`; capacidad/autopausa conservadas y adjuntos apagados.
+[Contrato y validación](../docs/PROJECT-MAP.md).
+
+Corrección publicada en Azure dev 2026-09-12: `048_world_country_catalog.sql` amplía el catálogo
+compartido a 249 países y territorios, sin modificar identidades ni filas existentes.
+Soluciona el selector de Financiadores limitado a Chile. Aplicación de un lote,
+reapply sin cambios y 48/48 smokes reales aprobados con rollback de fixtures.
+[Evidencia del release](../docs/runbooks/world-country-catalog-dev-release-2026-09-12.md).
+[Contrato y procedencia](../docs/WORLD-COUNTRY-CATALOG.md).
+
 Bloque 4 local: `042_funder_workspace.sql` agrega propiedad explícita y reutiliza
 14 procedimientos editoriales con ámbito de propietario opcional; revisión Admin/MFA
 intacta. Smoke `042` sintético con rollback y manifiesto `027` actualizado. Validado

@@ -18,6 +18,7 @@
     "AzureWebJobs.ContentRetentionFunction.Disabled": "true",
     "AzureWebJobs.SourceDocumentContentRetentionFunction.Disabled": "true",
     "AzureWebJobs.ProjectAssetContentRetentionFunction.Disabled": "true",
+    "ProjectAssetMaintenance__AllowSqlPolling": "false",
     "AzureWebJobs.SemanticProcessingFunction.Disabled": "true",
     "AzureWebJobs.AiExplanationProcessingFunction.Disabled": "true",
     "AzureWebJobs.AlertScheduleFunction.Disabled": "true",

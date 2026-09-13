@@ -11,6 +11,8 @@ import { registerDashboardAccountLanguageTests } from './dashboard-account-check
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
 import { registerMatchingNetworkLanguageTests } from './matching-network-checks'
+import { registerGapRecommendationTests } from './gap-recommendation-checks'
+import { registerPartnerGeographyTests } from './partner-geography-checks'
 import { registerTrackingBillingTests } from './tracking-billing-checks'
 import { registerCatalogTests } from './catalog-checks'
 import { registerCatalogConsumerTests } from './catalog-consumer-checks'
@@ -19,6 +21,8 @@ import { registerOperationalTests } from './operations-checks'
 import { registerValidationTests } from './validation-checks'
 import { registerLazyLanguageTests } from './lazy-language-checks'
 import { registerHomeReferenceTests } from './home-reference-checks'
+import { registerUnifiedSearchTests } from './unified-search-checks'
+import { registerWorldCountryTests } from './world-country-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -109,7 +113,7 @@ test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
   // Missing lazy dependencies otherwise look like valid text to accessibility tools.
   const missing = await page.locator('body').evaluate(body => {
-    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery)\.[\w.-]+$/
+    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery|unifiedSearch)\.[\w.-]+$/
     const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
     const keys: string[] = []
     while (walker.nextNode()) {
@@ -132,6 +136,8 @@ registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDiscoveryLanguageTests(expectNoSeriousAccessibilityViolations)
 registerOrganizationFundingLanguageTests(expectNoSeriousAccessibilityViolations)
 registerMatchingNetworkLanguageTests(expectNoSeriousAccessibilityViolations)
+registerGapRecommendationTests(expectNoSeriousAccessibilityViolations)
+registerPartnerGeographyTests(expectNoSeriousAccessibilityViolations)
 registerTrackingBillingTests(expectNoSeriousAccessibilityViolations)
 registerCatalogTests(expectNoSeriousAccessibilityViolations)
 registerCatalogConsumerTests(expectNoSeriousAccessibilityViolations)
@@ -140,6 +146,8 @@ registerOperationalTests(expectNoSeriousAccessibilityViolations)
 registerValidationTests(expectNoSeriousAccessibilityViolations)
 registerLazyLanguageTests(expectNoSeriousAccessibilityViolations)
 registerHomeReferenceTests(expectNoSeriousAccessibilityViolations)
+registerUnifiedSearchTests(expectNoSeriousAccessibilityViolations)
+registerWorldCountryTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')

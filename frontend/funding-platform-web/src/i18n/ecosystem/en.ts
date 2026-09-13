@@ -1,4 +1,6 @@
 export const ecosystemEn = {
+  "mapResults": "View these results on the map",
+  "mapResultsHelp": "Only projects on this page with a public location. The map does not preserve ranking or confirm eligibility; your private source and criteria are not shared.",
   "title": "Ecosystem matching",
   "intro": "Explore projects, partners and professionals with explainable criteria.",
   "sourceKind": "Start from",

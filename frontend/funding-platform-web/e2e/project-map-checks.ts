@@ -4,6 +4,47 @@ import { english, fits, readOnlyJson } from './workspace-checks'
 
 export function registerProjectMapTests(checkAccessibility: (page: Page) => Promise<void>) {
   for (const width of [320, 1024]) {
+    test(`mapa avanzado conserva selección, moneda y necesidades a ${width}px`, async ({ page }, testInfo) => {
+      const selected = '11111111-1111-1111-1111-111111111111'
+      await page.setViewportSize({ width, height: 900 })
+      await page.route('**/api/v1/marketplace/catalogs', readOnlyJson(workspaceCatalogs))
+      const reads: URLSearchParams[] = []
+      await page.route('**/api/v1/marketplace/project-map?*', route => {
+        expect(route.request().method()).toBe('GET')
+        expect(route.request().headers().authorization).toBeUndefined()
+        const query = new URL(route.request().url()).searchParams
+        reads.push(query)
+        return route.fulfill({ json: { items: [], totalCount: 101, withoutPublicLocationCount: 2, page: Number(query.get('page')), pageSize: 100 } })
+      })
+      await page.goto(`/marketplace/map?projectIds=${selected}&minimumFundingGap=0`)
+      await expect(page.getByRole('alert')).toContainText('Revisa los filtros')
+      expect(reads).toHaveLength(0)
+      await english(page)
+      await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('USD')
+      await page.getByRole('spinbutton', { name: 'Maximum remaining amount' }).fill('50000.1234')
+      await page.getByRole('combobox', { name: 'Organization type', exact: true }).selectOption(String(workspaceCatalogs.organizationTypes[0].id))
+      for (const label of ['Seeks funding (gap greater than zero)', 'Declares a need for partners', 'Declares a need for professionals', 'Wants to form a consortium']) await page.getByRole('checkbox', { name: label, exact: true }).check()
+      expect(reads).toHaveLength(0)
+      await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
+      await expect.poll(() => reads.length).toBe(1)
+      expect(Object.fromEntries(reads[0])).toMatchObject({ minimumFundingGap: '0', maximumFundingGap: '50000.1234', currency: 'USD', seekingFunding: 'true', seekingPartners: 'true', seekingProfessionals: 'true', seekingConsortium: 'true' })
+      expect(reads[0].getAll('projectIds')).toEqual([selected])
+      expect(reads[0].get('organizationTypeId')).toBe(String(workspaceCatalogs.organizationTypes[0].id))
+      await page.getByRole('button', { name: 'Next', exact: true }).click()
+      await expect.poll(() => reads.at(-1)?.get('page')).toBe('2')
+      expect(reads.at(-1)?.getAll('projectIds')).toEqual([selected])
+      expect(reads.at(-1)?.get('currency')).toBe('USD')
+      await fits(page)
+      await checkAccessibility(page)
+      await page.screenshot({ path: testInfo.outputPath(`advanced-map-${width}.png`), fullPage: true })
+      await page.getByRole('button', { name: 'Explore the full map with these filters' }).click()
+      await expect.poll(() => reads.at(-1)?.has('projectIds')).toBe(false)
+      expect(reads.at(-1)?.get('currency')).toBe('USD')
+      expect(reads.at(-1)?.get('page')).toBe('1')
+      await page.getByRole('button', { name: 'Clear filters', exact: true }).click()
+      await expect.poll(() => reads.at(-1)?.toString()).toBe('page=1&pageSize=100')
+    })
+
     test(`mapa agrupa, filtra y pagina en ES/EN a ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await page.route('**/api/v1/marketplace/catalogs', readOnlyJson(workspaceCatalogs))

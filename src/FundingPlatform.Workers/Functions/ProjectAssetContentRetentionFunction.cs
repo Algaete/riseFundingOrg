@@ -11,6 +11,7 @@ public sealed class ProjectAssetContentRetentionFunction(
     ProjectAssetContentRetentionService service,
     IOptions<ContentRetentionOptions> options,
     IOptions<ProjectAssetOptions> assets,
+    IOptions<ProjectAssetMaintenanceOptions> maintenance,
     ILogger<ProjectAssetContentRetentionFunction> logger)
 {
     [Function(nameof(ProjectAssetContentRetentionFunction))]
@@ -18,7 +19,7 @@ public sealed class ProjectAssetContentRetentionFunction(
         [TimerTrigger("45 */15 * * * *")] TimerInfo timer,
         CancellationToken cancellationToken)
     {
-        if (!assets.Value.Enabled) return;
+        if (!assets.Value.Enabled || !maintenance.Value.AllowSqlPolling) return;
         var result = await service.RunAsync(
             options.Value.ProjectAssetBatchSize,
             TimeSpan.FromSeconds(options.Value.ProjectAssetLeaseSeconds),

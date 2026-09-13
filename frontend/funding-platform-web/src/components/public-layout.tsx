@@ -13,7 +13,7 @@ import { useAuth } from '@/features/auth/use-auth'
 const translatedPaths = new Set([
   '/', '/login', '/register', '/forgot-password', '/reset-password',
   '/verify-email', '/mfa', '/mfa/setup', '/auth/external/callback',
-  '/pricing', '/alerts/unsubscribe', '/marketplace/map',
+  '/pricing', '/alerts/unsubscribe', '/marketplace/map', '/search',
 ])
 
 export function PublicLayout() {
@@ -58,7 +58,7 @@ export function PublicLayout() {
               <Link to={link.to}>{t(`navigation.${link.key}`)}</Link>
             </Button>)}
             <Button variant="ghost" className="px-2 2xl:hidden" aria-expanded={menuOpen} aria-controls="public-explore-menu" onClick={toggleMenu}>{t('navigation.more')}<ChevronDown className="size-3" aria-hidden="true" /></Button>
-            <Button variant="ghost" size="icon" asChild><Link to="/#home-search" aria-label={t('navigation.search')}><Search className="size-4" aria-hidden="true" /></Link></Button>
+            <Button variant="ghost" size="icon" asChild><Link to="/search" aria-label={t('navigation.search')}><Search className="size-4" aria-hidden="true" /></Link></Button>
             <LanguageSelector />
             <ThemeToggle />
             {isAuthenticated ? <Button asChild><Link to={workspaceUrl}><LayoutDashboard className="size-4" />{t('actions.workspace')}</Link></Button> : <>
@@ -79,7 +79,7 @@ export function PublicLayout() {
         <div className="border-t px-4 py-1.5 lg:hidden"><button type="button" className="flex min-h-8 w-full items-center justify-between gap-2 text-xs font-semibold" aria-expanded={menuOpen} aria-controls="public-explore-menu" onClick={toggleMenu}>{t('navigation.explore')}{menuOpen ? <X className="size-4" aria-hidden="true" /> : <Menu className="size-4" aria-hidden="true" />}</button></div>
         {menuOpen && <nav id="public-explore-menu" className="mx-auto grid max-w-7xl grid-cols-2 gap-2 border-t px-4 py-4 sm:px-6" aria-label={t('navigation.explore')}>
           {links.map(link => <Link key={link.key} to={link.to} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-accent">{t(`navigation.${link.key}`)}</Link>)}
-          <Link to="/#home-search" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-accent">{t('navigation.search')}</Link>
+          <Link to="/search" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-accent">{t('navigation.search')}</Link>
           {!isAuthenticated && <Link to="/register" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-accent">{t('actions.createAccount')}</Link>}
         </nav>}
       </header>

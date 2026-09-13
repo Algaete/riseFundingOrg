@@ -8,6 +8,8 @@ import { catalogName } from '@/i18n/catalog-labels'
 import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
 import { fundingDiscoveryApi, type ClassificationAdmin, type DiscoveryClassification } from './funding-discovery-api'
 
+import { PartnerGeographyFields } from './partner-geography-fields'
+
 const catalogFields = { countryId: 'countries', regionId: 'regions', categoryId: 'fundingCategories', fundingTypeId: 'fundingTypes', organizationTypeId: 'organizationTypes', languageId: 'languages' } as const
 const booleanFields = ['requiresConsortium', 'requiresInternationalPartner'] as const
 function KindOptions() { const { t } = useTranslation(); return <>{([1,2,3,4,5,6] as const).map(kind => <option key={kind} value={kind}>{t(`fundingDiscovery.kinds.${kind}`)}</option>)}</> }
@@ -59,22 +61,26 @@ export function FundingClassificationPage() {
   const { id = '' } = useParams(); const actor = useCollaborationActor(); const { t } = useTranslation()
   const query = useQuery({ queryKey: ['funding-classification', actor, id], queryFn: ({ signal }) => fundingDiscoveryApi.get(id, signal), retry: false, refetchOnWindowFocus: false })
   return <div className="space-y-5"><h1 className="text-2xl font-bold">{t('fundingDiscovery.adminTitle')}</h1><Link className={button} to={`/admin/funding/${id}`}>{t('fundingDiscovery.back')}</Link>
-    <LoadState pending={query.isPending} error={query.error} retry={() => query.refetch()} />{query.data && <ClassificationForm key={`${query.data.eTag}-${query.data.contentVersion}`} item={query.data} reload={() => query.refetch()} />}</div>
+    <LoadState pending={query.isPending} error={query.error} retry={() => query.refetch()} />{query.data && <ClassificationForm key={`${actor}:${query.data.eTag}-${query.data.contentVersion}`} item={query.data} reload={() => query.refetch()} />}</div>
 }
 function ClassificationForm({ item, reload }: { item: ClassificationAdmin; reload: () => Promise<unknown> }) {
   const { t } = useTranslation(); const actor = useCollaborationActor(); const [saved, setSaved] = useState(false)
   const [data, setData] = useState<DiscoveryClassification>(item.data ?? { funderKind: null, requiresConsortium: null, requiresInternationalPartner: null, evidenceUrl: null })
   const [eTag, setETag] = useState(item.eTag)
   const [reviewedVersion, setReviewedVersion] = useState(item.reviewedContentVersion)
+  const catalogs = useQuery({ queryKey: ['funding-discovery-catalogs'], queryFn: ({ signal }) => fundingDiscoveryApi.catalogs(signal), staleTime: 300000, retry: false, refetchOnWindowFocus: false })
+  const emptyGeography = data.partnerGeography?.scope === 2 && data.partnerGeography.countryIds.length + data.partnerGeography.regionCodes.length === 0
   const save = useMutation({ mutationFn: () => executeEditorialCommand(`classification:${actor}:${item.opportunityId}`, { data, eTag, contentVersion: item.contentVersion }, key => fundingDiscoveryApi.review(item.opportunityId, item.contentVersion, data, eTag, key)),
     onSuccess: result => { setETag(result.eTag); setReviewedVersion(item.contentVersion); setSaved(true) } })
-  return <form className={panel} onSubmit={event => { event.preventDefault(); setSaved(false); save.mutate() }}><h2 className="text-xl font-semibold">{item.title}</h2><p>{t('fundingDiscovery.adminHelp')}</p>
+  return <form className={panel} onSubmit={event => { event.preventDefault(); setSaved(false); if (!emptyGeography) save.mutate() }}><h2 className="text-xl font-semibold">{item.title}</h2><p>{t('fundingDiscovery.adminHelp')}</p>
     {reviewedVersion !== null && reviewedVersion !== item.contentVersion && <p role="status">{t('fundingDiscovery.stale')}</p>}
     <fieldset className="space-y-4" disabled={save.isPending} onChange={() => setSaved(false)}>
     <Field label={t('fundingDiscovery.funderKind')}><select className={control} value={data.funderKind ?? ''} onChange={e => setData(current => ({ ...current, funderKind: e.target.value ? Number(e.target.value) : null }))}><option value="">{t('fundingDiscovery.unknown')}</option><KindOptions /></select></Field>
     {booleanFields.map(key => <Field key={key} label={t(`fundingDiscovery.${key}`)}><select className={control} value={data[key] === null ? '' : String(data[key])} onChange={e => setData(current => ({ ...current, [key]: e.target.value === '' ? null : e.target.value === 'true' }))}><option value="">{t('fundingDiscovery.unknown')}</option><option value="true">{t('fundingDiscovery.yes')}</option><option value="false">{t('fundingDiscovery.no')}</option></select></Field>)}
     <Field label={t('fundingDiscovery.evidenceUrl')} required><select required className={control} value={data.evidenceUrl ?? ''} onChange={e => setData(current => ({ ...current, evidenceUrl: e.target.value }))}><option value="">{t('fundingDiscovery.unknown')}</option>{item.sourceUrls.filter(url => url.startsWith('https://')).map(url => <option key={url} value={url}>{url}</option>)}</select></Field>
+    <PartnerGeographyFields value={data.partnerGeography} catalogs={catalogs.data} onChange={partnerGeography => { setSaved(false); setData(current => ({ ...current, partnerGeography })) }} />
+    <LoadState pending={catalogs.isPending} error={catalogs.error} retry={() => catalogs.refetch()} />
     </fieldset>
-    <Feedback error={save.error} />{saved && <p role="status">{t('fundingDiscovery.saved')}</p>}<div className="flex flex-wrap gap-3"><button className={button} disabled={save.isPending}>{t('fundingDiscovery.save')}</button><button type="button" className={button} disabled={save.isPending} onClick={() => void reload()}>{t('fundingDiscovery.reload')}</button></div>
+    <Feedback error={save.error} />{saved && <p role="status">{t('fundingDiscovery.saved')}</p>}<div className="flex flex-wrap gap-3"><button className={button} disabled={save.isPending || emptyGeography}>{t('fundingDiscovery.save')}</button><button type="button" className={button} disabled={save.isPending} onClick={() => void reload()}>{t('fundingDiscovery.reload')}</button></div>
   </form>
 }

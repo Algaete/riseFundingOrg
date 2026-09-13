@@ -1,12 +1,10 @@
 import type { catalogsEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
+import { countriesEn } from './countries-en'
+
 export const catalogsEn = {
-  "countries": {
-    "CL": {
-      "current": "Chile"
-    }
-  },
+  "countries": countriesEn,
   "regions": {},
   "currencies": {
     "CLP": {

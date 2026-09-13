@@ -12,7 +12,7 @@ export function HomeSearch() {
   const navigate = useNavigate()
   const { hash } = useLocation()
   useEffect(() => { if (hash === '#home-search') document.getElementById('home-search-query')?.focus() }, [hash])
-  const [scope, setScope] = useState<HomeSearchScope>('projects')
+  const [scope, setScope] = useState<HomeSearchScope>('all')
   const [query, setQuery] = useState('')
   const [country, setCountry] = useState('')
   const [category, setCategory] = useState('')
@@ -25,7 +25,7 @@ export function HomeSearch() {
     <fieldset className="home-search-scopes">
       <legend className="sr-only">{t('home.search.scope')}</legend>
       <span aria-hidden="true">{t('home.search.scope')}</span>
-      {(['projects', 'funding'] as const).map(value => <label key={value} className={scope === value ? 'is-selected' : ''}>
+      {(['all', 'projects', 'funding', 'organizations', 'professionals'] as const).map(value => <label key={value} className={scope === value ? 'is-selected' : ''}>
         <input className="home-scope-radio" type="radio" name="home-search-scope" value={value} checked={scope === value} onChange={() => setScope(value)} />
         {t(`home.search.${value}`)}
       </label>)}

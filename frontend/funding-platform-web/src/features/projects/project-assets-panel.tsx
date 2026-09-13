@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Trash2,
   UploadCloud,
+  RefreshCw,
 } from 'lucide-react'
 import {
   useEffect,
@@ -39,6 +40,7 @@ import {
   projectAssetAccept,
   projectAssetLimits,
 } from '@/features/projects/project-assets-config'
+import { projectAssetPollingIntervalMs, useProjectAssetPolling } from './use-project-asset-polling'
 
 type AssetFeedback = string
   | { key: 'projectAssets.fileSize'; values: { name: string; maximum: number } }
@@ -349,7 +351,12 @@ function AssetCard({
   </article>
 }
 
-export function ProjectAssetsPanel({
+export function ProjectAssetsPanel(props: ProjectAssetsPanelProps) {
+  // Never carry selected files, pending intent IDs or deadlines into another project.
+  return <ProjectAssetsPanelForProject key={`${props.organizationId}:${props.projectId}`} {...props} />
+}
+
+function ProjectAssetsPanelForProject({
   organizationId,
   projectId,
   projectETag,
@@ -368,12 +375,19 @@ export function ProjectAssetsPanel({
   const [tasks, setTasks] = useState<UploadTask[]>([])
   const [pollIteration, setPollIteration] = useState(0)
   const [deleteCandidate, setDeleteCandidate] = useState<ProjectAsset | null>(null)
+  const polling = useProjectAssetPolling(enabled)
+  const { active: pollingActive, canPollNow, restart: restartPolling } = polling
   const assets = useQuery({
     queryKey: projectAssetQueryKey(organizationId, projectId),
     queryFn: ({ signal }) => projectAssetApi.list(organizationId, projectId, signal),
     enabled,
-    refetchInterval: query => query.state.data?.items.some(isAssetStillProcessing) ? 2_000 : false,
+    // A single bounded loop below refreshes intents and the gallery together.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
   })
+  const { refetch: refetchAssets } = assets
+  const hasPendingAssets = assets.data?.items.some(isAssetStillProcessing) ?? false
 
   useEffect(() => { currentProjectETag.current = projectETag }, [projectETag])
   useEffect(() => {
@@ -387,10 +401,11 @@ export function ProjectAssetsPanel({
     .join(',')
 
   useEffect(() => {
-    if (!pendingIntentIds) return
+    if (!pollingActive || (!pendingIntentIds && !hasPendingAssets)) return
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      const intents = pendingIntentIds.split(',')
+      if (!canPollNow()) return
+      const intents = pendingIntentIds ? pendingIntentIds.split(',') : []
       void Promise.allSettled(intents.map(intentId =>
         projectAssetApi.getUploadIntent(
           organizationId,
@@ -398,7 +413,7 @@ export function ProjectAssetsPanel({
           intentId,
           controller.signal,
         ),
-      )).then(results => {
+      )).then(async results => {
         if (controller.signal.aborted) return
         const byIntent = new Map(intents.map((intentId, index) => [intentId, results[index]]))
         setTasks(current => current.map(task => {
@@ -416,17 +431,16 @@ export function ProjectAssetsPanel({
           }
           return task
         }))
-        void queryClient.invalidateQueries({
-          queryKey: projectAssetQueryKey(organizationId, projectId),
-        })
-        setPollIteration(current => current + 1)
+        if (canPollNow()) await refetchAssets()
+        if (!controller.signal.aborted) setPollIteration(current => current + 1)
       })
-    }, 2_000)
+    }, projectAssetPollingIntervalMs)
     return () => {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [organizationId, pendingIntentIds, pollIteration, projectId, queryClient])
+  }, [organizationId, pendingIntentIds, hasPendingAssets, pollIteration, projectId,
+    pollingActive, canPollNow, refetchAssets])
 
   function updateTask(id: string, patch: Partial<UploadTask>) {
     setTasks(current => current.map(task => task.id === id ? { ...task, ...patch } : task))
@@ -517,6 +531,7 @@ export function ProjectAssetsPanel({
       setTasks(finalTasks)
       setFiles([])
       setFileInputVersion(current => current + 1)
+      restartPolling()
       await refreshAfterMutation(currentProjectETag.current)
     },
     onError: error => setOperationError(projectAssetErrorMessage(error)),
@@ -607,6 +622,14 @@ export function ProjectAssetsPanel({
 
       {assets.isPending && <p className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle aria-hidden className="size-4 animate-spin" /> {t('projectAssets.loading')}</p>}
       {assets.isError && <p className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-foreground" role="alert">{displayAssetMessage(projectAssetErrorMessage(assets.error))}</p>}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button disabled={assets.isFetching || busy} onClick={() => {
+          restartPolling()
+          void refetchAssets()
+        }} type="button" variant="outline"><RefreshCw aria-hidden className="size-4" /> {t('projectAssets.refreshStatus')}</Button>
+        {!pollingActive && (hasPendingAssets || pendingIntentIds) && <p className="text-sm text-muted-foreground" role="status">{t('projectAssets.pollingPaused')}</p>}
+      </div>
 
       {!assets.isError && <section className="space-y-3" aria-labelledby="project-assets-upload-title">
         <div><h2 className="font-semibold" id="project-assets-upload-title">{t('projectAssets.addFiles')}</h2><p className="mt-1 text-sm text-muted-foreground" id="project-assets-limits">{t('projectAssets.limits')}</p></div>

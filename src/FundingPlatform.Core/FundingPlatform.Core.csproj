@@ -6,4 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="FundingOpportunities/partner-regions.json" />
+  </ItemGroup>
 </Project>

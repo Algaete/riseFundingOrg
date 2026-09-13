@@ -19,6 +19,7 @@ const project: MarketplaceProjectItem = {
 const catalogs = { countries: [{ id: 152, code: 'CL', name: 'Chile' }], fundingCategories: [{ id: 4, code: 'water', name: 'Agua y saneamiento' }], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] }
 function setup(path = '/') {
   const router = createMemoryRouter([{ element: <PublicLayout />, children: [{ path: '/', element: <HomePage /> }] },
+    { path: '/search', element: <p>Destination</p> },
     { path: '/marketplace', element: <p>Destination</p> }, { path: '/funding/explore', element: <p>Destination</p> },
   ], { initialEntries: [path] })
   render(<App router={router} queryClient={createAppQueryClient()} />)
@@ -65,18 +66,20 @@ describe('inicio basado en la referencia', () => {
     expect(document.querySelectorAll('.home-project-card img')).toHaveLength(0)
   })
 
-  it.each(['projects', 'funding'] as const)('envía los filtros y búsqueda al destino %s', async scope => {
+  it.each(['all', 'projects', 'funding', 'organizations', 'professionals'] as const)('envía los filtros y búsqueda al destino %s', async scope => {
     const router = setup()
     const user = userEvent.setup()
     await screen.findByRole('option', { name: 'Chile' })
-    if (scope === 'funding') await user.click(screen.getByRole('radio', { name: 'Oportunidades' }))
+    const labels = { all: 'Todo', projects: 'Proyectos', funding: 'Oportunidades', organizations: 'Organizaciones', professionals: 'Profesionales' }
+    await user.click(screen.getByRole('radio', { name: labels[scope] }))
     await user.type(screen.getByRole('searchbox', { name: 'Término de búsqueda' }), '  agua & salud  ')
     await user.selectOptions(screen.getByRole('combobox', { name: 'País' }), '152')
     await user.selectOptions(screen.getByRole('combobox', { name: 'Área de impacto' }), '4')
     await user.click(screen.getByRole('button', { name: 'Buscar' }))
-    await waitFor(() => expect(router.state.location.pathname).toBe(scope === 'projects' ? '/marketplace' : '/funding/explore'))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/search'))
     const params = new URLSearchParams(router.state.location.search)
-    expect(params.get(scope === 'projects' ? 'q' : 'query')).toBe('agua & salud')
+    expect(params.get('scope')).toBe(scope)
+    expect(params.get('q')).toBe('agua & salud')
     expect(params.get('countryId')).toBe('152')
     expect(params.get('categoryId')).toBe('4')
   })
@@ -108,7 +111,7 @@ describe('inicio basado en la referencia', () => {
     expect(screen.getByText('Aquí aparecerán los proyectos con ubicación pública.')).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox'), 'bosque')
     await user.click(screen.getByRole('button', { name: 'Buscar' }))
-    await waitFor(() => expect(router.state.location.search).toBe('?q=bosque'))
+    await waitFor(() => expect(router.state.location.search).toBe('?scope=all&q=bosque'))
   })
 
   it('agrupa solo ubicaciones públicas válidas y advierte el límite de la vista previa', async () => {
@@ -143,9 +146,9 @@ describe('inicio basado en la referencia', () => {
 
 describe('contratos del inicio', () => {
   it('codifica texto, limita longitud y rechaza IDs no positivos', () => {
-    expect(homeSearchUrl('projects', 'á & b', '-1', 'no')).toBe('/marketplace?q=%C3%A1+%26+b')
-    expect(homeSearchUrl('funding', '', '', '')).toBe('/funding/explore')
-    expect(new URLSearchParams(homeSearchUrl('funding', 'a'.repeat(250), '0', '').split('?')[1]).get('query')).toHaveLength(200)
+    expect(homeSearchUrl('projects', 'á & b', '-1', 'no')).toBe('/search?scope=projects&q=%C3%A1+%26+b')
+    expect(homeSearchUrl('funding', '', '', '')).toBe('/search?scope=funding')
+    expect(new URLSearchParams(homeSearchUrl('funding', 'a'.repeat(250), '0', '').split('?')[1]).get('q')).toHaveLength(200)
   })
   it('no confunde desconocido con cero ni supera el cien por ciento', () => {
     expect(fundingProgress(project)).toBe(25)

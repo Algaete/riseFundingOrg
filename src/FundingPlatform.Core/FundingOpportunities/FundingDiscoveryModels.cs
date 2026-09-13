@@ -5,7 +5,8 @@ public sealed record FundingDiscoveryFilters(string? Query = null, short? Countr
     byte? FunderKind = null, bool? RequiresConsortium = null, bool? RequiresInternationalPartner = null,
     decimal? MinimumAmount = null, decimal? MaximumAmount = null, string? Currency = null,
     DateOnly? ClosingFrom = null, DateOnly? ClosingTo = null, bool OnlyOpen = true, int Page = 1, int PageSize = 20);
-public sealed record FundingDiscoveryData(byte? FunderKind, bool? RequiresConsortium, bool? RequiresInternationalPartner, string? EvidenceUrl);
+public sealed record FundingDiscoveryData(byte? FunderKind, bool? RequiresConsortium, bool? RequiresInternationalPartner, string? EvidenceUrl,
+    PartnerGeography? PartnerGeography = null);
 public sealed record FundingDiscoveryReview(int ContentVersion, FundingDiscoveryData Data);
 public sealed record FundingDiscoveryAdmin(Guid OpportunityId, string Title, int ContentVersion, int? ReviewedContentVersion,
     FundingDiscoveryData? Data, string? ETag, IReadOnlyList<string> SourceUrls);

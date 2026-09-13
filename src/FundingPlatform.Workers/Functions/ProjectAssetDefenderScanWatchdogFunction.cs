@@ -9,6 +9,7 @@ namespace FundingPlatform.Workers.Functions;
 public sealed class ProjectAssetDefenderScanWatchdogFunction(
     ProjectAssetDefenderScanWatchdogService service,
     IOptions<ProjectAssetDefenderWorkerOptions> options,
+    IOptions<ProjectAssetMaintenanceOptions> maintenance,
     ILogger<ProjectAssetDefenderScanWatchdogFunction> logger)
 {
     [Function(nameof(ProjectAssetDefenderScanWatchdogFunction))]
@@ -16,7 +17,7 @@ public sealed class ProjectAssetDefenderScanWatchdogFunction(
         [TimerTrigger("0 */5 * * * *")] TimerInfo timer,
         CancellationToken cancellationToken)
     {
-        if (!options.Value.Enabled) return;
+        if (!options.Value.Enabled || !maintenance.Value.AllowSqlPolling) return;
         var timedOut = await service.RunAsync(
             options.Value.WatchdogBatchSize,
             options.Value.PendingScanTimeoutMinutes,

@@ -1,4 +1,7 @@
+import { partnerGeographyEn } from '../partner-geography/en'
+
 export const fundingDiscoveryEn = {
+  geography: partnerGeographyEn,
   "title": "Advanced funding search",
   "intro": "Filter published data and reviewed classifications. Missing fields do not mean “No”.",
   "query": "Keywords",

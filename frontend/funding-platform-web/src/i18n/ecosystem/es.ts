@@ -1,4 +1,6 @@
 export const ecosystemEs = {
+  "mapResults": "Ver estos resultados en el mapa",
+  "mapResultsHelp": "Solo los proyectos de esta página con ubicación pública. El mapa no conserva el ranking ni confirma elegibilidad; no comparte tu origen ni criterios privados.",
   "title": "Compatibilidad del ecosistema",
   "intro": "Explora proyectos, aliados y profesionales con criterios explicables.",
   "sourceKind": "Buscar desde",

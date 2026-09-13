@@ -132,6 +132,9 @@ builder.Services.AddOptions<DefenderEventGridOptions>()
         "outside local development, both Defender functions must be explicitly disabled " +
         "with the exact value 'true'.")
     .ValidateOnStart();
+builder.Services.AddOptions<ProjectAssetMaintenanceOptions>()
+    .Bind(builder.Configuration.GetSection(ProjectAssetMaintenanceOptions.SectionName))
+    .ValidateOnStart();
 builder.Services.AddOptions<ProjectAssetDefenderWorkerOptions>()
     .Bind(builder.Configuration.GetSection(ProjectAssetDefenderWorkerOptions.SectionName))
     .Validate(
@@ -147,10 +150,14 @@ builder.Services.AddOptions<ProjectAssetDefenderWorkerOptions>()
             builder.Configuration[
                 ProjectAssetDefenderWorkerOptions.ScanWatchdogFunctionDisabledSetting],
             imageSanitizationAvailable:
-                options.Enabled && projectAssetImageSanitizationProbe.IsAvailable()),
+                options.Enabled && projectAssetImageSanitizationProbe.IsAvailable(),
+            allowSqlPolling: builder.Configuration
+                .GetValue<bool>("ProjectAssetMaintenance:AllowSqlPolling")),
         "Project-asset Defender configuration must be complete and real image " +
         "sanitization must be available and both triggers must have the exact disable " +
-        "setting 'false' when enabled; when disabled outside local " +
+        "setting 'false' when enabled. The current timer-based pipeline also requires " +
+        "explicit ProjectAssetMaintenance:AllowSqlPolling approval; it cannot be " +
+        "activated in an on-demand environment. When disabled outside local " +
         "development, both project-asset Defender functions must be explicitly " +
         "disabled with the exact value 'true'.")
     .ValidateOnStart();

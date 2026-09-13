@@ -1,6 +1,21 @@
 import type { projectMapEs } from './es'
 import type { TranslationShape } from '../resource-types'
 export const projectMapEn = {
+  "organizationTypeId": "Organization type",
+  "amountTitle": "Funding gap",
+  "minimumFundingGap": "Minimum remaining amount",
+  "maximumFundingGap": "Maximum remaining amount",
+  "currency": "Currency",
+  "amountHelp": "Remaining funding needed, not total budget. Choose a currency when entering amounts; currencies are not converted and unknown amounts are excluded.",
+  "needsTitle": "What the project is seeking",
+  "seekingFunding": "Seeks funding (gap greater than zero)",
+  "seekingPartners": "Declares a need for partners",
+  "seekingProfessionals": "Declares a need for professionals",
+  "seekingConsortium": "Wants to form a consortium",
+  "needsHelp": "All selected conditions apply together. A declaration does not confirm availability or a collaboration agreement.",
+  "invalidFilters": "Check the filters: valid ordered amounts, a currency when filtering amounts, and up to 50 distinct projects. No results were requested with these invalid filters.",
+  "selectionNotice": "Map restricted to {{count}} projects selected from one results page. Only projects still published with an authorized public location appear; scores and the private matching source are not shown.",
+  "removeSelection": "Explore the full map with these filters",
   "title": "Project map",
   "help": "Explore published projects with an authorized approximate location. Private coordinates are not shown and locations are not inferred for projects without a public point.",
   "catalog": "View full catalog",
