@@ -48,6 +48,47 @@ async function mockConsortium(page: Page, owner = true) {
 }
 export function registerCollaborationTests(accessibility: (page: Page) => Promise<void>) {
   for (const width of [320, 1024]) {
+    test(`colaboración lista nula permite crear el primer consorcio ES/EN a ${width}px`, async ({ page }) => {
+      const { writes } = await mockConsortium(page)
+      const errors: string[] = []
+      page.on('pageerror', error => errors.push(error.message))
+      await page.route('**/api/v1/consortia?*', readOnlyJson({ items: null, totalCount: 0, page: 1, pageSize: 20 }))
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/collaboration/consortia')
+      await expect(page.getByText('No hay resultados.', { exact: true })).toBeVisible()
+      await page.getByRole('combobox', { name: 'Organización coordinadora *', exact: true }).selectOption(workspaceOrganizationId)
+      await page.getByRole('combobox', { name: 'Proyecto *', exact: true }).selectOption(workspaceProjectId)
+      await page.getByLabel('Nombre del consorcio *', { exact: true }).fill('TEST · Primer consorcio')
+      await english(page)
+      await expect(page.getByText('No results.', { exact: true })).toBeVisible()
+      await accessibility(page); await fits(page)
+      await page.getByRole('button', { name: 'Create consortium', exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`/collaboration/consortia/${consortiumId}$`))
+      expect(writes).toHaveLength(1)
+      expect(writes[0].body.name).toBe('TEST · Primer consorcio')
+      expect(errors).toEqual([])
+    })
+
+    test(`colaboración detalle sin participantes ni candidatos no se rompe a ${width}px`, async ({ page }) => {
+      const { writes, data } = await mockConsortium(page)
+      const errors: string[] = []
+      page.on('pageerror', error => errors.push(error.message))
+      await page.route(`**/api/v1/consortia/${consortiumId}`, readOnlyJson({ ...data, participants: null }))
+      await page.route(`**/api/v1/organizations/${workspaceOrganizationId}/network/connections?*`, readOnlyJson({ items: null, totalCount: 0, page: 1, pageSize: 20 }))
+      await page.route('**/api/v1/professionals?*', readOnlyJson({ items: null, totalCount: 0, page: 1, pageSize: 20 }))
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto(`/collaboration/consortia/${consortiumId}`)
+      await expect(page.getByRole('heading', { name: 'Participantes', exact: true })).toBeVisible()
+      await expect(page.getByText(/No hay destinatarios disponibles/)).toBeVisible()
+      await page.getByRole('combobox', { name: 'Destinatario', exact: true }).selectOption('2')
+      await expect(page.getByText(/No hay destinatarios disponibles/)).toBeVisible()
+      await english(page)
+      await expect(page.getByText(/No recipients are available/)).toBeVisible()
+      await accessibility(page); await fits(page)
+      expect(writes).toHaveLength(0)
+      expect(errors).toEqual([])
+    })
+
     test(`colaboración perfil opt-in y opcionales ES/EN a ${width}px`, async ({ page }) => {
       await mockWorkspace(page, { empty: true })
       await page.setViewportSize({ width, height: 900 })
