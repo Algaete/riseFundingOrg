@@ -11,6 +11,8 @@ import { registerDashboardAccountLanguageTests } from './dashboard-account-check
 import { registerDiscoveryLanguageTests } from './discovery-checks'
 import { registerOrganizationFundingLanguageTests } from './organization-funding-checks'
 import { registerMatchingNetworkLanguageTests } from './matching-network-checks'
+import { registerGapRecommendationTests } from './gap-recommendation-checks'
+import { registerPartnerGeographyTests } from './partner-geography-checks'
 import { registerTrackingBillingTests } from './tracking-billing-checks'
 import { registerCatalogTests } from './catalog-checks'
 import { registerCatalogConsumerTests } from './catalog-consumer-checks'
@@ -134,6 +136,8 @@ registerDashboardAccountLanguageTests(expectNoSeriousAccessibilityViolations)
 registerDiscoveryLanguageTests(expectNoSeriousAccessibilityViolations)
 registerOrganizationFundingLanguageTests(expectNoSeriousAccessibilityViolations)
 registerMatchingNetworkLanguageTests(expectNoSeriousAccessibilityViolations)
+registerGapRecommendationTests(expectNoSeriousAccessibilityViolations)
+registerPartnerGeographyTests(expectNoSeriousAccessibilityViolations)
 registerTrackingBillingTests(expectNoSeriousAccessibilityViolations)
 registerCatalogTests(expectNoSeriousAccessibilityViolations)
 registerCatalogConsumerTests(expectNoSeriousAccessibilityViolations)

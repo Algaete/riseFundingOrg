@@ -38,6 +38,7 @@ import { projectApi, type ProjectSummary } from '@/features/projects/project-api
 import i18n from '@/i18n'
 import { collaborationErrorMessage, hasMatchingRuleLabel, isStandardMatchingDisclaimer, matchingEvidenceField, matchingEvidenceSource, matchingReasonText, matchingRuleName } from '@/i18n/collaboration-messages'
 import { workspaceLocale } from '@/i18n/workspace-messages'
+import { GapRecommendationsPanel } from './gap-recommendations-panel'
 
 const selectClass = 'h-11 w-full rounded-lg border bg-background px-3 text-sm'
 
@@ -177,7 +178,7 @@ function classificationClass(classification: MatchClassification) {
   return 'bg-muted text-foreground'
 }
 
-function MatchResultCard({ match }: { match: ProjectFundingMatch }) {
+function MatchResultCard({ match, projectId, historical }: { match: ProjectFundingMatch; projectId: string; historical: boolean }) {
   const { t } = useTranslation()
   const opportunity = match.fundingOpportunity
   return (
@@ -246,6 +247,8 @@ function MatchResultCard({ match }: { match: ProjectFundingMatch }) {
               <p className="mt-4 text-sm text-muted-foreground">{t('matching.noRules')}</p>
             )}
           </details>
+          <GapRecommendationsPanel projectId={projectId} opportunityId={opportunity.publicId}
+            hasHardGaps={match.hardGateStatus === 1} historical={historical || !match.isCurrent} />
         </CardContent>
       </Card>
     </article>
@@ -379,7 +382,7 @@ function MatchingResults({ detail }: { detail: MatchingRunDetail }) {
       ) : (
         <div className="grid gap-5">
           {detail.items.map((match) => (
-            <MatchResultCard key={match.fundingOpportunity.publicId} match={match} />
+            <MatchResultCard key={`${run.publicId}:${match.fundingOpportunity.publicId}`} match={match} projectId={run.project.publicId} historical={!current} />
           ))}
         </div>
       )}
@@ -421,6 +424,7 @@ export function MatchingWorkspacePage() {
   const queryClient = useQueryClient()
   const command = useRef<{ projectId: string; key: string } | null>(null)
   const [calculationNotice, setCalculationNotice] = useState<'' | 'matching.replayed' | 'matching.calculationCompleted'>('')
+  const requestedOrganizationId = searchParams.get('organizationId')
   const requestedProjectId = searchParams.get('projectId')
   const requestedRunId = searchParams.get('runId')
   const page = parsePage(searchParams.get('page'))
@@ -429,7 +433,9 @@ export function MatchingWorkspacePage() {
     queryKey: ['organizations'],
     queryFn: ({ signal }) => organizationApi.list(signal),
   })
-  const organization = organizations.data?.[0]
+  const organization = requestedOrganizationId
+    ? organizations.data?.find((item) => item.publicId === requestedOrganizationId)
+    : organizations.data?.[0]
   const projects = useQuery({
     queryKey: ['projects', organization?.publicId],
     queryFn: ({ signal }) => projectApi.list(organization!.publicId, signal),
@@ -510,8 +516,16 @@ export function MatchingWorkspacePage() {
     calculation.reset()
     setCalculationNotice('')
     const next = new URLSearchParams()
+    if (organization) next.set('organizationId', organization.publicId)
     if (projectId) next.set('projectId', projectId)
     setSearchParams(next)
+  }
+
+  function selectOrganization(organizationId: string) {
+    command.current = null
+    calculation.reset()
+    setCalculationNotice('')
+    setSearchParams(new URLSearchParams({ organizationId }))
   }
 
   function selectRun(runId: string) {
@@ -549,6 +563,12 @@ export function MatchingWorkspacePage() {
       </Card>
     )
   }
+  if (!organization && requestedOrganizationId) {
+    return <Card><CardContent className="space-y-4 p-8" role="alert">
+      <p>{t('matching.organizationUnavailable')}</p>
+      <Button onClick={() => setSearchParams(new URLSearchParams())} variant="outline">{t('matching.chooseOrganization')}</Button>
+    </CardContent></Card>
+  }
   if (!organization) return <OrganizationRequired />
 
   return (
@@ -563,6 +583,15 @@ export function MatchingWorkspacePage() {
 
       <Card>
         <CardContent className="space-y-5 p-5 sm:p-6">
+          {(organizations.data?.length ?? 0) > 1 && (
+            <label className="grid gap-1.5 text-sm font-semibold" htmlFor="matching-organization">
+              {t('matching.organizationToCompare')}
+              <select className={selectClass} id="matching-organization" value={organization.publicId}
+                disabled={calculation.isPending} onChange={(event) => selectOrganization(event.target.value)}>
+                {organizations.data?.map((item) => <option key={item.publicId} value={item.publicId}>{item.name}</option>)}
+              </select>
+            </label>
+          )}
           <div className="flex items-start gap-3 rounded-lg bg-muted p-4 text-sm">
             <Scale className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
             <div>

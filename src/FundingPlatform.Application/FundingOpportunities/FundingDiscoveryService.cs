@@ -34,6 +34,8 @@ public static class FundingDiscoveryRules
             !Uri.TryCreate(review.Data.EvidenceUrl, UriKind.Absolute, out var uri) || uri.Scheme != "https" ||
             uri.Port != 443 || uri.UserInfo.Length > 0 || uri.Fragment.Length > 0 || uri.AbsoluteUri.Length > 2000)
             errors.Set("classification", "api-validation-131", "Revisa la clasificación y su fuente oficial.");
+        if (review.Data?.PartnerGeography is { } geography && !PartnerGeographyCatalog.Valid(geography))
+            errors.Set("partnerGeography", "api-validation-131", "Revisa los países y regiones admitidos para los socios.");
         return errors;
     }
 }

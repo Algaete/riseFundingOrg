@@ -16,7 +16,9 @@ public static class FundingDiscoveryEndpoints
             var catalogs = await service.GetCatalogsAsync(token);
             context.Response.Headers.CacheControl = "public,max-age=300";
             return Results.Ok(new { catalogs.Countries, catalogs.Regions, catalogs.Currencies, catalogs.FundingCategories,
-                catalogs.FundingTypes, catalogs.OrganizationTypes, catalogs.Languages });
+                catalogs.FundingTypes, catalogs.OrganizationTypes, catalogs.Languages,
+                PartnerRegions = PartnerGeographyCatalog.Regions.Select(region => new { region.Code }),
+                PartnerGeographyVersion = PartnerGeographyCatalog.Version });
         }).AllowAnonymous().RequireRateLimiting("marketplace-read");
         var admin = endpoints.MapGroup("/api/v1/admin/funding-discovery").RequireAuthorization("admin-mfa").RequireRateLimiting("organization-write");
         admin.MapGet("/{id:guid}", GetAsync);

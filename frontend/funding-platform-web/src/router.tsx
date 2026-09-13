@@ -87,7 +87,7 @@ const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboratio
 const DiscoveryMatchingPage = localizedLazy(() => import('@/features/matching/discovery-matching-page').then(module => ({ default: module.DiscoveryMatchingPage })), ['ecosystem', 'collaboration', 'projects', 'catalogs', 'validation'])
 
 const FundingExplorerPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingExplorerPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
-const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'validation'])
+const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
 
 export const appRoutes: RouteObject[] = [
   {
