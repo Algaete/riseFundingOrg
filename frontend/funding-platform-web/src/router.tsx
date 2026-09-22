@@ -43,7 +43,8 @@ const AdminDashboardPage = localizedLazy(() => import('@/pages/admin-pages').the
 const AdminProjectReviewPage = localizedLazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.AdminProjectReviewPage })), ["adminProjects","projects","projectAssets","editorial","editorialValidation","catalogs","workspaceFeedback","validation","adminFunding"])
 const AdminProjectReviewDetailPage = localizedLazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.AdminProjectReviewDetailPage })), ["adminProjects","projects","projectAssets","editorial","editorialValidation","catalogs","workspaceFeedback","validation","adminFunding"])
 const AdminErrorsPage = localizedLazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminErrorsPage })), ["adminIncidents","operations","operationalLabels","validation","editorial","editorialValidation","workspaceFeedback"])
-const AdminFundingDetailPage = localizedLazy(() => import('@/features/funding/admin-funding-pages').then((module) => ({ default: module.AdminFundingDetailPage })), ["adminFunding","adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
+const AdminFundingDetailPage = localizedLazy(() => import('@/features/funding/admin-funding-pages').then((module) => ({ default: module.AdminFundingDetailPage })), ["adminFunding","fundingCatalog","adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
+const FundingTranslationsPage = localizedLazy(() => import('@/features/funding/funding-translations-page').then(module => ({ default: module.FundingTranslationsPage })), ['adminFunding'])
 const AdminFundingPage = localizedLazy(() => import('@/features/funding/admin-funding-pages').then((module) => ({ default: module.AdminFundingPage })), ["adminFunding","adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
 const AdminFunderDetailPage = localizedLazy(() => import('@/features/funding/admin-funder-pages').then((module) => ({ default: module.AdminFunderDetailPage })), ["adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
 const AdminFundersPage = localizedLazy(() => import('@/features/funding/admin-funder-pages').then((module) => ({ default: module.AdminFundersPage })), ["adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
@@ -60,7 +61,7 @@ const AdminUsersPage = localizedLazy(() => import('@/pages/admin-pages').then((m
 const ForgotPasswordPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ForgotPasswordPage })), ["auth","validation"])
 const ExternalAuthenticationCallbackPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.ExternalAuthenticationCallbackPage })), ["auth","validation"])
 const HomePage = localizedLazy(() => import('@/features/home/home-page').then((module) => ({ default: module.HomePage })), ['catalogs'])
-const UnifiedSearchPage = localizedLazy(() => import('@/features/search/search-page').then(module => ({ default: module.UnifiedSearchPage })), ['unifiedSearch', 'catalogs'])
+const UnifiedSearchPage = localizedLazy(() => import('@/features/search/search-page').then(module => ({ default: module.UnifiedSearchPage })), ['unifiedSearch', 'fundingCatalog', 'catalogs'])
 const LoginPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.LoginPage })), ["auth","validation"])
 const MfaChallengePage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaChallengePage })), ["auth","validation"])
 const MfaSetupPage = localizedLazy(() => import('@/pages/public-pages').then((module) => ({ default: module.MfaSetupPage })), ["auth","validation"])
@@ -86,7 +87,7 @@ const ConsortiumDetailPage = localizedLazy(() => import('@/features/collaboratio
 
 const DiscoveryMatchingPage = localizedLazy(() => import('@/features/matching/discovery-matching-page').then(module => ({ default: module.DiscoveryMatchingPage })), ['ecosystem', 'collaboration', 'projects', 'catalogs', 'validation'])
 
-const FundingExplorerPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingExplorerPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
+const FundingExplorerPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingExplorerPage })), ['fundingDiscovery', 'fundingCatalog', 'collaboration', 'catalogs', 'validation'])
 const FundingClassificationPage = localizedLazy(() => import('@/features/funding-discovery/funding-discovery-pages').then(module => ({ default: module.FundingClassificationPage })), ['fundingDiscovery', 'collaboration', 'catalogs', 'validation'])
 
 export const appRoutes: RouteObject[] = [
@@ -157,6 +158,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/admin/funding', element: <AdminFundingPage /> },
       { path: '/admin/funding/:id', element: <AdminFundingDetailPage /> },
       { path: '/admin/funding/:id/discovery', element: <FundingClassificationPage /> },
+      { path: '/admin/funding/:id/translations', element: <FundingTranslationsPage /> },
       { path: '/admin/funders', element: <AdminFundersPage /> },
       { path: '/admin/funders/:id', element: <AdminFunderDetailPage /> },
       { path: '/admin/imports', element: <AdminImportsPage /> },

@@ -27,7 +27,9 @@ public sealed record WorkspaceFundingOpportunityListItemResponse(
     string PrimaryFunderName,
     string SourceName,
     string SourceUrl,
-    bool IsFavorite);
+    bool IsFavorite,
+    string? CoverKey = null,
+    FundingLocalizationResponse? Localization = null);
 
 public sealed record FundingOpportunityEligibilityTypeResponse(
     short Id,
@@ -104,4 +106,7 @@ public sealed record WorkspaceFundingOpportunityDetailResponse(
     IReadOnlyList<FundingOpportunityEligibilityTypeResponse> LegalEntityTypes,
     IReadOnlyList<FundingOpportunityLanguageResponse> Languages,
     IReadOnlyList<FundingOpportunityFunderResponse> Funders,
-    IReadOnlyList<WorkspaceFundingOpportunitySourceResponse> Sources);
+    IReadOnlyList<WorkspaceFundingOpportunitySourceResponse> Sources,
+    FundingLocalizationResponse? Localization = null,
+    string? OtherCategoryDescription = null,
+    string? CoverKey = null);

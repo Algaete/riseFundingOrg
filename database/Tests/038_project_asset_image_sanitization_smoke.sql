@@ -117,6 +117,10 @@ IF @ApiRoleId IS NULL OR @WorkerRoleId IS NULL
        + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NULL THEN 0 ELSE 1 END
        + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_GapRecommendations_Context', N'P') IS NULL THEN 0 ELSE 1 END
        + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FundingDiscovery', N'U') IS NULL THEN 0 ELSE 3 END
+       /* SQL053/057 add only the four API translation procedures; smoke027
+          validates each exact grant, not just this aggregate count. */
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_FundingTranslations', N'U') IS NULL THEN 0 ELSE 3 END
+       + CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_usp_FundingTranslation_ReadSummaries', N'P') IS NULL THEN 0 ELSE 1 END
    OR (SELECT COUNT_BIG(1) FROM sys.database_permissions
        WHERE grantee_principal_id = @WorkerRoleId) <> 53 +
        CASE WHEN OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS NULL THEN 0 ELSE 3 END

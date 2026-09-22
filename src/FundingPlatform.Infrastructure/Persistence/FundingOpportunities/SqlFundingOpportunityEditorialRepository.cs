@@ -152,7 +152,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
                 regions,
                 categories,
                 beneficiaries,
-                projectTypes);
+                projectTypes, row.OtherCategoryDescription, row.CoverKey);
 
             return new FundingOpportunityAdminDetails(
                 row.FundingOpportunityPublicId,
@@ -392,6 +392,8 @@ public sealed class SqlFundingOpportunityEditorialRepository(
             parameters.Add("ExpectedRowVersion", expectedRowVersion, DbType.Binary, size: 8);
         if (slug is not null) parameters.Add("Slug", slug);
         parameters.Add("Title", data.Title);
+        parameters.Add("OtherCategoryDescription", data.OtherCategoryDescription);
+        parameters.Add("CoverKey", data.CoverKey);
         parameters.Add("Description", data.Description);
         parameters.Add("Summary", data.Summary);
         parameters.Add("SponsorName", data.SponsorName);
@@ -585,6 +587,8 @@ public sealed class SqlFundingOpportunityEditorialRepository(
 
     private sealed class AdminOpportunityDetailsRow : AdminOpportunityRow
     {
+        public string? OtherCategoryDescription { get; init; }
+        public string? CoverKey { get; init; }
         public string? Description { get; init; }
         public string? SponsorUrl { get; init; }
         public string? ApplicationUrl { get; init; }

@@ -212,6 +212,9 @@ else
 builder.Services.AddSingleton<SqlConnectionVerifier>();
 builder.Services.AddScoped<IFundingOpportunityRepository, SqlFundingOpportunityRepository>();
 builder.Services.AddScoped<FundingOpportunityCatalogService>();
+builder.Services.AddSingleton(new FundingTranslationOptions { Enabled = builder.Configuration.GetValue<bool>("FundingTranslations:Enabled") });
+builder.Services.AddScoped<IFundingTranslationRepository, SqlFundingTranslationRepository>();
+builder.Services.AddScoped<FundingTranslationService>();
 builder.Services.AddScoped<IFundingOpportunityWorkspaceRepository,
     SqlFundingOpportunityWorkspaceRepository>();
 builder.Services.AddScoped<FundingOpportunityWorkspaceService>();
@@ -835,6 +838,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
     });
 }
 app.MapFundingOpportunityEndpoints();
+app.MapFundingTranslationEndpoints();
 app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();
 app.MapAdminFundingEditorialEndpoints();

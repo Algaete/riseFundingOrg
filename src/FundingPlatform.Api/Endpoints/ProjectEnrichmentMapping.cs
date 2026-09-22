@@ -10,7 +10,9 @@ internal static class ProjectEnrichmentMapping
         value.Latitude, value.Longitude, (ProjectLocationVisibility)value.LocationVisibility,
         value.ImpactIndicators?.Select(item => item is null ? null : new ProjectImpactIndicator(
             item.Name, item.Unit, item.Baseline, item.Target)).ToArray(),
-        value.SoughtPartners, value.SoughtProfessionals, value.SeekingConsortium);
+        value.SoughtPartners, value.SoughtProfessionals, value.SeekingConsortium,
+        value.Background is not { } background ? null : new(background.AdditionalInformation,
+            background.TechnicalInformation, background.ExistingPartnerships, background.PreviousResults));
 
     public static ProjectEnrichmentContract? ToContract(ProjectEnrichment? value, bool publicView = false)
     {
@@ -20,6 +22,8 @@ internal static class ProjectEnrichmentMapping
             value.Latitude, value.Longitude, (byte)value.LocationVisibility,
             value.ImpactIndicators?.Select(item => item is null ? null : new ProjectImpactIndicatorContract(
                 item.Name, item.Unit, item.Baseline, item.Target)).ToArray() ?? [],
-            value.SoughtPartners, value.SoughtProfessionals, value.SeekingConsortium);
+            value.SoughtPartners, value.SoughtProfessionals, value.SeekingConsortium,
+            value.Background is not { } background ? null : new(background.AdditionalInformation,
+                background.TechnicalInformation, background.ExistingPartnerships, background.PreviousResults));
     }
 }

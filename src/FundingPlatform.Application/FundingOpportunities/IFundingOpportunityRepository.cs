@@ -14,7 +14,8 @@ public interface IFundingOpportunityRepository
         string? query,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false);
 
     Task<FundingOpportunityDetails?> GetPublishedBySlugAsync(
         string slug,

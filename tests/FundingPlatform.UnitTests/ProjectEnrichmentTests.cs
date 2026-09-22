@@ -42,6 +42,10 @@ public sealed class ProjectEnrichmentTests
 
     public static TheoryData<ProjectEnrichment, string, string> InvalidValues => new()
     {
+        { new(Background: new(AdditionalInformation: new string('x', 3001))), "enrichment.background.additionalInformation", "text-max-length" },
+        { new(Background: new(TechnicalInformation: new string('x', 3001))), "enrichment.background.technicalInformation", "text-max-length" },
+        { new(Background: new(ExistingPartnerships: new string('x', 3001))), "enrichment.background.existingPartnerships", "text-max-length" },
+        { new(Background: new(PreviousResults: new string('x', 3001))), "enrichment.background.previousResults", "text-max-length" },
         { new(Problem: new string('x', 3001)), "enrichment.problem", "text-max-length" },
         { new(Solution: new string('x', 3001)), "enrichment.solution", "text-max-length" },
         { new(Locality: new string('x', 201)), "enrichment.locality", "text-max-length" },
@@ -103,6 +107,25 @@ public sealed class ProjectEnrichmentTests
             Assert.Null(value.ForPublic().Latitude);
             Assert.Null(value.ForPublic().Longitude);
         }
+    }
+
+    [Fact]
+    public void Background_is_optional_bounded_plain_text_and_preserved_by_public_projection()
+    {
+        var background = new ProjectBackground("  Antecedentes Ñandú  ", " \n ",
+            "  Municipio local  ", new string('ñ', 3000));
+        var original = new ProjectEnrichment(Background: background, Latitude: -33.12345m, Longitude: -70.12345m);
+        var normalized = ProjectEnrichmentRules.Normalize(original)!;
+        Assert.Equal("Antecedentes Ñandú", normalized.Background!.AdditionalInformation);
+        Assert.Null(normalized.Background.TechnicalInformation);
+        Assert.Equal("Municipio local", normalized.Background.ExistingPartnerships);
+        Assert.Equal(3000, normalized.Background.PreviousResults!.Length);
+        var errors = new FieldValidationErrors();
+        ProjectEnrichmentRules.Validate(normalized, errors);
+        Assert.Empty(errors);
+        Assert.Equal(normalized.Background, normalized.ForPublic().Background);
+        Assert.Null(normalized.ForPublic().Latitude);
+        Assert.Equal(background, original.Background);
     }
 
     [Fact]

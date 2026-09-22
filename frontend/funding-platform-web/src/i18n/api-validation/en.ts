@@ -1,6 +1,10 @@
 import type { apiValidationEs } from './es'
 
 export const apiValidationEn = {
+  "funding-cover-invalid": "Select an available cover from the library.",
+  "funding-cover-required": "Reload the opportunity and confirm its cover before saving.",
+  "funding-other-category-required": "Specify the category when selecting Other.",
+  "funding-other-category-unselected": "Select Other before specifying a category.",
   'editorial-status-invalid': 'Editorial status must be between 0 and 4.',
   'editorial-pagination-invalid': 'The page must be at least 1 and the page size must be between 1 and 100.',
   'api-validation-001': "The application filters are invalid.",

@@ -645,7 +645,7 @@ public sealed class ImportRunProcessingServiceTests
         }
 
         public Task<FundingOpportunityPage> SearchPublishedAsync(
-            string? query, int pageNumber, int pageSize, CancellationToken cancellationToken) =>
+            string? query, int pageNumber, int pageSize, CancellationToken cancellationToken, bool includeReviewedTranslations = false) =>
             throw new NotSupportedException();
 
         public Task<FundingOpportunityDetails?> GetPublishedBySlugAsync(
@@ -681,7 +681,7 @@ public sealed class ImportRunProcessingServiceTests
             string? query,
             int pageNumber,
             int pageSize,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
+            CancellationToken cancellationToken, bool includeReviewedTranslations = false) => throw new NotSupportedException();
 
         public Task<FundingOpportunityDetails?> GetPublishedBySlugAsync(
             string slug,

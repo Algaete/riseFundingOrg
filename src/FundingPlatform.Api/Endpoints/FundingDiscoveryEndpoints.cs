@@ -25,11 +25,21 @@ public static class FundingDiscoveryEndpoints
         admin.MapPut("/{id:guid}", ReviewAsync);
         return endpoints;
     }
-    private static async Task<IResult> SearchAsync([AsParameters] FundingDiscoveryFilters filters, HttpContext context, IFundingDiscoveryRepository repository, CancellationToken token)
+    private static async Task<IResult> SearchAsync([AsParameters] FundingDiscoveryFilters filters, string? locale,
+        HttpContext context, IFundingDiscoveryRepository repository, FundingTranslationOptions translationOptions, CancellationToken token)
     {
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
         var errors = FundingDiscoveryRules.Validate(filters);
         if (errors.Count > 0) return FieldValidationResults.BadRequest(errors);
-        try { var result = await repository.SearchAsync(filters with { Query = filters.Query?.Trim() }, token); context.Response.Headers.CacheControl = "public,max-age=60"; return Results.Ok(result); }
+        try
+        {
+            var result = await repository.SearchAsync(filters with { Query = filters.Query?.Trim() }, token,
+                includeReviewedTranslations: translationOptions.Enabled);
+            if (translationOptions.Enabled && locale is not null)
+                result = await context.RequestServices.GetRequiredService<FundingTranslationService>().LocalizeAsync(result, locale, token);
+            context.Response.Headers.CacheControl = locale is null && !translationOptions.Enabled ? "public,max-age=60" : "no-store";
+            return Results.Ok(result);
+        }
         catch (FundingDiscoveryDataException error) when (error.Number == 55704) { return Failure(error); }
     }
     private static async Task<IResult> GetAsync(Guid id, ClaimsPrincipal principal, HttpContext context, IFundingDiscoveryRepository repository, CancellationToken token)

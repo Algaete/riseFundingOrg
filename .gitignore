@@ -12,6 +12,7 @@ Thumbs.db
 *.sln.docstates
 
 # Local .NET SDK and build outputs
+/.dotnet
 .dotnet/
 **/bin/
 **/obj/

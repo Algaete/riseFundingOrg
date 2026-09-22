@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { workspaceMessage } from '@/i18n/workspace-messages'
 import type { ProjectWriteInput } from './project-api'
+import { ProjectLocationPicker } from './project-location-picker'
 
 const selectClass = 'h-10 w-full rounded-lg border bg-background px-3 text-sm'
 const optionalNumber = { setValueAs: (value: string | number | null | undefined) => value == null || value === '' ? null : Number(value) }
@@ -43,11 +44,11 @@ export function ProjectEnrichmentFields({ form }: { form: UseFormReturn<ProjectW
         {fields.map((field, index) => <fieldset key={field.id} className="space-y-3 rounded-lg border p-4">
           <legend className="px-1 text-sm font-semibold">{t('projects.enrichment.indicatorNumber', { number: index + 1 })}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
-            {(['name', 'unit'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} required error={issue?.impactIndicators?.[index]?.[key]?.message}>
-              <Input required aria-required="true" maxLength={key === 'name' ? 200 : 80} {...register(`enrichment.impactIndicators.${index}.${key}`, { ...optionalText, required: 'projects.enrichment.indicatorRequired' })} />
+            {(['name', 'unit'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} hint={t(`projects.enrichment.${key}Help`)} required error={issue?.impactIndicators?.[index]?.[key]?.message}>
+              <Input aria-label={t(`projects.enrichment.${key}`)} required aria-required="true" placeholder={t(`projects.enrichment.${key}Example`)} maxLength={key === 'name' ? 200 : 80} {...register(`enrichment.impactIndicators.${index}.${key}`, { ...optionalText, required: 'projects.enrichment.indicatorRequired' })} />
             </Field>)}
-            {(['baseline', 'target'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} error={issue?.impactIndicators?.[index]?.[key]?.message}>
-              <Input type="number" step="any" min={-1e12} max={1e12} {...register(`enrichment.impactIndicators.${index}.${key}`, { ...numberRules, validate: value => value == null || (Number.isFinite(value) && Math.abs(value) <= 1e12) || 'projects.enrichment.measurementInvalid' })} />
+            {(['baseline', 'target'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} hint={t(`projects.enrichment.${key}Help`)} error={issue?.impactIndicators?.[index]?.[key]?.message}>
+              <Input aria-label={t(`projects.enrichment.${key}`)} type="number" step="any" min={-1e12} max={1e12} {...register(`enrichment.impactIndicators.${index}.${key}`, { ...numberRules, validate: value => value == null || (Number.isFinite(value) && Math.abs(value) <= 1e12) || 'projects.enrichment.measurementInvalid' })} />
             </Field>)}
           </div>
           {issue?.impactIndicators?.[index]?.message && <p role="alert" className="text-sm text-destructive">{workspaceMessage(issue.impactIndicators[index].message)}</p>}
@@ -63,11 +64,7 @@ export function ProjectEnrichmentFields({ form }: { form: UseFormReturn<ProjectW
       <Field label={t('projects.enrichment.locality')} required={visibility === 1} error={issue?.locality?.message}>
         <Input maxLength={200} required={visibility === 1} aria-required={visibility === 1} {...register('enrichment.locality', { ...optionalText, validate: value => visibility !== 1 || Boolean(value?.trim()) || 'projects.enrichment.localityRequired' })} />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {(['latitude', 'longitude'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} required={coordinateRequired} error={issue?.[key]?.message}>
-          <Input type="number" step="any" min={key === 'latitude' ? -90 : -180} max={key === 'latitude' ? 90 : 180} required={coordinateRequired} aria-required={coordinateRequired} aria-invalid={Boolean(issue?.[key])} {...register(`enrichment.${key}`, { ...numberRules, validate: value => value == null ? !coordinateRequired || 'projects.enrichment.coordinatesRequired' : (Number.isFinite(value) && Math.abs(value) <= (key === 'latitude' ? 90 : 180)) || 'projects.enrichment.coordinatesInvalid' })} />
-        </Field>)}
-      </div>
+      {(['latitude', 'longitude'] as const).map(key => <input key={key} type="hidden" {...register(`enrichment.${key}`, { ...numberRules, validate: value => value == null ? !coordinateRequired || 'projects.enrichment.coordinatesRequired' : (Number.isFinite(value) && Math.abs(value) <= (key === 'latitude' ? 90 : 180)) || 'projects.enrichment.coordinatesInvalid' })} />)}
       <Field label={t('projects.enrichment.visibility')} hint={t('projects.enrichment.privacyHelp')} error={issue?.locationVisibility?.message}>
         <select className={selectClass} {...register('enrichment.locationVisibility', { valueAsNumber: true })}>
           <option value={0}>{t('projects.enrichment.regionOnly')}</option>
@@ -75,6 +72,25 @@ export function ProjectEnrichmentFields({ form }: { form: UseFormReturn<ProjectW
           <option value={2}>{t('projects.enrichment.approximatePoint')}</option>
         </select>
       </Field>
+      {visibility === 2 && <ProjectLocationPicker value={latitude != null && longitude != null ? { latitude, longitude } : null} onChange={point => {
+        form.setValue('enrichment.latitude', point.latitude, { shouldDirty: true, shouldValidate: true })
+        form.setValue('enrichment.longitude', point.longitude, { shouldDirty: true, shouldValidate: true })
+      }} />}
+      {(issue?.latitude || issue?.longitude) && <p role="alert" className="text-sm text-destructive">{workspaceMessage(issue.latitude?.message || issue.longitude?.message || 'projects.enrichment.coordinatesRequired')}</p>}
+      {(latitude != null || longitude != null) && <Button type="button" variant="outline" onClick={() => {
+        form.setValue('enrichment.latitude', null, { shouldDirty: true })
+        form.setValue('enrichment.longitude', null, { shouldDirty: true })
+        form.setValue('enrichment.locationVisibility', 0, { shouldDirty: true })
+        form.clearErrors(['enrichment.latitude', 'enrichment.longitude'])
+      }}>{t('projects.enrichment.removePoint')}</Button>}
+      <a className="text-sm text-primary underline" href="/marketplace/map" target="_blank" rel="noreferrer">{t('projects.enrichment.openMap')}</a>
+    </section>
+    <section className="grid gap-4" aria-labelledby="project-background-heading">
+      <h2 className="text-lg font-bold" id="project-background-heading">{t('projects.enrichment.backgroundTitle')}</h2>
+      <p className="text-sm text-muted-foreground">{t('projects.enrichment.backgroundHelp')}</p>
+      {(['additionalInformation', 'technicalInformation', 'existingPartnerships', 'previousResults'] as const).map(key => <Field key={key} label={t(`projects.enrichment.${key}`)} hint={t(`projects.enrichment.${key}Help`)} error={issue?.background?.[key]?.message}>
+        <textarea className="min-h-28 rounded-lg border bg-background px-3 py-2 text-sm" maxLength={3000} aria-invalid={Boolean(issue?.background?.[key])} {...register(`enrichment.background.${key}`, { ...optionalText, maxLength: { value: 3000, message: 'projects.enrichment.backgroundMax' } })} />
+      </Field>)}
     </section>
     <section className="grid gap-4" aria-labelledby="project-collaboration-heading">
       <h2 className="text-lg font-bold" id="project-collaboration-heading">{t('projects.enrichment.collaborationTitle')}</h2>

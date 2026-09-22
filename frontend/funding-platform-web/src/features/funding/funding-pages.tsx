@@ -1,4 +1,8 @@
+import { FundingCover } from './funding-cover'
+import { FundingListLanguageNotice, FundingListTranslationLabel } from './funding-list-language'
 import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
+import { FundingContentLanguageNotice } from './funding-content-language'
+import { useFundingContentLanguage } from './use-funding-content-language'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -6,19 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  Cpu,
   ExternalLink,
-  HandHeart,
-  HeartPulse,
-  Landmark,
-  Leaf,
   LoaderCircle,
-  Newspaper,
   Search,
   ShieldAlert,
   ShieldCheck,
-  Scale,
-  type LucideIcon,
   X,
 } from 'lucide-react'
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react'
@@ -37,106 +33,6 @@ import {
 } from '@/features/funding/funding-opportunities-api'
 
 const pageSize = 12
-
-interface VisualProfile {
-  label: string
-  icon: LucideIcon
-  background: string
-}
-
-function getVisualProfile(opportunity: FundingOpportunityListItem): VisualProfile {
-  const searchable = [
-    opportunity.title,
-    opportunity.summary,
-    opportunity.sponsorName,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase()
-
-  if (/health|salud|hiv|tuberculosis|\btb\b|laborator|nutrition/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualHealth'),
-      icon: HeartPulse,
-      background: 'from-rose-700 via-rose-600 to-orange-500',
-    }
-  }
-  if (/journal|media|information|documenting|periodis/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualInformation'),
-      icon: Newspaper,
-      background: 'from-indigo-800 via-blue-700 to-cyan-500',
-    }
-  }
-  if (/human rights|freedom|democra|women|violence|justice|derechos/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualRights'),
-      icon: Scale,
-      background: 'from-violet-800 via-purple-700 to-fuchsia-500',
-    }
-  }
-  if (/technology|innovation|university|research|science|cyber|tecnolog/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualInnovation'),
-      icon: Cpu,
-      background: 'from-slate-800 via-sky-700 to-teal-500',
-    }
-  }
-  if (/dam|infrastructure|housing|construction|transport|vivienda/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualInfrastructure'),
-      icon: Landmark,
-      background: 'from-stone-800 via-amber-700 to-yellow-500',
-    }
-  }
-  if (/environment|climate|conservation|agricultur|natural|ambiente/.test(searchable)) {
-    return {
-      label: i18n.t('fundingCatalog.visualEnvironment'),
-      icon: Leaf,
-      background: 'from-emerald-900 via-green-700 to-lime-500',
-    }
-  }
-
-  return {
-    label: i18n.t('fundingCatalog.visualSocial'),
-    icon: HandHeart,
-    background: 'from-emerald-800 via-teal-700 to-cyan-500',
-  }
-}
-
-function FundingVisual({
-  opportunity,
-  detail = false,
-}: {
-  opportunity: FundingOpportunityListItem
-  detail?: boolean
-}) {
-  const { t } = useTranslation()
-  const profile = getVisualProfile(opportunity)
-  const Icon = profile.icon
-
-  return (
-    <div
-      aria-label={t('fundingCatalog.visualLabel', { category: profile.label })}
-      className={`relative overflow-hidden bg-gradient-to-br ${profile.background} ${detail ? 'h-64' : 'h-40'}`}
-      role="img"
-    >
-      <div className="absolute -right-12 -top-16 size-48 rounded-full border-[28px] border-white/10" />
-      <div className="absolute -bottom-20 left-10 size-44 rounded-full bg-white/10 blur-sm" />
-      <div className="relative flex h-full items-end justify-between gap-4 p-5 text-white sm:p-6">
-        <div>
-          <span className="rounded-full border border-white/30 bg-black/15 px-3 py-1 text-xs font-semibold backdrop-blur">{t('fundingCatalog.indicativeCategory')}</span>
-          <p className="mt-3 text-lg font-bold">{profile.label}</p>
-        </div>
-        <Icon
-          aria-hidden="true"
-          className={detail ? 'size-24 opacity-90' : 'size-16 opacity-90'}
-          strokeWidth={1.35}
-        />
-      </div>
-    </div>
-  )
-}
 
 function parseDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -214,17 +110,6 @@ function SourceAttribution({ opportunity }: { opportunity: FundingOpportunityLis
     <div className="rounded-xl border bg-muted/55 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
       <span className="font-bold text-foreground">{t('fundingCatalog.source', { name: opportunity.sourceName })}</span>{' '}
       <span lang={grantsNotice ? 'en' : undefined}>{attribution}</span>
-      {opportunity.sourceUrl && (
-        <>
-          {' '}
-          <a
-            className="font-semibold text-primary underline underline-offset-2"
-            href={opportunity.sourceUrl}
-            rel="noopener noreferrer"
-            target="_blank"
-          >{t('fundingCatalog.sourceLink')}</a>
-        </>
-      )}
     </div>
   )
 }
@@ -245,7 +130,7 @@ export function FundingCard({
       data-testid={`funding-card-${opportunity.publicId}`}
       lang={language.resolvedLanguage}
     >
-      <FundingVisual opportunity={opportunity} />
+      <FundingCover coverKey={opportunity.coverKey} />
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
@@ -260,14 +145,15 @@ export function FundingCard({
             {opportunity.sponsorName}
           </p>
           <CardTitle className="text-xl leading-tight">
-            <Link className="hover:text-primary" to={detailHref}>
+            <Link className="hover:text-primary" to={detailHref} lang={opportunity.localization?.status === 'translated' ? opportunity.localization.requestedLanguage : 'und'}>
               {opportunity.title}
             </Link>
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-5">
-        <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
+        <FundingListTranslationLabel localization={opportunity.localization} />
+        <p className="line-clamp-4 text-sm leading-6 text-muted-foreground" lang={opportunity.localization?.status === 'translated' ? opportunity.localization.requestedLanguage : 'und'}>
           {opportunity.summary ?? i18n.t('fundingCatalog.noSummary')}
         </p>
         <dl className="mt-auto grid gap-3 text-sm">
@@ -388,13 +274,16 @@ function ApplicationExitInterstitial({ url }: { url: string }) {
 
 export function FundingCatalogPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const opportunities = useQuery({
-    queryKey: ['funding-opportunities', query, page, pageSize],
-    queryFn: ({ signal }) => fundingOpportunitiesApi.search(query, page, pageSize, signal),
-    placeholderData: keepPreviousData,
+    queryKey: ['funding-opportunities', query, page, pageSize, ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? fundingOpportunitiesApi.search(query, page, pageSize, signal, language.locale)
+      : fundingOpportunitiesApi.search(query, page, pageSize, signal),
+    placeholderData: language.enabled ? undefined : keepPreviousData,
+    ...(language.enabled ? { staleTime: 0, gcTime: 0 } : {}),
   })
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -409,6 +298,7 @@ export function FundingCatalogPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:py-12">
+      <FundingListLanguageNotice selection={language} />
       <div className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
         <div className="max-w-3xl space-y-3">
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('fundingCatalog.eyebrow')}</p>
@@ -533,7 +423,7 @@ export function FundingOpportunityDetailView({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <FundingVisual detail opportunity={item} />
+          <FundingCover detail coverKey={item.coverKey} />
           <div className="space-y-6 p-6 sm:p-8">
             <header className="space-y-4 border-b pb-6">
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
@@ -546,6 +436,7 @@ export function FundingOpportunityDetailView({
               <p className="font-bold uppercase tracking-wide text-primary">{item.sponsorName}</p>
               <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{item.title}</h1>
               {item.summary && <p className="text-lg leading-8 text-muted-foreground">{item.summary}</p>}
+              {item.otherCategoryDescription && <p className="whitespace-pre-wrap break-words text-sm"><strong>{t('fundingCatalog.otherCategory')}: </strong>{item.otherCategoryDescription}</p>}
             </header>
 
             <section>
@@ -611,11 +502,6 @@ export function FundingOpportunityDetailView({
                 {item.applicationUrl && (
                   <ApplicationExitInterstitial url={item.applicationUrl} />
                 )}
-                {item.sourceUrl && (
-                  <Button asChild variant="outline">
-                    <a href={item.sourceUrl} rel="noopener noreferrer" target="_blank">{t('fundingCatalog.originalSource')}</a>
-                  </Button>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -636,10 +522,13 @@ export function FundingOpportunityDetailView({
 
 export function FundingOpportunityDetailPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const { slug = '' } = useParams()
   const opportunity = useQuery({
-    queryKey: ['funding-opportunity', slug],
-    queryFn: ({ signal }) => fundingOpportunitiesApi.getBySlug(slug, signal),
+    queryKey: ['funding-opportunity', slug, ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? fundingOpportunitiesApi.getBySlug(slug, signal, language.locale) : fundingOpportunitiesApi.getBySlug(slug, signal),
+    staleTime: language.locale ? 0 : 30_000,
+    gcTime: language.locale ? 0 : 300_000,
     enabled: Boolean(slug),
     retry: false,
   })
@@ -679,6 +568,7 @@ export function FundingOpportunityDetailPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-12">
+      <FundingContentLanguageNotice selection={language} localization={opportunity.data.localization} />
       <FundingOpportunityDetailView backTo="/funding" item={opportunity.data} />
     </div>
   )

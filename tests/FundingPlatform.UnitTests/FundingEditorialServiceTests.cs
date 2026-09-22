@@ -75,6 +75,77 @@ public sealed class FundingEditorialServiceTests
         Assert.Equal(0, repository.CreateCalls);
     }
 
+    [Theory]
+    [InlineData(" nature-v1 ", "nature-v1")]
+    [InlineData("auto", "auto")]
+    [InlineData(null, null)]
+    public async Task Cover_is_normalized_and_included_in_the_editorial_snapshot(string? inputKey, string? expected)
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with { CoverKey = inputKey };
+        var result = await service.CreateAsync(AdminId, input, "cover-create-test-0001", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.Success, result.Outcome);
+        Assert.Equal(expected, repository.LastData!.CoverKey);
+        using var snapshot = System.Text.Json.JsonDocument.Parse(repository.LastSnapshotJson!);
+        Assert.Equal(expected, snapshot.RootElement.GetProperty("coverKey").GetString());
+    }
+
+    [Fact]
+    public async Task Invalid_cover_is_rejected_before_any_repository_write()
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with { CoverKey = "https://example.invalid/photo.jpg" };
+        var result = await service.CreateAsync(AdminId, input, "cover-invalid-test-0001", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("coverKey", result.Errors!.Keys);
+        Assert.Equal(0, repository.CreateCalls);
+    }
+
+    [Fact]
+    public async Task Other_category_is_normalized_and_versioned_with_the_opportunity()
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with
+        { CategoryIds = [10, 16], OtherCategoryDescription = "  Economía circular comunitaria  " };
+        var result = await service.CreateAsync(AdminId, input, "other-category-create-01", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.Success, result.Outcome);
+        Assert.Equal("Economía circular comunitaria", repository.LastData!.OtherCategoryDescription);
+        using var snapshot = System.Text.Json.JsonDocument.Parse(repository.LastSnapshotJson!);
+        Assert.Equal(repository.LastData.OtherCategoryDescription,
+            snapshot.RootElement.GetProperty("otherCategoryDescription").GetString());
+    }
+
+    [Theory]
+    [InlineData(true, null, "funding-other-category-required")]
+    [InlineData(true, "   ", "funding-other-category-required")]
+    [InlineData(false, "Nueva categoría", "funding-other-category-unselected")]
+    public async Task Other_category_rejects_missing_or_unselected_description_before_write(bool selected, string? text, string code)
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with
+        { CategoryIds = selected ? [16] : [10], OtherCategoryDescription = text };
+        var result = await service.CreateAsync(AdminId, input, "other-category-invalid-01", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.ValidationFailed, result.Outcome);
+        var errors = Assert.IsType<FundingPlatform.Core.Validation.FieldValidationErrors>(result.Errors);
+        Assert.Equal(code, Assert.Single(errors.Issues["otherCategoryDescription"]).Code);
+        Assert.Equal(0, repository.CreateCalls);
+    }
+
+    [Theory]
+    [InlineData(200, true)]
+    [InlineData(201, false)]
+    public void Other_category_has_a_stable_length_limit(int length, bool valid)
+    {
+        var errors = new FundingPlatform.Core.Validation.FieldValidationErrors();
+        FundingCategoryRules.Validate([16], new string('ñ', length), errors);
+        if (valid) Assert.Empty(errors);
+        else Assert.Equal("text-max-length", Assert.Single(errors.Issues["otherCategoryDescription"]).Code);
+    }
+
     [Fact]
     public async Task Opportunity_write_preserves_all_MVP_relations_and_primary_role()
     {

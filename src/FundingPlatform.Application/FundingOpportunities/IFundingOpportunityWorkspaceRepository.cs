@@ -8,7 +8,8 @@ public interface IFundingOpportunityWorkspaceRepository
         Guid userPublicId,
         Guid organizationPublicId,
         FundingOpportunitySearchFilters filters,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false);
 
     Task<WorkspaceFundingOpportunityDetails?> GetPublishedAsync(
         Guid userPublicId,

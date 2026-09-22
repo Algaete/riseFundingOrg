@@ -29,6 +29,19 @@ describe('project language changes', () => {
   })
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
 
+  it('keeps a legacy CLP budget unchanged instead of relabelling it as dollars', async () => {
+    vi.mocked(projectApi.get).mockResolvedValue({ ...workspaceProject, currency: 'CLP' })
+    const update = vi.spyOn(projectApi, 'update').mockImplementation(async (_organizationId, _projectId, _etag, input) => ({ ...workspaceProject, ...input, eTag: '"2"' }))
+    renderWorkspace()
+    expect(await screen.findByLabelText(/Moneda/)).toHaveValue('CLP')
+    expect(screen.queryByRole('combobox', { name: /Moneda/ })).not.toBeInTheDocument()
+    expect(screen.getByText(/No se realiza una conversión automática/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText(/Título/), { target: { value: 'Proyecto histórico editado' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(update).toHaveBeenCalledOnce())
+    expect(update.mock.calls[0][3]).toMatchObject({ currency: 'CLP', budgetTotal: 100000, confirmedFunding: 25000 })
+  })
+
   it('preserves unsaved text, stage, SDGs, optional fields and the original ETag when saving', async () => {
     const update = vi.spyOn(projectApi, 'update').mockImplementation(async (_organizationId, _projectId, _etag, input) => ({ ...workspaceProject, ...input, eTag: '"0000000000000002"' }))
     renderWorkspace()

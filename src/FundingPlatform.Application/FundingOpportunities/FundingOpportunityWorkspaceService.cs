@@ -13,7 +13,8 @@ public sealed class FundingOpportunityWorkspaceService(
         Guid userPublicId,
         Guid organizationPublicId,
         FundingOpportunitySearchFilters input,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false)
     {
         if (userPublicId == Guid.Empty || organizationPublicId == Guid.Empty)
         {
@@ -37,7 +38,8 @@ public sealed class FundingOpportunityWorkspaceService(
                 userPublicId,
                 organizationPublicId,
                 normalized,
-                cancellationToken);
+                cancellationToken,
+                includeReviewedTranslations);
         }
         catch (FundingOpportunityWorkspaceDataException exception)
             when (exception.DatabaseErrorNumber == 52002)

@@ -6,6 +6,7 @@ import { createAppQueryClient } from '@/api/query-client'
 import { App } from '@/App'
 import { clearAuthSession, setAuthenticatedSession } from '@/features/auth/auth-session'
 import { appRoutes } from '@/router'
+import { workspaceProject } from '@/test/fixtures/project-workspace'
 
 const organizationId = '51ea2f6f-b1af-4e09-856c-6dcbdcfc812f'
 
@@ -76,22 +77,23 @@ describe('proyectos', () => {
     expect(createRequests).toBe(0)
   })
 
-  it('marca el título y las dependencias financieras obligatorias sin enviar un borrador inválido', async () => {
+  it('exige el título y asigna USD automáticamente cuando se informa un presupuesto', async () => {
     setAuthenticatedSession({
       status: 'authenticated', accessToken: 'project-required-fields-token',
       accessTokenExpiresAtUtc: '2026-08-21T12:00:00Z',
       user: { publicId: '89b8d22a-472c-42e4-b034-c772ce3bb08e', email: 'member@example.test', displayName: 'Miembro demo', preferredLocale: 'es-CL', roles: ['Professional'], mfaEnabled: false },
     })
-    let createRequests = 0
+    let submitted: Record<string, unknown> | null = null
     vi.stubGlobal('fetch', vi.fn((input: string | URL | Request, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith('/organizations')) return json([{ publicId: organizationId, name: 'Fundación Demo', membershipRole: 'admin', profileStatus: 2, profileCompleteness: 100, profileVersion: 2, updatedAtUtc: '2026-08-21T04:00:00Z' }])
       if (url.endsWith('/catalogs')) return json({ countries: [], regions: [], currencies: [{ code: 'USD', name: 'Dólar estadounidense', minorUnits: 2 }], fundingCategories: [], fundingTypes: [], organizationTypes: [], legalEntityTypes: [], organizationSizes: [], beneficiaryTypes: [], projectTypes: [], tags: [], languages: [], sustainableDevelopmentGoals: [] })
       if (url.endsWith(`/organizations/${organizationId}/projects`) && init?.method === 'POST') {
-        createRequests += 1
-        return json({})
+        submitted = JSON.parse(String(init.body))
+        return json(workspaceProject)
       }
       if (url.endsWith(`/organizations/${organizationId}/projects`)) return json([])
+      if (url.endsWith(`/projects/${workspaceProject.publicId}`)) return json(workspaceProject)
       throw new Error(`Unexpected request: ${url}`)
     }))
 
@@ -103,12 +105,14 @@ describe('proyectos', () => {
     expect(screen.getByLabelText(/Título/)).toBeRequired()
     await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
     expect(await screen.findByText('Ingresa el título del proyecto.')).toBeInTheDocument()
+    expect(submitted).toBeNull()
+    expect(screen.queryByRole('combobox', { name: /Moneda/ })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Moneda/)).toHaveValue('USD')
 
     await user.type(screen.getByLabelText(/Título/), 'Proyecto con presupuesto')
     await user.type(screen.getByLabelText(/Presupuesto total/), '25000')
     await user.click(screen.getByRole('button', { name: 'Crear proyecto' }))
-    expect(await screen.findByText('Selecciona la moneda del presupuesto.')).toBeInTheDocument()
-    expect(createRequests).toBe(0)
+    await vi.waitFor(() => expect(submitted).toMatchObject({ budgetTotal: 25000, currency: 'USD' }))
   })
 
   it('crea buscando financiamiento con etapa y varios ODS sin mostrar estados históricos', async () => {
@@ -158,6 +162,7 @@ describe('proyectos', () => {
       status: 2,
       projectStage: 3,
       sustainableDevelopmentGoalIds: [1, 17],
+      currency: null,
     })
   })
 

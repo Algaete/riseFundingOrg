@@ -548,7 +548,7 @@ public static class AdminFundingEditorialEndpoints
             request.RegionIds ?? [],
             request.CategoryIds ?? [],
             request.BeneficiaryTypeIds ?? [],
-            request.ProjectTypeIds ?? []);
+            request.ProjectTypeIds ?? [], request.OtherCategoryDescription, request.CoverKey);
     }
 
     private static FunderAdminSummaryResponse Map(FunderSummary funder) => new(
@@ -646,7 +646,7 @@ public static class AdminFundingEditorialEndpoints
         opportunity.ReviewedAtUtc,
         opportunity.ReviewedByUserPublicId,
         opportunity.PublishedAtUtc,
-        opportunity.RejectionReason);
+        opportunity.RejectionReason, opportunity.Data.OtherCategoryDescription, opportunity.Data.CoverKey);
 
     private static bool TryGetUser(
         ClaimsPrincipal principal,

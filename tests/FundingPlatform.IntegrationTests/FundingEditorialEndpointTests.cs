@@ -49,6 +49,10 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
                 services.AddSingleton<IFundingOpportunityEditorialRepository>(opportunities);
                 services.AddSingleton<IFundingSourceAdminRepository>(sources);
                 services.AddSingleton<IFundingOpportunityRepository>(publicOpportunities);
+                services.RemoveAll<IFundingTranslationRepository>();
+                services.RemoveAll<FundingTranslationOptions>();
+                services.AddSingleton<IFundingTranslationRepository>(translations);
+                services.AddSingleton(new FundingTranslationOptions { Enabled = true });
                 services.AddKeyedSingleton<FunderEditorialService>("funder-workspace", new FunderEditorialService(workspaceFunders));
                 services.AddKeyedSingleton<FundingOpportunityEditorialService>("funder-workspace", new FundingOpportunityEditorialService(workspaceOpportunities, TimeProvider.System));
             }));
@@ -775,6 +779,9 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
 
     private sealed class FakeOpportunityEditorialRepository : IFundingOpportunityEditorialRepository
     {
+        public FundingOpportunityAdminDetails? Details { get; set; }
+        public FundingOpportunityEditorialData? LastWrittenData { get; private set; }
+        public string? LastWrittenSnapshot { get; private set; }
         public int Calls { get; private set; }
         public FundingEditorialMutation RequestPublicationResult { get; set; } = new(
             true,
@@ -798,7 +805,7 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
         public Task<FundingOpportunityAdminDetails?> GetAdminAsync(
             Guid adminUserPublicId, Guid opportunityPublicId,
             CancellationToken cancellationToken) =>
-            Task.FromResult<FundingOpportunityAdminDetails?>(null);
+            Task.FromResult(Details);
 
         public Task<FundingEditorialMutation> CreateAsync(
             Guid adminUserPublicId, string slug, FundingOpportunityEditorialData data,
@@ -811,8 +818,12 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
             Guid adminUserPublicId, Guid opportunityPublicId, byte[] expectedRowVersion,
             FundingOpportunityEditorialData data, string snapshotJson, byte[] contentHash,
             decimal dataQualityScore, byte[] idempotencyKeyHash, byte[] requestHash,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(RequestPublicationResult);
+            CancellationToken cancellationToken)
+        {
+            LastWrittenData = data;
+            LastWrittenSnapshot = snapshotJson;
+            return Task.FromResult(RequestPublicationResult);
+        }
 
         public Task<FundingEditorialMutation> RequestPublicationAsync(
             Guid adminUserPublicId, Guid opportunityPublicId, byte[] expectedRowVersion,
@@ -859,6 +870,9 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
     private sealed class FakePublicOpportunityRepository : IFundingOpportunityRepository
     {
         public FundingOpportunityDetails? Published { get; set; }
+        public IReadOnlyList<FundingOpportunitySummary> PublishedItems { get; set; } = [];
+        public bool IncludeReviewedTranslations { get; private set; }
+        public string? LastSearchQuery { get; private set; }
 
         public Task<FundingOpportunityUpsertResult> UpsertExternalWithIdentityAsync(
             int expectedFundingSourceId, string expectedProviderCode,
@@ -867,8 +881,12 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
 
         public Task<FundingOpportunityPage> SearchPublishedAsync(
             string? query, int pageNumber, int pageSize,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new FundingOpportunityPage([], 0, pageNumber, pageSize));
+            CancellationToken cancellationToken, bool includeReviewedTranslations = false)
+        {
+            IncludeReviewedTranslations = includeReviewedTranslations;
+            LastSearchQuery = query;
+            return Task.FromResult(new FundingOpportunityPage(PublishedItems, PublishedItems.Count, pageNumber, pageSize));
+        }
 
         public Task<FundingOpportunityDetails?> GetPublishedBySlugAsync(
             string slug, CancellationToken cancellationToken) => Task.FromResult(Published);

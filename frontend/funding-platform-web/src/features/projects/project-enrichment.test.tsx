@@ -27,6 +27,51 @@ function Harness({ onSubmit = vi.fn(), locked = false, value = enrichmentInput()
 describe('project enrichment', () => {
   afterEach(() => vi.restoreAllMocks())
 
+  it('saves optional background, preserves it across language changes, and clears explicitly', async () => {
+    const save = vi.fn()
+    render(<Harness onSubmit={save} />)
+    const context = screen.getByLabelText(/^Otros antecedentes relevantes/)
+    expect(context).not.toBeRequired()
+    expect(context).toHaveAttribute('maxlength', '3000')
+    fireEvent.change(context, { target: { value: 'Experiencia Ñandú' } })
+    fireEvent.change(screen.getByLabelText(/^Información técnica y referencias a informes/), { target: { value: 'Resumen técnico' } })
+    fireEvent.change(screen.getByLabelText(/^Alianzas existentes/), { target: { value: 'Universidad local' } })
+    fireEvent.change(screen.getByLabelText(/^Resultados y proyectos anteriores/), { target: { value: 'Piloto exitoso' } })
+    await act(() => setInterfaceLanguage('en'))
+    expect(screen.getByDisplayValue('Experiencia Ñandú')).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(save.mock.lastCall![0].enrichment.background).toEqual({ additionalInformation: 'Experiencia Ñandú',
+      technicalInformation: 'Resumen técnico', existingPartnerships: 'Universidad local', previousResults: 'Piloto exitoso' })
+    fireEvent.change(screen.getByDisplayValue('Experiencia Ñandú'), { target: { value: '' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(save.mock.lastCall![0].enrichment.background.additionalInformation).toBeNull()
+  })
+
+  it('rejects oversized background without sending a request', async () => {
+    const save = vi.fn()
+    render(<Harness onSubmit={save} />)
+    fireEvent.change(screen.getByLabelText(/^Otros antecedentes relevantes/), { target: { value: 'x'.repeat(3001) } })
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(save).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent('3000')
+  })
+
+  it('renders background as text without executing markup or fetching report URLs', () => {
+    const text = '<img src="https://example.invalid/private" onerror="alert(1)">'
+    const { container } = render(<ProjectEnrichmentSummary value={{ ...enrichment,
+      background: { additionalInformation: text, technicalInformation: 'https://example.invalid/report',
+        existingPartnerships: 'Universidad local', previousResults: 'Piloto exitoso' } }} />)
+    expect(screen.getByText(text)).toBeVisible()
+    expect(screen.getByText('https://example.invalid/report')).toBeVisible()
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.querySelector('a[href="https://example.invalid/report"]')).toBeNull()
+  })
+
+  it('does not render empty background sections in older projects', () => {
+    render(<ProjectEnrichmentSummary value={enrichment} />)
+    expect(screen.queryByText('Antecedentes adicionales')).not.toBeInTheDocument()
+  })
+
   it('saves an empty optional extension without requiring any new field', async () => {
     const save = vi.fn()
     render(<Harness onSubmit={save} />)
@@ -66,20 +111,19 @@ describe('project enrichment', () => {
     expect(save.mock.lastCall![0].enrichment.impactIndicators).toEqual([])
   })
 
-  it('requires coordinates only for an opted-in point or a partially entered pair', async () => {
+  it('selects a map point without coordinate inputs and keeps public visibility opt-in', async () => {
     const save = vi.fn()
     render(<Harness onSubmit={save} />)
     await userEvent.selectOptions(screen.getByLabelText(/Ubicación visible al público/), '2')
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(save).not.toHaveBeenCalled()
-    expect(screen.getByLabelText(/Latitud/)).toBeRequired()
-    fireEvent.change(screen.getByLabelText(/Latitud/), { target: { value: '0' } })
-    fireEvent.change(screen.getByLabelText(/Longitud/), { target: { value: '0' } })
+    expect(screen.queryByLabelText(/Latitud/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Longitud/)).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Selecciona un punto en el mapa')
+    await userEvent.click(screen.getByRole('button', { name: 'Usar el centro del mapa' }))
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(save.mock.lastCall![0].enrichment).toMatchObject({ latitude: 0, longitude: 0, locationVisibility: 2 })
-    await userEvent.selectOptions(screen.getByLabelText(/Ubicación visible al público/), '0')
-    fireEvent.change(screen.getByLabelText(/Latitud/), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/Longitud/), { target: { value: '' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar punto del mapa' }))
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(save.mock.lastCall![0].enrichment).toMatchObject({ latitude: null, longitude: null, locationVisibility: 0 })
   })

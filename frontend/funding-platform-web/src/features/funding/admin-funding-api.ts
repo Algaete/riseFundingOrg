@@ -104,6 +104,8 @@ export interface AdminFundingOpportunitySummary {
 }
 
 export interface AdminFundingOpportunityDetail {
+  otherCategoryDescription?: string | null
+  coverKey?: string | null
   opportunityId: string
   slug: string
   title: string
@@ -187,6 +189,8 @@ export interface AdminFundingOpportunityDetail {
 }
 
 export interface FundingOpportunityWriteInput {
+  otherCategoryDescription?: string | null
+  coverKey?: string | null
   title: string
   summary: string | null
   description: string | null

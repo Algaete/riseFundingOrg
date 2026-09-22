@@ -28,6 +28,7 @@ import { ApiError } from '@/api/http-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { SearchableCatalogChoices } from '@/components/searchable-catalog-choices'
 import { organizationApi, type CatalogOption, type OrganizationCatalogs } from '@/features/organizations/organization-api'
 import {
   createProjectCommandId,
@@ -155,7 +156,7 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
       applyServerError('currency')
       applyServerError('sustainableDevelopmentGoalIds')
       for (const entry of serverErrors) {
-        if (/^enrichment\.(problem|solution|beneficiaryCount|locality|latitude|longitude|locationVisibility|soughtPartners|soughtProfessionals|seekingConsortium|impactIndicators(?:\.\d{1,2}(?:\.(name|unit|baseline|target))?)?)$/.test(entry.key)) {
+        if (/^enrichment\.(problem|solution|beneficiaryCount|locality|latitude|longitude|locationVisibility|soughtPartners|soughtProfessionals|seekingConsortium|background\.(additionalInformation|technicalInformation|existingPartnerships|previousResults)|impactIndicators(?:\.\d{1,2}(?:\.(name|unit|baseline|target))?)?)$/.test(entry.key)) {
           setError(entry.key as FieldPath<ProjectWriteInput>, { type: 'server', message: entry.message })
         }
       }
@@ -167,11 +168,10 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
   const beneficiaries = watch('beneficiaryTypeIds') ?? []
   const projectTypes = watch('projectTypeIds') ?? []
   const sustainableDevelopmentGoals = watch('sustainableDevelopmentGoalIds') ?? []
-  const budgetTotal = watch('budgetTotal')
   const confirmedFunding = watch('confirmedFunding')
-  const currency = watch('currency')
-  const budgetRequired = (typeof confirmedFunding === 'number' && Number.isFinite(confirmedFunding)) || Boolean(currency)
-  const currencyRequired = typeof budgetTotal === 'number' && Number.isFinite(budgetTotal)
+  // Never relabel a legacy non-USD budget: doing so would change its value.
+  const projectCurrency = project?.currency || 'USD'
+  const budgetRequired = typeof confirmedFunding === 'number' && Number.isFinite(confirmedFunding)
   const visibleRegions = catalogs.regions.filter(region => countries.includes(region.countryId))
   const optionalNumber = { setValueAs: (value: string | null | undefined) => value == null || value === '' ? null : Number(value) }
   const contentLocked = Boolean(project && [1, 2, 4].includes(project.publicationStatus))
@@ -182,7 +182,7 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
       setError('endDate', { type: 'validate', message: 'projects.endBeforeStart' }, { shouldFocus: true })
       return
     }
-    save.mutate(input)
+    save.mutate({ ...input, currency: typeof input.budgetTotal === 'number' && Number.isFinite(input.budgetTotal) ? projectCurrency : null })
   })}>
     <Card><CardHeader><CardTitle>{project ? t('projects.editProject') : t('projects.newProject')}</CardTitle><p className="text-sm text-muted-foreground"><span aria-hidden="true" className="font-semibold text-destructive">*</span> {t('projects.requiredGuide')}</p></CardHeader>
       <CardContent><fieldset className="grid gap-5 disabled:opacity-70" disabled={contentLocked}>
@@ -200,9 +200,9 @@ function ProjectForm({ organizationId, catalogs, project, onDirtyChange }: {
         <div className="grid gap-4 sm:grid-cols-3">
           <Field error={formState.errors.budgetTotal?.message} hint={t('projects.budgetHelp')} label={t('projects.budgetTotal')} required={budgetRequired}><Input aria-invalid={Boolean(formState.errors.budgetTotal)} aria-required={budgetRequired} min="0" required={budgetRequired} step="0.01" type="number" {...register('budgetTotal', { ...optionalNumber, validate: value => !budgetRequired || value !== null || 'projects.budgetRequired' })} /></Field>
           <Field error={formState.errors.confirmedFunding?.message} label={t('projects.confirmedFunding')}><Input aria-invalid={Boolean(formState.errors.confirmedFunding)} min="0" step="0.01" type="number" {...register('confirmedFunding', optionalNumber)} /></Field>
-          <Field error={formState.errors.currency?.message} hint={t('projects.currencyHelp')} label={t('projects.currency')} required={currencyRequired}><select aria-invalid={Boolean(formState.errors.currency)} aria-required={currencyRequired} className={selectClass} required={currencyRequired} {...register('currency', { setValueAs: value => value || null, validate: value => !currencyRequired || Boolean(value) || 'projects.currencyRequired' })}><option value="">{t('projects.unspecified')}</option>{catalogs.currencies.map(item => <option lang={catalogLanguage('currencies', item)} key={item.code} value={item.code}>{item.code} · {catalogName('currencies', item)}</option>)}</select></Field>
+          <Field error={formState.errors.currency?.message} hint={t(projectCurrency === 'USD' ? 'projects.automaticCurrencyHelp' : 'projects.legacyCurrencyHelp')} label={t('projects.currency')}><Input readOnly value={projectCurrency} /></Field>
         </div>
-        <MultiChoice label={t('projects.countries')} catalog="countries" items={catalogs.countries} selected={countries} onChange={value => {
+        <SearchableCatalogChoices label={t('projects.countries')} catalog="countries" items={catalogs.countries} selected={countries} onChange={value => {
           setValue('countryIds', value, { shouldDirty: true })
           const allowed = catalogs.regions.filter(region => value.includes(region.countryId)).map(region => region.id)
           setValue('regionIds', regions.filter(id => allowed.includes(id)), { shouldDirty: true })

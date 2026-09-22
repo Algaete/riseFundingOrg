@@ -94,6 +94,20 @@ public sealed class Phase8BArchitectureTests
     }
 
     [Fact]
+    public void Marketplace_smoke_isolates_counts_without_removing_non_public_controls()
+    {
+        var smoke = Read("database", "Tests", "019_project_marketplace_applications_calendar_smoke.sql");
+        Assert.Contains("@Query = @Suffix, @Sort = N'newest', @PageNumber = 1, @PageSize = 1", smoke);
+        Assert.Contains("@Query = @Suffix, @Currency = 'USD'", smoke);
+        Assert.Contains("@Query = @AlphaQuery, @ProjectStatus = 1", smoke);
+        Assert.Contains("IF @Matched <> 2 THROW 53907", smoke);
+        Assert.Contains("N'Draft project ' + @Suffix", smoke);
+        Assert.Contains("N'Rejected project ' + @Suffix", smoke);
+        Assert.Contains("N'Incomplete organization project ' + @Suffix", smoke);
+        Assert.Contains("N'Archived project ' + @Suffix", smoke);
+    }
+
+    [Fact]
     public void Sql_repositories_materialize_datetime_before_datetimeoffset()
     {
         var marketplace = Read(

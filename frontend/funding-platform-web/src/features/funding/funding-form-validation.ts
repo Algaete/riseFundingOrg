@@ -2,11 +2,13 @@ import type { adminFundingEs } from '@/i18n/admin-funding/es'
 
 // Only known form fields become labels or focus targets. Never traverse RHF's DOM refs.
 export const fundingFormFieldLabels = {
+  coverKey: 'coverTitle',
+  otherCategoryDescription: 'otherCategory',
   title: 'title', summary: 'summary', description: 'description', sponsorName: 'sponsor',
   sponsorUrl: 'sponsorWebsite', applicationUrl: 'applicationUrl', externalId: 'externalId',
   fundingSourceId: 'source', issuerCountryId: 'issuerCountry', fundingTypeId: 'fundingType',
   currency: 'currency', minimumAmount: 'minimum', maximumAmount: 'maximum', amountStatus: 'amountStatus',
-  openDate: 'opening', closeDate: 'closingDate', closeAtUtc: 'closingUtc', deadlineTimeZoneId: 'closingZone',
+  openDate: 'opening', closeDate: 'closingDate', closeAtUtc: 'closingLocal', deadlineTimeZoneId: 'closingZone',
   deadlineType: 'deadlineType', deadlinePrecision: 'deadlinePrecision', eligibilityDescription: 'eligibility',
   requirements: 'requirements', objectives: 'objectives', allowedActivities: 'allowed',
   excludedActivities: 'excluded', restrictions: 'restrictions', targetOrganizationsDescription: 'targetOrganizations',

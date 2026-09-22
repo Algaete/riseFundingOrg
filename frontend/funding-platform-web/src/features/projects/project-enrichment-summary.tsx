@@ -11,6 +11,12 @@ export function ProjectEnrichmentSummary({ value, privateView = false }: { value
   return <section className="space-y-5" aria-label={t('projects.enrichment.impactTitle')}>
     {textFields.map(key => value[key] && <div key={key}><h3 className="font-semibold">{t(`projects.enrichment.${key}`)}</h3><p className="mt-2 whitespace-pre-line break-words leading-7 text-muted-foreground">{value[key]}</p></div>)}
     {value.beneficiaryCount != null && <p><strong>{t('projects.enrichment.beneficiaryCount')}: </strong>{formatWorkspaceNumber(value.beneficiaryCount)}</p>}
+    {value.background && (['additionalInformation', 'technicalInformation', 'existingPartnerships', 'previousResults'] as const).some(key => value.background?.[key]) && <section className="space-y-4" aria-label={t('projects.enrichment.backgroundTitle')}>
+      <h3 className="text-lg font-bold">{t('projects.enrichment.backgroundTitle')}</h3>
+      {(['additionalInformation', 'technicalInformation', 'existingPartnerships', 'previousResults'] as const).map(key => value.background?.[key] && <div key={key}>
+        <h4 className="font-semibold">{t(`projects.enrichment.${key}`)}</h4><p className="mt-2 whitespace-pre-wrap break-words leading-7 text-muted-foreground">{value.background[key]}</p>
+      </div>)}
+    </section>}
     {showLocality && value.locality && <p><strong>{t('projects.enrichment.locality')}: </strong>{value.locality}</p>}
     {showCoordinates && value.latitude != null && value.longitude != null && <p><strong>{t(privateView ? 'projects.enrichment.privateCoordinates' : 'projects.enrichment.approximateLocation')}: </strong>{formatWorkspaceNumber(value.latitude, { maximumFractionDigits: privateView ? 8 : 2 })}, {formatWorkspaceNumber(value.longitude, { maximumFractionDigits: privateView ? 8 : 2 })}</p>}
     {value.seekingConsortium != null && <p><strong>{t('projects.enrichment.seekingConsortium')}: </strong>{t(value.seekingConsortium ? 'projects.enrichment.yes' : 'projects.enrichment.no')}</p>}

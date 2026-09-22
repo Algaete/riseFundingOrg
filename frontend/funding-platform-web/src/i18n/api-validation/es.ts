@@ -1,4 +1,8 @@
 export const apiValidationEs = {
+  "funding-cover-invalid": "Selecciona una portada disponible en la biblioteca.",
+  "funding-cover-required": "Vuelve a cargar la ficha y confirma su portada antes de guardar.",
+  "funding-other-category-required": "Especifica la categoría al seleccionar Otros.",
+  "funding-other-category-unselected": "Selecciona Otros para especificar una categoría.",
   'editorial-status-invalid': 'El estado editorial debe estar entre 0 y 4.',
   'editorial-pagination-invalid': 'La página debe ser al menos 1 y el tamaño de página debe estar entre 1 y 100.',
   'api-validation-001': "Los filtros de postulaciones no son válidos.",

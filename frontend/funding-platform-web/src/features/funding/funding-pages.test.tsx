@@ -37,6 +37,12 @@ function listItem(overrides: Record<string, unknown> = {}) {
 }
 
 describe('catálogo público de oportunidades', () => {
+  it('muestra la portada editorial sin inferirla desde palabras del título', () => {
+    const { container } = render(<MemoryRouter><FundingCard opportunity={listItem({ title: 'Medioambiente y naturaleza', coverKey: 'research-v1' })} /></MemoryRouter>)
+    expect(container.querySelector('img')).toHaveAttribute('src', '/images/funding-covers/research-v1.jpg')
+    expect(screen.getByRole('img', { name: 'Ilustración temática de portada: Ciencia e innovación' })).toBeInTheDocument()
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
@@ -117,10 +123,8 @@ describe('catálogo público de oportunidades', () => {
     expect(screen.getByText(/Datos suministrados por el portal oficial/)).toBeInTheDocument()
     expect(screen.queryByText(/not endorsed or certified/)).not.toBeInTheDocument()
     expect(screen.getByText('Calidad 96/100')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Consultar fuente' })).toHaveAttribute(
-      'href',
-      'https://foundation.example/funds/global-health',
-    )
+    expect(screen.queryByRole('link', { name: 'Consultar fuente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ver fuente original' })).not.toBeInTheDocument()
 
     const catalogCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/funding-opportunities?'))
     expect(catalogCall).toBeDefined()
@@ -162,6 +166,7 @@ describe('catálogo público de oportunidades', () => {
       return Promise.resolve(json({
         ...listItem(),
         description: 'Descripción oficial completa.',
+        otherCategoryDescription: 'Economía circular <script>test</script>',
         sponsorUrl: 'https://foundation.example',
         applicationUrl: 'https://foundation.example/apply',
         eligibilityDescription: 'Fundaciones sin fines de lucro.',
@@ -178,6 +183,8 @@ describe('catálogo público de oportunidades', () => {
 
     expect(await screen.findByRole('heading', { name: 'Requisitos de postulación' })).toBeInTheDocument()
     expect(screen.getByText(/Estatutos vigentes/)).toBeInTheDocument()
+    expect(screen.getByText('Economía circular <script>test</script>')).toBeVisible()
+    expect(document.querySelector('script')).toBeNull()
     expect(screen.getByText('96/100')).toBeInTheDocument()
     expect(screen.getByText((_, element) =>
       element?.tagName === 'P'
@@ -208,6 +215,8 @@ describe('catálogo público de oportunidades', () => {
     render(<App router={router} queryClient={createAppQueryClient()} />)
 
     const applyButton = await screen.findByRole('button', { name: /Ir a postular/ })
+    expect(screen.queryByRole('link', { name: 'Consultar fuente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ver fuente original' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Continuar a apply\.foundation\.example/ })).not.toBeInTheDocument()
     await user.click(applyButton)
 

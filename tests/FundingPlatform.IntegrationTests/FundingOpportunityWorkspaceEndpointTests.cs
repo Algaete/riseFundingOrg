@@ -32,6 +32,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
     private static readonly byte[] SigningKey = new byte[64];
 
     private readonly FakeWorkspaceRepository repository = new();
+    private readonly WorkspaceTranslationRepository translations = new();
     private readonly WebApplicationFactory<Program> application;
     private readonly HttpClient client;
 
@@ -42,6 +43,10 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
             {
                 services.RemoveAll<IFundingOpportunityWorkspaceRepository>();
                 services.AddSingleton<IFundingOpportunityWorkspaceRepository>(repository);
+                services.RemoveAll<IFundingTranslationRepository>();
+                services.RemoveAll<FundingTranslationOptions>();
+                services.AddSingleton<IFundingTranslationRepository>(translations);
+                services.AddSingleton(new FundingTranslationOptions { Enabled = true });
             }));
         client = application.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -83,6 +88,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
         Assert.Contains("no-cache", response.Headers.Pragma.ToString());
         Assert.Equal(1, repository.SearchCalls);
+        Assert.True(repository.IncludeReviewedTranslations);
         Assert.Equal(UserId, repository.LastUserId);
         Assert.Equal(OrganizationId, repository.LastOrganizationId);
         Assert.Equal("agua", repository.LastFilters!.Query);
@@ -95,6 +101,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
         Assert.Equal("full-text", payload.GetProperty("searchMode").GetString());
         Assert.Equal(2, payload.GetProperty("pageNumber").GetInt32());
         Assert.True(payload.GetProperty("items")[0].GetProperty("isFavorite").GetBoolean());
+        Assert.Equal("education-v1", payload.GetProperty("items")[0].GetProperty("coverKey").GetString());
         Assert.Equal(FunderId,
             payload.GetProperty("items")[0].GetProperty("primaryFunderPublicId").GetGuid());
         Assert.Equal(new DateTimeOffset(2026, 12, 1, 20, 30, 0, TimeSpan.Zero),
@@ -103,6 +110,29 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
             payload.GetProperty("items")[0].GetProperty("deadlineType").GetByte());
         Assert.Equal((byte)FundingDeadlinePrecision.DateTime,
             payload.GetProperty("items")[0].GetProperty("deadlinePrecision").GetByte());
+    }
+
+    [Theory]
+    [InlineData(false, null)][InlineData(false, "es")][InlineData(false, "en")]
+    [InlineData(true, null)][InlineData(true, "es")][InlineData(true, "en")]
+    public async Task Workspace_bilingual_search_uses_server_flag_not_locale_or_client_override(bool enabled, string? locale)
+    {
+        await using var app = application.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<FundingTranslationOptions>();
+            services.AddSingleton(new FundingTranslationOptions { Enabled = enabled });
+        }));
+        using var http = app.CreateClient();
+        using var request = AuthenticatedRequest(HttpMethod.Get,
+            $"/api/v1/organizations/{OrganizationId:D}/funding-opportunities?q=educacion&countryIds=152&includeReviewedTranslations="
+            + (!enabled).ToString().ToLowerInvariant() + (locale is null ? "" : "&locale=" + locale));
+        using var response = await http.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(enabled, repository.IncludeReviewedTranslations);
+        Assert.Equal("educacion", repository.LastFilters!.Query);
+        Assert.Equal((short)152, Assert.Single(repository.LastFilters.CountryIds));
+        Assert.Equal(0, translations.SummaryCalls);
+        Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
     }
 
     [Theory]
@@ -242,6 +272,88 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
     }
 
     [Fact]
+    public async Task Translated_workspace_detail_preserves_relations_and_cannot_bypass_membership()
+    {
+        repository.Details = CreateDetails() with { CoverKey = "research-v1" };
+        var original = repository.Details;
+        translations.Value = new("en", 3, 1, true,
+            new("Water fund", "Summary", "Description", "Active foundations", "Legal entity", "Water access",
+                "Implementation only", "No land purchases", "Chile", "Foundations", "Rural communities"), DateTimeOffset.UtcNow);
+        var path = $"/api/v1/organizations/{OrganizationId}/funding-opportunities/{OpportunityId}?locale=en";
+        using var request = AuthenticatedRequest(HttpMethod.Get, path);
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var value = document.RootElement;
+        Assert.Equal("Water fund", value.GetProperty("title").GetString());
+        Assert.Equal("research-v1", value.GetProperty("coverKey").GetString());
+        Assert.Equal("Implementation only", value.GetProperty("allowedActivities").GetString());
+        Assert.Equal("Rural communities", value.GetProperty("targetPopulationsDescription").GetString());
+        Assert.Equal(original.Currency, value.GetProperty("currency").GetString());
+        Assert.Equal(152, value.GetProperty("countryIds")[0].GetInt16());
+        Assert.True(value.GetProperty("isFavorite").GetBoolean());
+        Assert.Equal(1, translations.Calls);
+        repository.FailClosed = true;
+        using var unauthorized = AuthenticatedRequest(HttpMethod.Get, path);
+        using var denied = await client.SendAsync(unauthorized);
+        Assert.NotEqual(HttpStatusCode.OK, denied.StatusCode);
+        Assert.Equal(1, translations.Calls);
+    }
+
+    private sealed class WorkspaceTranslationRepository : IFundingTranslationRepository
+    {
+        public int SummaryCalls { get; private set; }
+        public IReadOnlyList<FundingSummaryTranslation> Summaries { get; set; } = [];
+        public Task<IReadOnlyList<FundingSummaryTranslation>> GetPublishedSummariesAsync(IReadOnlyList<FundingTranslationReference> references, string language, CancellationToken token)
+        { SummaryCalls++; return Task.FromResult(Summaries); }
+        public int Calls { get; private set; }
+        public FundingTranslation? Value { get; set; }
+        public Task<FundingTranslation?> GetPublishedAsync(Guid id, string language, int version, CancellationToken token)
+        { Calls++; return Task.FromResult(Value); }
+        public Task<FundingTranslation?> GetAdminAsync(Guid actor, Guid id, string language, CancellationToken token) => throw new NotSupportedException();
+        public Task<FundingTranslation> SaveAsync(Guid actor, Guid id, string language, FundingTranslationWrite data, byte[] rowVersion, CancellationToken token) => throw new NotSupportedException();
+    }
+
+    [Theory]
+    [InlineData("funding-opportunities")][InlineData("favorites")]
+    public async Task Localized_lists_preserve_favorites_and_never_bypass_membership(string area)
+    {
+        var original = CreateSummary(true) with { ContentVersion = 3 };
+        repository.SearchPage = repository.FavoritePage = new([original], 25, 2, 12);
+        translations.Summaries = [new(OpportunityId, "en", 3, 2, true, "Water fund", "Summary")];
+        var path = $"/api/v1/organizations/{OrganizationId}/{area}?locale=en&page=2&pageSize=12";
+        using var request = AuthenticatedRequest(HttpMethod.Get, path);
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var item = document.RootElement.GetProperty("items")[0];
+        Assert.Equal("Water fund", item.GetProperty("title").GetString());
+        Assert.Equal("education-v1", item.GetProperty("coverKey").GetString());
+        Assert.True(item.GetProperty("isFavorite").GetBoolean());
+        Assert.Equal(25, document.RootElement.GetProperty("totalCount").GetInt32());
+        Assert.Equal(2, document.RootElement.GetProperty("pageNumber").GetInt32());
+        Assert.Equal(1, translations.SummaryCalls);
+        Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
+        repository.FailClosed = true;
+        using var rejectedRequest = AuthenticatedRequest(HttpMethod.Get, path);
+        using var denied = await client.SendAsync(rejectedRequest);
+        Assert.NotEqual(HttpStatusCode.OK, denied.StatusCode);
+        Assert.Equal(1, translations.SummaryCalls);
+    }
+
+    [Theory]
+    [InlineData("funding-opportunities")][InlineData("favorites")]
+    public async Task Invalid_list_language_is_rejected_before_repository(string area)
+    {
+        using var request = AuthenticatedRequest(HttpMethod.Get, $"/api/v1/organizations/{OrganizationId}/{area}?locale=xx");
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(0, translations.SummaryCalls);
+        Assert.Equal(0, repository.TotalCalls);
+    }
+
+
+    [Fact]
     public async Task Favorite_list_is_paginated_and_never_publicly_cacheable()
     {
         repository.FavoritePage = new WorkspaceFundingOpportunityPage(
@@ -257,6 +369,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
         Assert.Equal(2, repository.LastPageNumber);
         Assert.Equal(5, repository.LastPageSize);
         Assert.Equal(11, document.RootElement.GetProperty("totalCount").GetInt64());
+        Assert.Equal("education-v1", document.RootElement.GetProperty("items")[0].GetProperty("coverKey").GetString());
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
     }
 
@@ -355,7 +468,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
         "Fundación Global",
         "grants.gov",
         "https://www.grants.gov/example",
-        isFavorite);
+        isFavorite, CoverKey: "education-v1");
 
     private static WorkspaceFundingOpportunityDetails CreateDetails() => new(
         OpportunityId,
@@ -427,6 +540,7 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
 
     private sealed class FakeWorkspaceRepository : IFundingOpportunityWorkspaceRepository
     {
+        public bool IncludeReviewedTranslations { get; private set; }
         public bool FailClosed { get; set; }
         public WorkspaceFundingOpportunityPage SearchPage { get; set; } =
             new([], 0, 1, 20);
@@ -453,9 +567,10 @@ public sealed class FundingOpportunityWorkspaceEndpointTests :
             Guid userPublicId,
             Guid organizationPublicId,
             FundingOpportunitySearchFilters filters,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, bool includeReviewedTranslations = false)
         {
             SearchCalls++;
+            IncludeReviewedTranslations = includeReviewedTranslations;
             Capture(userPublicId, organizationPublicId);
             LastFilters = filters;
             return Task.FromResult(FailClosed ? null : SearchPage)!;

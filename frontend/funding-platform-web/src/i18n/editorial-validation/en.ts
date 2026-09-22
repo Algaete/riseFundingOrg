@@ -2,6 +2,13 @@ import type { editorialValidationEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const editorialValidationEn = {
+  "coverInvalid": "Select an available cover from the library.",
+  "otherCategoryMax": "Use at most 200 characters.",
+  "otherCategoryRequired": "Specify the category when selecting Other.",
+  "deadline_invalid": "Enter a valid date and time, using hours and minutes.",
+  "deadline_zone": "Select a time zone from the list.",
+  "deadline_nonexistent": "This time does not exist in the selected zone because of a clock change. Check the official deadline.",
+  "deadline_ambiguous": "This time occurs twice because of a clock change. Confirm the instant with the funder; you can select UTC and enter the equivalent date and time.",
   "httpUrl": "Enter a complete URL starting with http:// or https://.",
   "officialUrl": "Enter the complete official URL starting with http:// or https://.",
   "nameMin": "The name must contain at least 2 characters.",
@@ -22,7 +29,7 @@ export const editorialValidationEn = {
   "deadlineUnknown": "An unknown or rolling deadline cannot include a date or time.",
   "precision": "Select whether the deadline has a date or a date and time.",
   "dateOnly": "A date-only deadline requires only the closing date.",
-  "dateTime": "The date, UTC time and time zone are required.",
+  "dateTime": "Select the closing date, time (hours and minutes), and time zone.",
   "iana": "Use a valid IANA time zone, for example America/Santiago.",
   "zoneDate": "The UTC time does not match the closing date in the specified time zone.",
   "cofundingPositive": "Enter a percentage greater than zero when co-funding is required.",
