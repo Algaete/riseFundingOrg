@@ -2,6 +2,23 @@ import type { fundingCatalogEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const fundingCatalogEn = {
+  "listLanguageHelp": "Reviewed translations are shown when available. Search includes the original text and titles and summaries with a current reviewed Spanish or English translation.",
+  "listOriginal": "Showing original texts. Search also includes titles and summaries with a current reviewed Spanish or English translation.",
+  "listReviewed": "Reviewed translation",
+  "listUntranslated": "Original text · translation unavailable",
+  "coverNature": "Nature and environment",
+  "coverEducation": "Education and learning",
+  "coverCommunity": "Community and social impact",
+  "coverResearch": "Science and innovation",
+  "coverImageLabel": "Thematic cover illustration: {{theme}}",
+  "coverIllustration": "Thematic illustration · AI",
+  "otherCategory": "Other · editor's description",
+  "contentLanguage": "Content language",
+  "showingOriginal": "You are reading the original content.",
+  "reviewedTranslation": "Reviewed translation. The official call conditions take precedence.",
+  "translationUnavailable": "Showing the original: no reviewed translation is available for this language and version yet.",
+  "showSelectedLanguage": "View in my language",
+  "showOriginal": "View original text",
   "advanced": "Advanced search",
   "visualHealth": "Health and well-being",
   "visualInformation": "Information and journalism",

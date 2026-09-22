@@ -74,9 +74,11 @@ public static class OrganizationFundingOpportunityEndpoints
 
     private static async Task<IResult> SearchAsync(
         Guid organizationId,
+        string? locale,
         ClaimsPrincipal principal,
         HttpRequest request,
         FundingOpportunityWorkspaceService service,
+        FundingTranslationOptions translationOptions,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(principal, out var userId))
@@ -84,6 +86,7 @@ public static class OrganizationFundingOpportunityEndpoints
             return InvalidSession();
         }
 
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
         if (!TryParseFilters(request.Query, out var filters, out var parseErrors))
         {
             return FieldValidationResults.BadRequest(parseErrors);
@@ -93,10 +96,13 @@ public static class OrganizationFundingOpportunityEndpoints
             userId,
             organizationId,
             filters!,
-            cancellationToken);
+            cancellationToken,
+            includeReviewedTranslations: translationOptions.Enabled);
         return result.Outcome switch
         {
-            FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(result.Page!)),
+            FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(translationOptions.Enabled && locale is not null
+                ? await request.HttpContext.RequestServices.GetRequiredService<FundingTranslationService>().LocalizeAsync(result.Page!, locale, cancellationToken)
+                : result.Page!)),
             FundingOpportunityWorkspaceSearchOutcome.ValidationFailed =>
                 FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
@@ -106,8 +112,10 @@ public static class OrganizationFundingOpportunityEndpoints
     private static async Task<IResult> GetAsync(
         Guid organizationId,
         string idOrSlug,
+        string? locale,
         ClaimsPrincipal principal,
         FundingOpportunityWorkspaceService service,
+        FundingTranslationService translations,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(principal, out var userId))
@@ -115,19 +123,22 @@ public static class OrganizationFundingOpportunityEndpoints
             return InvalidSession();
         }
 
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
         var opportunity = await service.GetAsync(
             userId,
             organizationId,
             idOrSlug,
             cancellationToken);
-        return opportunity is null ? NotFound() : Results.Ok(MapDetails(opportunity));
+        return opportunity is null ? NotFound() : Results.Ok(MapDetails(await translations.LocalizeAsync(opportunity, locale, cancellationToken)));
     }
 
     private static async Task<IResult> ListFavoritesAsync(
         Guid organizationId,
+        string? locale,
         ClaimsPrincipal principal,
         HttpRequest request,
         FundingOpportunityWorkspaceService service,
+        FundingTranslationOptions translationOptions,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(principal, out var userId))
@@ -135,6 +146,7 @@ public static class OrganizationFundingOpportunityEndpoints
             return InvalidSession();
         }
 
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
         var errors = new FieldValidationErrors();
         var pageNumber = ParseInt(request.Query, "page", 1, errors);
         var pageSize = ParseInt(request.Query, "pageSize", 20, errors);
@@ -151,7 +163,9 @@ public static class OrganizationFundingOpportunityEndpoints
             cancellationToken);
         return result.Outcome switch
         {
-            FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(result.Page!)),
+            FundingOpportunityWorkspaceSearchOutcome.Success => Results.Ok(MapPage(translationOptions.Enabled && locale is not null
+                ? await request.HttpContext.RequestServices.GetRequiredService<FundingTranslationService>().LocalizeAsync(result.Page!, locale, cancellationToken)
+                : result.Page!)),
             FundingOpportunityWorkspaceSearchOutcome.ValidationFailed =>
                 FieldValidationResults.BadRequest(result.Errors!),
             _ => NotFound()
@@ -459,7 +473,8 @@ public static class OrganizationFundingOpportunityEndpoints
         item.PrimaryFunderName,
         item.SourceName,
         item.SourceUrl,
-        item.IsFavorite);
+        item.IsFavorite, item.CoverKey,
+        item.Localization is { } info ? new(info.RequestedLanguage, info.Status, info.Revision) : null);
 
     private static WorkspaceFundingOpportunityDetailResponse MapDetails(
         WorkspaceFundingOpportunityDetails item) => new(
@@ -533,7 +548,9 @@ public static class OrganizationFundingOpportunityEndpoints
             value.FirstSeenAtUtc,
             value.LastSeenAtUtc,
             value.IsPrimary,
-            value.IsActive)).ToArray());
+            value.IsActive)).ToArray(),
+        item.Localization is { } info ? new FundingLocalizationResponse(info.RequestedLanguage, info.Status, info.Revision) : null,
+        item.OtherCategoryDescription, item.CoverKey);
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out Guid id) =>
         Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out id);

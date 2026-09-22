@@ -119,6 +119,15 @@ IF OBJECT_ID(N'dbo.FundingPlatform_usp_DiscoveryMatching_Context', N'P') IS NOT 
 IF OBJECT_ID(N'dbo.FundingPlatform_usp_GapRecommendations_Context', N'P') IS NOT NULL
     INSERT @LaterProcedurePermissions VALUES
         (@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_GapRecommendations_Context'), N'FundingPlatform_usp_GapRecommendations_Context');
+IF OBJECT_ID(N'dbo.FundingPlatform_usp_FundingTranslation_ReadSummaries', N'P') IS NOT NULL
+    INSERT @LaterProcedurePermissions VALUES(@ApiRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_FundingTranslation_ReadSummaries'), N'FundingPlatform_usp_FundingTranslation_ReadSummaries');
+IF OBJECT_ID(N'dbo.FundingPlatform_FundingTranslations', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + ProcedureName), ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_FundingTranslation_AdminGet'),
+        (N'FundingPlatform_usp_FundingTranslation_Read'),
+        (N'FundingPlatform_usp_FundingTranslation_Save')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions

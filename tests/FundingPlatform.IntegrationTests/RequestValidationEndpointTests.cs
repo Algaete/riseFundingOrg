@@ -57,7 +57,7 @@ public sealed class RequestValidationEndpointTests(ApiFactory factory) : IClassF
 
     private sealed class NoAccessRepository : IFundingOpportunityRepository
     {
-        public Task<FundingOpportunityPage> SearchPublishedAsync(string? query, int pageNumber, int pageSize, CancellationToken cancellationToken)
+        public Task<FundingOpportunityPage> SearchPublishedAsync(string? query, int pageNumber, int pageSize, CancellationToken cancellationToken, bool includeReviewedTranslations = false)
             => throw new InvalidOperationException("Validation must not call persistence.");
         public Task<FundingOpportunityDetails?> GetPublishedBySlugAsync(string slug, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Validation must not call persistence.");

@@ -1,6 +1,9 @@
 import { apiClient } from '@/api/http-client'
+import type { FundingLanguage, FundingLocalization } from './funding-translations-api'
 
 export interface FundingOpportunityListItem {
+  localization?: FundingLocalization | null
+  coverKey?: string | null
   publicId: string
   slug: string
   title: string
@@ -36,6 +39,9 @@ export interface FundingOpportunityFunder {
 }
 
 export interface FundingOpportunityDetail extends FundingOpportunityListItem {
+  otherCategoryDescription?: string | null
+  contentVersion?: number
+  localization?: FundingLocalization | null
   description: string | null
   sponsorUrl: string | null
   applicationUrl: string | null
@@ -49,22 +55,23 @@ export interface FundingOpportunityDetail extends FundingOpportunityListItem {
 }
 
 export const fundingOpportunitiesApi = {
-  search(query: string, pageNumber = 1, pageSize = 12, signal?: AbortSignal) {
+  search(query: string, pageNumber = 1, pageSize = 12, signal?: AbortSignal, locale?: FundingLanguage) {
     const parameters = new URLSearchParams({
       pageNumber: String(pageNumber),
       pageSize: String(pageSize),
     })
     if (query.trim()) parameters.set('query', query.trim())
+    if (locale) parameters.set('locale', locale)
 
     return apiClient.get<FundingOpportunityListResponse>(
       `funding-opportunities?${parameters.toString()}`,
-      { signal },
+      { signal, ...(locale ? { cache: 'no-store' as const } : {}) },
     )
   },
 
-  getBySlug(slug: string, signal?: AbortSignal) {
+  getBySlug(slug: string, signal?: AbortSignal, locale?: FundingLanguage) {
     return apiClient.get<FundingOpportunityDetail>(
-      `funding-opportunities/${encodeURIComponent(slug)}`,
+      `funding-opportunities/${encodeURIComponent(slug)}${locale ? `?locale=${locale}` : ''}`,
       { signal },
     )
   },

@@ -88,14 +88,15 @@ public sealed class SqlFundingOpportunityRepository(
         string? query,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false)
     {
         await using var connection = connectionFactory.CreateConnection();
         try
         {
             using var reader = await connection.QueryMultipleAsync(new CommandDefinition(
                 "dbo.FundingPlatform_usp_FundingOpportunity_Public_List",
-                new { Query = query, PageNumber = pageNumber, PageSize = pageSize },
+                new { Query = query, PageNumber = pageNumber, PageSize = pageSize, IncludeReviewedTranslations = includeReviewedTranslations },
                 commandType: CommandType.StoredProcedure,
                 commandTimeout: 15,
                 cancellationToken: cancellationToken));
@@ -169,7 +170,7 @@ public sealed class SqlFundingOpportunityRepository(
                 primarySource?.ExternalId,
                 ToUtc(row.LastVerifiedAtUtc ?? row.PublishedAtUtc),
                 row.DataQualityScore,
-                funders);
+                funders, row.ContentVersion, OtherCategoryDescription: row.OtherCategoryDescription, CoverKey: row.CoverKey);
         }
         catch (SqlException exception)
         {
@@ -239,7 +240,7 @@ public sealed class SqlFundingOpportunityRepository(
         row.SourceName,
         row.SourceUrl,
         ToUtc(row.PublishedAtUtc),
-        row.DataQualityScore);
+        row.DataQualityScore, row.CoverKey, row.ContentVersion);
 
     private static string CreateExternalSlug(string providerCode, string externalId)
     {
@@ -348,6 +349,8 @@ public sealed class SqlFundingOpportunityRepository(
 
     private class PublicSummaryRow
     {
+        public int ContentVersion { get; init; }
+        public string? CoverKey { get; init; }
         public Guid FundingOpportunityPublicId { get; init; }
         public string Slug { get; init; } = string.Empty;
         public string Title { get; init; } = string.Empty;
@@ -366,6 +369,7 @@ public sealed class SqlFundingOpportunityRepository(
 
     private sealed class PublicDetailsRow : PublicSummaryRow
     {
+        public string? OtherCategoryDescription { get; init; }
         public string? Description { get; init; }
         public string? SponsorUrl { get; init; }
         public string? ApplicationUrl { get; init; }

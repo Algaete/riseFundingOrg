@@ -633,7 +633,9 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         {
             Enrichment = new(Problem: "Problem statement", Locality: "Sensitive locality",
                 Latitude: -33.456789m, Longitude: -70.654321m,
-                LocationVisibility: (ProjectLocationVisibility)visibility, BeneficiaryCount: 250)
+                LocationVisibility: (ProjectLocationVisibility)visibility, BeneficiaryCount: 250,
+                Background: new(AdditionalInformation: "Public context", TechnicalInformation: "Report summary",
+                    ExistingPartnerships: "Local university", PreviousResults: "Pilot delivered"))
         };
         using var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -641,6 +643,8 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         using var document = JsonDocument.Parse(body);
         var data = document.RootElement.GetProperty("enrichment");
         Assert.Equal("Problem statement", data.GetProperty("problem").GetString());
+        Assert.Equal("Public context", data.GetProperty("background").GetProperty("additionalInformation").GetString());
+        Assert.Equal("Pilot delivered", data.GetProperty("background").GetProperty("previousResults").GetString());
         Assert.Equal(locality ? "Sensitive locality" : null, data.GetProperty("locality").GetString());
         Assert.Equal<decimal?>(point ? -33.46m : null, data.GetProperty("latitude").ValueKind == JsonValueKind.Null ? null : data.GetProperty("latitude").GetDecimal());
         Assert.DoesNotContain("33.456789", body);
@@ -668,6 +672,52 @@ public sealed class ProjectWorkflowEndpointTests : IClassFixture<ApiFactory>, ID
         Assert.Equal(expectedProblem, body.RootElement.GetProperty("enrichment").GetProperty("problem").GetString());
         Assert.Equal(PublishedETag, response.Headers.ETag!.ToString());
         Assert.Equal(2, repository.OwnerProject.ProjectVersion);
+    }
+
+    [Theory]
+    [InlineData("null", "Original context")]
+    [InlineData("{}", "Original context")]
+    [InlineData("{\"problem\":\"Other edit\"}", "Original context")]
+    [InlineData("{\"background\":null}", "Original context")]
+    [InlineData("{\"background\":{}}", null)]
+    [InlineData("{\"background\":{\"additionalInformation\":\"  Updated context  \"}}", "Updated context")]
+    public async Task Background_omission_preserves_and_explicit_object_replaces_in_row_snapshot_and_response(string json, string? expected)
+    {
+        repository.OwnerProject = CreateOwnerProject() with { Enrichment = new(Background: new(AdditionalInformation: "Original context")) };
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = JsonSerializer.Deserialize<JsonElement>(json) });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(expected, repository.LastWrittenProject!.Enrichment!.Background!.AdditionalInformation);
+        using var snapshot = JsonDocument.Parse(repository.LastSnapshotJson!);
+        Assert.Equal(expected, snapshot.RootElement.GetProperty("enrichment").GetProperty("background").GetProperty("additionalInformation").GetString());
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(expected, body.RootElement.GetProperty("enrichment").GetProperty("background").GetProperty("additionalInformation").GetString());
+        Assert.Equal(PublishedETag, response.Headers.ETag!.ToString());
+    }
+
+    [Theory]
+    [InlineData("additionalInformation")]
+    [InlineData("technicalInformation")]
+    [InlineData("existingPartnerships")]
+    [InlineData("previousResults")]
+    public async Task Background_length_errors_identify_the_exact_optional_field(string field)
+    {
+        repository.OwnerProject = CreateOwnerProject();
+        using var request = AuthenticatedRequest(HttpMethod.Put,
+            $"/api/v1/organizations/{OrganizationId:D}/projects/{ProjectId:D}");
+        request.Headers.TryAddWithoutValidation("If-Match", CurrentETag);
+        request.Content = JsonContent.Create(new { title = "Updated project", status = 2,
+            enrichment = new { background = new Dictionary<string, string> { [field] = new('ñ', 3001) } } });
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("text-max-length", document.RootElement.GetProperty("validationIssues")
+            .GetProperty($"enrichment.background.{field}")[0].GetProperty("code").GetString());
+        Assert.Null(repository.LastWrittenProject);
     }
 
     [Theory]

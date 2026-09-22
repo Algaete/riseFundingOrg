@@ -16,7 +16,8 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
         Guid userPublicId,
         Guid organizationPublicId,
         FundingOpportunitySearchFilters filters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false)
     {
         await using var connection = connectionFactory.CreateConnection();
         try
@@ -25,6 +26,7 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
             parameters.Add("UserPublicId", userPublicId);
             parameters.Add("OrganizationPublicId", organizationPublicId);
             parameters.Add("Query", filters.Query);
+            parameters.Add("IncludeReviewedTranslations", includeReviewedTranslations);
             parameters.Add("Sponsor", filters.Sponsor);
             parameters.Add("MinAmount", filters.MinimumAmount);
             parameters.Add("MaxAmount", filters.MaximumAmount);
@@ -185,7 +187,7 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
                 legalEntityTypes,
                 languages,
                 funders,
-                sources);
+                sources, OtherCategoryDescription: row.OtherCategoryDescription, CoverKey: row.CoverKey);
         }
         catch (SqlException exception) when (exception.Number == NotFoundErrorNumber)
         {
@@ -368,7 +370,7 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
         row.PrimaryFunderName,
         row.SourceName,
         row.SourceUrl,
-        row.IsFavorite);
+        row.IsFavorite, row.CoverKey, row.ContentVersion);
 
     private static string ToSortCode(FundingOpportunitySearchSort sort) => sort switch
     {
@@ -414,6 +416,8 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
 
     private class SummaryRow
     {
+        public int ContentVersion { get; init; }
+        public string? CoverKey { get; init; }
         public Guid FundingOpportunityPublicId { get; init; }
         public string Slug { get; init; } = string.Empty;
         public string Title { get; init; } = string.Empty;
@@ -438,6 +442,7 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
 
     private sealed class DetailsRow : SummaryRow
     {
+        public string? OtherCategoryDescription { get; init; }
         public string? Description { get; init; }
         public string? SponsorUrl { get; init; }
         public string? ApplicationUrl { get; init; }
@@ -461,7 +466,6 @@ public sealed class SqlFundingOpportunityWorkspaceRepository(
         public byte GeographicScope { get; init; }
         public byte RemoteApplication { get; init; }
         public DateTime? LastVerifiedAtUtc { get; init; }
-        public int ContentVersion { get; init; }
         public string PrimaryFunderSlug { get; init; } = string.Empty;
         public string? ExternalId { get; init; }
     }

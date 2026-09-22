@@ -139,7 +139,9 @@ SELECT o.Id,2,1 FROM dbo.FundingPlatform_FundingOpportunities o JOIN @Funds f ON
 INSERT dbo.FundingPlatform_FundingOpportunityFunders(FundingOpportunityId,FunderId,Role,IsActive,CreatedAtUtc,UpdatedAtUtc)
 SELECT o.Id,@FunderId,1,1,@Now,@Now FROM dbo.FundingPlatform_FundingOpportunities o JOIN @Funds f ON f.PublicId=o.PublicId;
 INSERT dbo.FundingPlatform_FundingOpportunitySourceLinks(FundingOpportunityId,FundingSourceId,ExternalId,SourceItemKeyHash,SourceUrl,CanonicalUrlHash,FirstSeenAtUtc,LastSeenAtUtc,IsPrimary,IsActive)
-SELECT o.Id,@SourceId,f.Slug,HASHBYTES('SHA2_256',f.Slug),@Url,HASHBYTES('SHA2_256',@Url),@Now,@Now,1,1
+SELECT o.Id,@SourceId,f.Slug,
+ HASHBYTES('SHA2_256',CONVERT(VARBINARY(MAX),CONVERT(VARCHAR(MAX),f.Slug COLLATE Latin1_General_100_BIN2_UTF8))),
+ @Url,HASHBYTES('SHA2_256',@Url),@Now,@Now,1,1
 FROM dbo.FundingPlatform_FundingOpportunities o JOIN @Funds f ON f.PublicId=o.PublicId;
 INSERT dbo.FundingPlatform_FundingFieldEvidence(FundingOpportunityId,FieldPath,ValueJson,ExtractionMethod,IsSelected,IsManualLock,CreatedAtUtc)
 SELECT o.Id,p.Path,CASE WHEN p.Path=N'/closeDate' THEN N'{"status":"unknown","value":null}'

@@ -32,7 +32,7 @@ describe('funding catalog language changes', () => {
     expect(screen.getByText('Page 2 of 3')).toBeVisible()
     expect(screen.getByText('Quality 96/100')).toBeVisible()
     expect(screen.getByText('Atribución original de la fuente.')).toBeVisible()
-    expect(screen.getByRole('img', { name: 'Thematic visual: Health and well-being' })).toBeVisible()
+    expect(screen.getByRole('img', { name: 'Thematic cover illustration: Community and social impact' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'View full details' })).toHaveAttribute('href', `/funding/${discoveryOpportunity.slug}`)
     expect(search).toHaveBeenCalledTimes(2)
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))

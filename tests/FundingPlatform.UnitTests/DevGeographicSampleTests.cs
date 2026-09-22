@@ -34,6 +34,50 @@ public sealed class DevGeographicSampleTests
     }
 
     [Fact]
+    public void Sample_source_identity_uses_utf8_like_editorial_updates()
+    {
+        var script = Read("database/Fixtures/dev-geographic-matching.sql");
+        Assert.Contains("CONVERT(VARBINARY(MAX),CONVERT(VARCHAR(MAX),f.Slug COLLATE Latin1_General_100_BIN2_UTF8))", script);
+        Assert.DoesNotContain("HASHBYTES('SHA2_256',f.Slug)", script);
+    }
+
+    [Fact]
+    public void Forward_repair_is_valid_sql_and_only_rewrites_known_legacy_test_hashes()
+    {
+        var script = Read("database/Migrations/059_dev_sample_source_identity.sql");
+        _ = new TSql170Parser(true, SqlEngineType.SqlAzure).Parse(new StringReader(script), out var errors);
+        Assert.Empty(errors);
+        Assert.Contains("70510000-0000-4000-8000-000000000101", script);
+        Assert.Contains("70510000-0000-4000-8000-000000000102", script);
+        Assert.Contains("o.PublicId=f.PublicId AND o.Slug=f.Slug AND o.Title=f.Title", script);
+        Assert.Contains("s.ProviderType=0 AND s.ProviderCode IS NULL", script);
+        Assert.Contains("JSON_VALUE(s.ConfigurationJson,'$.sample')=N'dev-geographic-sample-v1'", script);
+        Assert.Contains("l.SourceItemKeyHash=HASHBYTES('SHA2_256',l.ExternalId)", script);
+        Assert.Contains("Latin1_General_100_BIN2_UTF8", script);
+        Assert.Contains("otherLink.Id<>c.LinkId", script);
+        Assert.Contains("THROW 56090", script);
+        Assert.Single(Regex.Matches(script, @"\bUPDATE\b", RegexOptions.IgnoreCase));
+        Assert.Contains("UPDATE l SET SourceItemKeyHash=c.ExpectedHash", script);
+        var smoke = Read("database/Tests/059_dev_sample_source_identity_smoke.sql");
+        _ = new TSql170Parser(true, SqlEngineType.SqlAzure).Parse(new StringReader(smoke), out errors);
+        Assert.Empty(errors);
+        Assert.DoesNotMatch(new Regex(@"\b(?:UPDATE|DELETE|INSERT|MERGE|COMMIT)\b", RegexOptions.IgnoreCase), smoke);
+    }
+
+    [Fact]
+    public void Source_identity_diagnostic_is_read_only_and_requires_exact_target()
+    {
+        var cli = Read("tools/FundingPlatform.DatabaseMigrator/Program.cs");
+        var start = cli.IndexOf("static async Task<int> CheckSourceIdentitiesAsync", StringComparison.Ordinal);
+        var end = cli.IndexOf("static ", start + 1, StringComparison.Ordinal);
+        var diagnostic = end < 0 ? cli[start..] : cli[start..end];
+        Assert.Contains("requireExpectedServer: true", diagnostic);
+        Assert.Contains("COUNT_BIG(*)", diagnostic);
+        Assert.DoesNotMatch(new Regex(@"\b(?:UPDATE|INSERT|DELETE|MERGE|COMMIT)\b", RegexOptions.IgnoreCase), diagnostic);
+        Assert.Contains("--check-source-identities", Read("infra/scripts/check-dev-database.sh"));
+    }
+
+    [Fact]
     public void Cli_requires_exact_dev_target_and_explicit_confirmation_before_commit()
     {
         var cli = Read("tools/FundingPlatform.AdminCli/DevGeographicSample.cs");

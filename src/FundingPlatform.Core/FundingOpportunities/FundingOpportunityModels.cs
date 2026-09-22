@@ -14,7 +14,10 @@ public sealed record FundingOpportunitySummary(
     string SourceName,
     string? SourceUrl,
     DateTimeOffset PublishedAtUtc,
-    decimal DataQualityScore);
+    decimal DataQualityScore,
+    string? CoverKey = null,
+    int ContentVersion = 0,
+    FundingTranslationLocalization? Localization = null);
 
 public sealed record FundingOpportunityDetails(
     Guid PublicId,
@@ -39,7 +42,11 @@ public sealed record FundingOpportunityDetails(
     string? ExternalId,
     DateTimeOffset LastVerifiedAtUtc,
     decimal DataQualityScore,
-    IReadOnlyList<FundingOpportunityFunder>? Funders = null);
+    IReadOnlyList<FundingOpportunityFunder>? Funders = null,
+    int ContentVersion = 0,
+    FundingTranslationLocalization? Localization = null,
+    string? OtherCategoryDescription = null,
+    string? CoverKey = null);
 
 public sealed record FundingOpportunityPage(
     IReadOnlyList<FundingOpportunitySummary> Items,

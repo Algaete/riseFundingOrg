@@ -20,7 +20,9 @@ public sealed record FundingOpportunityListItemResponse(
     string SourceName,
     string? SourceUrl,
     DateTimeOffset PublishedAtUtc,
-    decimal DataQualityScore);
+    decimal DataQualityScore,
+    string? CoverKey = null,
+    FundingLocalizationResponse? Localization = null);
 
 public sealed record FundingOpportunityDetailResponse(
     Guid PublicId,
@@ -45,4 +47,8 @@ public sealed record FundingOpportunityDetailResponse(
     string? ExternalId,
     DateTimeOffset LastVerifiedAtUtc,
     decimal DataQualityScore,
-    IReadOnlyList<FundingOpportunityFunderResponse> Funders);
+    IReadOnlyList<FundingOpportunityFunderResponse> Funders,
+    int ContentVersion = 0,
+    FundingLocalizationResponse? Localization = null,
+    string? OtherCategoryDescription = null,
+    string? CoverKey = null);

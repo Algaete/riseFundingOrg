@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/http-client'
+import type { FundingLanguage } from './funding-translations-api'
 import type {
   FundingOpportunityDetail,
   FundingOpportunityListItem,
@@ -148,29 +149,32 @@ export const organizationFundingApi = {
     organizationId: string,
     input: OrganizationFundingSearch,
     signal?: AbortSignal,
+    locale?: FundingLanguage,
   ) {
     const parameters = serializeFundingSearch(input)
+    if (locale) parameters.set('locale', locale)
     return apiClient.get<OrganizationFundingOpportunityListResponse>(
       `${organizationPath(organizationId, 'funding-opportunities')}?${parameters.toString()}`,
       { cache: 'no-store', signal },
     )
   },
 
-  getByIdOrSlug(organizationId: string, idOrSlug: string, signal?: AbortSignal) {
+  getByIdOrSlug(organizationId: string, idOrSlug: string, signal?: AbortSignal, locale?: FundingLanguage) {
     return apiClient.get<OrganizationFundingOpportunityDetail>(
       organizationPath(
         organizationId,
-        `funding-opportunities/${encodeURIComponent(idOrSlug)}`,
+        `funding-opportunities/${encodeURIComponent(idOrSlug)}${locale ? `?locale=${locale}` : ''}`,
       ),
       { cache: 'no-store', signal },
     )
   },
 
-  favorites(organizationId: string, pageNumber = 1, pageSize = 12, signal?: AbortSignal) {
+  favorites(organizationId: string, pageNumber = 1, pageSize = 12, signal?: AbortSignal, locale?: FundingLanguage) {
     const parameters = new URLSearchParams({
       page: String(pageNumber),
       pageSize: String(pageSize),
     })
+    if (locale) parameters.set('locale', locale)
     return apiClient.get<OrganizationFundingOpportunityListResponse>(
       `${organizationPath(organizationId, 'favorites')}?${parameters.toString()}`,
       { cache: 'no-store', signal },

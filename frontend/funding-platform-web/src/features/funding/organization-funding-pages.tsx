@@ -1,4 +1,7 @@
 import { formatDateValue } from '@/i18n/formats'
+import { FundingContentLanguageNotice } from './funding-content-language'
+import { useFundingContentLanguage } from './use-funding-content-language'
+import { FundingListLanguageNotice } from './funding-list-language'
 import {
   keepPreviousData,
   useMutation,
@@ -446,9 +449,9 @@ function OrganizationSpecificDetails({
           <ul className="mt-3 grid gap-2">
             {item.sources.map((source) => (
               <li className="rounded-lg border px-4 py-3 text-sm" key={`${source.fundingSourceId}-${source.externalId ?? source.sourceUrl}`}>
-                <a className="font-semibold text-primary underline underline-offset-2" href={source.sourceUrl} lang="es" rel="noopener noreferrer" target="_blank">
+                <span className="font-semibold" lang="es">
                   {source.sourceName}
-                </a>
+                </span>
                 {source.externalId && <span className="ml-2 text-xs text-muted-foreground">{t('organizationFunding.reference', { id: source.externalId })}</span>}
                 {source.isPrimary && <span className="ml-2 text-xs text-muted-foreground">{t('organizationFunding.primarySource')}</span>}
               </li>
@@ -462,6 +465,7 @@ function OrganizationSpecificDetails({
 
 export function OrganizationFundingCatalogPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const { organizations, organization } = useOrganization()
   const catalogs = useQuery({
@@ -525,10 +529,12 @@ export function OrganizationFundingCatalogPage() {
   }), [searchParams, urlQuery, minimumAmount, maximumAmount, currency, closingFrom, closingTo, sort, page, pageSize])
 
   const opportunities = useQuery({
-    queryKey: ['organization-funding', organization?.publicId, 'search', criteria],
-    queryFn: ({ signal }) => organizationFundingApi.search(organization!.publicId, criteria, signal),
+    queryKey: ['organization-funding', organization?.publicId, 'search', criteria, ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? organizationFundingApi.search(organization!.publicId, criteria, signal, language.locale)
+      : organizationFundingApi.search(organization!.publicId, criteria, signal),
     enabled: Boolean(organization) && !hasInvalidFilters,
-    placeholderData: keepPreviousData,
+    placeholderData: language.enabled ? undefined : keepPreviousData,
+    ...(language.enabled ? { staleTime: 0, gcTime: 0 } : {}),
   })
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -690,6 +696,7 @@ export function OrganizationFundingCatalogPage() {
         </div>
       </div>
 
+      <FundingListLanguageNotice selection={language} />
       {opportunities.isPending && !hasInvalidFilters && <PageLoading label={t('organizationFunding.searching')} />}
       {opportunities.isError && (
         <Card className="border-destructive/40"><CardContent className="space-y-3 p-6" role="alert">
@@ -718,11 +725,14 @@ export function OrganizationFundingCatalogPage() {
 
 export function OrganizationFundingDetailPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const { slug = '' } = useParams()
   const { organizations, organization } = useOrganization()
   const opportunity = useQuery({
-    queryKey: ['organization-funding', organization?.publicId, 'detail', slug],
-    queryFn: ({ signal }) => organizationFundingApi.getByIdOrSlug(organization!.publicId, slug, signal),
+    queryKey: ['organization-funding', organization?.publicId, 'detail', slug, ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? organizationFundingApi.getByIdOrSlug(organization!.publicId, slug, signal, language.locale) : organizationFundingApi.getByIdOrSlug(organization!.publicId, slug, signal),
+    staleTime: language.locale ? 0 : 30_000,
+    gcTime: language.locale ? 0 : 300_000,
     enabled: Boolean(organization && slug),
     retry: false,
   })
@@ -754,6 +764,7 @@ export function OrganizationFundingDetailPage() {
   }
 
   return (
+    <><FundingContentLanguageNotice selection={language} localization={opportunity.data.localization} />
     <FundingOpportunityDetailView
       action={(
         <Card>
@@ -775,19 +786,23 @@ export function OrganizationFundingDetailPage() {
       backTo="/opportunities"
       item={toDisplayDetail(opportunity.data)}
     />
+    </>
   )
 }
 
 export function OrganizationFavoritesPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const { organizations, organization } = useOrganization()
   const page = parsePositiveInteger(searchParams.get('page'), 1)
   const favorites = useQuery({
-    queryKey: ['organization-funding', organization?.publicId, 'favorites', page, defaultPageSize],
-    queryFn: ({ signal }) => organizationFundingApi.favorites(organization!.publicId, page, defaultPageSize, signal),
+    queryKey: ['organization-funding', organization?.publicId, 'favorites', page, defaultPageSize, ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? organizationFundingApi.favorites(organization!.publicId, page, defaultPageSize, signal, language.locale)
+      : organizationFundingApi.favorites(organization!.publicId, page, defaultPageSize, signal),
     enabled: Boolean(organization),
-    placeholderData: keepPreviousData,
+    placeholderData: language.enabled ? undefined : keepPreviousData,
+    ...(language.enabled ? { staleTime: 0, gcTime: 0 } : {}),
   })
 
   const setPage = useCallback((value: number) => {
@@ -818,6 +833,7 @@ export function OrganizationFavoritesPage() {
         <Button asChild variant="outline"><Link to="/opportunities"><Search className="size-4" /> {t('organizationFunding.browse')}</Link></Button>
       </header>
 
+      <FundingListLanguageNotice selection={language} />
       {favorites.isPending && <PageLoading label={t('organizationFunding.favoritesLoading')} />}
       {favorites.isError && (
         <Card className="border-destructive/40"><CardContent className="space-y-3 p-6" role="alert">

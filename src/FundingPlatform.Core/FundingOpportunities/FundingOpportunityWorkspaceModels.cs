@@ -51,7 +51,10 @@ public sealed record WorkspaceFundingOpportunitySummary(
     string PrimaryFunderName,
     string SourceName,
     string SourceUrl,
-    bool IsFavorite);
+    bool IsFavorite,
+    string? CoverKey = null,
+    int ContentVersion = 0,
+    FundingTranslationLocalization? Localization = null);
 
 public sealed record WorkspaceFundingOpportunityPage(
     IReadOnlyList<WorkspaceFundingOpportunitySummary> Items,
@@ -135,7 +138,10 @@ public sealed record WorkspaceFundingOpportunityDetails(
     IReadOnlyList<FundingOpportunityEligibilityType> LegalEntityTypes,
     IReadOnlyList<FundingOpportunityLanguage> Languages,
     IReadOnlyList<FundingOpportunityFunder> Funders,
-    IReadOnlyList<WorkspaceFundingOpportunitySource> Sources);
+    IReadOnlyList<WorkspaceFundingOpportunitySource> Sources,
+    FundingTranslationLocalization? Localization = null,
+    string? OtherCategoryDescription = null,
+    string? CoverKey = null);
 
 public enum FundingFavoriteMutationOutcome
 {

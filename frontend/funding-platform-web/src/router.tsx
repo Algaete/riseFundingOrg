@@ -44,6 +44,7 @@ const AdminProjectReviewPage = localizedLazy(() => import('@/features/projects/p
 const AdminProjectReviewDetailPage = localizedLazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.AdminProjectReviewDetailPage })), ["adminProjects","projects","projectAssets","editorial","editorialValidation","catalogs","workspaceFeedback","validation","adminFunding"])
 const AdminErrorsPage = localizedLazy(() => import('@/pages/admin-pages').then((module) => ({ default: module.AdminErrorsPage })), ["adminIncidents","operations","operationalLabels","validation","editorial","editorialValidation","workspaceFeedback"])
 const AdminFundingDetailPage = localizedLazy(() => import('@/features/funding/admin-funding-pages').then((module) => ({ default: module.AdminFundingDetailPage })), ["adminFunding","adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
+const FundingTranslationsPage = localizedLazy(() => import('@/features/funding/funding-translations-page').then(module => ({ default: module.FundingTranslationsPage })), ['adminFunding'])
 const AdminFundingPage = localizedLazy(() => import('@/features/funding/admin-funding-pages').then((module) => ({ default: module.AdminFundingPage })), ["adminFunding","adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
 const AdminFunderDetailPage = localizedLazy(() => import('@/features/funding/admin-funder-pages').then((module) => ({ default: module.AdminFunderDetailPage })), ["adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
 const AdminFundersPage = localizedLazy(() => import('@/features/funding/admin-funder-pages').then((module) => ({ default: module.AdminFundersPage })), ["adminFunders","editorial","editorialValidation","catalogs","validation","workspaceFeedback"])
@@ -157,6 +158,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/admin/funding', element: <AdminFundingPage /> },
       { path: '/admin/funding/:id', element: <AdminFundingDetailPage /> },
       { path: '/admin/funding/:id/discovery', element: <FundingClassificationPage /> },
+      { path: '/admin/funding/:id/translations', element: <FundingTranslationsPage /> },
       { path: '/admin/funders', element: <AdminFundersPage /> },
       { path: '/admin/funders/:id', element: <AdminFunderDetailPage /> },
       { path: '/admin/imports', element: <AdminImportsPage /> },

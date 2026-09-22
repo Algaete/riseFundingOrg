@@ -21,8 +21,8 @@ public sealed class SqlFundingDiscoveryRepository(ISqlConnectionFactory connecti
         }
         catch (SqlException error) { throw new FundingDiscoveryDataException(error.Number, error); }
     }
-    public async Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token)
-        => await Read<FundingDiscoveryPage>("dbo.FundingPlatform_usp_FundingDiscovery_Search", new { FiltersJson = JsonSerializer.Serialize(filters, Json) }, token) ?? new([], 0, filters.Page, filters.PageSize);
+    public async Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token, bool includeReviewedTranslations = false)
+        => await Read<FundingDiscoveryPage>("dbo.FundingPlatform_usp_FundingDiscovery_Search", new { FiltersJson = JsonSerializer.Serialize(filters, Json), IncludeReviewedTranslations = includeReviewedTranslations }, token) ?? new([], 0, filters.Page, filters.PageSize);
     public Task<FundingDiscoveryAdmin?> GetAsync(Guid actor, Guid opportunityId, CancellationToken token)
         => Read<FundingDiscoveryAdmin>("dbo.FundingPlatform_usp_FundingDiscovery_AdminGet", new { UserPublicId = actor, OpportunityPublicId = opportunityId }, token);
     public async Task<CollaborationWriteResult> ReviewAsync(Guid actor, Guid opportunityId, FundingDiscoveryReview data, byte[]? version, byte[] keyHash, byte[] requestHash, CancellationToken token)

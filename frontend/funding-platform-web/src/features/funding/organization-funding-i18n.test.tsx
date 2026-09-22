@@ -174,7 +174,8 @@ describe('organization funding ES/EN', () => {
       expect(screen.getByText(name, { exact: true })).toHaveAttribute('lang', 'en')
     }
     expect(screen.getByRole('link', { name: 'Start application' })).toHaveAttribute('href', '/applications?new=1&fundingOpportunityId=' + organizationOpportunity.publicId)
-    expect(screen.getByRole('link', { name: 'Fuente vinculada Ñandú' })).toHaveAttribute('href', organizationOpportunity.sources[0].sourceUrl)
+    expect(screen.getByText('Fuente vinculada Ñandú')).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'Fuente vinculada Ñandú' })).not.toBeInTheDocument()
     expect(screen.getByText('Reference ORIGINAL-01')).toBeVisible()
     expect(screen.getByText('These details come from the terms and do not, by themselves, confirm your organization’s eligibility.')).toBeVisible()
     expect(organizationFundingApi.getByIdOrSlug).toHaveBeenCalledExactlyOnceWith(fundingOrganizationId, organizationOpportunity.slug, expect.any(AbortSignal))

@@ -15,11 +15,61 @@ namespace FundingPlatform.IntegrationTests;
 public sealed class FundingDiscoveryEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     [Theory]
+    [InlineData(false, null)][InlineData(false, "es")][InlineData(false, "en")]
+    [InlineData(true, null)][InlineData(true, "es")][InlineData(true, "en")]
+    public async Task Discovery_localizes_only_enabled_published_page_without_changing_filters(bool enabled, string? locale)
+    {
+        var id = Guid.NewGuid();
+        var classification = new FundingDiscoveryData(2, false, true, "https://example.invalid/evidence");
+        var repository = new Repository { Items = [new(id, "original", "Original", "Summary", "Source",
+            "https://example.invalid", DateTimeOffset.UtcNow, 100, 200, "AUD", new(2027,1,1), classification, 5)] };
+        var translations = new SummaryRepository();
+        await using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IFundingDiscoveryRepository>(); services.AddSingleton<IFundingDiscoveryRepository>(repository);
+            services.RemoveAll<IFundingTranslationRepository>(); services.AddSingleton<IFundingTranslationRepository>(translations);
+            services.RemoveAll<FundingTranslationOptions>(); services.AddSingleton(new FundingTranslationOptions { Enabled = enabled });
+        }));
+        using var client = app.CreateClient();
+        using var response = await client.GetAsync("/api/v1/funding-discovery?query=agua&countryId=152&page=2&pageSize=12&languageId=1&includeReviewedTranslations="
+            + (!enabled).ToString().ToLowerInvariant() + (locale is null ? "" : "&locale=" + locale));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<FundingDiscoveryPage>();
+        Assert.Equal(enabled && locale is not null ? "Traducido" : "Original", result!.Items[0].Title);
+        Assert.Equal(classification, result.Items[0].Classification);
+        Assert.Equal("AUD", result.Items[0].Currency);
+        Assert.Equal(id, result.Items[0].Id);
+        Assert.Equal(2, result.Page);
+        Assert.Equal("agua", repository.Filters!.Query);
+        Assert.Equal((short)152, repository.Filters.CountryId);
+        Assert.Equal((short)1, repository.Filters.LanguageId);
+        Assert.Equal(enabled, repository.IncludeReviewedTranslations);
+        Assert.Equal(enabled && locale is not null ? 1 : 0, translations.Calls);
+        Assert.Equal(!enabled && locale is null, response.Headers.CacheControl!.Public);
+    }
+
+    private sealed class SummaryRepository : IFundingTranslationRepository
+    {
+        public int Calls { get; private set; }
+        public Task<IReadOnlyList<FundingSummaryTranslation>> GetPublishedSummariesAsync(IReadOnlyList<FundingTranslationReference> references, string language, CancellationToken token)
+        {
+            Calls++;
+            Assert.Equal(5, Assert.Single(references).SourceContentVersion);
+            return Task.FromResult<IReadOnlyList<FundingSummaryTranslation>>([new(references[0].OpportunityId, language, 5, 1, true, "Traducido", "Resumen")]);
+        }
+        public Task<FundingTranslation?> GetAdminAsync(Guid actor, Guid id, string language, CancellationToken token) => throw new NotSupportedException();
+        public Task<FundingTranslation?> GetPublishedAsync(Guid id, string language, int version, CancellationToken token) => throw new NotSupportedException();
+        public Task<FundingTranslation> SaveAsync(Guid actor, Guid id, string language, FundingTranslationWrite data, byte[] version, CancellationToken token) => throw new NotSupportedException();
+    }
+
+    [Theory]
     [InlineData("?funderKind=1&requiresConsortium=false&languageId=1", 200)]
     [InlineData("?page=0", 400)]
     [InlineData("?minimumAmount=1", 400)]
     [InlineData("?funderKind=7", 400)]
     [InlineData("?closingFrom=2027-02-01&closingTo=2027-01-01", 400)]
+    [InlineData("?locale=fr", 400)]
+    [InlineData("?locale=es&locale=en", 400)]
     public async Task Public_filters_are_bound_and_validated_before_storage(string query, int status)
     {
         var repository = new Repository();
@@ -87,7 +137,9 @@ public sealed class FundingDiscoveryEndpointTests(ApiFactory factory) : IClassFi
     private sealed class Repository : IFundingDiscoveryRepository
     {
         public int Reads, Writes; public FundingDiscoveryFilters? Filters;
-        public Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token) { Reads++; Filters = filters; return Task.FromResult(new FundingDiscoveryPage([], 0, filters.Page, filters.PageSize)); }
+        public bool IncludeReviewedTranslations;
+        public IReadOnlyList<FundingDiscoveryItem> Items { get; init; } = [];
+        public Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token, bool includeReviewedTranslations = false) { Reads++; Filters = filters; IncludeReviewedTranslations = includeReviewedTranslations; return Task.FromResult(new FundingDiscoveryPage(Items, Items.Count, filters.Page, filters.PageSize)); }
         public Task<FundingDiscoveryAdmin?> GetAsync(Guid actor, Guid id, CancellationToken token) => Task.FromResult<FundingDiscoveryAdmin?>(null);
         public Task<CollaborationWriteResult> ReviewAsync(Guid actor, Guid id, FundingDiscoveryReview data, byte[]? version, byte[] keyHash, byte[] requestHash, CancellationToken token) { Writes++; return Task.FromResult(new CollaborationWriteResult(id, "\"0102030405060708\"", false)); }
     }

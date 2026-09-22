@@ -8,7 +8,8 @@ public sealed class FundingOpportunityCatalogService(IFundingOpportunityReposito
         string? query,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeReviewedTranslations = false)
     {
         if (pageNumber < 1)
         {
@@ -30,7 +31,8 @@ public sealed class FundingOpportunityCatalogService(IFundingOpportunityReposito
             normalizedQuery,
             pageNumber,
             pageSize,
-            cancellationToken);
+            cancellationToken,
+            includeReviewedTranslations);
     }
 
     public Task<FundingOpportunityDetails?> GetBySlugAsync(

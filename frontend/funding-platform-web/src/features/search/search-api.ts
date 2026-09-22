@@ -1,15 +1,16 @@
 import { apiClient } from '@/api/http-client'
+import type { FundingLanguage, FundingLocalization } from '@/features/funding/funding-translations-api'
 import type { MarketplaceProjectListResponse } from '@/features/marketplace/marketplace-api'
 import type { FundingExplorerPage } from '@/features/funding-discovery/funding-discovery-api'
 import type { NetworkDirectoryPage } from '@/features/network/network-api'
 import type { Page, Professional } from '@/features/collaboration/collaboration-api'
 import { searchRequest, type SearchCriteria, type SearchSource } from './search-model'
 
-export interface SearchItem { id: string; title: string; summary: string | null; subtitle?: string; href?: string; biography?: string | null; skills?: string[] }
+export interface SearchItem { id: string; title: string; summary: string | null; subtitle?: string; href?: string; biography?: string | null; skills?: string[]; localization?: FundingLocalization | null }
 export interface SearchPage { items: SearchItem[]; totalCount: number; page: number; pageSize: number }
 
 /** Federation of existing read-only projections; never an administrative or new public directory. */
-export async function searchSource(source: SearchSource, criteria: SearchCriteria, signal: AbortSignal, organizationId?: string): Promise<SearchPage> {
+export async function searchSource(source: SearchSource, criteria: SearchCriteria, signal: AbortSignal, organizationId?: string, locale?: FundingLanguage): Promise<SearchPage> {
   const path = searchRequest(source, criteria, organizationId)
   const options = { signal, cache: 'no-store' as const }
   if (source === 'projects') {
@@ -21,9 +22,9 @@ export async function searchSource(source: SearchSource, criteria: SearchCriteri
       })) }
   }
   if (source === 'funding') {
-    const page = await apiClient.get<FundingExplorerPage>(path, options)
+    const page = await apiClient.get<FundingExplorerPage>(locale ? `${path}&locale=${locale}` : path, options)
     return { page: page.page, pageSize: page.pageSize, totalCount: page.totalCount, items: page.items.map(item => ({
-      id: item.id, title: item.title, summary: item.summary, subtitle: item.sourceName,
+      id: item.id, title: item.title, summary: item.summary, subtitle: item.sourceName, localization: item.localization,
       href: `/funding/${encodeURIComponent(item.slug)}`,
     })) }
   }

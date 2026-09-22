@@ -29,6 +29,9 @@ try
             expectedServerFqdn);
     }
 
+    if (args[0] == "--check-source-identities")
+        return await CheckSourceIdentitiesAsync(connectionFactory, expectedDatabaseName, expectedServerFqdn);
+
     var solutionRoot = SolutionRootLocator.Find();
     var migrations = SqlScriptCatalog.DiscoverMigrations(solutionRoot);
     IReadOnlyList<SqlScript> provisioning = [];
@@ -49,6 +52,12 @@ try
                 var checks = await ProjectMapSqlVerifier.VerifyAsync(
                     connection, transaction, solutionRoot, cancellationToken);
                 Console.WriteLine($"Contrato SQL de mapa: {checks} comprobaciones correctas; fixtures sin commit.");
+                if (migrations.Any(migration => migration.Sequence == 58))
+                {
+                    var translationChecks = await FundingTranslationSqlVerifier.VerifyAsync(
+                        connection, transaction, solutionRoot, cancellationToken);
+                    Console.WriteLine($"Contrato SQL de traducciones: {translationChecks} comprobaciones correctas; fixtures sin commit.");
+                }
             } : null);
 
     switch (args[0])
@@ -195,7 +204,7 @@ catch (Exception)
 return 1;
 
 static bool IsSupportedCommand(string command) =>
-    command is "--check-connection" or "--status" or "--validate" or "--preflight"
+    command is "--check-connection" or "--check-source-identities" or "--status" or "--validate" or "--preflight"
         or "--apply" or "--test"
         or "--provision-full-text" or "--provision-runtime-identities"
         or "--verify-runtime-identities";
@@ -207,7 +216,7 @@ static void PrintUsage()
 {
     Console.Error.WriteLine(
         "Uso: FundingPlatform.DatabaseMigrator " +
-        "[--check-connection|--status|--validate|--preflight|--apply|--test|" +
+        "[--check-connection|--check-source-identities|--status|--validate|--preflight|--apply|--test|" +
         "--provision-full-text]");
     Console.Error.WriteLine(
         "  FundingPlatform.DatabaseMigrator " +
@@ -261,6 +270,30 @@ static async Task<int> CheckConnectionAsync(
     Console.Error.WriteLine(
         $"Falló la verificación SELECT 1 en Azure SQL. Código: {result.Code}.{sqlNumber}");
     return 1;
+}
+
+static async Task<int> CheckSourceIdentitiesAsync(ISqlConnectionFactory factory, string? database, string? server)
+{
+    // Read-only aggregate diagnostics; never print source payloads, URLs or credentials.
+    await new SqlDeploymentTargetVerifier(factory, database, server, requireExpectedServer: true).VerifyAsync();
+    await using var connection = factory.CreateConnection();
+    await connection.OpenAsync();
+    await using var command = connection.CreateCommand();
+    command.CommandTimeout = 30;
+    command.CommandText = """
+        SELECT COUNT_BIG(*) AS Mismatches,
+          COALESCE(SUM(CONVERT(BIGINT, CASE WHEN o.PublicId IN
+            ('70510000-0000-4000-8000-000000000101','70510000-0000-4000-8000-000000000102') THEN 1 ELSE 0 END)),0) AS KnownGeographicSamples,
+          COALESCE(SUM(CONVERT(BIGINT, CASE WHEN l.SourceItemKeyHash = HASHBYTES('SHA2_256',l.ExternalId) THEN 1 ELSE 0 END)),0) AS Utf16Hashes
+        FROM dbo.FundingPlatform_FundingOpportunitySourceLinks l
+        JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id = l.FundingOpportunityId
+        WHERE NULLIF(LTRIM(RTRIM(l.ExternalId)),N'') IS NOT NULL AND l.SourceItemKeyHash <>
+          HASHBYTES('SHA2_256',CONVERT(VARBINARY(MAX),CONVERT(VARCHAR(MAX),l.ExternalId COLLATE Latin1_General_100_BIN2_UTF8)));
+        """;
+    await using var reader = await command.ExecuteReaderAsync();
+    if (!await reader.ReadAsync()) throw new MigrationException("source_identity_diagnostic_missing");
+    Console.WriteLine($"Identidades de fuente: discrepancias={reader.GetInt64(0)}, muestras geográficas conocidas={reader.GetInt64(1)}, hash UTF16={reader.GetInt64(2)}. Solo lectura, sin corregir datos.");
+    return 0;
 }
 
 static RuntimeDatabaseIdentityPlan ParseRuntimeIdentityPlan(string[] arguments)

@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { useFundingContentLanguage } from '@/features/funding/use-funding-content-language'
+import { FundingListLanguageNotice, FundingListTranslationLabel } from '@/features/funding/funding-list-language'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -19,9 +21,11 @@ export function SearchResults({ source, criteria, actor, organizationId }: {
   source: SearchSource; criteria: SearchCriteria; actor: string; organizationId?: string
 }) {
   const { t, i18n } = useTranslation()
+  const language = useFundingContentLanguage()
+  const locale = source === 'funding' ? language.locale : undefined
   const privateSource = source === 'organizations' || source === 'professionals'
-  const query = useQuery({ queryKey: ['unified-search', source, privateSource ? actor : 'public', organizationId ?? '', criteria],
-    queryFn: ({ signal }) => searchSource(source, criteria, signal, organizationId), ...searchQueryPolicy })
+  const query = useQuery({ queryKey: ['unified-search', source, privateSource ? actor : 'public', organizationId ?? '', criteria, ...(locale ? [locale] : [])],
+    queryFn: ({ signal }) => locale ? searchSource(source, criteria, signal, organizationId, locale) : searchSource(source, criteria, signal, organizationId), ...searchQueryPolicy })
   const href = (page = 1) => unifiedSearchUrl(source, criteria.q, criteria.countryId, criteria.categoryId, page)
   const count = (value: number) => new Intl.NumberFormat(i18n.resolvedLanguage ?? 'es').format(value)
   return <section aria-labelledby={`search-${source}`} className="min-w-0 space-y-4 rounded-xl border bg-card p-4 sm:p-6">
@@ -29,6 +33,7 @@ export function SearchResults({ source, criteria, actor, organizationId }: {
       <h2 id={`search-${source}`} className="text-xl font-bold">{t(`unifiedSearch.sources.${source}`)}</h2>
       {criteria.scope === 'all' && <Link className="text-sm font-semibold text-primary underline" to={href()}>{t('unifiedSearch.viewAll')}</Link>}
     </header>
+    {source === 'funding' && <FundingListLanguageNotice selection={language} />}
     {query.isPending ? <p role="status">{t('unifiedSearch.loading')}</p> : query.isError ? <div role="alert" className="space-y-3">
       <p>{t('unifiedSearch.error')}</p><Button variant="outline" onClick={() => void query.refetch()}>{t('unifiedSearch.retry')}</Button>
     </div> : <>
@@ -38,6 +43,7 @@ export function SearchResults({ source, criteria, actor, organizationId }: {
           <h3 className="font-bold">{item.href ? <Link to={item.href} className="underline underline-offset-4">{item.title}</Link> : item.title}</h3>
           {item.subtitle && <p className="text-xs text-muted-foreground">{item.subtitle}</p>}
           {item.summary && <p className="line-clamp-3 text-sm">{item.summary}</p>}
+          {source === 'funding' && <FundingListTranslationLabel localization={item.localization} />}
           {source === 'professionals' && <details className="text-sm">
             <summary className="cursor-pointer font-semibold text-primary">{t('unifiedSearch.profileDetails')}</summary>
             {item.biography && <p className="mt-3 whitespace-pre-wrap">{item.biography}</p>}

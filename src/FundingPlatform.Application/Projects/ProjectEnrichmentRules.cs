@@ -13,6 +13,13 @@ public static class ProjectEnrichmentRules
         Problem = Trim(value.Problem), Solution = Trim(value.Solution),
         Locality = Trim(value.Locality), SoughtPartners = Trim(value.SoughtPartners),
         SoughtProfessionals = Trim(value.SoughtProfessionals),
+        Background = value.Background is not { } background ? null : background with
+        {
+            AdditionalInformation = Trim(background.AdditionalInformation),
+            TechnicalInformation = Trim(background.TechnicalInformation),
+            ExistingPartnerships = Trim(background.ExistingPartnerships),
+            PreviousResults = Trim(background.PreviousResults)
+        },
         ImpactIndicators = value.ImpactIndicators?.Select(item => item is null ? null : item with
         {
             Name = Trim(item.Name), Unit = Trim(item.Unit)
@@ -27,6 +34,13 @@ public static class ProjectEnrichmentRules
         Length(value.Locality, 200, "locality", errors);
         Length(value.SoughtPartners, 2000, "soughtPartners", errors);
         Length(value.SoughtProfessionals, 2000, "soughtProfessionals", errors);
+        if (value.Background is { } background)
+        {
+            Length(background.AdditionalInformation, 3000, "background.additionalInformation", errors);
+            Length(background.TechnicalInformation, 3000, "background.technicalInformation", errors);
+            Length(background.ExistingPartnerships, 3000, "background.existingPartnerships", errors);
+            Length(background.PreviousResults, 3000, "background.previousResults", errors);
+        }
         if (value.BeneficiaryCount < 0)
             errors.Set("enrichment.beneficiaryCount", "project-beneficiary-count-invalid", "Indica una cantidad entera de beneficiarios igual o mayor que cero.");
         if (!Enum.IsDefined(value.LocationVisibility))

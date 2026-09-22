@@ -291,7 +291,9 @@ public sealed record FundingOpportunityEditorialData(
     IReadOnlyList<int> RegionIds,
     IReadOnlyList<int> CategoryIds,
     IReadOnlyList<int> BeneficiaryTypeIds,
-    IReadOnlyList<int> ProjectTypeIds);
+    IReadOnlyList<int> ProjectTypeIds,
+    string? OtherCategoryDescription = null,
+    string? CoverKey = null);
 
 public sealed record FundingOpportunityAdminSummary(
     Guid PublicId,

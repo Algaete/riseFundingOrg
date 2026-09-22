@@ -37,12 +37,15 @@ public static class FundingOpportunityEndpoints
         string? query,
         int? pageNumber,
         int? pageSize,
+        string? locale,
         HttpContext context,
         FundingOpportunityCatalogService service,
+        FundingTranslationOptions translationOptions,
         CancellationToken cancellationToken)
     {
         var requestedPageNumber = pageNumber ?? 1;
         var requestedPageSize = pageSize ?? 12;
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
 
         if (requestedPageNumber < 1 || requestedPageSize is < 1 or > 50)
         {
@@ -64,9 +67,13 @@ public static class FundingOpportunityEndpoints
             query,
             requestedPageNumber,
             requestedPageSize,
-            cancellationToken);
+            cancellationToken,
+            includeReviewedTranslations: translationOptions.Enabled);
 
-        context.Response.Headers.CacheControl = "public,max-age=60";
+        // Do not construct SQL translation dependencies for disabled/original reads.
+        if (translationOptions.Enabled && locale is not null)
+            page = await context.RequestServices.GetRequiredService<FundingTranslationService>().LocalizeAsync(page, locale, cancellationToken);
+        context.Response.Headers.CacheControl = locale is null && !translationOptions.Enabled ? "public,max-age=60" : "no-store";
         return Results.Ok(new FundingOpportunityListResponse(
             page.Items.Select(MapListItem).ToArray(),
             page.TotalCount,
@@ -76,10 +83,13 @@ public static class FundingOpportunityEndpoints
 
     private static async Task<IResult> GetBySlugAsync(
         string slug,
+        string? locale,
         HttpContext context,
         FundingOpportunityCatalogService service,
+        FundingTranslationService translations,
         CancellationToken cancellationToken)
     {
+        if (locale is not null && !FundingTranslationRules.Supports(locale)) return Results.BadRequest();
         var opportunity = await service.GetBySlugAsync(slug, cancellationToken);
         if (opportunity is null)
         {
@@ -89,7 +99,10 @@ public static class FundingOpportunityEndpoints
                 detail: "The requested opportunity is not published or does not exist.");
         }
 
-        context.Response.Headers.CacheControl = "public,max-age=60";
+        opportunity = await translations.LocalizeAsync(opportunity, locale, cancellationToken);
+        // A new source version or withdrawal of review must not leave an obsolete
+        // translation in an HTTP cache. No translation provider runs on this read.
+        context.Response.Headers.CacheControl = locale is null ? "public,max-age=60" : "no-store";
         return Results.Ok(MapDetails(opportunity));
     }
 
@@ -110,7 +123,8 @@ public static class FundingOpportunityEndpoints
             opportunity.SourceName,
             opportunity.SourceUrl,
             opportunity.PublishedAtUtc,
-            opportunity.DataQualityScore);
+            opportunity.DataQualityScore, opportunity.CoverKey,
+            opportunity.Localization is { } info ? new(info.RequestedLanguage, info.Status, info.Revision) : null);
     }
 
     private static FundingOpportunityDetailResponse MapDetails(
@@ -144,6 +158,9 @@ public static class FundingOpportunityEndpoints
                     funder.PublicId,
                     funder.Slug,
                     funder.Name,
-                    (byte)funder.Role)).ToArray());
+                    (byte)funder.Role)).ToArray(),
+            opportunity.ContentVersion,
+            opportunity.Localization is { } info ? new FundingLocalizationResponse(info.RequestedLanguage, info.Status, info.Revision) : null,
+            opportunity.OtherCategoryDescription, opportunity.CoverKey);
     }
 }

@@ -125,6 +125,182 @@ describe('administración editorial de fondos', () => {
   beforeEach(setAdminSession)
   afterEach(() => vi.unstubAllGlobals())
 
+  it('loads, saves and explicitly resets a cover without changing the category selection', async () => {
+    const current = opportunity({ publicationStatus: 0, coverKey: 'nature-v1' })
+    const submitted: Record<string, unknown>[] = []
+    const headers: Headers[] = []
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body))
+          submitted.push(body)
+          headers.push(new Headers(init.headers))
+          Object.assign(current, body, { contentVersion: current.contentVersion + 1, eTag: '"0000000000000004"' })
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0,
+            contentVersion: current.contentVersion, eTag: current.eTag, wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({}, 404))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    expect(await screen.findByRole('radio', { name: 'Naturaleza y ambiente' })).toBeChecked()
+    await userEvent.click(screen.getByRole('radio', { name: 'Ciencia e innovación' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted[0]).toMatchObject({ coverKey: 'research-v1', categoryIds: [1] }))
+    expect(headers[0].get('If-Match')).toBe('"0000000000000003"')
+    expect(headers[0].get('Idempotency-Key')).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Predeterminada' })).toBeEnabled())
+    expect(screen.getByRole('radio', { name: 'Ciencia e innovación' })).toBeChecked()
+    await userEvent.click(screen.getByRole('radio', { name: 'Predeterminada' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted[1]).toMatchObject({ coverKey: 'auto', categoryIds: [1] }))
+    expect(headers[1].get('If-Match')).toBe('"0000000000000004"')
+  })
+
+  it.each([1, 2])('locks the cover in editorial state %s', async publicationStatus => {
+    const current = opportunity({ publicationStatus, coverKey: 'education-v1' })
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      return Promise.resolve(json(current))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    expect(await screen.findByRole('radio', { name: 'Educación y aprendizaje' })).toBeChecked()
+    for (const option of screen.getAllByRole('radio')) expect(option).toBeDisabled()
+  })
+
+  it('requires a description for Other, saves it and clears it when Other is removed', async () => {
+    const current = opportunity({ publicationStatus: 0 })
+    const submitted: Record<string, unknown>[] = []
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/catalogs')) return Promise.resolve(json({ ...catalogs,
+        fundingCategories: [...catalogs.fundingCategories, { id: 16, code: 'OTHER', name: 'Otros' }] }))
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body))
+          submitted.push(body)
+          Object.assign(current, body, { contentVersion: current.contentVersion + 1 })
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0,
+            contentVersion: current.contentVersion, eTag: '"4"', wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({}, 404))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Otros (especificar)' }))
+    const description = screen.getByLabelText(/Especifica la categoría/)
+    expect(description).toHaveAttribute('aria-required', 'true')
+    expect(description).toHaveAttribute('maxlength', '200')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(submitted).toHaveLength(0)
+    expect(await screen.findAllByText('Especifica la categoría al seleccionar Otros.')).not.toHaveLength(0)
+    fireEvent.change(description, { target: { value: '  Economía circular  ' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted[0]).toMatchObject({ categoryIds: [1, 16], otherCategoryDescription: 'Economía circular' }))
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Otros (especificar)' })).toBeEnabled())
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Otros (especificar)' }))
+    expect(screen.queryByLabelText(/Especifica la categoría/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted[1]).toMatchObject({ categoryIds: [1], otherCategoryDescription: null }))
+  })
+
+  it.each([
+    ['2027-01-31', '23:50', 'America/Santiago', '2027-02-01T02:50:00.000Z'],
+    ['2027-07-31', '18:15', 'America/Santiago', '2027-07-31T22:15:00.000Z'],
+    ['2027-01-31', '18:15', 'America/New_York', '2027-01-31T23:15:00.000Z'],
+  ])('guarda %s %s en %s sin exigir una hora UTC', async (date, time, zone, utc) => {
+    const current = opportunity({ publicationStatus: 0 })
+    let submitted: unknown
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          submitted = JSON.parse(String(init.body))
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0, contentVersion: 4, eTag: '"4"', wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({}, 404))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    const timeInput = await screen.findByLabelText(/^Hora de cierre/)
+    expect(timeInput).toHaveAttribute('type', 'time')
+    expect(timeInput).toHaveAttribute('step', '60')
+    expect(timeInput).toHaveValue('23:59')
+    fireEvent.change(screen.getByLabelText('Fecha de cierre'), { target: { value: date } })
+    fireEvent.change(timeInput, { target: { value: time } })
+    await userEvent.selectOptions(screen.getByLabelText(/^Zona horaria del cierre/), zone)
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted).toMatchObject({ closeDate: date, closeAtUtc: utc, deadlineTimeZoneId: zone }))
+  })
+
+  it('conserva el instante original de una hora repetida por DST al editar otro campo', async () => {
+    const current = opportunity({ publicationStatus: 0, closeDate: '2026-11-01', closeAtUtc: '2026-11-01T06:30:59.123Z', deadlineTimeZoneId: 'America/New_York' })
+    let submitted: unknown
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const support = supportingResponse(url)
+      if (support) return Promise.resolve(support)
+      if (url.endsWith(`/admin/funding-opportunities/${current.opportunityId}`)) {
+        if (init?.method === 'PUT') {
+          submitted = JSON.parse(String(init.body))
+          return Promise.resolve(json({ entityId: current.opportunityId, publicationStatus: 0, contentVersion: 4, eTag: '"4"', wasReplay: false }))
+        }
+        return Promise.resolve(json(current))
+      }
+      return Promise.resolve(json({}, 404))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    expect(await screen.findByLabelText('Hora de cierre')).toHaveValue('01:30')
+    fireEvent.change(screen.getByLabelText('Título'), { target: { value: 'Título nuevo' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(submitted).toMatchObject({ closeDate: '2026-11-01', closeAtUtc: '2026-11-01T06:30:59.123Z', deadlineTimeZoneId: 'America/New_York' }))
+  })
+
+  it('rechaza una hora inexistente por cambio de horario antes de llamar a la API', async () => {
+    const current = opportunity({ publicationStatus: 0, openDate: '2026-01-01' })
+    const writes = vi.fn()
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PUT') writes()
+      const support = supportingResponse(String(input))
+      return Promise.resolve(support || json(current))
+    }))
+    const router = createMemoryRouter(appRoutes, { initialEntries: [`/admin/funding/${current.opportunityId}`] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    const timeInput = await screen.findByLabelText(/^Hora de cierre/)
+    fireEvent.change(screen.getByLabelText('Fecha de cierre'), { target: { value: '2026-03-08' } })
+    fireEvent.change(timeInput, { target: { value: '02:30' } })
+    await userEvent.selectOptions(screen.getByLabelText(/^Zona horaria del cierre/), 'America/New_York')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect((await screen.findAllByText(/Esa hora no existe/)).length).toBeGreaterThan(0)
+    expect(writes).not.toHaveBeenCalled()
+  })
+
+  it('preselecciona la fuente manual existente y deja el ID externo opcional al crear', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve(supportingResponse(String(input)) || json({}, 404))))
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/admin/funding/new'] })
+    render(<App router={router} queryClient={createAppQueryClient()} />)
+    expect(await screen.findByLabelText(/^Fuente de datos/)).toHaveValue('7')
+    expect(screen.getByLabelText(/^ID en la fuente/)).not.toBeRequired()
+    expect(screen.getByLabelText(/^ID en la fuente/)).toHaveValue('')
+  })
+
   it('guarda categorías de un borrador importado sin exigir publicación ni inventar alcance', async () => {
     let current = opportunity({
       publicationStatus: 0, geographicScope: 0, countryIds: [], regionIds: [], categoryIds: [],
@@ -508,6 +684,8 @@ describe('administración editorial de fondos', () => {
       remoteApplication: 2,
       sourceUrl: 'https://foundation.example/fondo',
       lastVerifiedAtUtc: '2026-08-20T12:00:00.123Z',
+      otherCategoryDescription: null,
+      coverKey: 'auto',
       funders: [{ funderId: '8fa6c73a-af02-4182-8b60-5bcef027ec5c', role: 1 }],
       countryIds: [],
       regionIds: [],

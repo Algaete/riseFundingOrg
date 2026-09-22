@@ -2,7 +2,7 @@
 # Default: read-only status. Preflight is reverted. Release requires exact main + green CI.
 set -euo pipefail
 mode="${1:---status}"
-[[ "$mode" == "--status" || "$mode" == "--preflight" || "$mode" == "--release" ]] || { echo 'Use --status, --preflight or --release.' >&2; exit 2; }
+[[ "$mode" == "--status" || "$mode" == "--check-source-identities" || "$mode" == "--preflight" || "$mode" == "--release" ]] || { echo 'Use --status, --check-source-identities, --preflight or --release.' >&2; exit 2; }
 task_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [[ "$mode" == '--release' ]]; then
   [[ "${RF_DEV_DATABASE_CONFIRMATION:-}" == 'DEPLOY-DEV-DATABASE' && "${RF_DEV_RELEASE_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo 'Explicit database release confirmation and SHA required.' >&2; exit 2; }

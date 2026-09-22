@@ -60,6 +60,9 @@ internal static class FundingEditorialServiceSupport
     internal static FundingEditorialCommandResult MapMutation(FundingEditorialMutation mutation)
     {
         var errors = ToErrors(mutation.Issues);
+        if (mutation.Code == "cover-selection-required")
+            errors = FieldValidationErrors.Single("coverKey", "funding-cover-required",
+                "Vuelve a cargar la ficha y confirma su portada antes de guardar.");
         if (mutation.Code == "source-link-conflict" && errors is null)
         {
             errors = new FieldValidationErrors()
@@ -83,7 +86,7 @@ internal static class FundingEditorialServiceSupport
                 "funder-not-ready" or "opportunity-not-ready" => FundingEditorialOutcome.NotReady,
                 "idempotency-conflict" => FundingEditorialOutcome.IdempotencyConflict,
                 "rejection-reason-required" or "funder-not-found" or "source-disabled" or
-                    "invalid-document" or "invalid-decision" =>
+                    "invalid-document" or "invalid-decision" or "cover-selection-required" =>
                     FundingEditorialOutcome.ValidationFailed,
                 _ => FundingEditorialOutcome.Conflict
             };

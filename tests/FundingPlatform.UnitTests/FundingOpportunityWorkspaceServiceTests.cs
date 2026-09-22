@@ -9,8 +9,9 @@ public sealed class FundingOpportunityWorkspaceServiceTests
     private static readonly Guid OrganizationId =
         Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
-    [Fact]
-    public async Task Search_normalizes_filters_before_calling_the_repository()
+    [Theory]
+    [InlineData(false)][InlineData(true)]
+    public async Task Search_normalizes_filters_before_calling_the_repository(bool includeReviewedTranslations)
     {
         var repository = new StubRepository();
         var service = CreateService(repository);
@@ -27,7 +28,7 @@ public sealed class FundingOpportunityWorkspaceServiceTests
         };
 
         var result = await service.SearchAsync(
-            UserId, OrganizationId, filters, CancellationToken.None);
+            UserId, OrganizationId, filters, CancellationToken.None, includeReviewedTranslations);
 
         Assert.Equal(FundingOpportunityWorkspaceSearchOutcome.Success, result.Outcome);
         Assert.Equal("agua segura", repository.LastFilters!.Query);
@@ -35,6 +36,7 @@ public sealed class FundingOpportunityWorkspaceServiceTests
         Assert.Equal([56, 152], repository.LastFilters.CountryIds);
         Assert.Single(repository.LastFilters.FunderPublicIds);
         Assert.Equal(1, repository.SearchCalls);
+        Assert.Equal(includeReviewedTranslations, repository.IncludeReviewedTranslations);
     }
 
     [Theory]
@@ -196,6 +198,7 @@ public sealed class FundingOpportunityWorkspaceServiceTests
 
     private sealed class StubRepository : IFundingOpportunityWorkspaceRepository
     {
+        public bool IncludeReviewedTranslations { get; private set; }
         public int SearchCalls { get; private set; }
         public int PutCalls { get; private set; }
         public int? SearchErrorNumber { get; init; }
@@ -207,9 +210,10 @@ public sealed class FundingOpportunityWorkspaceServiceTests
             Guid userPublicId,
             Guid organizationPublicId,
             FundingOpportunitySearchFilters filters,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, bool includeReviewedTranslations = false)
         {
             SearchCalls++;
+            IncludeReviewedTranslations = includeReviewedTranslations;
             LastFilters = filters;
             if (SearchErrorNumber.HasValue)
             {

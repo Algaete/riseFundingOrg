@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react'
+import { useFundingContentLanguage } from '@/features/funding/use-funding-content-language'
+import { FundingListLanguageNotice, FundingListTranslationLabel } from '@/features/funding/funding-list-language'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -18,11 +20,14 @@ function SafeSource({ url, label }: { url: string; label: string }) {
 }
 export function FundingExplorerPage() {
   const { t } = useTranslation()
+  const language = useFundingContentLanguage()
   const [params, setParams] = useSearchParams()
   const [invalid, setInvalid] = useState(false)
   const catalogs = useQuery({ queryKey: ['funding-discovery-catalogs'], queryFn: ({ signal }) => fundingDiscoveryApi.catalogs(signal) })
   const query = new URLSearchParams(params); if (!query.has('page')) query.set('page', '1'); query.set('pageSize', '20')
-  const results = useQuery({ queryKey: ['funding-discovery', query.toString()], queryFn: ({ signal }) => fundingDiscoveryApi.search(query, signal), retry: false })
+  const results = useQuery({ queryKey: ['funding-discovery', query.toString(), ...(language.locale ? [language.locale] : [])],
+    queryFn: ({ signal }) => language.locale ? fundingDiscoveryApi.search(query, signal, language.locale) : fundingDiscoveryApi.search(query, signal),
+    retry: false, ...(language.enabled ? { staleTime: 0, gcTime: 0 } : {}) })
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const values = new FormData(event.currentTarget); const next = new URLSearchParams()
     values.forEach((value, key) => { if (String(value).trim()) next.set(key, String(value).trim()) })
@@ -43,9 +48,11 @@ export function FundingExplorerPage() {
     </fieldset><label className="flex items-center gap-2"><input disabled={!catalogs.data} type="checkbox" name="onlyOpen" defaultChecked={params.get('onlyOpen') !== 'false'} />{t('fundingDiscovery.onlyOpen')}</label>
       <LoadState pending={catalogs.isPending} error={catalogs.error} retry={() => catalogs.refetch()} />
       {invalid && <p role="alert">{t('fundingDiscovery.invalid')}</p>}<button className={button} disabled={results.isFetching}>{t('fundingDiscovery.search')}</button></form>
+    <FundingListLanguageNotice selection={language} />
     <p>{t('fundingDiscovery.disclaimer')}</p><LoadState pending={results.isPending} error={results.error} retry={() => results.refetch()} />
     {results.data && <section className="space-y-4" aria-live="polite">{results.data.items.length === 0 && <p>{t('fundingDiscovery.empty')}</p>}
       {results.data.items.map(item => <article key={item.id} className={panel}><h2 className="text-xl font-semibold">{item.title}</h2><p>{item.summary}</p>
+        <FundingListTranslationLabel localization={item.localization} />
         <p>{item.classification?.funderKind ? t(`fundingDiscovery.kinds.${item.classification.funderKind as 1 | 2 | 3 | 4 | 5 | 6}`) : t('fundingDiscovery.unknown')}</p>
         {booleanFields.map(key => <p key={key}>{t(`fundingDiscovery.${key}`)}: {t(`fundingDiscovery.${item.classification?.[key] === null || item.classification?.[key] === undefined ? 'unknown' : item.classification[key] ? 'yes' : 'no'}`)}</p>)}
         <p>{item.minimumAmount === null && item.maximumAmount === null ? t('fundingDiscovery.unknown') : `${item.minimumAmount === null ? '—' : formatMoneyValue(item.minimumAmount, item.currency)} – ${item.maximumAmount === null ? '—' : formatMoneyValue(item.maximumAmount, item.currency)}`}</p>

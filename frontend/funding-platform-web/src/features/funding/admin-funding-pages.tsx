@@ -1,4 +1,8 @@
 import { useFundingEditorialScope } from '@/features/funder-workspace/editorial-scope'
+import { FundingCoverPicker } from './funding-cover-picker'
+import { isFundingCoverKey } from './funding-covers'
+import { fundingTranslationsEnabled } from './funding-translations-api'
+import { otherFundingCategoryId, otherFundingCategoryMaximum } from './funding-category-details'
 import { formatMoneyValue } from '@/i18n/formats'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -57,6 +61,7 @@ import { executeEditorialCommand } from '@/features/funding/editorial-command-ca
 import { focusFundingFormField, fundingFormErrors, type FundingFormField } from './funding-form-validation'
 import { FundingFormValidationSummary } from './funding-form-validation-summary'
 import { organizationApi, type CatalogOption } from '@/features/organizations/organization-api'
+import { availableTimeZones, dateTimeInZone, resolveDeadline } from './deadline-time'
 
 const listPageSize = 20
 const funderChoicePageSize = 20
@@ -93,7 +98,9 @@ const deadlinePrecision = z.enum(['0', '1', '2'])
 const geographicScope = z.enum(['0', '1', '2'])
 const remoteApplication = z.enum(['0', '1', '2'])
 
-const opportunitySchema = z.object({
+const opportunitySchema = (original?: AdminFundingOpportunityDetail) => z.object({
+  coverKey: z.string().refine((value): boolean => isFundingCoverKey(value), 'editorialValidation.coverInvalid'),
+  otherCategoryDescription: z.string().trim().max(otherFundingCategoryMaximum, 'editorialValidation.otherCategoryMax'),
   title: z.string().trim().min(3, 'editorialValidation.titleMin').max(350, 'editorialValidation.max350'),
   summary: z.string().trim().max(2000, 'editorialValidation.max2000'),
   description: z.string().trim().max(50_000, 'editorialValidation.max50000'),
@@ -138,6 +145,9 @@ const opportunitySchema = z.object({
   beneficiaryTypeIds: z.array(z.number().int().positive()),
   projectTypeIds: z.array(z.number().int().positive()),
 }).superRefine((values, context) => {
+  if (values.categoryIds.includes(otherFundingCategoryId) && !values.otherCategoryDescription.trim()) {
+    context.addIssue({ code: 'custom', message: 'editorialValidation.otherCategoryRequired', path: ['otherCategoryDescription'] })
+  }
   if (values.minimumAmount && values.maximumAmount && Number(values.minimumAmount) > Number(values.maximumAmount)) {
     context.addIssue({ code: 'custom', message: 'editorialValidation.amountOrder', path: ['maximumAmount'] })
   }
@@ -172,13 +182,12 @@ const opportunitySchema = z.object({
   if (fixedDeadline && values.deadlinePrecision === '2') {
     if (!values.closeDate || !values.closeAtUtc || !values.deadlineTimeZoneId.trim()) {
       context.addIssue({ code: 'custom', message: 'editorialValidation.dateTime', path: ['closeAtUtc'] })
-    } else {
-      const dateAtZone = utcDateInTimeZone(values.closeAtUtc, values.deadlineTimeZoneId.trim())
-      if (dateAtZone === null) {
-        context.addIssue({ code: 'custom', message: 'editorialValidation.iana', path: ['deadlineTimeZoneId'] })
-      } else if (dateAtZone !== values.closeDate) {
-        context.addIssue({ code: 'custom', message: 'editorialValidation.zoneDate', path: ['closeAtUtc'] })
-      }
+    } else if (!unchangedDeadline(values, original)) {
+      const result = resolveDeadline(`${values.closeDate}T${values.closeAtUtc}`, values.deadlineTimeZoneId)
+      if (result.error) context.addIssue({
+        code: 'custom', message: `editorialValidation.deadline_${result.error}`,
+        path: [result.error === 'zone' ? 'deadlineTimeZoneId' : 'closeAtUtc'],
+      })
     }
   }
   if (values.requiresCofunding === 'true' && (!values.cofundingPercentage || Number(values.cofundingPercentage) <= 0)) {
@@ -197,7 +206,13 @@ const opportunitySchema = z.object({
   }
 })
 
-type OpportunityFormValues = z.infer<typeof opportunitySchema>
+type OpportunityFormValues = z.infer<ReturnType<typeof opportunitySchema>>
+
+function unchangedDeadline(values: { closeDate: string; closeAtUtc: string; deadlineTimeZoneId: string }, original?: AdminFundingOpportunityDetail) {
+  return Boolean(original?.closeAtUtc && values.closeDate === original.closeDate
+    && values.deadlineTimeZoneId === original.deadlineTimeZoneId
+    && `${values.closeDate}T${values.closeAtUtc}` === dateTimeInZone(original.closeAtUtc, values.deadlineTimeZoneId))
+}
 
 function Field({ children, error, hint, label }: { children: ReactNode; error?: string; hint?: string; label: string }) {
   useTranslation()
@@ -240,7 +255,7 @@ function MultiChoice({
                   onChange={() => onChange(selected.includes(item.id) ? selected.filter((id) => id !== item.id) : [...selected, item.id])}
                   type="checkbox"
                 />
-                {catalogName(catalog, item)}
+                {catalog === 'fundingCategories' && item.id === otherFundingCategoryId ? i18n.t('adminFunding.otherCategoryOption') : catalogName(catalog, item)}
               </label>
             ))}
           </div>}
@@ -248,23 +263,12 @@ function MultiChoice({
   )
 }
 
-function toUtcDateTimeInput(value: string | null) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toISOString().slice(0, 23)
-}
-
-function fromUtcDateTimeInput(value: string) {
-  return value ? new Date(`${value}Z`).toISOString() : null
-}
-
 function toLocalDateTimeInput(value: string | null) {
   if (!value) return ''
   const instant = new Date(value)
   if (Number.isNaN(instant.getTime())) return ''
   const localTime = new Date(instant.getTime() - instant.getTimezoneOffset() * 60_000)
-  return localTime.toISOString().slice(0, 23)
+  return localTime.toISOString().slice(0, 16)
 }
 
 function fromLocalDateTimeInput(value: string) {
@@ -277,29 +281,14 @@ function currentLocalDateTimeInput() {
   return toLocalDateTimeInput(new Date().toISOString())
 }
 
-function utcDateInTimeZone(value: string, timeZone: string) {
-  const instant = new Date(`${value}Z`)
-  if (Number.isNaN(instant.getTime())) return null
-  try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      day: '2-digit', month: '2-digit', timeZone, year: 'numeric',
-    }).formatToParts(instant)
-    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((valuePart) => valuePart.type === type)?.value
-    const year = part('year')
-    const month = part('month')
-    const day = part('day')
-    return year && month && day ? `${year}-${month}-${day}` : null
-  } catch {
-    return null
-  }
-}
-
 function nullableBooleanValue(value: '' | 'true' | 'false') {
   return value === '' ? null : value === 'true'
 }
 
 function emptyOpportunity(): OpportunityFormValues {
   return {
+    otherCategoryDescription: '',
+    coverKey: 'auto',
     title: '', summary: '', description: '', sponsorName: '', sponsorUrl: '', applicationUrl: '',
     externalId: '', fundingSourceId: '', issuerCountryId: '', fundingTypeId: '', currency: '', minimumAmount: '',
     maximumAmount: '', amountStatus: '0', openDate: '', closeDate: '', closeAtUtc: '', deadlineTimeZoneId: '',
@@ -315,6 +304,8 @@ function emptyOpportunity(): OpportunityFormValues {
 function toFormValues(item?: AdminFundingOpportunityDetail): OpportunityFormValues {
   if (!item) return emptyOpportunity()
   return {
+    otherCategoryDescription: item.otherCategoryDescription ?? '',
+    coverKey: item.coverKey ?? 'auto',
     title: item.title,
     summary: item.summary ?? '',
     description: item.description ?? '',
@@ -331,8 +322,9 @@ function toFormValues(item?: AdminFundingOpportunityDetail): OpportunityFormValu
     amountStatus: String(item.amountStatus) as `${AmountStatus}`,
     openDate: item.openDate ?? '',
     closeDate: item.closeDate ?? '',
-    closeAtUtc: toUtcDateTimeInput(item.closeAtUtc),
-    deadlineTimeZoneId: item.deadlineTimeZoneId ?? '',
+    // Form time is local HH:mm; UTC is only used at the API boundary.
+    closeAtUtc: item.closeAtUtc ? dateTimeInZone(item.closeAtUtc, item.deadlineTimeZoneId || 'UTC')?.slice(11) ?? '' : '',
+    deadlineTimeZoneId: item.deadlineTimeZoneId || (item.closeAtUtc ? 'UTC' : ''),
     deadlineType: String(item.deadlineType) as `${DeadlineType}`,
     deadlinePrecision: String(item.deadlinePrecision) as `${DeadlinePrecision}`,
     eligibilityDescription: item.eligibilityDescription ?? '',
@@ -380,8 +372,10 @@ function hostname(value: string) {
   }
 }
 
-function toWriteInput(values: OpportunityFormValues): FundingOpportunityWriteInput {
+function toWriteInput(values: OpportunityFormValues, original?: AdminFundingOpportunityDetail): FundingOpportunityWriteInput {
   return {
+    otherCategoryDescription: values.categoryIds.includes(otherFundingCategoryId) ? nullableText(values.otherCategoryDescription) : null,
+    coverKey: values.coverKey,
     title: values.title.trim(),
     summary: nullableText(values.summary),
     description: nullableText(values.description),
@@ -398,7 +392,8 @@ function toWriteInput(values: OpportunityFormValues): FundingOpportunityWriteInp
     amountStatus: Number(values.amountStatus) as AmountStatus,
     openDate: nullableText(values.openDate),
     closeDate: nullableText(values.closeDate),
-    closeAtUtc: fromUtcDateTimeInput(values.closeAtUtc),
+    closeAtUtc: unchangedDeadline(values, original) ? original!.closeAtUtc
+      : values.closeAtUtc ? resolveDeadline(`${values.closeDate}T${values.closeAtUtc}`, values.deadlineTimeZoneId).utc ?? null : null,
     deadlineTimeZoneId: nullableText(values.deadlineTimeZoneId),
     deadlineType: Number(values.deadlineType) as DeadlineType,
     deadlinePrecision: Number(values.deadlinePrecision) as DeadlinePrecision,
@@ -418,7 +413,8 @@ function toWriteInput(values: OpportunityFormValues): FundingOpportunityWriteInp
     geographicScope: Number(values.geographicScope) as GeographicScope,
     remoteApplication: Number(values.remoteApplication) as RemoteApplication,
     sourceUrl: values.sourceUrl.trim(),
-    lastVerifiedAtUtc: fromLocalDateTimeInput(values.lastVerifiedAtUtc),
+    lastVerifiedAtUtc: original && values.lastVerifiedAtUtc === toLocalDateTimeInput(original.lastVerifiedAtUtc)
+      ? original.lastVerifiedAtUtc : fromLocalDateTimeInput(values.lastVerifiedAtUtc),
     funders: values.funders,
     countryIds: values.countryIds,
     regionIds: values.regionIds,
@@ -553,6 +549,7 @@ function AdminOpportunityForm({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [funderSearch, setFunderSearch] = useState('')
+  const [timeZoneSearch, setTimeZoneSearch] = useState('')
   const [debouncedFunderSearch, setDebouncedFunderSearch] = useState('')
   const [funderPage, setFunderPage] = useState(1)
   const [saveMessage, setSaveMessage] = useState<'adminFunding.saved' | null>(null)
@@ -570,13 +567,18 @@ function AdminOpportunityForm({
     staleTime: 30_000,
   })
   const sources = useQuery({ queryKey: [editorialScope.key('admin-funding-sources')], queryFn: ({ signal }) => adminFundingSourcesApi.list(signal), staleTime: 60_000 })
-  const form = useForm<OpportunityFormValues>({ resolver: zodResolver(opportunitySchema), defaultValues: toFormValues(item), shouldFocusError: false })
+  const form = useForm<OpportunityFormValues>({ resolver: zodResolver(opportunitySchema(item)), defaultValues: toFormValues(item), shouldFocusError: false })
 
   useEffect(() => {
     if (invalidSubmitCount > 0) validationSummary.current?.focus()
   }, [invalidSubmitCount])
 
   useEffect(() => { form.reset(toFormValues(item)) }, [form, item])
+  useEffect(() => {
+    // Use the existing catalog entry, never invent an ID or enable a source.
+    const manual = sources.data?.find(source => source.name === 'Manual editorial' && source.isEnabled)
+    if (!item && manual && !form.getValues('fundingSourceId')) form.setValue('fundingSourceId', String(manual.id))
+  }, [form, item, sources.data])
   useEffect(() => { onDirtyChange?.(form.formState.isDirty) }, [form.formState.isDirty, onDirtyChange])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -597,7 +599,7 @@ function AdminOpportunityForm({
   const save = useMutation({
     mutationFn: (values: OpportunityFormValues) => {
       setSaveMessage(null)
-      const input = toWriteInput(values)
+      const input = toWriteInput(values, item)
       const scope = item ? `opportunity:${item.opportunityId}:update` : 'opportunity:create'
       return executeEditorialCommand(editorialScope.key(scope), { eTag: item?.eTag, input }, (idempotencyKey) => (
         item
@@ -619,6 +621,8 @@ function AdminOpportunityForm({
       setSaveMessage(null)
       if (!(error instanceof ApiError)) return
       const serverFields = [
+        'otherCategoryDescription',
+        'coverKey',
         'fundingSourceId',
         'externalId',
         'sourceUrl',
@@ -652,6 +656,10 @@ function AdminOpportunityForm({
   const selectedAmountStatus = form.watch('amountStatus')
   const selectedDeadlineType = form.watch('deadlineType')
   const selectedDeadlinePrecision = form.watch('deadlinePrecision')
+  const selectedTimeZone = form.watch('deadlineTimeZoneId')
+  const timeZoneLabel = (zone: string) => zone === 'America/Santiago' ? i18n.t('adminFunding.santiagoZone') : zone.replaceAll('_', ' ')
+  const timeZoneOptions = availableTimeZones(selectedTimeZone).filter(zone => zone === selectedTimeZone
+    || timeZoneLabel(zone).toLocaleLowerCase().includes(timeZoneSearch.trim().toLocaleLowerCase()))
   const selectedCofunding = form.watch('requiresCofunding')
   const selectedGeographicScope = form.watch('geographicScope')
   const sourceHostname = hostname(form.watch('sourceUrl'))
@@ -689,6 +697,8 @@ function AdminOpportunityForm({
   return (
     <form className="space-y-5" noValidate onSubmit={form.handleSubmit(submit, reportInvalidSubmission)} ref={formElement}>
       <fieldset className="min-w-0 space-y-5 disabled:opacity-65" disabled={locked || save.isPending}>
+        <FundingCoverPicker value={form.watch('coverKey')} onChange={key => form.setValue('coverKey', key, { shouldDirty: true, shouldValidate: true })}
+          error={form.formState.errors.coverKey?.message ? editorialFieldMessage(form.formState.errors.coverKey.message) : undefined} />
         <Card>
           <CardHeader><CardTitle>{i18n.t('adminFunding.identity')}</CardTitle></CardHeader>
           <CardContent className="grid gap-5">
@@ -698,13 +708,13 @@ function AdminOpportunityForm({
               <Field error={form.formState.errors.sponsorUrl?.message} label={i18n.t('adminFunding.sponsorWebsite')}><Input {...form.register('sponsorUrl')} inputMode="url" placeholder="https://..." /></Field>
             </div>
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-              <Field error={form.formState.errors.fundingSourceId?.message} label={i18n.t('adminFunding.source')}>
+              <Field error={form.formState.errors.fundingSourceId?.message} hint={i18n.t('adminFunding.manualSourceHelp')} label={i18n.t('adminFunding.source')}>
                 <select {...form.register('fundingSourceId')} className={inputClass}>
                   <option value="">{i18n.t('adminFunding.chooseSource')}</option>
                   {sources.data.map((source) => <option disabled={!source.isEnabled} key={source.id} value={source.id}>{source.name}{source.isEnabled ? '' : i18n.t('adminFunding.inactiveSource')}</option>)}
                 </select>
               </Field>
-              <Field error={form.formState.errors.externalId?.message} label={i18n.t('adminFunding.externalId')}><Input {...form.register('externalId')} placeholder={i18n.t('adminFunding.externalIdPlaceholder')} /></Field>
+              <Field error={form.formState.errors.externalId?.message} hint={i18n.t('adminFunding.externalIdHelp')} label={i18n.t('adminFunding.externalId')}><Input {...form.register('externalId')} placeholder={i18n.t('adminFunding.externalIdPlaceholder')} /></Field>
               <Field error={form.formState.errors.issuerCountryId?.message} hint={i18n.t('adminFunding.issuerHelp')} label={i18n.t('adminFunding.issuerCountry')}>
                 <select {...form.register('issuerCountryId')} className={inputClass}>
                   <option value="">{i18n.t('editorial.notReported')}</option>
@@ -814,6 +824,8 @@ function AdminOpportunityForm({
                   if (event.target.value !== '2') {
                     form.setValue('closeAtUtc', '', { shouldDirty: true })
                     form.setValue('deadlineTimeZoneId', '', { shouldDirty: true })
+                  } else if (!form.getValues('deadlineTimeZoneId')) {
+                    form.setValue('deadlineTimeZoneId', 'America/Santiago', { shouldDirty: true })
                   }
                 } })} className={inputClass}>
                   <option value="0">{i18n.t('adminFunding.choosePrecision')}</option>
@@ -824,12 +836,20 @@ function AdminOpportunityForm({
             </div>
             {selectedDeadlineType === '1' && selectedDeadlinePrecision !== '0' && <Field error={form.formState.errors.closeDate?.message} label={i18n.t('adminFunding.closingDate')}><Input {...form.register('closeDate')} type="date" /></Field>}
             {selectedDeadlineType === '1' && selectedDeadlinePrecision === '2' && <div className="grid gap-4 md:grid-cols-2">
-              <Field error={form.formState.errors.closeAtUtc?.message} hint={i18n.t('adminFunding.closingUtcHelp')} label={i18n.t('adminFunding.closingUtc')}><Input {...form.register('closeAtUtc')} step="0.001" type="datetime-local" /></Field>
-              <Field error={form.formState.errors.deadlineTimeZoneId?.message} hint={i18n.t('adminFunding.closingZoneHelp')} label={i18n.t('adminFunding.closingZone')}><Input {...form.register('deadlineTimeZoneId')} placeholder="America/Santiago" /></Field>
+              <Field error={form.formState.errors.closeAtUtc?.message} hint={i18n.t('adminFunding.closingLocalHelp')} label={i18n.t('adminFunding.closingLocal')}><Input aria-label={i18n.t('adminFunding.closingLocal')} {...form.register('closeAtUtc')} step="60" type="time" /></Field>
+              <div className="space-y-2">
+                <Field label={i18n.t('adminFunding.searchZone')}><Input type="search" value={timeZoneSearch} onChange={event => setTimeZoneSearch(event.target.value)} placeholder={i18n.t('adminFunding.searchZonePlaceholder')} /></Field>
+                <Field error={form.formState.errors.deadlineTimeZoneId?.message} hint={i18n.t('adminFunding.closingZoneHelp')} label={i18n.t('adminFunding.closingZone')}>
+                  <select {...form.register('deadlineTimeZoneId')} className={inputClass}>
+                    <option value="">{i18n.t('adminFunding.chooseZone')}</option>
+                    {timeZoneOptions.map(zone => <option key={zone} value={zone}>{timeZoneLabel(zone)}</option>)}
+                  </select>
+                </Field>
+              </div>
             </div>}
             <Field error={form.formState.errors.lastVerifiedAtUtc?.message} hint={i18n.t('adminFunding.verifiedHelp')} label={i18n.t('adminFunding.verified')}>
               <span className="flex min-w-0 flex-col gap-2 sm:flex-row">
-                <Input {...form.register('lastVerifiedAtUtc')} className="flex-1" max={currentLocalDateTimeInput()} step="0.001" type="datetime-local" />
+                <Input {...form.register('lastVerifiedAtUtc')} className="flex-1" max={currentLocalDateTimeInput()} step="60" type="datetime-local" />
                 <Button onClick={() => {
                   form.setValue('lastVerifiedAtUtc', currentLocalDateTimeInput(), { shouldDirty: true, shouldValidate: true })
                   form.clearErrors('lastVerifiedAtUtc')
@@ -875,6 +895,12 @@ function AdminOpportunityForm({
               {form.formState.errors.regionIds?.message && <p className="text-xs text-foreground" role="alert">{editorialFieldMessage(form.formState.errors.regionIds.message)}</p>}
             </>}
             <MultiChoice catalog='fundingCategories' field="categoryIds" items={catalogs.data.fundingCategories} label={i18n.t('adminFunding.categories')} onChange={(value) => form.setValue('categoryIds', value, { shouldDirty: true })} selected={categories} />
+            {categories.includes(otherFundingCategoryId) && <label className="grid gap-2 text-sm font-semibold">
+              <span>{i18n.t('adminFunding.otherCategory')} <span aria-hidden="true">*</span></span>
+              <Input {...form.register('otherCategoryDescription')} maxLength={otherFundingCategoryMaximum} aria-required="true" aria-invalid={Boolean(form.formState.errors.otherCategoryDescription)} />
+              <span className="text-xs font-normal text-muted-foreground">{i18n.t('adminFunding.otherCategoryHelp')}</span>
+              {form.formState.errors.otherCategoryDescription?.message && <span role="alert" className="text-xs text-destructive">{editorialFieldMessage(form.formState.errors.otherCategoryDescription.message)}</span>}
+            </label>}
             <MultiChoice catalog='beneficiaryTypes' field="beneficiaryTypeIds" items={catalogs.data.beneficiaryTypes} label={i18n.t('adminFunding.beneficiaries')} onChange={(value) => form.setValue('beneficiaryTypeIds', value, { shouldDirty: true })} selected={beneficiaries} />
             <MultiChoice catalog='projectTypes' field="projectTypeIds" items={catalogs.data.projectTypes} label={i18n.t('adminFunding.projectTypes')} onChange={(value) => form.setValue('projectTypeIds', value, { shouldDirty: true })} selected={projectTypes} />
           </CardContent>
@@ -1092,5 +1118,5 @@ export function AdminFundingDetailPage() {
 
   const data = opportunity.data
   const visibilityIssues = data ? publicVisibilityIssues(data) : []
-  return <div className="space-y-6"><Button asChild variant="ghost"><Link to={`${editorialScope.basePath}/funding`}><ArrowLeft className="size-4" /> {i18n.t('adminFunding.back')}</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunding.create') : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{i18n.t('editorial.version', { version: data.contentVersion })}</span><span>{i18n.t('editorial.updated', { date: formatAdminDate(data.updatedAtUtc) })}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>{i18n.t('adminFunding.viewPublic')} <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && !editorialScope.owner && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>{i18n.t('adminFunding.pendingNotice')}</strong> {i18n.t('adminFunding.pendingHelp')}</p><Button asChild size="sm"><a href="#flujo-editorial">{i18n.t('adminFunding.goReview')}</a></Button></div>}{data && <>{!editorialScope.owner && <Button asChild variant="outline"><Link to={`/admin/funding/${data.opportunityId}/discovery`}>{i18n.t('adminFunding.classification')}</Link></Button>}<ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel canReview={!editorialScope.owner} commands={adminFundingOpportunitiesApi} disabledReason={dirty ? i18n.t('editorial.dirty') : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName={i18n.t('editorial.opportunityEntity')} notReadyAction={{ href: '#financiadores-alcance', label: i18n.t('adminFunding.correctScope') }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunities')] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
+  return <div className="space-y-6"><Button asChild variant="ghost"><Link to={`${editorialScope.basePath}/funding`}><ArrowLeft className="size-4" /> {i18n.t('adminFunding.back')}</Link></Button><div><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{i18n.t(editorialScope.owner ? 'funderWorkspace.title' : 'editorial.administration')}</p><div className="mt-1 flex flex-wrap items-center gap-3"><h1 className="text-3xl font-bold">{creating ? i18n.t('adminFunding.create') : data!.title}</h1>{data && <PublicationStatusBadge status={data.publicationStatus} />}</div>{data && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{i18n.t('editorial.version', { version: data.contentVersion })}</span><span>{i18n.t('editorial.updated', { date: formatAdminDate(data.updatedAtUtc) })}</span>{data.publicationStatus === 2 && visibilityIssues.length === 0 && <Link className="inline-flex items-center gap-1 font-semibold text-primary underline" to={`/funding/${data.slug}`}>{i18n.t('adminFunding.viewPublic')} <ExternalLink className="size-3.5" /></Link>}</div>}</div>{data?.publicationStatus === 1 && !editorialScope.owner && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-100" role="status"><p><strong>{i18n.t('adminFunding.pendingNotice')}</strong> {i18n.t('adminFunding.pendingHelp')}</p><Button asChild size="sm"><a href="#flujo-editorial">{i18n.t('adminFunding.goReview')}</a></Button></div>}{data && <>{!editorialScope.owner && <Button asChild variant="outline"><Link to={`/admin/funding/${data.opportunityId}/discovery`}>{i18n.t('adminFunding.classification')}</Link></Button>}{!editorialScope.owner && fundingTranslationsEnabled() && (dirty ? <Button variant="outline" disabled>{i18n.t('adminFunding.translations')}</Button> : <Button variant="outline" asChild><Link to={`/admin/funding/${data.opportunityId}/translations`}>{i18n.t('adminFunding.translations')}</Link></Button>)}<ReadinessChecks item={data} primaryFunder={primaryFunder.data} primaryFunderLoading={primaryFunder.isFetching} /><TraceabilityPanel item={data} /><div className="scroll-mt-6" id="flujo-editorial"><EditorialWorkflowPanel canReview={!editorialScope.owner} commands={adminFundingOpportunitiesApi} disabledReason={dirty ? i18n.t('editorial.dirty') : undefined} eTag={data.eTag} entityId={data.opportunityId} entityName={i18n.t('editorial.opportunityEntity')} notReadyAction={{ href: '#financiadores-alcance', label: i18n.t('adminFunding.correctScope') }} onChanged={async () => { await queryClient.invalidateQueries({ queryKey: [editorialScope.key('admin-funding-opportunities')] }); await opportunity.refetch() }} publicVisibilityIssues={visibilityIssues} publicationStatus={data.publicationStatus} rejectionReason={data.rejectionReason} /></div></>}<AdminOpportunityForm item={data} onDirtyChange={setDirty} /></div>
 }

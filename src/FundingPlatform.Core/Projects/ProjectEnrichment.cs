@@ -19,7 +19,8 @@ public sealed record ProjectEnrichment(
     IReadOnlyList<ProjectImpactIndicator?>? ImpactIndicators = null,
     string? SoughtPartners = null,
     string? SoughtProfessionals = null,
-    bool? SeekingConsortium = null)
+    bool? SeekingConsortium = null,
+    ProjectBackground? Background = null)
 {
     public ProjectEnrichment ForPublic() => this with
     {
@@ -39,3 +40,10 @@ public sealed record ProjectImpactIndicator(
     string? Unit = null,
     decimal? Baseline = null,
     decimal? Target = null);
+
+/// <summary>Optional editorial text, public only when the project is published. Not file attachments.</summary>
+public sealed record ProjectBackground(
+    string? AdditionalInformation = null,
+    string? TechnicalInformation = null,
+    string? ExistingPartnerships = null,
+    string? PreviousResults = null);

@@ -12,5 +12,6 @@ public sealed record FundingDiscoveryAdmin(Guid OpportunityId, string Title, int
     FundingDiscoveryData? Data, string? ETag, IReadOnlyList<string> SourceUrls);
 public sealed record FundingDiscoveryItem(Guid Id, string Slug, string Title, string? Summary, string SourceName,
     string SourceUrl, DateTimeOffset? LastVerifiedAtUtc, decimal? MinimumAmount, decimal? MaximumAmount,
-    string? Currency, DateOnly? CloseDate, FundingDiscoveryData? Classification);
+    string? Currency, DateOnly? CloseDate, FundingDiscoveryData? Classification,
+    int ContentVersion = 0, FundingTranslationLocalization? Localization = null);
 public sealed record FundingDiscoveryPage(IReadOnlyList<FundingDiscoveryItem> Items, long TotalCount, int Page, int PageSize);

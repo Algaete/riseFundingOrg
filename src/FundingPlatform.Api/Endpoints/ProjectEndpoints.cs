@@ -120,11 +120,13 @@ public static class ProjectEndpoints
         if (request.CountryIds is null || request.RegionIds is null ||
             request.CategoryIds is null || request.BeneficiaryTypeIds is null ||
             request.ProjectTypeIds is null || request.SustainableDevelopmentGoalIds is null ||
-            request.Enrichment is null)
+            request.Enrichment?.Background is null)
         {
             /* Omitted collections/enrichment mean "unchanged" on update. This keeps
                partial and pre-033/pre-040 clients from erasing optional draft data.
-               New clients send [] to clear a selection or {} to clear enrichment.
+               New clients send [] to clear a selection. Enrichment {} clears its
+               original fields; background {} explicitly clears the new section.
+               Missing/null background preserves it for pre-055 clients.
                If-Match below protects this read from a concurrent writer. */
             var current = await service.GetAsync(
                 userId, organizationId, projectId, cancellationToken);
@@ -142,7 +144,9 @@ public static class ProjectEndpoints
                     : request.ProjectStage,
                 SustainableDevelopmentGoalIds = request.SustainableDevelopmentGoalIds ??
                     current.SustainableDevelopmentGoalIds,
-                Enrichment = request.Enrichment ?? ProjectEnrichmentMapping.ToContract(current.Enrichment)
+                Enrichment = request.Enrichment is { } enrichment
+                    ? enrichment with { Background = enrichment.Background ?? ProjectEnrichmentMapping.ToContract(current.Enrichment)?.Background }
+                    : ProjectEnrichmentMapping.ToContract(current.Enrichment)
             };
         }
 

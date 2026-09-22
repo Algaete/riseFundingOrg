@@ -5,7 +5,7 @@ using FundingPlatform.Core.Validation;
 namespace FundingPlatform.Application.FundingOpportunities;
 public interface IFundingDiscoveryRepository
 {
-    Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token);
+    Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token, bool includeReviewedTranslations = false);
     Task<FundingDiscoveryAdmin?> GetAsync(Guid actor, Guid opportunityId, CancellationToken token);
     Task<CollaborationWriteResult> ReviewAsync(Guid actor, Guid opportunityId, FundingDiscoveryReview data, byte[]? version, byte[] keyHash, byte[] requestHash, CancellationToken token);
 }

@@ -317,14 +317,17 @@ BEGIN TRY
     DECLARE @CategoryIds dbo.FundingPlatform_IntIdList;
     DECLARE @ProjectTypeIds dbo.FundingPlatform_IntIdList;
     DECLARE @Matched BIGINT;
+    /* Scope result counts to this fixture, including its non-public control rows.
+       Existing published projects in dev must not change the expected count. */
+    DECLARE @AlphaQuery NVARCHAR(200) = N'Alpha climate ' + @Suffix;
     EXEC dbo.FundingPlatform_usp_ProjectMarketplace_Search
-        @Sort = N'newest', @PageNumber = 1, @PageSize = 1,
+        @Query = @Suffix, @Sort = N'newest', @PageNumber = 1, @PageSize = 1,
         @CountryIds = @CountryIds, @CategoryIds = @CategoryIds,
         @ProjectTypeIds = @ProjectTypeIds, @MatchedCount = @Matched OUTPUT;
     IF @Matched <> 2 THROW 53907, N'Marketplace paging exposed non-public projects.', 1;
 
     EXEC dbo.FundingPlatform_usp_ProjectMarketplace_Search
-        @Query = N'Alpha climate', @ProjectStatus = 1, @Currency = 'USD',
+        @Query = @AlphaQuery, @ProjectStatus = 1, @Currency = 'USD',
         @Sort = N'funding-gap-desc', @PageNumber = 1, @PageSize = 20,
         @CountryIds = @CountryIds, @CategoryIds = @CategoryIds,
         @ProjectTypeIds = @ProjectTypeIds, @MatchedCount = @Matched OUTPUT;
@@ -334,7 +337,7 @@ BEGIN TRY
     INSERT INTO @CategoryIds VALUES (@CategoryId), (2147483000);
     INSERT INTO @ProjectTypeIds VALUES (@ProjectTypeId);
     EXEC dbo.FundingPlatform_usp_ProjectMarketplace_Search
-        @Currency = 'USD', @Sort = N'funding-gap-desc', @PageNumber = 2, @PageSize = 1,
+        @Query = @Suffix, @Currency = 'USD', @Sort = N'funding-gap-desc', @PageNumber = 2, @PageSize = 1,
         @CountryIds = @CountryIds, @CategoryIds = @CategoryIds,
         @ProjectTypeIds = @ProjectTypeIds, @MatchedCount = @Matched OUTPUT;
     IF @Matched <> 2
