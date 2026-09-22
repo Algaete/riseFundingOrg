@@ -25,8 +25,8 @@ export function SearchableCatalogChoices({ catalog, label, items, selected, onCh
     <label className="grid gap-1 text-sm" htmlFor={id}>{t('projects.searchCountries')}
       <Input id={id} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={t('projects.searchCountriesPlaceholder')} />
     </label>
-    {chosen.length > 0 && <div className="grid gap-2 sm:grid-cols-2" aria-label={t('projects.selectedCountries')}>{chosen.map(choice)}</div>}
-    <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2" aria-label={t('projects.countryResults')}>{available.map(choice)}</div>
+    {chosen.length > 0 && <div role="group" className="grid gap-2 sm:grid-cols-2" aria-label={t('projects.selectedCountries')}>{chosen.map(choice)}</div>}
+    <div role="group" className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2" aria-label={t('projects.countryResults')}>{available.map(choice)}</div>
     {available.length === 0 && <p role="status" className="text-sm text-muted-foreground">{t('projects.noCountryResults')}</p>}
   </fieldset>
 }

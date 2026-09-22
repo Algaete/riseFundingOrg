@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { setInterfaceLanguage } from '@/i18n'
 import { SearchableCatalogChoices } from './searchable-catalog-choices'
@@ -25,6 +25,8 @@ it('filters country names without accents and keeps selected countries removable
 it('searches codes and translated country labels after changing interface language', async () => {
   render(<Harness />)
   await act(() => setInterfaceLanguage('en'))
+  expect(within(screen.getByRole('group', { name: 'Selected countries' })).getByRole('checkbox', { name: 'Chile' })).toBeChecked()
+  expect(within(screen.getByRole('group', { name: 'Available countries' })).getAllByRole('checkbox')).toHaveLength(2)
   await userEvent.type(screen.getByRole('searchbox', { name: 'Search countries' }), 'united')
   expect(screen.getByRole('checkbox', { name: 'United States of America' })).toBeVisible()
   await userEvent.clear(screen.getByRole('searchbox'))
