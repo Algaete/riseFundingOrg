@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 using FundingPlatform.Application.Engagement;
 using FundingPlatform.Application.Stories;
 using FundingPlatform.Core.Engagement;
@@ -34,15 +35,27 @@ public sealed class EngagementEndpointTests(ApiFactory factory) : IClassFixture<
             now.AddMinutes(-1).UtcDateTime, now.AddMinutes(10).UtcDateTime, new SigningCredentials(new SymmetricSecurityKey(new byte[64]), SecurityAlgorithms.HmacSha512));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", new JwtSecurityTokenHandler().WriteToken(jwt));
     }
-    [Fact]
-    public async Task Public_stories_read_only_public_projection_and_preserve_filters()
+    [Theory]
+    [InlineData(false)][InlineData(true)]
+    public async Task Public_stories_read_only_public_projection_and_preserve_filters(bool nullItems)
     {
-        var repo = new Repository(); await using var app = App(repo); using var client = app.CreateClient();
+        var repo = new Repository { NullItems = nullItems }; await using var app = App(repo); using var client = app.CreateClient();
         using var response = await client.GetAsync($"/api/v1/stories?organizationId={Organization}&page=2");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode); Assert.Null(repo.Actor);
         Assert.Equal(Organization, repo.Organization); Assert.Equal(2, repo.Page);
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(JsonValueKind.Array, body.RootElement.GetProperty("items").ValueKind);
         using var missing = await client.GetAsync($"/api/v1/stories/{StoryId}"); Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+    [Fact]
+    public async Task Empty_private_inbox_returns_an_array_for_null_sql_items()
+    {
+        await using var app = App(new Repository { NullItems = true }); using var client = app.CreateClient(); Login(client, "Admin", true);
+        using var response = await client.GetAsync("/api/v1/admin/inquiries");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(JsonValueKind.Array, body.RootElement.GetProperty("items").ValueKind);
     }
     [Fact]
     public async Task Anonymous_cannot_access_own_stories_or_mutate_them()
@@ -113,15 +126,16 @@ public sealed class EngagementEndpointTests(ApiFactory factory) : IClassFixture<
     }
     private sealed class Repository : IStoryRepository, IInquiryRepository
     {
+        public bool NullItems;
         public int? Error; public int Writes, Page, InquiryReads; public Guid? Actor, Organization; public StoryWrite? StoryWrite;
         public Task<StoryPage> ListAsync(Guid? actor, Guid? organization, Guid? project, Guid? story, int page, CancellationToken token)
-        { Actor = actor; Organization = organization; Page = page; return Task.FromResult(new StoryPage([], 0, page)); }
+        { Actor = actor; Organization = organization; Page = page; return Task.FromResult(new StoryPage(NullItems ? null! : [], 0, page)); }
         public Task SaveAsync(Guid actor, Guid organization, Guid story, StoryWrite data, CancellationToken token)
         { Actor = actor; Organization = organization; StoryWrite = data; Writes++; if (Error is int e) throw new StoryDataException(e, new Exception("private error")); return Task.CompletedTask; }
         public Task PublishAsync(Guid actor, Guid organization, Guid story, StoryPublication data, CancellationToken token) { Writes++; return Task.CompletedTask; }
         public Task<InquiryReceipt> CaptureAsync(InquiryInput data, byte[] hash, CancellationToken token)
         { Writes++; if (Error is int e) throw new InquiryDataException(e, new Exception("private error")); return Task.FromResult(new InquiryReceipt(data.RequestId, false)); }
-        public Task<InquiryPage> ListAsync(Guid actor, int page, CancellationToken token) { InquiryReads++; return Task.FromResult(new InquiryPage([], 0, page)); }
+        public Task<InquiryPage> ListAsync(Guid actor, int page, CancellationToken token) { InquiryReads++; return Task.FromResult(new InquiryPage(NullItems ? null! : [], 0, page)); }
         public Task ReviewAsync(Guid actor, Guid id, InquiryReview data, CancellationToken token) => Task.CompletedTask;
         public Task<Inquiry?> ClaimNotificationAsync(Guid id, CancellationToken token) => throw new NotSupportedException();
         public Task FinishNotificationAsync(Guid id, bool accepted, CancellationToken token) => throw new NotSupportedException();

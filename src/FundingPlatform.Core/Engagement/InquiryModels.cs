@@ -6,5 +6,8 @@ public sealed record InquiryInput(Guid RequestId, string Name, string Email, str
 public sealed record InquiryReceipt(Guid RequestId, bool WasReplay);
 public sealed record Inquiry(Guid RequestId, InquiryInput Data, string CountryName, byte Status,
     byte NotificationStatus, int Revision, DateTimeOffset CreatedAtUtc);
-public sealed record InquiryPage(IReadOnlyList<Inquiry> Items, int TotalCount, int Page);
+public sealed record InquiryPage(IReadOnlyList<Inquiry> Items, int TotalCount, int Page)
+{
+    public IReadOnlyList<Inquiry> Items { get; init; } = Items ?? [];
+}
 public sealed record InquiryReview(int ExpectedRevision, byte Status);
