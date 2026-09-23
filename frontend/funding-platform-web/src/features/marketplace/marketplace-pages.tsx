@@ -1,4 +1,6 @@
 import { formatDateValue, formatMoneyValue } from '@/i18n/formats'
+import { StoryFeed } from '@/features/engagement/story-feed'
+import { DonationComingSoon } from '@/features/engagement/engagement-ui'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -341,6 +343,7 @@ export function MarketplaceOrganizationPage() {
             {data.establishedYear && <p className="flex items-center gap-2"><CalendarDays className="size-4 text-primary" />{t('marketplace.since', { year: data.establishedYear })}</p>}
             {data.organizationType && <p className="flex items-center gap-2"><Building2 className="size-4 text-primary" /><span lang={catalogLanguage('organizationTypes', data.organizationType)}>{catalogName('organizationTypes', data.organizationType)}</span></p>}
             {website && <Button asChild size="sm" variant="outline"><a href={website} rel="noopener noreferrer" target="_blank">{t('marketplace.officialSite')}<ExternalLink className="size-4" /></a></Button>}
+            <DonationComingSoon />
           </div>
         </div>
         {(data.categories.length > 0 || data.projectTypes.length > 0) && <div className="mt-6 flex flex-wrap gap-2 border-t pt-5">{[{ catalog: 'fundingCategories' as const, values: data.categories }, { catalog: 'projectTypes' as const, values: data.projectTypes }].flatMap(({ catalog, values }) => values.map(item => <span className="rounded-full border px-3 py-1.5 text-xs" key={`${catalog}-${item.id}`} lang={catalogLanguage(catalog, item)}>{catalogName(catalog, item)}</span>))}</div>}
@@ -353,6 +356,7 @@ export function MarketplaceOrganizationPage() {
           : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <MarketplaceProjectCard key={project.publicId} project={project} />)}</div>}
       </section>
 
+      <StoryFeed key={organizationId} organizationId={organizationId} />
       <Card><CardContent className="flex items-start gap-3 p-5 text-sm text-muted-foreground"><WalletCards className="mt-0.5 size-5 shrink-0 text-primary" /><p>{t('marketplace.organizationDisclaimer')}</p></CardContent></Card>
     </div>
   )

@@ -1,4 +1,9 @@
 using System.Diagnostics;
+using FundingPlatform.Application.Stories;
+using FundingPlatform.Application.Engagement;
+using FundingPlatform.Infrastructure.Persistence.Stories;
+using FundingPlatform.Infrastructure.Persistence.Engagement;
+using FundingPlatform.Infrastructure.Notifications;
 using FundingPlatform.Application.Collaboration;
 using FundingPlatform.Infrastructure.Persistence.Collaboration;
 using System.Security.Claims;
@@ -32,6 +37,7 @@ using FundingPlatform.Application.SourceDocuments;
 using FundingPlatform.Contracts;
 using FundingPlatform.Core.Identity;
 using FundingPlatform.Infrastructure.Configuration;
+using FundingPlatform.Infrastructure.FundingOpportunities;
 using FundingPlatform.Infrastructure.Billing;
 using FundingPlatform.Infrastructure.Identity;
 using FundingPlatform.Infrastructure.Persistence.Administration;
@@ -215,6 +221,19 @@ builder.Services.AddScoped<FundingOpportunityCatalogService>();
 builder.Services.AddSingleton(new FundingTranslationOptions { Enabled = builder.Configuration.GetValue<bool>("FundingTranslations:Enabled") });
 builder.Services.AddScoped<IFundingTranslationRepository, SqlFundingTranslationRepository>();
 builder.Services.AddScoped<FundingTranslationService>();
+builder.Services.AddScoped<IStoryRepository, SqlStoryRepository>();
+builder.Services.AddScoped<IInquiryRepository, SqlInquiryRepository>();
+builder.Services.AddScoped<InquiryService>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("Inquiries:Notifications").Get<InquiryNotificationOptions>() ?? new());
+builder.Services.AddSingleton(builder.Configuration.GetSection("FundingTranslations:Generation")
+    .Get<FundingTranslationGenerationOptions>() ?? new());
+builder.Services.AddSingleton(builder.Configuration.GetSection("FundingTranslations:Generation")
+    .Get<FundingTranslationProviderOptions>() ?? new());
+builder.Services.AddScoped<IFundingTranslationGenerationRepository, SqlFundingTranslationGenerationRepository>();
+builder.Services.AddScoped<FundingTranslationGenerationService>();
+builder.Services.AddHttpClient<IFundingTranslationGenerator, OpenAiFundingTranslationGenerator>(client =>
+    client.Timeout = TimeSpan.FromSeconds(125))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
 builder.Services.AddScoped<IFundingOpportunityWorkspaceRepository,
     SqlFundingOpportunityWorkspaceRepository>();
 builder.Services.AddScoped<FundingOpportunityWorkspaceService>();
@@ -482,10 +501,12 @@ if (configuredIdentityEmail.Enabled)
         return new EmailClient(new Uri(emailOptions.Endpoint), credential);
     });
     builder.Services.AddSingleton<IIdentityEmailSender, AzureCommunicationIdentityEmailSender>();
+    builder.Services.AddSingleton<IInquiryTeamNotifier, AzureInquiryTeamNotifier>();
 }
 else
 {
     builder.Services.AddSingleton<IIdentityEmailSender, DisabledIdentityEmailSender>();
+    builder.Services.AddSingleton<IInquiryTeamNotifier, DisabledInquiryTeamNotifier>();
 }
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
@@ -600,6 +621,9 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true
             }));
+    options.AddPolicy("contact-write", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10), QueueLimit = 0, AutoReplenishment = true }));
     options.AddPolicy("billing-write", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             GetRateLimitPartition(httpContext),
@@ -839,6 +863,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 }
 app.MapFundingOpportunityEndpoints();
 app.MapFundingTranslationEndpoints();
+app.MapStoryEndpoints();
+app.MapInquiryEndpoints();
 app.MapOrganizationFundingOpportunityEndpoints();
 app.MapFunderEndpoints();
 app.MapAdminFundingEditorialEndpoints();

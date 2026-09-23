@@ -155,14 +155,15 @@ public sealed class RuntimeDatabaseRoleMigrationTests
         var expected = new[] { "036_project_assets.sql", "037_project_asset_defender_pipeline.sql",
             "039_project_asset_content_retention.sql", "041_project_map.sql", "042_funder_workspace.sql",
             "043_professionals_and_consortia.sql", "044_discovery_matching.sql", "045_funding_discovery.sql",
-            "047_on_demand_imports.sql", "050_gap_recommendations.sql", "051_partner_geography.sql", "053_funding_translations.sql", "057_funding_translation_summaries.sql" }
+            "047_on_demand_imports.sql", "050_gap_recommendations.sql", "051_partner_geography.sql", "053_funding_translations.sql", "057_funding_translation_summaries.sql",
+            "060_funding_translation_generation.sql", "061_organization_stories.sql", "062_service_contact_inquiries.sql" }
             .SelectMany(file => Regex.Matches(Read("database", "Migrations", file),
                     @"GRANT EXECUTE ON OBJECT::dbo\.(?<name>FundingPlatform_usp_[A-Za-z0-9_]+)\s+TO FundingPlatform_(?:ApiRuntime|GeneralWorker)Role;")
                 .Select(match => match.Groups["name"].Value))
             .Distinct().Order().ToArray();
         var actual = Regex.Matches(manifest, @"N'(?:dbo\.)?(?<name>FundingPlatform_usp_[A-Za-z0-9_]+)'")
             .Select(match => match.Groups["name"].Value).Distinct().Order().ToArray();
-        Assert.Equal(40, expected.Length);
+        Assert.Equal(50, expected.Length);
         Assert.Equal(expected, actual);
         Assert.Equal(4, Regex.Matches(smoke,
             @"AND NOT EXISTS \(SELECT 1 FROM @LaterProcedurePermissions AS later").Count);

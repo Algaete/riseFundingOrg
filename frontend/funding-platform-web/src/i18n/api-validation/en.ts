@@ -1,6 +1,21 @@
 import type { apiValidationEs } from './es'
 
 export const apiValidationEn = {
+  "story-invalid": "The story content or version is missing.",
+  "story-title": "The title must have 3 to 200 characters.",
+  "story-body": "The story must have 20 to 15,000 characters.",
+  "story-kind": "Choose a valid story type.",
+  "story-project": "Choose a valid project.",
+  "story-catalog": "Check the story selections.",
+  "inquiry-invalid": "Check the request.",
+  "inquiry-name": "Enter your name (2 to 150 characters).",
+  "inquiry-email": "Enter a valid email address.",
+  "inquiry-country": "Select your country.",
+  "inquiry-topic": "Select a topic and, if applicable, a service.",
+  "inquiry-references": "Check the length of the references.",
+  "inquiry-description": "Describe your needs (20 to 5,000 characters).",
+  "inquiry-consent": "Confirm we may use these details to respond.",
+  "inquiry-deadline": "Check the deadline.",
   "funding-cover-invalid": "Select an available cover from the library.",
   "funding-cover-required": "Reload the opportunity and confirm its cover before saving.",
   "funding-other-category-required": "Specify the category when selecting Other.",

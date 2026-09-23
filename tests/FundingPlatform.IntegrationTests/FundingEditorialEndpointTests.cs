@@ -53,6 +53,7 @@ public sealed partial class FundingEditorialEndpointTests : IClassFixture<ApiFac
                 services.RemoveAll<FundingTranslationOptions>();
                 services.AddSingleton<IFundingTranslationRepository>(translations);
                 services.AddSingleton(new FundingTranslationOptions { Enabled = true });
+                ConfigureTranslationGeneration(services);
                 services.AddKeyedSingleton<FunderEditorialService>("funder-workspace", new FunderEditorialService(workspaceFunders));
                 services.AddKeyedSingleton<FundingOpportunityEditorialService>("funder-workspace", new FundingOpportunityEditorialService(workspaceOpportunities, TimeProvider.System));
             }));
