@@ -6,11 +6,39 @@ using FundingPlatform.Core.Donations;
 using FundingPlatform.Infrastructure.Notifications;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
+using System.Text.Json;
 
 namespace FundingPlatform.UnitTests;
 
 public sealed class EngagementTests
 {
+    [Theory]
+    [InlineData("{\"items\":null,\"totalCount\":0,\"page\":1}")]
+    [InlineData("{\"totalCount\":0,\"page\":1}")]
+    [InlineData("{\"items\":[],\"totalCount\":0,\"page\":1}")]
+    public void Empty_sql_json_pages_have_non_null_collections(string json)
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var stories = JsonSerializer.Deserialize<StoryPage>(json, options)!;
+        var inquiries = JsonSerializer.Deserialize<InquiryPage>(json, options)!;
+        Assert.Empty(stories.Items); Assert.Empty(inquiries.Items);
+        Assert.Null(stories.Items.FirstOrDefault());
+        Assert.Contains("\"items\":[]", JsonSerializer.Serialize(stories, options));
+        Assert.Contains("\"items\":[]", JsonSerializer.Serialize(inquiries, options));
+    }
+
+    [Fact]
+    public void Page_normalization_preserves_records_counts_and_page_number()
+    {
+        Story[] stories = [new(Guid.NewGuid(), Guid.NewGuid(), "Organización TEST", null, null,
+            Story.Content!, 0, 1, DateTimeOffset.UtcNow)];
+        Inquiry[] inquiries = [new(Guid.NewGuid(), Input, "Chile", 0, 0, 1, DateTimeOffset.UtcNow)];
+        var storyPage = new StoryPage(stories, 21, 2);
+        var inquiryPage = new InquiryPage(inquiries, 21, 2);
+        Assert.Same(stories, storyPage.Items); Assert.Equal(21, storyPage.TotalCount); Assert.Equal(2, storyPage.Page);
+        Assert.Same(inquiries, inquiryPage.Items); Assert.Equal(21, inquiryPage.TotalCount); Assert.Equal(2, inquiryPage.Page);
+    }
+
     private static StoryWrite Story => new(0, new("Historia", null, "Un relato de trabajo en terreno.", "organization", null, [], [], []));
     private static InquiryInput Input => new(Guid.NewGuid(), "Ana", "ana@example.invalid", null, 152, "funding", null, null, null, null, "Necesitamos orientación para nuestro proyecto.", true);
 
