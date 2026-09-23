@@ -50,6 +50,9 @@ const memberNavigation: NavigationItem[] = [
   { label: 'collaboration', to: '/collaboration/consortia', icon: Users },
   { label: 'profile', to: '/organization/profile', icon: Building2 },
   { label: 'projects', to: '/projects', icon: Target },
+  { label: 'stories', to: '/organization/stories', icon: ClipboardList },
+  { label: 'services', to: '/services', icon: Users },
+  { label: 'contact', to: '/contact', icon: Bell },
   { label: 'funderWorkspace', to: '/funder-workspace/funders', icon: WalletCards },
 ]
 
@@ -64,6 +67,7 @@ const adminNavigation: NavigationItem[] = [
   { label: 'organizations', to: '/admin/organizations', icon: Building2 },
   { label: 'subscriptions', to: '/admin/subscriptions', icon: ClipboardList },
   { label: 'errors', to: '/admin/errors', icon: Bell },
+  { label: 'inquiries', to: '/admin/inquiries', icon: ClipboardList },
 ]
 
 function NavigationLink({ item }: { item: NavigationItem }) {
@@ -187,7 +191,7 @@ export function AppShell({ mode = 'member' }: { mode?: 'member' | 'admin' }) {
         </nav>
 
         {/* Navigation is bilingual; workspace page translations follow in separate blocks. */}
-        <main lang={translatedContent ? undefined : 'es'} className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+        <main lang={translatedContent || ['/organization/stories', '/admin/inquiries'].includes(pathname) ? undefined : 'es'} className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

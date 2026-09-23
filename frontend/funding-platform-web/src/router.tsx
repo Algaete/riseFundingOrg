@@ -14,6 +14,12 @@ function localizedLazy<T extends ComponentType>(loader: () => Promise<{ default:
 }
 
 const AppShell = localizedLazy(() => import('@/components/app-shell').then((module) => ({ default: module.AppShell })), [])
+const StoriesPage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoriesPage })), ['validation', 'engagement', 'catalogs'])
+const StoryDetailPage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoryDetailPage })), ['validation', 'engagement', 'catalogs'])
+const StoriesWorkspacePage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoriesWorkspacePage })), ['validation', 'engagement', 'catalogs', 'projects'])
+const ServicesPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.ServicesPage })), ['validation', 'engagement', 'catalogs'])
+const ContactPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.ContactPage })), ['validation', 'engagement', 'catalogs'])
+const AdminInquiriesPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.AdminInquiriesPage })), ['validation', 'engagement'])
 const PublicLayout = localizedLazy(() => import('@/components/public-layout').then((module) => ({ default: module.PublicLayout })), [])
 
 const AccountPage = localizedLazy(() => import('@/pages/app-pages').then((module) => ({ default: module.AccountPage })), ["account","auth","workspaceFeedback","validation"])
@@ -31,10 +37,10 @@ const OnboardingPage = localizedLazy(() => import('@/pages/app-pages').then((mod
 const OrganizationProfilePage = localizedLazy(() => import('@/pages/app-pages').then((module) => ({ default: module.OrganizationProfilePage })), ["organization","catalogs","workspaceFeedback","projectAssets","validation"])
 const ProjectsPage = localizedLazy(() => import('@/features/projects/project-pages').then((module) => ({ default: module.ProjectsPage })), ["projects","projectAssets","catalogs","workspaceFeedback","validation"])
 const ProjectDetailPage = localizedLazy(() => import('@/features/projects/project-pages').then((module) => ({ default: module.ProjectDetailPage })), ["projects","projectAssets","catalogs","workspaceFeedback","validation"])
-const PublicProjectPage = localizedLazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.PublicProjectPage })), ["projects","projectAssets","catalogs","workspaceFeedback","validation"])
+const PublicProjectPage = localizedLazy(() => import('@/features/projects/project-publication-pages').then((module) => ({ default: module.PublicProjectPage })), ["engagement","projects","projectAssets","catalogs","workspaceFeedback","validation"])
 const MarketplacePage = localizedLazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplacePage })), ["marketplace","projects","catalogs","discoveryFeedback","workspaceFeedback","validation"])
-const MarketplaceProjectDetailPage = localizedLazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceProjectDetailPage })), ["marketplace","projects","catalogs","discoveryFeedback","workspaceFeedback","validation"])
-const MarketplaceOrganizationPage = localizedLazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceOrganizationPage })), ["marketplace","projects","catalogs","discoveryFeedback","workspaceFeedback","validation"])
+const MarketplaceProjectDetailPage = localizedLazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceProjectDetailPage })), ["engagement","marketplace","projects","catalogs","discoveryFeedback","workspaceFeedback","validation"])
+const MarketplaceOrganizationPage = localizedLazy(() => import('@/features/marketplace/marketplace-pages').then((module) => ({ default: module.MarketplaceOrganizationPage })), ["engagement","marketplace","projects","catalogs","discoveryFeedback","workspaceFeedback","validation"])
 const MatchingPage = localizedLazy(() => import('@/features/matching/matching-pages').then((module) => ({ default: module.MatchingWorkspacePage })), ["matching","collaborationFeedback","catalogs","workspaceFeedback","validation"])
 const NetworkPage = localizedLazy(() => import('@/features/network/network-pages').then((module) => ({ default: module.NetworkWorkspacePage })), ["network","collaborationFeedback","catalogs","workspaceFeedback","validation"])
 const SubscriptionPage = localizedLazy(() => import('@/pages/app-pages').then((module) => ({ default: module.SubscriptionPage })), ["billing","tracking","workspaceFeedback","validation"])
@@ -95,6 +101,10 @@ export const appRoutes: RouteObject[] = [
     element: <PublicLayout />,
     children: [
       { path: '/', element: <HomePage /> },
+      { path: '/stories', element: <StoriesPage /> },
+      { path: '/stories/:id', element: <StoryDetailPage /> },
+      { path: '/services', element: <ServicesPage /> },
+      { path: '/contact', element: <ContactPage /> },
       { path: '/search', element: <UnifiedSearchPage /> },
       { path: '/pricing', element: <PricingPage /> },
       { path: '/funding', element: <FundingPage /> },
@@ -136,6 +146,7 @@ export const appRoutes: RouteObject[] = [
       { path: '/collaboration/consortia', element: <ConsortiumListPage /> },
       { path: '/collaboration/consortia/:id', element: <ConsortiumDetailPage /> },
       { path: '/organization/profile', element: <OrganizationProfilePage /> },
+      { path: '/organization/stories', element: <StoriesWorkspacePage /> },
       { path: '/projects', element: <ProjectsPage /> },
       { path: '/projects/:projectId', element: <ProjectDetailPage /> },
       { path: '/account', element: <AccountPage /> },
@@ -153,6 +164,7 @@ export const appRoutes: RouteObject[] = [
     element: <ProtectedRoute requireAdmin><AppShell mode="admin" /></ProtectedRoute>,
     children: [
       { path: '/admin', element: <AdminDashboardPage /> },
+      { path: '/admin/inquiries', element: <AdminInquiriesPage /> },
       { path: '/admin/projects', element: <AdminProjectReviewPage /> },
       { path: '/admin/projects/:projectId', element: <AdminProjectReviewDetailPage /> },
       { path: '/admin/funding', element: <AdminFundingPage /> },

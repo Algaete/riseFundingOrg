@@ -12,11 +12,12 @@ public static class FundingTranslationEndpoints
             .WithTags("Funding translations").RequireAuthorization("admin-mfa").RequireRateLimiting("organization-write");
         group.MapGet("/{language}", GetAsync);
         group.MapPut("/{language}", SaveAsync);
+        group.MapPost("/{language}/generate", GenerateAsync);
         return endpoints;
     }
     private static async Task<IResult> GetAsync(Guid id, string language, ClaimsPrincipal principal,
         FundingTranslationService translations, IFundingTranslationRepository repository,
-        FundingOpportunityEditorialService editorial, CancellationToken token)
+        FundingOpportunityEditorialService editorial, FundingTranslationGenerationService generation, CancellationToken token)
     {
         if (!translations.Enabled) return Disabled();
         if (!FundingTranslationRules.Supports(language)) return Results.BadRequest();
@@ -24,8 +25,40 @@ public static class FundingTranslationEndpoints
         var original = await editorial.GetAdminAsync(actor, id, token);
         if (original.Outcome == FundingEditorialOutcome.Forbidden) return Results.Forbid();
         if (original.Value is null) return Results.NotFound();
-        try { return Results.Ok(new { Translation = await repository.GetAdminAsync(actor, id, language, token) }); }
+        try { return Results.Ok(new { Translation = await repository.GetAdminAsync(actor, id, language, token), GenerationAvailable = generation.Available }); }
         catch (FundingTranslationDataException error) when (Known(error)) { return Failure(error); }
+    }
+    private static async Task<IResult> GenerateAsync(Guid id, string language, FundingTranslationGenerationRequest data,
+        ClaimsPrincipal principal, HttpContext context, FundingTranslationService translations,
+        FundingTranslationGenerationService generation, FundingOpportunityEditorialService editorial, CancellationToken token)
+    {
+        if (!translations.Enabled) return Disabled();
+        if (!FundingTranslationRules.Supports(language)) return Results.BadRequest();
+        if (!ProjectEndpointResults.TryGetUserId(principal, out var actor)) return Results.Unauthorized();
+        if (!ProjectEndpointResults.TryParseETag(context.Request.Headers.IfMatch.ToString(), out var version))
+            return ProjectEndpointResults.Problem(428, "Recarga la oportunidad antes de traducirla", null, "translation-source-version-required");
+        if (!generation.Available) return ProjectEndpointResults.Problem(503, "Generación automática no habilitada", null, "translation-generation-disabled");
+        var original = await editorial.GetAdminAsync(actor, id, token);
+        if (original.Outcome == FundingEditorialOutcome.Forbidden) return Results.Forbid();
+        if (original.Value is not { } item) return Results.NotFound();
+        if (data.SourceContentVersion != item.ContentVersion || !version.SequenceEqual(item.RowVersion))
+            return ProjectEndpointResults.Problem(412, "La oportunidad cambió", null, "translation-version-conflict");
+        try { return Results.Ok(await generation.GenerateAsync(actor, id, language, item, token)); }
+        catch (FundingTranslationDataException error) when (Known(error)) { return Failure(error); }
+        catch (FundingTranslationDataException error) when (error.Number == 56095)
+        { return ProjectEndpointResults.Problem(429, "Límite de generación alcanzado o temporalmente ocupado", null, "translation-generation-budget-limit"); }
+        catch (FundingTranslationGenerationException error)
+        {
+            var status = error.Code switch
+            {
+                "translation-generation-disabled" => 503,
+                "translation-generation-input-too-large" => 422,
+                "translation-generation-pending" or "translation-generation-previous-failure" => 409,
+                "translation-generation-timeout" => 504,
+                _ => 502
+            };
+            return ProjectEndpointResults.Problem(status, "No fue posible generar la propuesta", null, error.Code);
+        }
     }
     private static async Task<IResult> SaveAsync(Guid id, string language, FundingTranslationWrite data,
         ClaimsPrincipal principal, HttpContext context, FundingTranslationService translations,

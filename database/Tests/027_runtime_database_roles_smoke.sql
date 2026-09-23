@@ -84,6 +84,17 @@ IF OBJECT_ID(N'dbo.FundingPlatform_ProjectAssetContentRetentionTasks', N'U') IS 
 IF OBJECT_ID(N'dbo.FundingPlatform_usp_ImportRun_QueueDelivery', N'P') IS NOT NULL
     INSERT @LaterProcedurePermissions VALUES
         (@GeneralWorkerRoleId, OBJECT_ID(N'dbo.FundingPlatform_usp_ImportRun_QueueDelivery'), N'FundingPlatform_usp_ImportRun_QueueDelivery');
+IF OBJECT_ID(N'dbo.FundingPlatform_Stories', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + ProcedureName), ProcedureName
+    FROM (VALUES (N'FundingPlatform_usp_Story_List'), (N'FundingPlatform_usp_Story_Save'),
+        (N'FundingPlatform_usp_Story_Publish')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_Inquiries', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + ProcedureName), ProcedureName
+    FROM (VALUES (N'FundingPlatform_usp_Inquiry_Capture'), (N'FundingPlatform_usp_Inquiry_List'),
+        (N'FundingPlatform_usp_Inquiry_Review'), (N'FundingPlatform_usp_Inquiry_ClaimNotification'),
+        (N'FundingPlatform_usp_Inquiry_FinishNotification')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL)
     THROW 54867, N'Explicit later procedure is missing.', 1;
@@ -128,6 +139,12 @@ IF OBJECT_ID(N'dbo.FundingPlatform_FundingTranslations', N'U') IS NOT NULL
         (N'FundingPlatform_usp_FundingTranslation_AdminGet'),
         (N'FundingPlatform_usp_FundingTranslation_Read'),
         (N'FundingPlatform_usp_FundingTranslation_Save')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_FundingTranslationGenerations', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + ProcedureName), ProcedureName
+    FROM (VALUES
+        (N'FundingPlatform_usp_FundingTranslationGeneration_Reserve'),
+        (N'FundingPlatform_usp_FundingTranslationGeneration_Finish')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL OR NOT EXISTS
                (SELECT 1 FROM sys.database_permissions AS permissions

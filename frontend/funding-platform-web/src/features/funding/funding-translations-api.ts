@@ -28,6 +28,13 @@ export interface FundingTranslationWrite {
   reviewed: boolean
   text: FundingTranslationText
 }
+export interface FundingTranslationProposal {
+  generationId: string
+  language: FundingLanguage
+  sourceContentVersion: number
+  text: FundingTranslationText
+  reused: boolean
+}
 export function fundingTranslationsEnabled() {
   return import.meta.env.VITE_FUNDING_TRANSLATIONS_ENABLED === 'true'
 }
@@ -36,9 +43,12 @@ function path(id: string, language: FundingLanguage) {
 }
 export const fundingTranslationsApi = {
   get(id: string, language: FundingLanguage, signal?: AbortSignal) {
-    return apiClient.get<{ translation: FundingTranslation | null }>(path(id, language), { signal, cache: 'no-store' })
+    return apiClient.get<{ translation: FundingTranslation | null, generationAvailable?: boolean }>(path(id, language), { signal, cache: 'no-store' })
   },
   save(id: string, language: FundingLanguage, eTag: string, input: FundingTranslationWrite) {
     return apiClient.put<FundingTranslation>(path(id, language), input, { headers: { 'If-Match': eTag } })
+  },
+  generate(id: string, language: FundingLanguage, eTag: string, sourceContentVersion: number) {
+    return apiClient.post<FundingTranslationProposal>(`${path(id, language)}/generate`, { sourceContentVersion }, { headers: { 'If-Match': eTag } })
   },
 }

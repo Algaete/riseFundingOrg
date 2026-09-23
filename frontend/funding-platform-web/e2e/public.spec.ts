@@ -23,6 +23,7 @@ import { registerLazyLanguageTests } from './lazy-language-checks'
 import { registerHomeReferenceTests } from './home-reference-checks'
 import { registerUnifiedSearchTests } from './unified-search-checks'
 import { registerWorldCountryTests } from './world-country-checks'
+import { registerEngagementTests } from './engagement-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -49,6 +50,7 @@ async function useGuestSession(page: Page) {
   })
   // Exact, read-only public home dependencies. Any other API call remains blocked below.
   for (const [pattern, data] of [
+    ['**/api/v1/stories?*', { items: [], totalCount: 0, page: 1 }],
     ['**/api/v1/marketplace/catalogs', { countries: [], fundingCategories: [], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] }],
     ['**/api/v1/marketplace/projects?*', { items: [], totalCount: 0, pageNumber: 1, pageSize: 3 }],
     ['**/api/v1/marketplace/project-map?*', { items: [], totalCount: 0, withoutPublicLocationCount: 0, page: 1, pageSize: 100 }],
@@ -113,7 +115,7 @@ test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
   // Missing lazy dependencies otherwise look like valid text to accessibility tools.
   const missing = await page.locator('body').evaluate(body => {
-    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery|unifiedSearch)\.[\w.-]+$/
+    const untranslated = /^(?:engagement|auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery|unifiedSearch)\.[\w.-]+$/
     const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
     const keys: string[] = []
     while (walker.nextNode()) {
@@ -148,6 +150,7 @@ registerLazyLanguageTests(expectNoSeriousAccessibilityViolations)
 registerHomeReferenceTests(expectNoSeriousAccessibilityViolations)
 registerUnifiedSearchTests(expectNoSeriousAccessibilityViolations)
 registerWorldCountryTests(expectNoSeriousAccessibilityViolations)
+registerEngagementTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')
