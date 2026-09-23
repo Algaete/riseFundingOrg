@@ -88,4 +88,10 @@ Validación local: 1.195 unitarias, 451 HTTP y 1.246 frontend (98 archivos), tod
 aprobadas sin omisiones. Builds API/frontend, lint, tipos E2E y `git diff --check`
 correctos. Se corrigió una restricción SQL sin nombre detectada por la suite antes
 de cerrar la verificación. El preflight SQL real posterior está registrado arriba.
-Tipos de los nuevos recorridos E2E verificados; su ejecución de navegador y el despliegue deben comprobarse en los runs de CI/release, sin asumir éxito por haber pasado la compilación.
+Verificación posterior del release aislado (sin importador pausado): 1.115 unitarias,
+451 HTTP y 1.232 frontend/96 archivos, sin omisiones. Suite local de navegador:
+228 aprobadas en 3,2 minutos; una comprobación de metadatos Azure omitida por no
+aplicar a localhost. Corregida la carga lazy de las traducciones del buscador de
+países de Historias. CI remoto y publicación siguen pendientes: el control de
+permisos pidió confirmación explícita para continuar en el repositorio público.
+La rama inicial fue subida, pero las correcciones posteriores permanecen locales.
