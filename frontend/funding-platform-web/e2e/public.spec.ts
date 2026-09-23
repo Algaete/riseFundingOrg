@@ -115,7 +115,7 @@ test.afterEach(async ({ page }) => {
   expect(unexpectedApiRequests.get(page) ?? []).toEqual([])
   // Missing lazy dependencies otherwise look like valid text to accessibility tools.
   const missing = await page.locator('body').evaluate(body => {
-    const untranslated = /^(?:auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery|unifiedSearch)\.[\w.-]+$/
+    const untranslated = /^(?:engagement|auth|validation|editorial|editorialValidation|admin\w+|operations|operationalLabels|sourceDocuments|catalogs|tracking|applications|calendar|alerts|billing|matching|network|collaborationFeedback|organizationFunding|fundingCatalog|marketplace|discoveryFeedback|dashboard|account|organization|projects|projectAssets|workspaceFeedback|projectMap|funderWorkspace|collaboration|ecosystem|fundingDiscovery|unifiedSearch)\.[\w.-]+$/
     const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
     const keys: string[] = []
     while (walker.nextNode()) {

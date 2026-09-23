@@ -16,7 +16,7 @@ function localizedLazy<T extends ComponentType>(loader: () => Promise<{ default:
 const AppShell = localizedLazy(() => import('@/components/app-shell').then((module) => ({ default: module.AppShell })), [])
 const StoriesPage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoriesPage })), ['validation', 'engagement', 'catalogs'])
 const StoryDetailPage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoryDetailPage })), ['validation', 'engagement', 'catalogs'])
-const StoriesWorkspacePage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoriesWorkspacePage })), ['validation', 'engagement', 'catalogs'])
+const StoriesWorkspacePage = localizedLazy(() => import('@/features/engagement/story-pages').then(m => ({ default: m.StoriesWorkspacePage })), ['validation', 'engagement', 'catalogs', 'projects'])
 const ServicesPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.ServicesPage })), ['validation', 'engagement', 'catalogs'])
 const ContactPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.ContactPage })), ['validation', 'engagement', 'catalogs'])
 const AdminInquiriesPage = localizedLazy(() => import('@/features/engagement/contact-pages').then(m => ({ default: m.AdminInquiriesPage })), ['validation', 'engagement'])
