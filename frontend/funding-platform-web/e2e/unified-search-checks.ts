@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { english, fits, mockWorkspace, readOnlyJson } from './workspace-checks'
 import { workspaceOrganizationId } from '../src/test/fixtures/project-workspace'
+import { expectLocaleSwitch } from './localized-read-checks'
 
 const catalogs = { countries: [{ id: 152, code: 'CL', name: 'Chile' }], fundingCategories: [{ id: 4, code: 'water', name: 'Agua y saneamiento' }], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] }
 const publicProject = { publicId: 'project', slug: 'agua-segura', title: 'Agua segura — proyecto sintético', summary: 'Iniciativa pública de prueba.', organization: { name: 'Organización sintética' }, publicationStatus: 2 }
@@ -44,7 +45,9 @@ export function registerUnifiedSearchTests(accessibility: (page: Page) => Promis
     await expect(page.getByRole('heading', { name: 'Search FundingPlatform' })).toBeVisible()
     await expect(page.getByRole('searchbox')).toHaveValue('borrador sin enviar')
     await expect(page.getByRole('combobox', { name: 'Country', exact: true })).toHaveValue('152')
-    expect(calls).toHaveLength(2)
+    const fundingReadCount = await expectLocaleSwitch(() => calls.filter(call => call.path === 'funding-discovery').map(call => call.query))
+    expect(calls.filter(call => call.path === 'marketplace/projects')).toHaveLength(1)
+    expect(calls).toHaveLength(fundingReadCount + 1)
     await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
     await fits(page); await accessibility(page)
     await page.getByRole('region', { name: 'Projects', exact: true }).getByRole('link', { name: 'View all' }).click()

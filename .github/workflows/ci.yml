@@ -108,6 +108,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Public browser and accessibility tests
+        env:
+          VITE_FUNDING_TRANSLATIONS_ENABLED: 'true'
         run: npm run test:e2e:public
 
       - name: Reviewed translations without paid generation

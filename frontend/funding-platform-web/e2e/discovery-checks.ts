@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { discoveryOpportunity, discoveryOrganization, discoveryProject, discoveryProjectDetail } from '../src/test/fixtures/public-discovery'
 import { workspaceCatalogs } from '../src/test/fixtures/project-workspace'
 import { english, fits, readOnlyJson } from './workspace-checks'
+import { expectLocaleSwitch, localizedResource } from './localized-read-checks'
 
 async function mockDiscovery(page: Page) {
   const fundingReads: string[] = []
@@ -13,7 +14,7 @@ async function mockDiscovery(page: Page) {
     fundingReads.push(url.search)
     return route.fulfill({ json: { items: [discoveryOpportunity], totalCount: 25, pageNumber: Number(url.searchParams.get('pageNumber')), pageSize: 12 } })
   })
-  await page.route(`**/api/v1/funding-opportunities/${discoveryOpportunity.slug}`, readOnlyJson(discoveryOpportunity))
+  await page.route(localizedResource(`/api/v1/funding-opportunities/${discoveryOpportunity.slug}`), readOnlyJson(discoveryOpportunity))
   await page.route('**/api/v1/marketplace/catalogs', readOnlyJson(workspaceCatalogs))
   await page.route('**/api/v1/marketplace/projects?*', route => {
     expect(route.request().method()).toBe('GET')
@@ -42,13 +43,13 @@ export function registerDiscoveryLanguageTests(checkAccessibility: (page: Page) 
       await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
       await checkAccessibility(page)
       await fits(page)
-      expect(fundingReads).toHaveLength(1)
+      const readsAfterLanguage = await expectLocaleSwitch(() => fundingReads)
       await page.getByRole('button', { name: 'Next', exact: true }).click()
       await expect(page.getByText('Page 2 of 3')).toBeVisible()
       await page.getByRole('button', { name: 'Search', exact: true }).click()
       await expect(page.getByText('Page 1 of 3')).toBeVisible()
-      expect(fundingReads).toHaveLength(3)
-      expect(new URLSearchParams(fundingReads[2]).get('query')).toBe('Salud Ñandú')
+      expect(fundingReads).toHaveLength(readsAfterLanguage + 2)
+      expect(new URLSearchParams(fundingReads.at(-1)).get('query')).toBe('Salud Ñandú')
       await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
       await checkAccessibility(page)
     })

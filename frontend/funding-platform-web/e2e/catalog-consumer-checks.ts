@@ -4,6 +4,7 @@ import { consumerCatalogs, consumerOpportunity, consumerPublicOrganization, cons
 import { workspaceOrganizationId, workspaceProjectId } from '../src/test/fixtures/project-workspace'
 import { networkDirectory, networkPreference, networkConnections } from '../src/test/fixtures/matching-network'
 import { trackingApplication, trackingApplications } from '../src/test/fixtures/tracking-workspace'
+import { expectLocaleSwitch, localizedResource } from './localized-read-checks'
 
 // Inherits public.spec.ts's deny-by-default API guard. These mocks accept only reads.
 async function countedRead(page: Page, path: string, json: unknown) {
@@ -29,11 +30,17 @@ export function registerCatalogConsumerTests(accessibility: (page: Page) => Prom
     test(`I18N05B funding classifications keep eligibility and original source labels at ${width}px`, async ({ page }) => {
       await mockWorkspace(page)
       const catalogs = await countedRead(page, 'catalogs', consumerCatalogs)
-      const detail = await countedRead(page, 'organizations/' + workspaceOrganizationId + '/funding-opportunities/' + consumerOpportunity.slug, consumerOpportunity)
+      const detailReads: string[] = []
+      await page.route(localizedResource('/api/v1/organizations/' + workspaceOrganizationId + '/funding-opportunities/' + consumerOpportunity.slug), route => {
+        expect(route.request().method()).toBe('GET')
+        detailReads.push(route.request().url())
+        return route.fulfill({ json: consumerOpportunity })
+      })
       await page.setViewportSize({ width, height: 900 })
       await page.goto('/opportunities/' + consumerOpportunity.slug)
       await expect(page.getByRole('heading', { name: 'Condiciones publicadas' })).toBeVisible()
       await english(page)
+      const readsAfterLanguage = await expectLocaleSwitch(() => detailReads)
       await expect(page.getByText('Foundation · eligible', { exact: true })).toBeVisible()
       await expect(page.getByText('Foundation · excluded', { exact: true })).toBeVisible()
       await expect(page.getByText('Grant', { exact: true })).toHaveAttribute('lang', 'en')
@@ -48,7 +55,8 @@ export function registerCatalogConsumerTests(accessibility: (page: Page) => Prom
       await page.getByRole('combobox', { name: 'Language', exact: true }).selectOption('es')
       await expect(page.getByText('Medio ambiente y biodiversidad', { exact: true })).toHaveAttribute('lang', 'es')
       expect(catalogs()).toBe(1)
-      expect(detail()).toBe(1)
+      await expect.poll(() => detailReads.length).toBe(readsAfterLanguage === 2 ? 3 : 1)
+      if (readsAfterLanguage === 2) expect(new URL(detailReads[2]).searchParams.get('locale')).toBe('es')
     })
 
     test(`I18N05B public organization keeps taxonomy identity and privacy at ${width}px`, async ({ page }) => {
