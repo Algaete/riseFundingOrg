@@ -25,6 +25,7 @@ public sealed class SqlAdminOperationsRepository(
                     Query = Normalize(query.Search),
                     query.ProfileStatus,
                     query.IsActive,
+                    query.VerificationStatus,
                     PageNumber = query.Page,
                     query.PageSize
                 },
@@ -108,7 +109,7 @@ public sealed class SqlAdminOperationsRepository(
         row.OrganizationPublicId, row.OrganizationName, row.CountryCode, row.CountryName,
         row.OrganizationTypeName, row.ProfileStatus, row.ProfileCompleteness, row.IsActive,
         row.MemberCount, row.ProjectCount, row.PlanCode, row.PlanName,
-        row.SubscriptionStatus, Utc(row.CreatedAtUtc), Utc(row.UpdatedAtUtc));
+        row.SubscriptionStatus, Utc(row.CreatedAtUtc), Utc(row.UpdatedAtUtc), row.VerificationStatus);
 
     private static AdminOrganizationDetail Map(OrganizationDetailRow row) => new(
         row.OrganizationPublicId, row.OrganizationName, row.LegalName, row.CountryCode,
@@ -137,6 +138,7 @@ public sealed class SqlAdminOperationsRepository(
         public string CountryName { get; init; } = string.Empty;
         public string OrganizationTypeName { get; init; } = string.Empty;
         public byte ProfileStatus { get; init; }
+        public byte VerificationStatus { get; init; }
         public decimal ProfileCompleteness { get; init; }
         public bool IsActive { get; init; }
         public long MemberCount { get; init; }

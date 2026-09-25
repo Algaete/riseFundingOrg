@@ -1,4 +1,4 @@
-import type { AdminOrganizationDetail } from '@/features/admin-organizations/admin-organizations-api'
+import type { AdminOrganizationDetail, OrganizationVerification } from '@/features/admin-organizations/admin-organizations-api'
 import type { AdminUserSummary } from '@/features/admin-users/admin-users-api'
 import type { AdminOperationalError } from '@/features/admin-errors/admin-errors-api'
 import type { AdminBillingDashboard, AdminSubscriptionPage } from '@/features/billing/billing-api'
@@ -34,6 +34,13 @@ export const operationsOrganization = {
   description: 'Descripción original de la organización.', profileVersion: 3,
   adminMemberCount: 2, publishedProjectCount: 1, currentPeriodEndUtc: null,
 } satisfies AdminOrganizationDetail
+
+export const operationsVerification: OrganizationVerification = {
+  organizationPublicId: operationsIds.organization, name: operationsOrganization.name,
+  status: 0, recordedStatus: 0, revision: 0, profileVersion: 3,
+  reviewedProfileVersion: null, reviewedAtUtc: null, reviewedByUserPublicId: null,
+  reviewedByName: null, reason: null, needsReverification: false, history: [],
+}
 
 export const operationsIncident = {
   id: 'incident-synthetic', category: 'extraction', severity: 2, code: 'pdf-invalid',
@@ -125,6 +132,7 @@ export const operationsFixtures: Record<string, unknown> = {
   '/admin/users': operationsPage([operationsUser]),
   '/admin/organizations': operationsPage([operationsOrganization]),
   ['/admin/organizations/' + operationsIds.organization]: operationsOrganization,
+  ['/admin/organizations/' + operationsIds.organization + '/verification']: operationsVerification,
   '/admin/operational-errors': operationsPage([operationsIncident]),
   '/admin/funding-sources': [operationsSource, operationsPdfSource],
   '/admin/import-runs': operationsPage([operationsRun], 1, 20),

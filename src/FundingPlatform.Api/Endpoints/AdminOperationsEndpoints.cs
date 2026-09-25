@@ -46,13 +46,16 @@ public static class AdminOperationsEndpoints
         int? profileStatus = null,
         bool? isActive = null,
         int page = 1,
-        int pageSize = 25)
+        int pageSize = 25,
+        int? verificationStatus = null)
     {
         if (!ProjectEndpointResults.TryGetUserId(principal, out var userId))
             return ProjectEndpointResults.InvalidSession();
         var errors = ValidatePage(q, page, pageSize);
         if (profileStatus.HasValue && profileStatus.Value is < 0 or > 2)
             errors.Set("profileStatus", "api-validation-026", "profileStatus debe estar entre 0 y 2.");
+        if (verificationStatus.HasValue && verificationStatus.Value is < 0 or > 2)
+            errors.Set("verificationStatus", "organization-verification-status", "verificationStatus debe estar entre 0 y 2.");
         if (errors.Count > 0) return Validation(errors, "Filtros de organizaciones inválidos");
 
         try
@@ -60,7 +63,8 @@ public static class AdminOperationsEndpoints
             var value = await service.ListOrganizationsAsync(userId,
                 new AdminOrganizationQuery(q,
                     profileStatus.HasValue ? checked((byte)profileStatus.Value) : null,
-                    isActive, page, pageSize),
+                    isActive, page, pageSize,
+                    verificationStatus.HasValue ? checked((byte)verificationStatus.Value) : null),
                 cancellationToken);
             return Results.Ok(new AdminOrganizationPageResponse(
                 value.Items.Select(Map).ToArray(), value.TotalCount, value.Page, value.PageSize));
@@ -155,7 +159,7 @@ public static class AdminOperationsEndpoints
         value.PublicId, value.Name, value.CountryCode, value.CountryName,
         value.OrganizationTypeName, value.ProfileStatus, value.ProfileCompleteness,
         value.IsActive, value.MemberCount, value.ProjectCount, value.PlanCode, value.PlanName,
-        value.SubscriptionStatus, value.CreatedAtUtc, value.UpdatedAtUtc);
+        value.SubscriptionStatus, value.CreatedAtUtc, value.UpdatedAtUtc, value.VerificationStatus);
 
     private static AdminOrganizationDetailResponse Map(AdminOrganizationDetail value) => new(
         value.PublicId, value.Name, value.LegalName, value.CountryCode, value.CountryName,

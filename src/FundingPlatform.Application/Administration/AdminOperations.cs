@@ -5,7 +5,8 @@ public sealed record AdminOrganizationQuery(
     byte? ProfileStatus,
     bool? IsActive,
     int Page,
-    int PageSize);
+    int PageSize,
+    byte? VerificationStatus = null);
 
 public sealed record AdminOrganizationSummary(
     Guid PublicId,
@@ -22,7 +23,8 @@ public sealed record AdminOrganizationSummary(
     string PlanName,
     byte? SubscriptionStatus,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    byte VerificationStatus = 0);
 
 public sealed record AdminOrganizationPage(
     IReadOnlyList<AdminOrganizationSummary> Items,

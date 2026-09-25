@@ -104,6 +104,7 @@ public sealed class FundingTranslationGenerationTests
         using var request = JsonDocument.Parse(handler.Body!);
         var root = request.RootElement;
         Assert.False(root.GetProperty("store").GetBoolean());
+        Assert.Equal("default", root.GetProperty("service_tier").GetString());
         Assert.False(root.TryGetProperty("tools", out _));
         Assert.Equal(Approved.Model, root.GetProperty("model").GetString());
         var format = root.GetProperty("text").GetProperty("format");

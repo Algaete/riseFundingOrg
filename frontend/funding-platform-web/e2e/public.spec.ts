@@ -24,6 +24,7 @@ import { registerHomeReferenceTests } from './home-reference-checks'
 import { registerUnifiedSearchTests } from './unified-search-checks'
 import { registerWorldCountryTests } from './world-country-checks'
 import { registerEngagementTests } from './engagement-checks'
+import { registerOrganizationVerificationTests } from './organization-verification-checks'
 
 const unexpectedApiRequests = new WeakMap<Page, string[]>()
 
@@ -151,6 +152,7 @@ registerHomeReferenceTests(expectNoSeriousAccessibilityViolations)
 registerUnifiedSearchTests(expectNoSeriousAccessibilityViolations)
 registerWorldCountryTests(expectNoSeriousAccessibilityViolations)
 registerEngagementTests(expectNoSeriousAccessibilityViolations)
+registerOrganizationVerificationTests(expectNoSeriousAccessibilityViolations)
 
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')
