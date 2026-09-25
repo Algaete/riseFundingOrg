@@ -45,8 +45,17 @@ accesibilidad y capturas revisadas. Estas pruebas no son aceptación de cuentas 
 5. Habilitar únicamente edición manual API; generación IA explícitamentefalse.
 6. Frontend con`editorial_translations=true`; verificar metadataSHA y navegación.
 
-Primer intento de preflight Azure agotó timeout de conexión(-2), retirando su
-regla temporal. Un reintento está previsto; no interpretar ese timeout como éxito.
+Primer intento de preflight Azure agotó timeout de conexión (-2), retirando su
+regla temporal. Segundo intento aprobado: 1 migración, 5 lotes, 63 smokes,
+23 comprobaciones de mapa y 13 de traducciones; rollback total y regla retirada.
+Todavía no se ha aplicado SQL063 permanentemente en Azure.
+
+La comprobación adicional del navegador con traducciones activadas detectó
+16 tests antiguos cuyos mocks/contadores solo admitían lecturas sin `locale`.
+Se ajustan los recursos exactos y se comprueba que cambiar ES→EN causa solo
+la nueva lectura esperada, preservando filtros y página. No se omiten tests,
+no se amplían permisos y no se cambian las reglas de negocio. CI público pasa
+a probar la configuración activada que se publicará; se prueba también OFF.
 RegistrarSHA, workflows, revisión/digest y resultadoSQL antes de dar por terminado.
 
 ## Pendientes que esta autorización no resuelve

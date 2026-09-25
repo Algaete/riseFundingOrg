@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { english, fits } from './workspace-checks'
 import { editorialCatalogs } from '../src/test/fixtures/editorial-workspace'
+import { expectLocaleSwitch } from './localized-read-checks'
 
 export function registerFundingDiscoveryTests(accessibility: (page: Page) => Promise<void>) {
   for (const width of [320, 1024]) {
@@ -23,13 +24,14 @@ export function registerFundingDiscoveryTests(accessibility: (page: Page) => Pro
       await expect(page.getByRole('alert')).toBeVisible()
       expect(requests).toHaveLength(1)
       await english(page)
+      const readsAfterLanguage = await expectLocaleSwitch(() => requests.map(value => '?' + value.toString()))
       await expect(page.getByLabel('Minimum amount', { exact: true })).toHaveValue('100')
       await page.getByRole('combobox', { name: 'Currency', exact: true }).selectOption('USD')
       await page.getByRole('button', { name: 'Search funding', exact: true }).click()
-      await expect.poll(() => requests.length).toBe(2)
-      expect(requests[1].get('requiresConsortium')).toBe('false')
-      expect(requests[1].get('funderKind')).toBe('3')
-      expect(requests[1].get('currency')).toBe('USD')
+      await expect.poll(() => requests.length).toBe(readsAfterLanguage + 1)
+      expect(requests.at(-1)!.get('requiresConsortium')).toBe('false')
+      expect(requests.at(-1)!.get('funderKind')).toBe('3')
+      expect(requests.at(-1)!.get('currency')).toBe('USD')
       await expect(page.getByRole('link', { name: 'Original source: Fuente oficial' })).toHaveAttribute('href', 'https://official.example/fund')
       await accessibility(page); await fits(page)
     })

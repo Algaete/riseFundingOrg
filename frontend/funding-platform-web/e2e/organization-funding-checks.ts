@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { fundingOrganizationId, fundingOrganizations, organizationFundingCatalogs, organizationFundingResponse, organizationOpportunity } from '../src/test/fixtures/organization-funding'
 import { english, fits, mockWorkspace, readOnlyJson } from './workspace-checks'
+import { expectLocaleSwitch, localizedResource } from './localized-read-checks'
 
 // Registered under public.spec.ts's deny-by-default API guard. Every response is synthetic.
 async function mockOrganizationFunding(page: Page) {
@@ -17,11 +18,12 @@ async function mockOrganizationFunding(page: Page) {
     reads.push(url.pathname + url.search)
     return route.fulfill({ json: organizationFundingResponse(false, Number(url.searchParams.get('page')), 25) })
   })
-  await page.route(`**/api/v1/organizations/${fundingOrganizationId}/funding-opportunities/${organizationOpportunity.slug}`, readOnlyJson(organizationOpportunity))
+  await page.route(localizedResource(`/api/v1/organizations/${fundingOrganizationId}/funding-opportunities/${organizationOpportunity.slug}`), readOnlyJson(organizationOpportunity))
   await page.route(`**/api/v1/organizations/${fundingOrganizationId}/favorites?*`, route => {
     expect(route.request().method()).toBe('GET')
     expect(route.request().headers().authorization).toBe('Bearer synthetic-ui-only')
-    reads.push(new URL(route.request().url()).pathname)
+    const url = new URL(route.request().url())
+    reads.push(url.pathname + url.search)
     return route.fulfill({ json: favorite ? organizationFundingResponse(true) : { ...organizationFundingResponse(), items: [], totalCount: 0 } })
   })
   await page.route(`**/api/v1/organizations/${fundingOrganizationId}/favorites/${organizationOpportunity.publicId}`, route => {
@@ -56,14 +58,14 @@ export function registerOrganizationFundingLanguageTests(checkAccessibility: (pa
       await expect(page.getByRole('button', { name: 'Save to favorites', exact: true })).toHaveAttribute('aria-pressed', 'false')
       await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
       expect(page.url()).toBe(originalUrl)
-      expect(reads).toHaveLength(1)
+      const readsAfterLanguage = await expectLocaleSwitch(() => reads)
       expect(writes).toHaveLength(0)
       await checkAccessibility(page)
       await fits(page)
       await page.getByRole('button', { name: 'Next', exact: true }).click()
       await expect(page.getByText('Page 3 of 3')).toBeVisible()
       expect(new URL(page.url()).searchParams.get('countryIds')).toBe('152')
-      expect(reads).toHaveLength(2)
+      expect(reads).toHaveLength(readsAfterLanguage + 1)
       await page.getByRole('combobox', { name: 'Change theme', exact: true }).selectOption('dark')
       await checkAccessibility(page)
       await fits(page)
@@ -103,7 +105,7 @@ export function registerOrganizationFundingLanguageTests(checkAccessibility: (pa
       await expect(page.getByText('1 saved favorite', { exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Remove from favorites', exact: true })).toHaveAttribute('aria-pressed', 'true')
       await expect(page.getByRole('main')).not.toHaveAttribute('lang', 'es')
-      expect(reads).toHaveLength(1)
+      await expectLocaleSwitch(() => reads)
       expect(writes).toHaveLength(0)
       await checkAccessibility(page)
       await fits(page)
