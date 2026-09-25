@@ -58,7 +58,9 @@ public sealed class OpenAiFundingTranslationGenerator(HttpClient client, Funding
         message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", provider.ApiKey);
         message.Content = JsonContent.Create(new
         {
-            model = options.Model, store = false,
+            // Pin standard processing: an account-level priority default must not
+            // silently invalidate the explicitly approved per-token budget.
+            model = options.Model, store = false, service_tier = "default",
             input = new object[]
             {
                 new { role = "developer", content = Instructions },

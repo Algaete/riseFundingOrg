@@ -15,6 +15,11 @@ on:
         description: Approved 40-character main commit to build and publish
         required: true
         type: string
+      editorial_translations:
+        description: Enable reviewed ES/EN content (API editorial flag must already be enabled; does not activate paid AI)
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -72,6 +77,7 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           AZURE_UNIQUE_SUFFIX: ${{ vars.AZURE_UNIQUE_SUFFIX }}
+          EDITORIAL_TRANSLATIONS: ${{ inputs.editorial_translations && 'true' || 'false' }}
         with:
           azcliversion: 2.88.0
           inlineScript: |
@@ -120,6 +126,14 @@ jobs:
             test "$configured_frontend" = "$frontend_origin"
             test "$configured_cors" = "$frontend_origin"
 
+            if [[ "$EDITORIAL_TRANSLATIONS" == 'true' ]]; then
+              jq -e 'any(.properties.template.containers[0].env[];
+                .name == "FundingTranslations__Enabled" and .value == "true")' <<<"$api" >/dev/null || {
+                echo 'Enable the reviewed-translation API flag before publishing the translation UI.' >&2
+                exit 1
+              }
+            fi
+
             api_min_replicas="$(jq -er '.properties.template.scale.minReplicas' <<<"$api")"
             printf 'frontend_origin=%s\n' "$frontend_origin" >> "$GITHUB_OUTPUT"
             printf 'api_base_url=%s\n' "$api_base_url" >> "$GITHUB_OUTPUT"
@@ -159,6 +173,7 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ needs.resolve_targets.outputs.api_base_url }}
           VITE_EXTERNAL_AUTH_BASE_URL: ${{ needs.resolve_targets.outputs.api_base_url }}
+          VITE_FUNDING_TRANSLATIONS_ENABLED: ${{ inputs.editorial_translations && 'true' || 'false' }}
         run: npm run build
 
       - name: Add immutable deployment metadata

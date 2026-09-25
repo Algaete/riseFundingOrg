@@ -277,6 +277,8 @@ builder.Services.AddScoped<IImportRunDispatchService>(serviceProvider =>
 builder.Services.AddScoped<IImportRunRepository, SqlImportRunRepository>();
 builder.Services.AddScoped<IOrganizationRepository, SqlOrganizationRepository>();
 builder.Services.AddScoped<OrganizationProfileService>();
+builder.Services.AddScoped<IOrganizationVerificationRepository, SqlOrganizationVerificationRepository>();
+builder.Services.AddScoped<OrganizationVerificationService>();
 builder.Services.AddScoped<IProjectRepository, SqlProjectRepository>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ProjectWorkflowService>();
@@ -880,6 +882,7 @@ app.MapAdminFundingDuplicateEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapExternalAuthenticationEndpoints();
 app.MapOrganizationEndpoints();
+app.MapOrganizationVerificationEndpoints();
 app.MapProjectEndpoints();
 app.MapProjectAssetEndpoints();
 app.MapAdminProjectEndpoints();

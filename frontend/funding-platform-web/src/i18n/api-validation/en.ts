@@ -1,6 +1,10 @@
 import type { apiValidationEs } from './es'
 
 export const apiValidationEn = {
+  "organization-verification-status": "Select pending, verified or rejected.",
+  "organization-verification-reason": "Enter a reason with {{min}} to {{max}} characters.",
+  "organization-verification-revision": "Reload the organization's review before deciding.",
+  "organization-verification-profile-version": "Reload the organization's profile before deciding.",
   "story-invalid": "The story content or version is missing.",
   "story-title": "The title must have 3 to 200 characters.",
   "story-body": "The story must have 20 to 15,000 characters.",

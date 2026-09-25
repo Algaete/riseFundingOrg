@@ -15,7 +15,8 @@ public sealed record AdminOrganizationSummaryResponse(
     string planName,
     byte? subscriptionStatus,
     DateTimeOffset createdAtUtc,
-    DateTimeOffset updatedAtUtc);
+    DateTimeOffset updatedAtUtc,
+    byte verificationStatus = 0);
 
 public sealed record AdminOrganizationPageResponse(
     IReadOnlyList<AdminOrganizationSummaryResponse> items,

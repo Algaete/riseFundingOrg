@@ -1,4 +1,8 @@
 export const apiValidationEs = {
+  "organization-verification-status": "Selecciona pendiente, verificada o rechazada.",
+  "organization-verification-reason": "Indica un motivo de {{min}} a {{max}} caracteres.",
+  "organization-verification-revision": "Recarga la revisión de la organización antes de decidir.",
+  "organization-verification-profile-version": "Recarga el perfil de la organización antes de decidir.",
   "story-invalid": "Falta el contenido o la versión de la historia.",
   "story-title": "El título debe tener entre 3 y 200 caracteres.",
   "story-body": "La historia debe tener entre 20 y 15.000 caracteres.",

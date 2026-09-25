@@ -95,6 +95,11 @@ IF OBJECT_ID(N'dbo.FundingPlatform_Inquiries', N'U') IS NOT NULL
     FROM (VALUES (N'FundingPlatform_usp_Inquiry_Capture'), (N'FundingPlatform_usp_Inquiry_List'),
         (N'FundingPlatform_usp_Inquiry_Review'), (N'FundingPlatform_usp_Inquiry_ClaimNotification'),
         (N'FundingPlatform_usp_Inquiry_FinishNotification')) AS names(ProcedureName);
+IF OBJECT_ID(N'dbo.FundingPlatform_OrganizationVerifications', N'U') IS NOT NULL
+    INSERT @LaterProcedurePermissions
+    SELECT @ApiRoleId, OBJECT_ID(N'dbo.' + ProcedureName), ProcedureName
+    FROM (VALUES (N'FundingPlatform_usp_OrganizationVerification_Get'),
+        (N'FundingPlatform_usp_OrganizationVerification_Decide')) AS names(ProcedureName);
 IF EXISTS (SELECT 1 FROM @LaterProcedurePermissions AS expected
            WHERE expected.ObjectId IS NULL)
     THROW 54867, N'Explicit later procedure is missing.', 1;

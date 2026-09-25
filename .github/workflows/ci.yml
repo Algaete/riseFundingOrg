@@ -42,6 +42,9 @@ jobs:
           dotnet test tests/FundingPlatform.UnitTests/FundingPlatform.UnitTests.csproj
           --configuration Release --no-build --no-restore
 
+      - name: Compile the loopback-only SQL contract checker
+        run: dotnet build tools/FundingPlatform.OrganizationVerificationSqlChecks --configuration Release -m:1 /nodeReuse:false
+
       - name: Integration tests
         run: >-
           dotnet test tests/FundingPlatform.IntegrationTests/FundingPlatform.IntegrationTests.csproj
@@ -106,6 +109,11 @@ jobs:
 
       - name: Public browser and accessibility tests
         run: npm run test:e2e:public
+
+      - name: Reviewed translations without paid generation
+        env:
+          VITE_FUNDING_TRANSLATIONS_ENABLED: 'true'
+        run: npm run test:e2e -- e2e/translations.spec.ts --workers=1
 
       - name: Upload the public Playwright report on failure
         if: failure()

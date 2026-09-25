@@ -54,24 +54,28 @@ public sealed class AdminOperationsEndpointTests : IClassFixture<ApiFactory>, ID
     [Fact]
     public async Task Organization_list_passes_bounded_filters_and_returns_safe_summary()
     {
-        using var request = Request("/api/v1/admin/organizations?q=fundacion&profileStatus=2&isActive=true&page=2&pageSize=10");
+        using var request = Request("/api/v1/admin/organizations?q=fundacion&profileStatus=2&isActive=true&page=2&pageSize=10&verificationStatus=0");
         using var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         Assert.Equal("fundacion", repository.OrganizationQuery?.Search);
         Assert.Equal((byte)2, repository.OrganizationQuery?.ProfileStatus);
+        Assert.Equal((byte)0, repository.OrganizationQuery?.VerificationStatus);
         Assert.True(repository.OrganizationQuery?.IsActive);
         Assert.Equal(2, repository.OrganizationQuery?.Page);
         using var json = JsonDocument.Parse(body);
         var item = json.RootElement.GetProperty("items")[0];
         Assert.Equal("Fundación Segura", item.GetProperty("name").GetString());
+        Assert.Equal(0, item.GetProperty("verificationStatus").GetByte());
         Assert.False(item.TryGetProperty("taxIdentifier", out _));
         Assert.False(item.TryGetProperty("annualBudgetMin", out _));
     }
 
     [Theory]
     [InlineData("?profileStatus=3")]
+    [InlineData("?verificationStatus=-1")]
+    [InlineData("?verificationStatus=3")]
     [InlineData("?page=0")]
     [InlineData("?pageSize=51")]
     public async Task Organization_list_rejects_invalid_filters(string query)
