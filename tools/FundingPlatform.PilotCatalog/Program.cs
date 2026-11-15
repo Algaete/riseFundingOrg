@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
+if (args.Length == 1 && args[0] is "--preview-expansion" or "--apply-expansion" or "--verify-expansion-local")
+    return await ExpansionCatalog.RunAsync(args[0]);
 if(args.Length!=1 || args[0] is not ("--preview" or "--apply")) return 64;
 var settings=new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTION_STRING"));
 if(settings.InitialCatalog!="risefunding-dev" || settings.DataSource!="tcp:sql-rf-dev-ag26rf01-centralus.database.windows.net,1433" || !settings.Encrypt || settings.TrustServerCertificate) return 64;
