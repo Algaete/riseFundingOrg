@@ -14,4 +14,9 @@ public sealed record FundingDiscoveryItem(Guid Id, string Slug, string Title, st
     string SourceUrl, DateTimeOffset? LastVerifiedAtUtc, decimal? MinimumAmount, decimal? MaximumAmount,
     string? Currency, DateOnly? CloseDate, FundingDiscoveryData? Classification,
     int ContentVersion = 0, FundingTranslationLocalization? Localization = null);
-public sealed record FundingDiscoveryPage(IReadOnlyList<FundingDiscoveryItem> Items, long TotalCount, int Page, int PageSize);
+public sealed record FundingDiscoveryPage(IReadOnlyList<FundingDiscoveryItem> Items, long TotalCount, int Page, int PageSize)
+{
+    // SQL FOR JSON omits empty subqueries. Keep the public contract as an array,
+    // including before localization and for clients that call without a locale.
+    public IReadOnlyList<FundingDiscoveryItem> Items { get; init; } = Items ?? [];
+}

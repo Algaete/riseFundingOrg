@@ -26,6 +26,8 @@ jobs:
           bash -n infra/scripts/set-api-access-dev.sh
           bash -n infra/scripts/rollback-api-dev.sh
           bash -n infra/scripts/verify-dev.sh
+          bash -n infra/scripts/curate-pilot-dev.sh
+          bash -n infra/scripts/enable-pilot-email-dev.sh
       - name: Compile Bicep without Azure credentials
         uses: azure/CLI@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
         with:
@@ -33,5 +35,6 @@ jobs:
           inlineScript: |
             az bicep install --version v0.46.1
             az bicep build --file infra/main.bicep --stdout > /dev/null
+            az bicep build --file infra/modules/pilot-email.bicep --stdout > /dev/null
       - name: Build the non-root API container without publishing it
         run: docker build --file src/FundingPlatform.Api/Dockerfile --tag rise-funding-api:ci .

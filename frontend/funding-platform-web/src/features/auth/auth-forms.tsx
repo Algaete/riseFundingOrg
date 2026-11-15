@@ -1,3 +1,4 @@
+import { PilotGuide } from '@/features/home/pilot-guide'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
@@ -242,6 +243,8 @@ export function RegisterForm() {
 
   return (
     <form className="space-y-4" noValidate onSubmit={submit}>
+      <PilotGuide compact />
+      <p className="text-sm text-muted-foreground">{t('pilot.nameHelp')}</p>
       <p className="text-xs text-muted-foreground"><span aria-hidden="true">*</span> {t('auth.fields.required')}</p>
       <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-name">{t('auth.fields.name')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.displayName ? 'register-name-error' : undefined} aria-invalid={Boolean(form.formState.errors.displayName)} id="register-name" autoComplete="name" required {...form.register('displayName')} /><FieldError id="register-name-error" message={form.formState.errors.displayName?.message} /></div>
       <div className="space-y-2"><label className="text-sm font-medium" htmlFor="register-email">{t('auth.fields.email')} <span aria-hidden="true" className="text-destructive">*</span></label><Input aria-describedby={form.formState.errors.email ? 'register-email-error' : undefined} aria-invalid={Boolean(form.formState.errors.email)} id="register-email" type="email" autoComplete="email" required {...form.register('email')} /><FieldError id="register-email-error" message={form.formState.errors.email?.message} /></div>

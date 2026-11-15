@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/features/auth/use-auth'
 import { HomeSearch } from './home-search'
-import { HomeProjects } from './home-projects'
-import { HomeMap } from './home-map'
+import { PilotGuide } from './pilot-guide'
 import './home.css'
 
 export function HomePage() {
@@ -27,13 +26,20 @@ export function HomePage() {
         <p className="home-eyebrow">{t('home.eyebrow')}</p>
         <h1 id="home-title">{t('home.title')}</h1>
         <p className="home-description">{t('home.description')}</p>
+        <p className="mt-4 font-semibold">{t('pilot.launch')}</p>
+        <p className="mt-2 text-sm">{t('pilot.free')}</p>
         <div className="home-hero-actions"><Link className="home-primary" to="/funding">{t('actions.findFunding')}<ArrowRight size={18} aria-hidden="true" /></Link><Link className="home-secondary" to={createUrl}>{t('actions.publishProject')}</Link></div>
       </div>
     </section>
     <div className="home-container home-main-content">
       <HomeSearch />
+      <PilotGuide />
+      <Link className="home-text-link" to="/pricing">{t('pilot.plans')}<ArrowRight size={16} aria-hidden="true" /></Link>
       <nav className="home-shortcuts" aria-label={t('home.shortcuts.label')}>{shortcuts.map(({ key, icon: Icon, to, color }) => <Link key={key} to={to} className={`home-shortcut home-shortcut-${color}`}><span><Icon size={27} strokeWidth={1.6} aria-hidden="true" /></span><span>{t(`home.shortcuts.${key}`)}</span><ArrowRight className="home-shortcut-arrow" size={17} aria-hidden="true" /></Link>)}</nav>
-      <div className="home-discovery-grid"><HomeProjects createUrl={createUrl} /><HomeMap /></div>
+      <div className="home-discovery-grid">{(['featured', 'map'] as const).map(section => <section key={section} className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-xl font-bold">{t(section === 'featured' ? 'home.featured.title' : 'pilotMapTitle')}</h2>
+        <p className="mt-3 font-semibold text-primary">{t('pilot.coming')}</p><p className="mt-2 text-muted-foreground">{t(`pilot.${section}`)}</p>
+      </section>)}</div>
     </div>
   </div>
 }
