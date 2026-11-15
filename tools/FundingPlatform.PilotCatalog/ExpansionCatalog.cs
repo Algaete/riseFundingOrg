@@ -33,6 +33,17 @@ internal static class ExpansionCatalog
             Console.Error.WriteLine($"Catalog connection failed: SQL {error.Number}.");
             return 1;
         }
+        if (mode == "--inspect-expansion")
+        {
+            var identities = await connection.QueryAsync("""
+                SELECT PublicId,Name,WebsiteUrl,PublicationStatus,IsActive,ContentVersion
+                FROM dbo.FundingPlatform_Funders WHERE NormalizedName IN
+                  (N'FUNDACIÓN DESCÚBREME',N'MINISTERIO DEL MEDIO AMBIENTE',N'GLOBAL FUND FOR CHILDREN',
+                   N'MINISTERIO DE LAS CULTURAS, LAS ARTES Y EL PATRIMONIO',N'NATIONAL INSTITUTE OF FOOD AND AGRICULTURE');
+                """);
+            Console.WriteLine(JsonSerializer.Serialize(identities));
+            return 0;
+        }
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync();
         try
         {
@@ -59,6 +70,10 @@ internal static class ExpansionCatalog
                       THROW 56933,N'Excluded regions were broadened.',1;
                     IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_Funders WHERE PublicId='c8ad4e91-28ad-f111-a6a7-000d3a912199' AND Name=N'Bureau of Emerging Threats')
                       THROW 56934,N'Shared legacy funder was altered.',1;
+                    IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_Funders WHERE PublicId='a528c3a2-6baa-f111-a6a7-3833c5d78f35' AND PublicationStatus=0 AND ContentVersion=2 AND WebsiteUrl=N'https://www.nifa.usda.gov')
+                      THROW 56938,N'NIFA draft status was not preserved.',1;
+                    IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunities WHERE PublicId='e512d837-7ead-f111-a6a7-000d3a912199' AND PublicationStatus=4 AND IsActive=0)
+                      THROW 56939,N'Out-of-scope opportunity was not archived.',1;
                     IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunityVersions v JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=v.FundingOpportunityId
                       WHERE o.PublicId='c1112026-0000-4000-8000-000000000001' AND v.ContentVersion=1)
                       THROW 56935,N'Prior version was lost.',1;
@@ -107,6 +122,10 @@ internal static class ExpansionCatalog
         await connection.ExecuteAsync("""
             IF EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunities WHERE PublicId='e512d837-7ead-f111-a6a7-000d3a912199')
               THROW 56937,N'Local fixture already exists.',1;
+            INSERT dbo.FundingPlatform_Funders(PublicId,Slug,Name,NormalizedName,PublicationStatus,ContentVersion,IsActive,CreatedAtUtc,UpdatedAtUtc)
+            VALUES('a528c3a2-6baa-f111-a6a7-3833c5d78f35',N'catalog-check-existing-nifa',N'National Institute of Food and Agriculture',N'NATIONAL INSTITUTE OF FOOD AND AGRICULTURE',0,1,1,SYSUTCDATETIME(),SYSUTCDATETIME());
+            INSERT dbo.FundingPlatform_FunderVersions(FunderId,ContentVersion,SnapshotJson,ContentHash,CreatedAtUtc)
+            VALUES(SCOPE_IDENTITY(),1,N'{"fixture":true}',HASHBYTES('SHA2_256',N'{"fixture":true}'),SYSUTCDATETIME());
             DECLARE @FunderId bigint;
             SELECT @FunderId=Id FROM dbo.FundingPlatform_Funders WHERE PublicId='c8ad4e91-28ad-f111-a6a7-000d3a912199';
             IF @FunderId IS NULL

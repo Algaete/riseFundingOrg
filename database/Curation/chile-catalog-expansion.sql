@@ -46,6 +46,10 @@ IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunityFunders l
  WHERE o.PublicId='e512d837-7ead-f111-a6a7-000d3a912199' AND l.Role=1 AND l.IsActive=1
  AND f.PublicId='c8ad4e91-28ad-f111-a6a7-000d3a912199' AND f.Name=N'Bureau of Emerging Threats')
  THROW 56916,N'NIFA primary link differs from the reviewed correction.',1;
+IF NOT EXISTS(SELECT 1 FROM dbo.FundingPlatform_Funders WITH(UPDLOCK,HOLDLOCK)
+ WHERE PublicId='a528c3a2-6baa-f111-a6a7-3833c5d78f35' AND Name=N'National Institute of Food and Agriculture'
+ AND WebsiteUrl IS NULL AND ContentVersion=1 AND PublicationStatus=0 AND IsActive=1)
+ THROW 56921,N'Existing NIFA draft changed; no funder overwrite allowed.',1;
 
 DECLARE @PublicId UNIQUEIDENTIFIER,@Slug NVARCHAR(180),@Version INT,@Data NVARCHAR(MAX),@Correction BIT;
 DECLARE @Id BIGINT,@SourceId INT,@FunderId BIGINT,@Name NVARCHAR(300),@Url NVARCHAR(2048),@FunderSlug NVARCHAR(180),@Snapshot NVARCHAR(MAX);
@@ -59,7 +63,7 @@ BEGIN
  SET @Url=CASE WHEN @Correction=1 THEN JSON_VALUE(@Data,'$.funderUrl') ELSE JSON_VALUE(@Data,'$.url') END;
  SET @FunderSlug=CASE WHEN @Correction=1 THEN N'nifa-usda-curated' ELSE @Slug+N'-financiador' END;
  SELECT @Id=Id FROM dbo.FundingPlatform_FundingOpportunities WHERE PublicId=@PublicId;
- IF @Version=0 OR @Correction=1
+ IF @Version=0
  BEGIN
   IF (SELECT COUNT(*) FROM dbo.FundingPlatform_Funders WHERE Name=@Name AND WebsiteUrl=@Url AND PublicationStatus=2 AND IsActive=1)>1
    THROW 56917,N'Ambiguous existing funder identity.',1;
@@ -93,10 +97,17 @@ BEGIN
  END;
  IF @Correction=1
  BEGIN
+  SELECT @FunderId=Id FROM dbo.FundingPlatform_Funders WHERE PublicId='a528c3a2-6baa-f111-a6a7-3833c5d78f35';
+  -- Complete the exact reviewed draft, preserving its draft status. Publishing it
+  -- could make unrelated legacy opportunities public; this batch must not do that.
+  UPDATE dbo.FundingPlatform_Funders SET WebsiteUrl=@Url,ContentVersion=2,UpdatedAtUtc=@Now WHERE Id=@FunderId;
+  SET @Snapshot=(SELECT @Name AS name,@Url AS websiteUrl,@Batch AS curation,CONVERT(TINYINT,0) AS publicationStatus FOR JSON PATH,WITHOUT_ARRAY_WRAPPER);
+  INSERT dbo.FundingPlatform_FunderVersions(FunderId,ContentVersion,SnapshotJson,ContentHash,CreatedAtUtc)
+  VALUES(@FunderId,2,@Snapshot,HASHBYTES('SHA2_256',CONVERT(VARBINARY(MAX),CONVERT(VARCHAR(MAX),@Snapshot COLLATE Latin1_General_100_BIN2_UTF8))),@Now);
   -- Withdraw this one wrong relation; never rename or alter the shared old funder.
   UPDATE dbo.FundingPlatform_FundingOpportunityFunders SET IsActive=0,UpdatedAtUtc=@Now WHERE FundingOpportunityId=@Id AND Role=1 AND IsActive=1;
   INSERT dbo.FundingPlatform_FundingOpportunityFunders(FundingOpportunityId,FunderId,Role,IsActive,CreatedAtUtc,UpdatedAtUtc) VALUES(@Id,@FunderId,1,1,@Now,@Now);
-  UPDATE dbo.FundingPlatform_FundingOpportunities SET SponsorUrl=@Url,GeographicScope=1,ContentVersion=ContentVersion+1,ReviewedAtUtc=@Now,LastVerifiedAtUtc=@Now,UpdatedAtUtc=@Now WHERE Id=@Id;
+  UPDATE dbo.FundingPlatform_FundingOpportunities SET SponsorUrl=@Url,GeographicScope=1,ContentVersion=ContentVersion+1,PublicationStatus=4,IsActive=0,ReviewedAtUtc=@Now,LastVerifiedAtUtc=@Now,UpdatedAtUtc=@Now WHERE Id=@Id;
   DELETE FROM dbo.FundingPlatform_FundingOpportunityCountries WHERE FundingOpportunityId=@Id;
   DELETE FROM dbo.FundingPlatform_FundingOpportunityRegions WHERE FundingOpportunityId=@Id;
   INSERT dbo.FundingPlatform_FundingOpportunityCountries(FundingOpportunityId,CountryId) VALUES(@Id,840);
@@ -168,9 +179,9 @@ CROSS APPLY(SELECT (SELECT @Batch AS curation,JSON_QUERY((SELECT o.* FOR JSON PA
  JSON_QUERY((SELECT f.PublicId,l.Role FROM dbo.FundingPlatform_FundingOpportunityFunders l JOIN dbo.FundingPlatform_Funders f ON f.Id=l.FunderId WHERE l.FundingOpportunityId=o.Id AND l.IsActive=1 ORDER BY l.Role,f.PublicId FOR JSON PATH)) AS funders,
  JSON_QUERY(c.Data) AS editorialReview FOR JSON PATH,WITHOUT_ARRAY_WRAPPER) AS SnapshotJson) s;
 INSERT dbo.FundingPlatform_FundingOpportunityEditorialEvents(EventId,FundingOpportunityId,ContentVersion,FromStatus,ToStatus,ActionCode,ActorUserId,Reason,IdempotencyKeyHash,RequestHash,ResultRowVersion,ResultPublishedAtUtc,ResultReviewedAtUtc,CreatedAtUtc)
-SELECT NEWID(),o.Id,o.ContentVersion,CASE WHEN c.WasNew=1 THEN 0 ELSE 2 END,2,N'CuratedBatch',NULL,@Batch,@Key,@Hash,o.RowVersion,o.PublishedAtUtc,o.ReviewedAtUtc,@Now FROM @Changed c JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=c.Id;
-IF (SELECT COUNT(*) FROM @Changed c JOIN dbo.FundingPlatform_ifn_FundingOpportunityPublicReady() p ON p.FundingOpportunityId=c.Id)<>8
+SELECT NEWID(),o.Id,o.ContentVersion,CASE WHEN c.WasNew=1 THEN 0 ELSE 2 END,o.PublicationStatus,N'CuratedBatch',NULL,@Batch,@Key,@Hash,o.RowVersion,o.PublishedAtUtc,o.ReviewedAtUtc,@Now FROM @Changed c JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=c.Id;
+IF (SELECT COUNT(*) FROM @Changed c JOIN dbo.FundingPlatform_ifn_FundingOpportunityPublicReady() p ON p.FundingOpportunityId=c.Id)<>7
  THROW 56919,N'Edited opportunities failed publication readiness; roll back.',1;
-IF EXISTS(SELECT 1 FROM @Changed c JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=c.Id WHERE c.PublicId='e512d837-7ead-f111-a6a7-000d3a912199' AND (o.GeographicScope<>1 OR EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunityCountries WHERE FundingOpportunityId=o.Id AND CountryId<>840)))
+IF EXISTS(SELECT 1 FROM @Changed c JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=c.Id WHERE c.PublicId='e512d837-7ead-f111-a6a7-000d3a912199' AND (o.PublicationStatus<>4 OR o.IsActive<>0 OR o.GeographicScope<>1 OR EXISTS(SELECT 1 FROM dbo.FundingPlatform_FundingOpportunityCountries WHERE FundingOpportunityId=o.Id AND CountryId<>840)))
  THROW 56920,N'NIFA geography correction failed.',1;
 SELECT SUM(CONVERT(INT,WasNew)) AS InsertedCount,SUM(CASE WHEN WasNew=0 THEN 1 ELSE 0 END) AS UpdatedCount,0 AS AlreadyAppliedCount FROM @Changed;

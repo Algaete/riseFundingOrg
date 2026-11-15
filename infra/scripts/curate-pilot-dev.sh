@@ -3,7 +3,7 @@
 # Both modes temporarily allow only the current client IP and remove that rule on exit.
 set -euo pipefail
 mode="${1:---preview}"
-[[ "$mode" == '--preview' || "$mode" == '--apply' || "$mode" == '--preview-expansion' || "$mode" == '--apply-expansion' ]] || exit 64
+[[ "$mode" == '--preview' || "$mode" == '--apply' || "$mode" == '--preview-expansion' || "$mode" == '--apply-expansion' || "$mode" == '--inspect-expansion' ]] || exit 64
 task_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [[ "$mode" == '--apply' ]]; then
   [[ "${RF_PILOT_CATALOG_CONFIRMATION:-}" == 'PUBLISH-THREE-REVIEWED-FUNDS-AND-WITHDRAW-TWO-SAMPLES' ]] || exit 64

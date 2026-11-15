@@ -597,7 +597,14 @@
         840
       ],
       "evidenceUrl": "https://www.nifa.usda.gov/grants/funding-opportunities/hispanic-serving-institutions-education-grants-program",
-      "note": "Postulación principal reservada a instituciones de educación superior HSI estadounidenses. Una ONG chilena no es postulante principal. Corregir solo alcance e identidad del financiador; conservar el texto y el historial importados."
+      "note": "Reservado a instituciones HSI estadounidenses. Se retira de la marcha blanca chilena de forma reversible, se corrige el vínculo al financiador NIFA existente y se completa su web oficial. El financiador conserva su estado borrador; no se publican otros fondos asociados.",
+      "existingFunder": {
+        "id": "a528c3a2-6baa-f111-a6a7-3833c5d78f35",
+        "expectedVersion": 1,
+        "expectedStatus": 0,
+        "expectedWebsiteUrl": null
+      },
+      "disposition": "archive-outside-chile-pilot"
     }
   ],
   "excludedCandidates": [
