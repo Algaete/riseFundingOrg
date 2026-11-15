@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2, Check, ChevronLeft, ChevronRight, LoaderCircle, Plus, Save, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -298,7 +299,7 @@ function CreateOrganization({ catalogs }: { catalogs: OrganizationCatalogs }) {
   const { register, handleSubmit, setError, formState } = useForm<CreateOrganizationValues>({
     defaultValues: {
       name: '',
-      homeCountryId: catalogs.countries[0]?.id,
+      homeCountryId: catalogs.countries.find(country => country.id === 152)?.id ?? catalogs.countries[0]?.id,
       organizationTypeId: catalogs.organizationTypes[0]?.id,
     },
   })
@@ -812,6 +813,12 @@ function ProfileEditor({ profile, catalogs, onboarding }: {
           <div className="h-full bg-primary transition-all" style={{ width: `${profile.profileCompleteness}%` }} />
         </div>
       </div>
+
+      <section className="rounded-xl border border-primary/30 bg-accent p-5">
+        <h2 className="font-semibold">{t('home.benefits.projects.title')}</h2>
+        <p className="mt-2 text-sm">{t('pilot.free')}</p><p className="mt-2 text-sm">{t('pilot.detail')}</p>
+        <Button asChild className="mt-4"><Link to="/projects">{t('actions.publishProject')}</Link></Button>
+      </section>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t('organization.profileSteps')}>
         {steps.map((label, index) => (

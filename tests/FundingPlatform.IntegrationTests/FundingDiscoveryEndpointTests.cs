@@ -48,6 +48,28 @@ public sealed class FundingDiscoveryEndpointTests(ApiFactory factory) : IClassFi
         Assert.Equal(!enabled && locale is null, response.Headers.CacheControl!.Public);
     }
 
+    [Theory]
+    [InlineData("es")]
+    [InlineData("en")]
+    public async Task Empty_sql_page_returns_an_empty_array_with_translations_enabled(string locale)
+    {
+        var repository = new Repository { Items = null! };
+        var translations = new SummaryRepository();
+        await using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IFundingDiscoveryRepository>(); services.AddSingleton<IFundingDiscoveryRepository>(repository);
+            services.RemoveAll<IFundingTranslationRepository>(); services.AddSingleton<IFundingTranslationRepository>(translations);
+            services.RemoveAll<FundingTranslationOptions>(); services.AddSingleton(new FundingTranslationOptions { Enabled = true });
+        }));
+        using var client = app.CreateClient();
+        using var response = await client.GetAsync("/api/v1/funding-discovery?query=c%C3%A1ncer&countryId=152&locale=" + locale);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<FundingDiscoveryPage>();
+        Assert.Empty(result!.Items);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, translations.Calls);
+    }
+
     private sealed class SummaryRepository : IFundingTranslationRepository
     {
         public int Calls { get; private set; }
@@ -139,7 +161,7 @@ public sealed class FundingDiscoveryEndpointTests(ApiFactory factory) : IClassFi
         public int Reads, Writes; public FundingDiscoveryFilters? Filters;
         public bool IncludeReviewedTranslations;
         public IReadOnlyList<FundingDiscoveryItem> Items { get; init; } = [];
-        public Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token, bool includeReviewedTranslations = false) { Reads++; Filters = filters; IncludeReviewedTranslations = includeReviewedTranslations; return Task.FromResult(new FundingDiscoveryPage(Items, Items.Count, filters.Page, filters.PageSize)); }
+        public Task<FundingDiscoveryPage> SearchAsync(FundingDiscoveryFilters filters, CancellationToken token, bool includeReviewedTranslations = false) { Reads++; Filters = filters; IncludeReviewedTranslations = includeReviewedTranslations; return Task.FromResult(new FundingDiscoveryPage(Items, Items?.Count ?? 0, filters.Page, filters.PageSize)); }
         public Task<FundingDiscoveryAdmin?> GetAsync(Guid actor, Guid id, CancellationToken token) => Task.FromResult<FundingDiscoveryAdmin?>(null);
         public Task<CollaborationWriteResult> ReviewAsync(Guid actor, Guid id, FundingDiscoveryReview data, byte[]? version, byte[] keyHash, byte[] requestHash, CancellationToken token) { Writes++; return Task.FromResult(new CollaborationWriteResult(id, "\"0102030405060708\"", false)); }
     }

@@ -45,6 +45,9 @@ jobs:
       - name: Compile the loopback-only SQL contract checker
         run: dotnet build tools/FundingPlatform.OrganizationVerificationSqlChecks --configuration Release -m:1 /nodeReuse:false
 
+      - name: Compile the bounded pilot catalog publisher
+        run: dotnet build tools/FundingPlatform.PilotCatalog --configuration Release -m:1 /nodeReuse:false
+
       - name: Integration tests
         run: >-
           dotnet test tests/FundingPlatform.IntegrationTests/FundingPlatform.IntegrationTests.csproj

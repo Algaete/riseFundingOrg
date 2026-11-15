@@ -1,0 +1,84 @@
+{
+  "reviewedAt": "2026-11-15",
+  "purpose": "Primer lote editorial para Chile; no representa la meta de 50–60 fondos. Sin scraping ni importación automática.",
+  "funds": [
+    {
+      "id": "c1112026-0000-4000-8000-000000000001",
+      "slug": "japon-apc-chile-2027",
+      "title": "APC Japón Chile 2027 — Proyectos comunitarios",
+      "funder": "Embajada del Japón en Chile",
+      "url": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+      "application": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+      "summary": "Apoyo a proyectos comunitarios de salud, educación y bienestar en Chile. Postulación APC 2027 abierta hasta el 31 de diciembre de 2026.",
+      "description": "Programa de cooperación para infraestructura y equipamiento comunitario. La convocatoria 2027 recibe postulaciones entre el 1 de agosto y el 31 de diciembre de 2026. Consultar las bases para entidades privadas enlazadas en la página oficial.",
+      "eligibility": "Dirigido a entidades sin fines de lucro que desarrollan proyectos comunitarios en Chile. La página general del programa excluye remuneraciones, gastos de operación, insumos y traslados; confirmar los requisitos definitivos en las bases privadas 2027. No es una ayuda directa para tratamientos individuales.",
+      "requirements": "Revisar bases 2027 para entidades privadas y formulario oficial. Monto pendiente de confirmación en las bases; no se utiliza el tope de convocatorias anteriores.",
+      "amount": null,
+      "opened": "2026-08-01",
+      "closed": "2026-12-31",
+      "closeUtc": null,
+      "zone": null,
+      "globalScope": false,
+      "categories": [
+        2,
+        3,
+        4
+      ],
+      "sources": [
+        "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+        "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion-apc.html"
+      ]
+    },
+    {
+      "id": "c1112026-0000-4000-8000-000000000002",
+      "slug": "pollination-project-daily-grants-2026",
+      "title": "The Pollination Project — Fondos semilla comunitarios 2026",
+      "funder": "The Pollination Project",
+      "url": "https://thepollinationproject.org/apply/",
+      "application": "https://thepollinationproject.smapply.us/",
+      "summary": "US$500 para iniciativas comunitarias de voluntariado, incluidas organizaciones de Chile. Puede apoyar proyectos de salud y desarrollo social que cumplan sus criterios.",
+      "description": "Fondo semilla para iniciativas en etapa inicial lideradas por voluntariado. Acepta postulaciones internacionales en inglés. El cierre anual informado es el 30 de noviembre de 2026 a las 23:59 de la costa este de EE. UU.; reabre el 1 de enero de 2027.",
+      "eligibility": "Personas, colectivos y organizaciones sin fines de lucro de cualquier país. Presupuesto del proyecto inferior a US$10.000 y presupuesto organizacional inferior a US$50.000. Sin personal remunerado; se admiten servicios profesionales ocasionales. Debe existir trabajo o planificación inicial y no haber recibido previamente un fondo semilla TPP.",
+      "requirements": "Postular en inglés, aportar un referente y poder recibir USD por transferencia o PayPal. Revisar las exclusiones de las bases, entre ellas proselitismo, discriminación y gastos vinculados a productos animales. No garantiza elegibilidad por trabajar en salud.",
+      "amount": 500,
+      "opened": null,
+      "closed": "2026-11-30",
+      "closeUtc": "2026-12-01T04:59:00",
+      "zone": "America/New_York",
+      "globalScope": true,
+      "categories": [
+        3,
+        4
+      ],
+      "sources": [
+        "https://thepollinationproject.org/apply/",
+        "https://thepollinationproject.smapply.us/"
+      ]
+    },
+    {
+      "id": "c1112026-0000-4000-8000-000000000003",
+      "slug": "awesome-disability-diciembre-2026",
+      "title": "Awesome Foundation Disability — Convocatoria diciembre 2026",
+      "funder": "Awesome Foundation — Disability",
+      "url": "https://www.awesomefoundation.org/en/chapters/disability",
+      "application": "https://www.awesomefoundation.org/en/submissions/new?chapter=disability",
+      "summary": "Microfondo de US$1.000 para proyectos que beneficien a personas con discapacidad. Admite postulaciones de cualquier país; próxima ventana del 1 al 10 de diciembre.",
+      "description": "El capítulo Disability recibe propuestas entre los días 1 y 10 de cada mes. Esta ficha corresponde a diciembre de 2026 y no se presenta como abierta durante noviembre. Personas con discapacidad deben participar de manera significativa en decisiones y liderazgo.",
+      "eligibility": "Pueden postular personas, organizaciones sin fines de lucro y empresas de cualquier país, incluido Chile. Las propuestas deben beneficiar a personas con discapacidad y presentarse en inglés. Una causa de salud no implica elegibilidad automática.",
+      "requirements": "Describir el proyecto, su beneficio para la comunidad y el uso de US$1.000. No financia necesidades médicas individuales, arriendo, servicios básicos o reparaciones personales. Confirmar la ventana mensual en la fuente oficial.",
+      "amount": 1000,
+      "opened": "2026-12-01",
+      "closed": "2026-12-10",
+      "closeUtc": null,
+      "zone": null,
+      "globalScope": true,
+      "categories": [
+        3,
+        4
+      ],
+      "sources": [
+        "https://www.awesomefoundation.org/en/chapters/disability"
+      ]
+    }
+  ]
+}

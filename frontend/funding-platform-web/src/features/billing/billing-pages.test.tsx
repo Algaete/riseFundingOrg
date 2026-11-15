@@ -15,18 +15,24 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
 
-it('makes public pricing a read-only catalog with a real subscription link, not a no-op checkout', async () => {
+it('shows the pilot offer and requires a budget selection before displaying indicative CLP prices', async () => {
   const create = vi.spyOn(billingApi, 'createCheckout')
+  const user = userEvent.setup()
   trackingPage(<PublicPricingPage />, '/pricing')
-  await screen.findByText('Plan gratuito')
+  expect(screen.getByRole('link', { name: 'Registrar mi ONG gratis' })).toHaveAttribute('href', '/register')
+  expect(screen.queryByText(/9.990/)).not.toBeInTheDocument()
+  await user.selectOptions(screen.getByRole('combobox'), '0')
+  expect(screen.getByText('$9.990 CLP')).toBeInTheDocument()
+  expect(screen.getByText('$95.904 CLP')).toBeInTheDocument()
+  await user.selectOptions(screen.getByRole('combobox'), '2')
+  expect(screen.getByText('$19.990 CLP')).toBeInTheDocument()
   await language('en')
-  expect(screen.getByText('Free plan')).toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: /checkout/ })).not.toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'View subscription' })).toHaveAttribute('href', '/subscription')
-  expect(screen.getByText('$12,500.50')).toBeInTheDocument()
-  expect(screen.getByText('Initial free plan to validate the MVP.')).toBeInTheDocument()
+  expect(screen.getByRole('combobox')).toHaveValue('2')
+  expect(screen.getByText('Premium · Coming soon')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ask about special plans' })).toHaveAttribute('href', '/contact')
+  expect(screen.queryByRole('button', { name: /checkout/i })).not.toBeInTheDocument()
   expect(create).not.toHaveBeenCalled()
-  expect(billingApi.plans).toHaveBeenCalledTimes(1)
+  expect(billingApi.plans).not.toHaveBeenCalled()
 })
 
 it('does not initiate checkout on language change and retries the same price/idempotency key after uncertainty', async () => {

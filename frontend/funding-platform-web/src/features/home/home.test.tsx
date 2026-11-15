@@ -8,6 +8,8 @@ import { setAuthenticatedSession } from '@/features/auth/auth-session'
 import { marketplaceApi, type MarketplaceProjectItem } from '@/features/marketplace/marketplace-api'
 import { projectMapApi, type MapPoint } from '@/features/project-map/project-map-api'
 import { HomePage } from './home-page'
+import { HomeProjects } from './home-projects'
+import { HomeMap } from './home-map'
 import { fundingProgress, homeSearchUrl, publishedHomeProjects } from './home-model'
 
 const project: MarketplaceProjectItem = {
@@ -17,8 +19,8 @@ const project: MarketplaceProjectItem = {
   organization: { publicId: '11111111-2222-3333-4444-666666666666', name: 'Organización comunitaria', websiteUrl: null },
 }
 const catalogs = { countries: [{ id: 152, code: 'CL', name: 'Chile' }], fundingCategories: [{ id: 4, code: 'water', name: 'Agua y saneamiento' }], projectTypes: [], sustainableDevelopmentGoals: [], currencies: [] }
-function setup(path = '/') {
-  const router = createMemoryRouter([{ element: <PublicLayout />, children: [{ path: '/', element: <HomePage /> }] },
+function setup(path = '/', legacySections = false) {
+  const router = createMemoryRouter([{ element: <PublicLayout />, children: [{ path: '/', element: legacySections ? <><HomePage /><HomeProjects createUrl="/register" /><HomeMap /></> : <HomePage /> }] },
     { path: '/search', element: <p>Destination</p> },
     { path: '/marketplace', element: <p>Destination</p> }, { path: '/funding/explore', element: <p>Destination</p> },
   ], { initialEntries: [path] })
@@ -40,15 +42,15 @@ describe('inicio basado en la referencia', () => {
 
   it('muestra la composición y estados vacíos, sin inventar proyectos ni ubicaciones', async () => {
     setup()
-    expect(await screen.findByText('El próximo gran proyecto puede ser el tuyo')).toBeInTheDocument()
+    expect(screen.getAllByText('Próximamente')).toHaveLength(2)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Conectamos tu causa con oportunidades.')
     expect(document.querySelector('.home-hero-photo')).toHaveAttribute('src', '/images/home-impact-hero.jpg')
     expect(document.querySelector('.home-hero-photo')).toHaveAttribute('alt', '')
     expect(screen.getByRole('link', { name: 'Publicar mi proyecto' })).toHaveAttribute('href', '/register')
     expect(screen.getByRole('navigation', { name: 'Conecta con el ecosistema' }).querySelectorAll('a')).toHaveLength(4)
-    expect(screen.getByText('Aquí aparecerán los proyectos con ubicación pública.')).toBeInTheDocument()
+    expect(screen.getByText('Comenzamos en Chile. Próximamente en más países.')).toBeInTheDocument()
     expect(document.querySelectorAll('.home-project-card, .home-map-marker')).toHaveLength(0)
-    expect(marketplaceApi.search).toHaveBeenCalledWith({ sort: 'newest', page: 1, pageSize: 3 }, expect.any(AbortSignal))
+    expect(marketplaceApi.search).not.toHaveBeenCalled()
   })
 
   it('solo presenta la proyección publicada y distingue progreso conocido de desconocido', async () => {
@@ -56,7 +58,7 @@ describe('inicio basado en la referencia', () => {
       { ...project, publicId: 'second', slug: 'sin-presupuesto', title: 'Sin presupuesto', confirmedFunding: null },
       { ...project, publicId: 'draft', title: 'Borrador secreto', publicationStatus: 0 },
     ], totalCount: 2, pageNumber: 1, pageSize: 3 })
-    setup()
+    setup('/', true)
     expect(await screen.findByRole('heading', { name: 'Agua segura' })).toBeInTheDocument()
     expect(screen.queryByText('Borrador secreto')).not.toBeInTheDocument()
     expect(screen.getByRole('progressbar')).toHaveAttribute('value', '25')
@@ -91,18 +93,18 @@ describe('inicio basado en la referencia', () => {
     await user.type(screen.getByRole('searchbox'), 'agua')
     await user.selectOptions(screen.getByRole('combobox', { name: 'País' }), '152')
     await user.selectOptions(screen.getAllByRole('combobox', { name: 'Idioma' })[0], 'en')
-    expect(await screen.findByRole('heading', { name: 'Projects around the world' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Project map in Chile' })).toBeInTheDocument()
     expect(screen.getByRole('searchbox')).toHaveValue('agua')
     expect(screen.getByRole('combobox', { name: 'Country' })).toHaveValue('152')
-    expect(marketplaceApi.search).toHaveBeenCalledTimes(1)
+    expect(marketplaceApi.search).not.toHaveBeenCalled()
     expect(marketplaceApi.catalogs).toHaveBeenCalledTimes(1)
-    expect(projectMapApi.search).toHaveBeenCalledTimes(1)
+    expect(projectMapApi.search).not.toHaveBeenCalled()
   })
 
   it('separa errores, permite reintento y no bloquea la búsqueda por texto', async () => {
     vi.mocked(marketplaceApi.catalogs).mockRejectedValue(new Error('private diagnostic'))
     vi.mocked(marketplaceApi.search).mockRejectedValueOnce(new Error('internal error')).mockResolvedValueOnce({ items: [project], totalCount: 1, pageNumber: 1, pageSize: 3 })
-    const router = setup()
+    const router = setup('/', true)
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Reintentar proyectos' }))
     expect(await screen.findByRole('heading', { name: 'Agua segura' })).toBeInTheDocument()
@@ -111,13 +113,13 @@ describe('inicio basado en la referencia', () => {
     expect(screen.getByText('Aquí aparecerán los proyectos con ubicación pública.')).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox'), 'bosque')
     await user.click(screen.getByRole('button', { name: 'Buscar' }))
-    await waitFor(() => expect(router.state.location.search).toBe('?scope=all&q=bosque'))
+    await waitFor(() => expect(router.state.location.search).toBe('?scope=funding&q=bosque&countryId=152'))
   })
 
   it('agrupa solo ubicaciones públicas válidas y advierte el límite de la vista previa', async () => {
     const point: MapPoint = { publicId: project.publicId, slug: project.slug, title: project.title, summary: null, organizationName: 'Organización', latitude: -33.45, longitude: -70.66, projectStatus: 3, projectStage: null, fundingGap: null, currency: null }
     vi.mocked(projectMapApi.search).mockResolvedValue({ items: [point, { ...point, publicId: 'second' }], totalCount: 150, withoutPublicLocationCount: 8, page: 1, pageSize: 100 })
-    setup()
+    setup('/', true)
     expect(await screen.findByRole('link', { name: 'Explorar 2 proyectos en el mapa' })).toHaveAttribute('href', '/marketplace/map')
     expect(screen.getByText('Vista previa: 2 de 150 proyectos con ubicación pública.')).toBeInTheDocument()
     expect(document.querySelectorAll('.home-map-marker')).toHaveLength(1)

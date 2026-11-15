@@ -69,10 +69,53 @@ export const coreEn = {
     footer: 'FundingPlatform · Connecting your cause with opportunities.',
   },
   status: { loading: 'Loading…', notFound: 'Page not found', checkingSession: 'Checking session…' },
+  pilotPricing: {
+    "title": "A free foundation for every nonprofit",
+    "intro": "Register your Chilean nonprofit and publish projects for free, with no card required. During the pilot we are expanding our reviewed funding catalog.",
+    "free": "Free",
+    "freeHelp": "Get started and share your initiatives.",
+    "freeFeatures": [
+        "Your nonprofit registration and profile",
+        "Multiple projects and drafts, with free publication after review",
+        "Access to the opportunities available during the pilot"
+    ],
+    "start": "Register my nonprofit for free",
+    "premium": "Premium · Coming soon",
+    "premiumHelp": "Full catalog access and additional tools will be introduced gradually.",
+    "budget": "Your nonprofit’s approximate annual budget (USD)",
+    "choose": "Select a budget range to see its price",
+    "tiers": [
+        "Up to US$10,000",
+        "Over US$10,000 and up to US$100,000",
+        "Over US$100,000"
+    ],
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "discount": "Annual pricing includes a 20% discount compared with twelve monthly payments.",
+    "notice": "Indicative prices in Chilean pesos. Tax treatment and final terms will be confirmed before purchase. Subscriptions and Premium trials cannot be activated yet.",
+    "emerging": "Is your nonprofit just getting started?",
+    "emergingHelp": "We want to help you grow. Contact us about special plans for emerging organizations.",
+    "contact": "Ask about special plans"
+},
+  pilotMapTitle: 'Project map in Chile',
+  pilot: {
+    "launch": "Starting in Chile. More countries coming soon.",
+    "free": "Register your nonprofit and publish projects for free. No card required.",
+    "stepsTitle": "From your cause to your first project",
+    "stepsAccount": "Create your account and verify your email.",
+    "stepsOrg": "Register your Chilean nonprofit and complete its profile for manual review.",
+    "stepsProject": "Save your project as a draft and submit it for review when ready.",
+    "detail": "More complete information helps us identify opportunities and potential partners. Connections will be introduced gradually; funding is not guaranteed.",
+    "plans": "Explore Free and Premium options",
+    "coming": "Coming soon",
+    "featured": "This space will feature real, approved projects with permission from their organizations.",
+    "map": "We are gathering projects in Chile. We will assess launching the map once at least 30 projects are approved and authorized.",
+    "nameHelp": "Enter the name of the person responsible. You can complete the organization details after verifying your email."
+},
   home: {
-    eyebrow: 'A platform for impact funding and partnerships',
+    eyebrow: "Funding opportunities and nonprofit projects in Chile",
     title: 'Connecting your cause with opportunities.',
-    description: 'Find funding opportunities, discover projects, organizations and professionals to collaborate with and grow your impact.',
+    description: "Find funding opportunities for your nonprofit and publish your projects for free. We bring opportunities to organizations of all sizes and build a community for future partnerships.",
     search: {
       title: 'Find your next opportunity', scope: 'Search in', projects: 'Projects', funding: 'Opportunities',
       all: 'All', organizations: 'Organizations', professionals: 'Professionals',

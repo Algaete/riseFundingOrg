@@ -69,10 +69,53 @@ export const coreEs = {
     footer: 'FundingPlatform · Conectamos tu causa con oportunidades.',
   },
   status: { loading: 'Cargando…', notFound: 'Página no encontrada', checkingSession: 'Comprobando sesión…' },
+  pilotPricing: {
+    "title": "Una base gratuita para todas las ONG",
+    "intro": "Registra tu organización chilena y publica tus proyectos gratis, sin tarjeta. Durante la marcha blanca estamos ampliando el catálogo de fondos revisados.",
+    "free": "Gratuito",
+    "freeHelp": "Para comenzar y dar visibilidad a tus iniciativas.",
+    "freeFeatures": [
+        "Registro y perfil de tu ONG",
+        "Varios proyectos y borradores, con publicación gratuita tras revisión",
+        "Consulta de las oportunidades disponibles en la marcha blanca"
+    ],
+    "start": "Registrar mi ONG gratis",
+    "premium": "Premium · Próximamente",
+    "premiumHelp": "El acceso al catálogo completo y las herramientas adicionales se habilitarán progresivamente.",
+    "budget": "Presupuesto anual aproximado de tu ONG (USD)",
+    "choose": "Selecciona un tramo para ver su tarifa",
+    "tiers": [
+        "Hasta US$10.000",
+        "Más de US$10.000 y hasta US$100.000",
+        "Más de US$100.000"
+    ],
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "discount": "El valor anual considera un 20% de descuento respecto de doce mensualidades.",
+    "notice": "Tarifas referenciales en pesos chilenos. El tratamiento tributario y las condiciones finales se informarán antes de contratar. Todavía no se pueden activar suscripciones ni pruebas Premium.",
+    "emerging": "¿Tu ONG está recién comenzando?",
+    "emergingHelp": "Queremos ayudarte a crecer. Contáctanos para conocer nuestros planes especiales para organizaciones emergentes.",
+    "contact": "Consultar por planes especiales"
+},
+  pilotMapTitle: 'Mapa de proyectos en Chile',
+  pilot: {
+    "launch": "Comenzamos en Chile. Próximamente en más países.",
+    "free": "Registra tu ONG y publica tus proyectos gratis. Sin tarjeta.",
+    "stepsTitle": "De tu causa a tu primer proyecto",
+    "stepsAccount": "Crea tu cuenta y verifica tu correo.",
+    "stepsOrg": "Registra tu ONG chilena y completa su perfil para la revisión manual.",
+    "stepsProject": "Guarda tu proyecto como borrador y envíalo a revisión cuando esté listo.",
+    "detail": "Mientras más completa sea la información, mejor podremos identificar oportunidades y posibles aliados. Estas conexiones se incorporarán progresivamente; no garantizamos financiamiento.",
+    "plans": "Conoce las opciones gratuitas y Premium",
+    "coming": "Próximamente",
+    "featured": "Aquí destacaremos proyectos reales, aprobados y autorizados por sus organizaciones.",
+    "map": "Estamos reuniendo proyectos en Chile. Evaluaremos activar el mapa al contar con al menos 30 proyectos aprobados y autorizados.",
+    "nameHelp": "Ingresa el nombre de la persona responsable. Los datos de tu organización se completan después de verificar el correo."
+},
   home: {
-    eyebrow: 'Plataforma de financiamiento y alianzas para el impacto',
+    eyebrow: "Fondos concursables y proyectos de ONG en Chile",
     title: 'Conectamos tu causa con oportunidades.',
-    description: 'Encuentra oportunidades de financiamiento, descubre proyectos, organizaciones y profesionales para colaborar y haz crecer tu impacto.',
+    description: "Encuentra oportunidades de financiamiento para tu ONG y publica tus proyectos gratis. Acercamos oportunidades a organizaciones pequeñas y grandes, y construimos una comunidad para futuras alianzas.",
     search: {
       title: 'Encuentra tu próxima oportunidad', scope: 'Buscar en', projects: 'Proyectos', funding: 'Oportunidades',
       all: 'Todo', organizations: 'Organizaciones', professionals: 'Profesionales',

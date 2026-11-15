@@ -12,9 +12,9 @@ export function HomeSearch() {
   const navigate = useNavigate()
   const { hash } = useLocation()
   useEffect(() => { if (hash === '#home-search') document.getElementById('home-search-query')?.focus() }, [hash])
-  const [scope, setScope] = useState<HomeSearchScope>('all')
+  const [scope, setScope] = useState<HomeSearchScope>('funding')
   const [query, setQuery] = useState('')
-  const [country, setCountry] = useState('')
+  const [country, setCountry] = useState('152')
   const [category, setCategory] = useState('')
   const catalogs = useQuery({ queryKey: ['marketplace', 'catalogs'], queryFn: ({ signal }) => marketplaceApi.catalogs(signal), staleTime: 60 * 60 * 1000, retry: false })
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -40,6 +40,7 @@ export function HomeSearch() {
           <span className="sr-only">{t('home.search.country')}</span>
           <select disabled={!catalogs.data} value={country} onChange={event => setCountry(event.target.value)}>
             <option value="">{t('home.search.allCountries')}</option>
+            {!catalogs.data && <option value="152">Chile</option>}
             {catalogs.data?.countries.map(item => <option key={item.id} value={item.id} lang={catalogLanguage('countries', item)}>{catalogName('countries', item)}</option>)}
           </select>
         </label>

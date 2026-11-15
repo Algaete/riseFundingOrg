@@ -1,3 +1,4 @@
+import { PilotPricingPage } from './pilot-pricing-page'
 import { formatDateValue } from '@/i18n/formats'
 import i18n from '@/i18n'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -54,14 +55,7 @@ function PlanCard({ plan, current, onCheckout, pending, publicView = false, canC
 }
 
 export function PublicPricingPage() {
-  const { t } = useTranslation()
-  const plans = useQuery({ queryKey: ['subscription-plans'], queryFn: ({ signal }) => billingApi.plans(signal) })
-  return <div className="mx-auto max-w-7xl space-y-8 px-4 py-16 sm:px-6">
-    <header className="text-center"><p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">{t('billing.eyebrow')}</p><h1 className="mt-2 text-4xl font-bold">{t('billing.title')}</h1><p className="mx-auto mt-3 max-w-3xl text-muted-foreground">{t('billing.publicHelp')}</p></header>
-    <ReadState pending={plans.isPending} error={plans.isError} loading={t('billing.plansLoading')} failed={t('billing.plansFailed')} onRetry={() => void plans.refetch()} />
-    {plans.data?.length === 0 && <p>{t('billing.plansEmpty')}</p>}
-    <section className="grid gap-4 lg:grid-cols-3">{plans.data?.map((plan) => <PlanCard current={plan.code === 'FREE'} key={plan.code} pending={false} plan={plan} publicView />)}</section>
-  </div>
+  return <PilotPricingPage />
 }
 
 export function SubscriptionWorkspacePage() {
