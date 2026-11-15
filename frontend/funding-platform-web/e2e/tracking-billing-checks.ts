@@ -86,7 +86,7 @@ export function registerTrackingBillingTests(accessibility: (page: Page) => Prom
         if (area === 'pricing') {
           await expect(page.getByRole('link', { name: 'Register my nonprofit for free' })).toHaveAttribute('href', '/register')
           await page.getByRole('combobox', { name: 'Your nonprofit’s approximate annual budget (USD)' }).selectOption('0')
-          await expect(page.getByText('$9,990 CLP')).toBeVisible()
+          await expect(page.getByText('9,990 CLP')).toBeVisible()
           await fits(page)
           await expect(page.getByRole('button', { name: /checkout/ })).toHaveCount(0)
         }

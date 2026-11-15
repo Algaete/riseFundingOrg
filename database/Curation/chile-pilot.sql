@@ -53,7 +53,7 @@ BEGIN
 END;
 CLOSE curated; DEALLOCATE curated;
 -- Reversible withdrawal of the two EXACT known synthetic records; never delete.
-UPDATE dbo.FundingPlatform_FundingOpportunities SET IsActive=0,UpdatedAtUtc=@Now
+UPDATE dbo.FundingPlatform_FundingOpportunities SET PublicationStatus=4,IsActive=0,UpdatedAtUtc=@Now
 WHERE PublicId IN ('70510000-0000-4000-8000-000000000101','70510000-0000-4000-8000-000000000102')
  AND Slug IN (N'test-datos-prueba-socio-union-europea',N'test-datos-prueba-socio-europa-m49') AND Title LIKE N'TEST · DATOS DE PRUEBA · %' AND IsActive=1;
 IF (SELECT COUNT(*) FROM @Funds f JOIN dbo.FundingPlatform_FundingOpportunities o ON o.PublicId=f.PublicId JOIN dbo.FundingPlatform_ifn_FundingOpportunityPublicReady() ready ON ready.FundingOpportunityId=o.Id)<>3 THROW 56903,N'Curated opportunities failed public readiness.',1;
