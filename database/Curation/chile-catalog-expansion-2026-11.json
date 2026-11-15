@@ -1,0 +1,633 @@
+{
+  "batchId": "chile-catalog-expansion-2026-11-15",
+  "reviewedAt": "2026-11-15",
+  "funds": [
+    {
+      "id": "c1112026-0000-4000-8000-000000000001",
+      "slug": "japon-apc-chile-2027",
+      "title": "APC Japón Chile 2027 — Proyectos comunitarios",
+      "funder": "Embajada del Japón en Chile",
+      "url": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+      "application": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+      "expectedVersion": 1,
+      "summary": "Apoyo a proyectos comunitarios de salud, educación y bienestar en Chile. Postulación APC 2027 abierta hasta el 31 de diciembre de 2026.",
+      "description": "Programa de cooperación para infraestructura y equipamiento comunitario. La convocatoria 2027 recibe postulaciones entre el 1 de agosto y el 31 de diciembre de 2026. Consultar las bases para entidades privadas enlazadas en la página oficial.",
+      "eligibility": "Entidades sin fines de lucro con proyectos comunitarios en Chile. La descripción general de APC exige personalidad jurídica con al menos cinco años; este requisito debe cotejarse con las bases privadas 2027 antes de postular.",
+      "requirements": "El monto y la antigüedad específica de la convocatoria 2027 están pendientes de confirmación. Consulta las bases privadas y el formulario oficial antes de preparar tu postulación.",
+      "restrictions": "La página general excluye sueldos, operación, insumos, terrenos, inmuebles existentes y traslados. Una propuesta de acompañamiento oncológico no es equivalente a infraestructura o equipamiento comunitario.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": "2026-08-01",
+      "closed": "2026-12-31",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        2,
+        3,
+        4
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [
+        1,
+        2,
+        3,
+        5,
+        8,
+        9,
+        10
+      ],
+      "projectTypes": [
+        3
+      ],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "eligibility",
+          "sourceUrl": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+          "note": "Revisión editorial del programa y de la convocatoria vigente; las limitaciones adicionales se conservan en el texto."
+        },
+        {
+          "field": "requiresLegalEntity",
+          "sourceUrl": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion-apc.html",
+          "note": "La descripción oficial general exige acreditar personalidad jurídica."
+        },
+        {
+          "field": "minimumOperatingYears",
+          "sourceUrl": "https://www.cl.emb-japan.go.jp/files/101069032.doc",
+          "note": "Desconocido: archivo de bases privadas 2027 inaccesible. No se transforma el umbral general histórico de cinco años en un requisito confirmado de 2027."
+        },
+        {
+          "field": "projectTypes",
+          "sourceUrl": "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion-apc.html",
+          "note": "Clasificación editorial de infraestructura; no es financiamiento directo de tratamientos."
+        }
+      ],
+      "sources": [
+        "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion.html",
+        "https://www.cl.emb-japan.go.jp/itpr_es/cooperacion-apc.html"
+      ]
+    },
+    {
+      "id": "c1112026-0000-4000-8000-000000000002",
+      "slug": "pollination-project-daily-grants-2026",
+      "title": "The Pollination Project — Fondos semilla comunitarios 2026",
+      "funder": "The Pollination Project",
+      "url": "https://thepollinationproject.org/apply/",
+      "application": "https://thepollinationproject.smapply.us/",
+      "expectedVersion": 1,
+      "summary": "US$500 para iniciativas comunitarias lideradas por voluntariado. Admite solicitudes desde Chile; exige presupuesto del proyecto menor a US$10.000 y no tener personal remunerado.",
+      "description": "Fondo semilla para iniciativas en etapa inicial lideradas por voluntariado. Acepta postulaciones internacionales en inglés. El cierre anual informado es el 30 de noviembre de 2026 a las 23:59 de la costa este de EE. UU.; reabre el 1 de enero de 2027.",
+      "eligibility": "Personas, colectivos y organizaciones sin fines de lucro de cualquier país. Presupuesto del proyecto inferior a US$10.000 y presupuesto organizacional inferior a US$50.000. Sin personal remunerado; se admiten servicios profesionales ocasionales. Debe existir trabajo o planificación inicial y no haber recibido previamente un fondo semilla TPP.",
+      "requirements": "Formulario en inglés, referente, trabajo o planificación iniciada y capacidad de recibir USD por transferencia o PayPal. Revisar exclusiones de proselitismo, discriminación, productos animales y pagos al postulante o su familia.",
+      "restrictions": "Presupuesto total del proyecto estrictamente inferior a US$10.000 y organizacional inferior a US$50.000. Sin personal remunerado; admite servicios ocasionales. No haber recibido antes un fondo semilla TPP. Un presupuesto de exactamente US$10.000 excede el criterio. Estas condiciones requieren revisión manual y no están todas automatizadas en la compatibilidad.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 500,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-11-30",
+      "closeUtc": "2026-12-01T04:59:00",
+      "zone": "America/New_York",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        3,
+        4
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [
+        7
+      ],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "eligibility",
+          "sourceUrl": "https://thepollinationproject.org/apply/",
+          "note": "Revisión editorial del programa y de la convocatoria vigente; las limitaciones adicionales se conservan en el texto."
+        },
+        {
+          "field": "requiresLegalEntity",
+          "sourceUrl": "https://thepollinationproject.org/apply/",
+          "note": "Acepta explícitamente personas y colectivos informales además de entidades registradas."
+        },
+        {
+          "field": "organizationTypes",
+          "sourceUrl": "https://thepollinationproject.org/apply/",
+          "note": "Acepta organizaciones sin fines de lucro; clasificación en los cinco tipos de ONG del catálogo."
+        },
+        {
+          "field": "restrictions",
+          "sourceUrl": "https://thepollinationproject.org/apply/",
+          "note": "Límites estrictos de presupuesto, voluntariado y ausencia de fondos semilla TPP previos. No equivalen a una regla general de experiencia previa con financiadores."
+        }
+      ],
+      "sources": [
+        "https://thepollinationproject.org/apply/",
+        "https://thepollinationproject.smapply.us/"
+      ]
+    },
+    {
+      "id": "c1112026-0000-4000-8000-000000000003",
+      "slug": "awesome-disability-diciembre-2026",
+      "title": "Awesome Foundation Disability — Convocatoria diciembre 2026",
+      "funder": "Awesome Foundation — Disability",
+      "url": "https://www.awesomefoundation.org/en/chapters/disability",
+      "application": "https://www.awesomefoundation.org/en/submissions/new?chapter=disability",
+      "expectedVersion": 1,
+      "summary": "Microfondo de US$1.000 para proyectos que beneficien a personas con discapacidad. Admite postulaciones de cualquier país; próxima ventana del 1 al 10 de diciembre.",
+      "description": "El capítulo Disability recibe propuestas entre los días 1 y 10 de cada mes. Esta ficha corresponde a diciembre de 2026 y no se presenta como abierta durante noviembre. Personas con discapacidad deben participar de manera significativa en decisiones y liderazgo.",
+      "eligibility": "Pueden postular personas, organizaciones sin fines de lucro y empresas de cualquier país, incluido Chile. Las propuestas deben beneficiar a personas con discapacidad y presentarse en inglés. Una causa de salud no implica elegibilidad automática.",
+      "requirements": "Describir el proyecto, su beneficio para la comunidad y el uso de US$1.000. No financia necesidades médicas individuales, arriendo, servicios básicos o reparaciones personales. Confirmar la ventana mensual en la fuente oficial.",
+      "restrictions": "El proyecto debe beneficiar a personas con discapacidad e involucrarlas significativamente en su liderazgo y decisiones. No cubre necesidades médicas individuales ni gastos personales. Trabajar en cáncer infantil por sí solo no demuestra que se cumpla el foco de discapacidad.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 1000,
+      "amountStatus": 1,
+      "opened": "2026-12-01",
+      "closed": "2026-12-10",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        3,
+        4
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [
+        5
+      ],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "eligibility",
+          "sourceUrl": "https://www.awesomefoundation.org/en/chapters/disability",
+          "note": "Revisión editorial del programa y de la convocatoria vigente; las limitaciones adicionales se conservan en el texto."
+        },
+        {
+          "field": "requiresLegalEntity",
+          "sourceUrl": "https://www.awesomefoundation.org/en/chapters/disability",
+          "note": "Acepta personas, entidades sin fines de lucro y empresas de cualquier país."
+        },
+        {
+          "field": "beneficiaries",
+          "sourceUrl": "https://www.awesomefoundation.org/en/chapters/disability",
+          "note": "El beneficio para personas con discapacidad es explícito; no se asimila automáticamente enfermedad a discapacidad."
+        }
+      ],
+      "sources": [
+        "https://www.awesomefoundation.org/en/chapters/disability"
+      ]
+    },
+    {
+      "id": "c2222026-0000-4000-8000-000000000001",
+      "slug": "fondo-descubreme-2027",
+      "title": "Fondo Descúbreme 2027 — Inclusión de personas con discapacidad cognitiva",
+      "funder": "Fundación Descúbreme",
+      "url": "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf",
+      "application": "https://fondodescubreme.cl/",
+      "expectedVersion": 0,
+      "summary": "Entre $7 y $10 millones CLP para inclusión educativa, laboral, tecnológica o deportiva de personas con discapacidad cognitiva. Cierra el 1 de diciembre de 2026 a las 17:00.",
+      "description": "Convocatoria para organizaciones en 14 regiones, desde Arica y Parinacota hasta Los Lagos, incluida la Metropolitana. No incluye Aysén ni Magallanes. El proyecto debe centrarse en discapacidad cognitiva.",
+      "eligibility": "Corporaciones, fundaciones, organizaciones comunitarias y establecimientos educacionales sin fines de lucro admitidos por las bases. Corporaciones, fundaciones y asociaciones de la Ley 20.500 deben tener más de un año. No admiten empresas, cooperativas ni entidades estatales no educativas.",
+      "requirements": "Postulación por formulario en línea, antecedentes jurídicos y técnicos y presupuesto. Revisar las respuestas oficiales a consultas, que forman parte de las bases.",
+      "restrictions": "No admite rendiciones rechazadas, informes atrasados ni gestión previa del Fondo bajo el umbral exigido. Cáncer infantil no implica discapacidad cognitiva. La antigüedad depende del tipo de entidad, por lo que no se impone un mínimo general automático.",
+      "currency": "CLP",
+      "minAmount": 7000000,
+      "maxAmount": 10000000,
+      "amountStatus": 1,
+      "opened": "2026-10-26",
+      "closed": "2026-12-01",
+      "closeUtc": "2026-12-01T20:00:00",
+      "zone": "America/Santiago",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "categories": [
+        2,
+        3,
+        7,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [
+        5
+      ],
+      "projectTypes": [
+        1,
+        8,
+        9
+      ],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "eligibility",
+          "sourceUrl": "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf",
+          "note": "Bases, secciones 2.2 y 2.3; la edad mínima es condicional al tipo de entidad."
+        },
+        {
+          "field": "amounts",
+          "sourceUrl": "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf",
+          "note": "Sección 4.1: CLP 7.000.000 a 10.000.000 por proyecto."
+        },
+        {
+          "field": "deadline",
+          "sourceUrl": "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf",
+          "note": "Secciones 3 y 6.1: 01-12-2026 a las 17:00; conversión America/Santiago a 20:00 UTC."
+        },
+        {
+          "field": "geography",
+          "sourceUrl": "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf",
+          "note": "Sección 2.2: catorce regiones enumeradas; Aysén y Magallanes no aparecen."
+        }
+      ],
+      "sources": [
+        "https://www.descubreme.cl/wp-content/uploads/2026/10/FD2027_BasesConcursoFinal.pdf"
+      ]
+    },
+    {
+      "id": "c2222026-0000-4000-8000-000000000002",
+      "slug": "fpa-conservacion-pinguino-humboldt-2026",
+      "title": "FPA 2026 — Conservación del Pingüino de Humboldt",
+      "funder": "Ministerio del Medio Ambiente",
+      "url": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf",
+      "application": "https://fondos.mma.gob.cl/",
+      "expectedVersion": 0,
+      "summary": "Un proyecto de conservación del Pingüino de Humboldt por $110 millones CLP. Convocatoria especializada; cierra el 15 de diciembre de 2026 a las 14:00 de Chile continental.",
+      "description": "Investigación de colonias reproductivas, amenazas y educación ambiental entre Arica y Parinacota y Los Lagos. El monto único se entrega en dos cuotas de $70 y $40 millones CLP.",
+      "eligibility": "Personas jurídicas sin fines de lucro: fundaciones, corporaciones, ONG, universidades y centros de investigación admitidos por las bases. Exige más de dos años de antigüedad y experiencia en la temática.",
+      "requirements": "ClaveÚnica, certificados vigentes, equipo técnico especializado, metodología y presupuesto. La entidad privada adjudicada debe constituir una garantía de $70 millones CLP; su costo no se carga al fondo.",
+      "restrictions": "Excluye organizaciones comunitarias, comunidades indígenas y las entidades públicas o vinculadas al Estado detalladas en las bases. No corresponde a proyectos de salud ni apoyo clínico. La experiencia técnica exigida no equivale a experiencia previa con financiadores.",
+      "currency": "CLP",
+      "minAmount": 110000000,
+      "maxAmount": 110000000,
+      "amountStatus": 1,
+      "opened": "2026-10-29",
+      "closed": "2026-12-15",
+      "closeUtc": "2026-12-15T17:00:00",
+      "zone": "America/Santiago",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [
+        2,
+        11
+      ],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": 2,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "eligibility",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf",
+          "note": "Capítulo I, secciones 2 y 4.1: entidades admitidas y más de dos años de antigüedad; revisar fecha exacta de constitución."
+        },
+        {
+          "field": "amounts",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf",
+          "note": "Capítulo II, sección 5: monto total y único CLP 110.000.000."
+        },
+        {
+          "field": "deadline",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf",
+          "note": "Capítulo I, sección 3: 15-12-2026, 14:00 Chile continental, 17:00 UTC."
+        },
+        {
+          "field": "requirements",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf",
+          "note": "Capítulo I, sección 6.2.1: garantía de primera cuota para entidades privadas."
+        }
+      ],
+      "sources": [
+        "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2026-Contribucion-a-la-conservacion-del-Pinguino-de-Humboldt-1.pdf"
+      ]
+    },
+    {
+      "id": "c2222026-0000-4000-8000-000000000003",
+      "slug": "global-fund-for-children-expresion-interes",
+      "title": "Global Fund for Children — Expresión de interés para apoyo futuro",
+      "funder": "Global Fund for Children",
+      "url": "https://globalfundforchildren.org/become-a-partner-spanish-page/",
+      "application": "https://globalfundforchildren.my.site.com/GFCGrants/s/expression-of-interest?language=es",
+      "expectedVersion": 0,
+      "summary": "Registro permanente de interés para organizaciones comunitarias de infancia y juventud. Es una vía para ser considerada en futuras alianzas; no ofrece un monto ni adjudicación garantizados.",
+      "description": "GFC recibe presentaciones de organizaciones de todo el mundo y contacta a las que coinciden con sus fondos, estrategias regionales y áreas temáticas. El formulario puede enviarse en español.",
+      "eligibility": "Organizaciones locales que mejoran la vida de niños, niñas y jóvenes, vinculadas a educación, protección, equidad de género o participación juvenil. Requiere registro sin fines de lucro y capacidad de recibir fondos internacionales, o un patrocinador fiscal; contempla soluciones flexibles.",
+      "requirements": "Presentar la organización y su trabajo comunitario en el formulario. Contar con política de protección de la niñez o comprometerse a desarrollarla. La aceptación de solicitudes desde Chile no implica que exista financiamiento reservado para Chile.",
+      "restrictions": "No apoya filiales de grandes ONG internacionales, gobiernos, proselitismo ni discriminación. Si utilizas un patrocinador fiscal, confirma con GFC que la estructura propuesta cumple sus criterios.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 2,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        2,
+        3,
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [
+        1,
+        2
+      ],
+      "projectTypes": [
+        1,
+        5,
+        7,
+        8
+      ],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "deadline",
+          "sourceUrl": "https://globalfundforchildren.org/become-a-partner-spanish-page/",
+          "note": "El formulario de expresión de interés puede presentarse en cualquier momento."
+        },
+        {
+          "field": "amounts",
+          "sourceUrl": "https://globalfundforchildren.org/become-a-partner-spanish-page/",
+          "note": "No publica monto para esta vía de contacto; no es una convocatoria de adjudicación inmediata."
+        },
+        {
+          "field": "requiresLegalEntity",
+          "sourceUrl": "https://globalfundforchildren.org/become-a-partner-spanish-page/",
+          "note": "Requisito alternativo de registro propio o patrocinio fiscal; se conserva como desconocido en la comparación binaria."
+        },
+        {
+          "field": "beneficiaries",
+          "sourceUrl": "https://globalfundforchildren.org/become-a-partner-spanish-page/",
+          "note": "Infancia y juventud; elegibilidad temática y estratégica revisada por GFC."
+        }
+      ],
+      "sources": [
+        "https://globalfundforchildren.org/become-a-partner-spanish-page/"
+      ]
+    },
+    {
+      "id": "c2222026-0000-4000-8000-000000000004",
+      "slug": "paocc-ingreso-2027",
+      "title": "PAOCC Ingreso 2027 — Organizaciones culturales",
+      "funder": "Ministerio de las Culturas, las Artes y el Patrimonio",
+      "url": "https://www.fondosdecultura.cl/convocatoria-programa-de-apoyo-a-organizaciones-culturales-colaboradoras-paocc-ingreso-y-continuidad-2027/",
+      "application": "https://clave.fondosdecultura.cl/",
+      "expectedVersion": 0,
+      "summary": "Hasta $50 millones CLP por plan de gestión para organizaciones dedicadas a cultura y artes. Cierra el 27 de noviembre de 2026 a las 15:00 de Santiago.",
+      "description": "Línea de Ingreso del PAOCC 2027. Financia planes de gestión de organizaciones culturales según evaluación y priorización. Esta ficha no corresponde a la línea Continuidad, reservada a entidades previamente financiadas.",
+      "eligibility": "Personas jurídicas de derecho privado, con o sin fines de lucro, dedicadas exclusivamente a cultura y artes, con al menos tres años desde su constitución. Deben acreditar transferencias o adjudicaciones superiores a 500 UF en al menos uno de los años 2023, 2024 o 2025.",
+      "requirements": "Inscripción o actualización en el Registro de Agentes Culturales, Perfil Cultura y documentos de respaldo. Las bases, sección II, exigen tres años o más; se usa esa precisión frente al resumen de la página.",
+      "restrictions": "El presupuesto acreditado debe ajustarse al origen y exclusiones de las bases; no basta con ventas o licitaciones. Una actividad artística ocasional dentro de una ONG de salud no acredita dedicación cultural exclusiva.",
+      "currency": "CLP",
+      "minAmount": null,
+      "maxAmount": 50000000,
+      "amountStatus": 1,
+      "opened": "2026-10-30",
+      "closed": "2026-11-27",
+      "closeUtc": "2026-11-27T18:00:00",
+      "zone": "America/Santiago",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [
+        1,
+        4
+      ],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": 3,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "evidence": [
+        {
+          "field": "amounts",
+          "sourceUrl": "https://www.cultura.gob.cl/paocc/wp-content/uploads/sites/78/2025/10/bases-ingreso-2027.pdf",
+          "note": "Sección I.6.2: tope por plan CLP 50.000.000, distinto del presupuesto global."
+        },
+        {
+          "field": "minimumOperatingYears",
+          "sourceUrl": "https://www.cultura.gob.cl/paocc/wp-content/uploads/sites/78/2025/10/bases-ingreso-2027.pdf",
+          "note": "Sección II: antigüedad igual o superior a tres años."
+        },
+        {
+          "field": "requiresPriorExperience",
+          "sourceUrl": "https://www.cultura.gob.cl/paocc/wp-content/uploads/sites/78/2025/10/bases-ingreso-2027.pdf",
+          "note": "Sección II: transferencias/adjudicaciones superiores a 500 UF en alguno de 2023, 2024 o 2025."
+        },
+        {
+          "field": "deadline",
+          "sourceUrl": "https://www.fondosdecultura.cl/convocatoria-programa-de-apoyo-a-organizaciones-culturales-colaboradoras-paocc-ingreso-y-continuidad-2027/",
+          "note": "27-11-2026, 15:00 Santiago; 18:00 UTC."
+        }
+      ],
+      "sources": [
+        "https://www.fondosdecultura.cl/convocatoria-programa-de-apoyo-a-organizaciones-culturales-colaboradoras-paocc-ingreso-y-continuidad-2027/",
+        "https://www.cultura.gob.cl/paocc/wp-content/uploads/sites/78/2025/10/bases-ingreso-2027.pdf"
+      ]
+    }
+  ],
+  "corrections": [
+    {
+      "id": "e512d837-7ead-f111-a6a7-000d3a912199",
+      "slug": "grants-gov-363846-e83998fd",
+      "expectedVersion": 3,
+      "funder": "National Institute of Food and Agriculture",
+      "funderUrl": "https://www.nifa.usda.gov",
+      "countryIds": [
+        840
+      ],
+      "evidenceUrl": "https://www.nifa.usda.gov/grants/funding-opportunities/hispanic-serving-institutions-education-grants-program",
+      "note": "Reservado a instituciones HSI estadounidenses. Se retira de la marcha blanca chilena de forma reversible, se corrige el vínculo al financiador NIFA existente y se completa su web oficial. El financiador conserva su estado borrador; no se publican otros fondos asociados.",
+      "existingFunder": {
+        "id": "a528c3a2-6baa-f111-a6a7-3833c5d78f35",
+        "expectedVersion": 1,
+        "expectedStatus": 0,
+        "expectedWebsiteUrl": null
+      },
+      "disposition": "archive-outside-chile-pilot"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "name": "Roddenberry Catalyst Fund",
+      "url": "https://apply.roddenberryfoundation.org/app/main/faqs",
+      "reason": "FAQ vigente indica que no hay programas abiertos ni fechas de reapertura."
+    },
+    {
+      "name": "Australia DAP 2026–27",
+      "url": "https://chile.embassy.gov.au/sclecastellano/DAPhome.html",
+      "reason": "Solo Ecuador; Chile excluido desde 2017. La ventana 2026 también terminó."
+    },
+    {
+      "name": "NED",
+      "url": "https://www.ned.org/apply-for-grant/es/",
+      "reason": "Excluye ejecución en democracias consolidadas; no se confirma elegibilidad territorial de un proyecto realizado en Chile."
+    }
+  ],
+  "limitations": [
+    "No se considera ausencia de un requisito como confirmación de que no se exige.",
+    "El motor no evalúa todos los requisitos textuales: presupuesto máximo del proyecto, voluntariado, patrocinio fiscal, exclusividad temática o antigüedad condicional. Revisar las bases.",
+    "La antigüedad se compara por año y no sustituye verificar la fecha exacta de constitución.",
+    "Este lote suma cuatro oportunidades; no completa la meta total de 50–60 fichas."
+  ]
+}
