@@ -41,7 +41,7 @@ describe('inicio basado en la referencia', () => {
   it('muestra la composición y estados vacíos, sin inventar proyectos ni ubicaciones', async () => {
     setup()
     expect(await screen.findByText('El próximo gran proyecto puede ser el tuyo')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Conecta tu proyecto')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Conectamos tu causa con oportunidades.')
     expect(document.querySelector('.home-hero-photo')).toHaveAttribute('src', '/images/home-impact-hero.jpg')
     expect(document.querySelector('.home-hero-photo')).toHaveAttribute('alt', '')
     expect(screen.getByRole('link', { name: 'Publicar mi proyecto' })).toHaveAttribute('href', '/register')

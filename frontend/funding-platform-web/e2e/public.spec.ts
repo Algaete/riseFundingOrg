@@ -161,7 +161,7 @@ test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: 'Conecta tu proyecto con el financiamiento y los aliados que necesita',
+      name: 'Conectamos tu causa con oportunidades.',
     }),
   ).toBeVisible()
 
@@ -240,7 +240,7 @@ for (const width of [320, 390, 768, 1024, 1440]) {
     await expect(selector).toBeVisible()
     await selector.selectOption('en')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'Connect your project with the funding and partners it needs' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Connecting your cause with opportunities.' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     await expect(page.getByRole('combobox', { name: 'Change theme' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeInViewport()
