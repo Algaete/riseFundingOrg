@@ -1,7 +1,7 @@
 export const coreEs = {
   appName: 'FundingPlatform',
   formats: { invalidDate: 'Fecha inválida' },
-  appTagline: 'Fondos que encuentran buenas causas',
+  appTagline: 'Conectamos tu causa con oportunidades.',
   language: { label: 'Idioma', loadError: 'No se pudo cargar el idioma. Intenta nuevamente.' },
   navigation: {
     stories: 'Historias',
@@ -66,12 +66,12 @@ export const coreEs = {
   layout: {
     adminWorkspace: 'Consola administrativa',
     organizationWorkspace: 'Espacio de organización',
-    footer: 'FundingPlatform · Base técnica del MVP',
+    footer: 'FundingPlatform · Conectamos tu causa con oportunidades.',
   },
   status: { loading: 'Cargando…', notFound: 'Página no encontrada', checkingSession: 'Comprobando sesión…' },
   home: {
     eyebrow: 'Plataforma de financiamiento y alianzas para el impacto',
-    title: 'Conecta tu proyecto con el financiamiento y los aliados que necesita',
+    title: 'Conectamos tu causa con oportunidades.',
     description: 'Encuentra oportunidades de financiamiento, descubre proyectos, organizaciones y profesionales para colaborar y haz crecer tu impacto.',
     search: {
       title: 'Encuentra tu próxima oportunidad', scope: 'Buscar en', projects: 'Proyectos', funding: 'Oportunidades',

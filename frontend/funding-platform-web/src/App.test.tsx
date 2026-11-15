@@ -157,7 +157,7 @@ describe('aplicación', () => {
     const selectors = await screen.findAllByRole('combobox', { name: 'Idioma' })
     await user.selectOptions(selectors[0], 'en')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Connect your project with the funding and partners it needs' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Connecting your cause with opportunities.' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Find funding' })).toHaveAttribute('href', '/funding')
     expect(screen.getByRole('link', { name: 'Publish my project' })).toHaveAttribute('href', '/projects')
     expect(screen.getByRole('link', { name: 'Opportunities' })).toHaveAttribute('href', '/funding')
