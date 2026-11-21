@@ -42,7 +42,7 @@ BEGIN
   INSERT dbo.FundingPlatform_FundingOpportunityCountries(FundingOpportunityId,CountryId) SELECT @OpportunityId,152 FROM @Funds WHERE PublicId=@Id AND GlobalScope=0;
   INSERT dbo.FundingPlatform_FundingOpportunityFunders(FundingOpportunityId,FunderId,Role,IsActive,CreatedAtUtc,UpdatedAtUtc) VALUES(@OpportunityId,@FunderId,1,1,@Now,@Now);
   INSERT dbo.FundingPlatform_FundingOpportunitySourceLinks(FundingOpportunityId,FundingSourceId,ExternalId,SourceItemKeyHash,SourceUrl,CanonicalUrlHash,FirstSeenAtUtc,LastSeenAtUtc,IsPrimary,IsActive)
-  VALUES(@OpportunityId,@SourceId,@Slug,HASHBYTES('SHA2_256',@Slug),@Url,HASHBYTES('SHA2_256',@Url),@Reviewed,@Reviewed,1,1);
+  VALUES(@OpportunityId,@SourceId,@Slug,HASHBYTES('SHA2_256',CONVERT(VARBINARY(MAX),CONVERT(VARCHAR(MAX),@Slug COLLATE Latin1_General_100_BIN2_UTF8))),@Url,dbo.FundingPlatform_fn_StrongHttpsIdentityUrlHash(@Url),@Reviewed,@Reviewed,1,1);
   INSERT dbo.FundingPlatform_FundingFieldEvidence(FundingOpportunityId,FieldPath,ValueJson,ExtractionMethod,IsSelected,IsManualLock,CreatedAtUtc)
   SELECT @OpportunityId,v.Path,(SELECT N'known' AS status,v.Value AS value,@Url AS sourceUrl FOR JSON PATH,WITHOUT_ARRAY_WRAPPER),1,1,1,@Reviewed
   FROM @Funds f CROSS APPLY(VALUES(N'/title',f.Title),(N'/description',f.Description),(N'/eligibilityDescription',f.Eligibility),(N'/closeDate',CONVERT(NVARCHAR(MAX),f.CloseDate,23)))v(Path,Value) WHERE f.PublicId=@Id;

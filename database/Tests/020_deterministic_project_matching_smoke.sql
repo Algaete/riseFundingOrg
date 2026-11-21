@@ -2,6 +2,18 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
+DECLARE @InitialTransactionCount INT = @@TRANCOUNT;
+IF @InitialTransactionCount = 0 BEGIN TRANSACTION;
+ELSE SAVE TRANSACTION FP_Smoke020;
+
+BEGIN TRY
+/* Isolate the historical contract inside the rollback transaction, even after v3 activation. */
+IF EXISTS(SELECT 1 FROM dbo.FundingPlatform_MatchingProfiles WHERE EngineVersion=N'deterministic-sql-v3' AND IsActive=1)
+BEGIN
+ UPDATE dbo.FundingPlatform_MatchingProfiles SET IsActive=0 WHERE IsActive=1;
+ UPDATE dbo.FundingPlatform_MatchingProfiles SET IsActive=1 WHERE EngineVersion=N'deterministic-sql-v2';
+END;
+
 IF OBJECT_ID(N'dbo.FundingPlatform_MatchingProfiles', N'U') IS NULL
    OR OBJECT_ID(N'dbo.FundingPlatform_MatchingRules', N'U') IS NULL
    OR OBJECT_ID(N'dbo.FundingPlatform_MatchingRuleWeights', N'U') IS NULL
@@ -153,11 +165,7 @@ IF EXISTS
              AND weights.Weight = required.Weight))
     THROW 54005, N'The deterministic rule catalog or weights drifted.', 1;
 
-DECLARE @InitialTransactionCount INT = @@TRANCOUNT;
-IF @InitialTransactionCount = 0 BEGIN TRANSACTION;
-ELSE SAVE TRANSACTION FP_Smoke020;
 
-BEGIN TRY
     DECLARE @Fixture UNIQUEIDENTIFIER = NEWID();
     DECLARE @Suffix NVARCHAR(32) = REPLACE(CONVERT(NVARCHAR(36), @Fixture), N'-', N'');
     DECLARE @RunNowUtc DATETIME2(3) = DATETIME2FROMPARTS

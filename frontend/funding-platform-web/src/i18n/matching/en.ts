@@ -7,6 +7,10 @@ export const matchingEn = {
   organizationToCompare: 'Project organization',
   organizationUnavailable: 'This organization is not available to your account. Select one of your organizations.',
   chooseOrganization: 'Choose organization',
+  "budgetLimit": "Limit: {{limit}} {{currency}}",
+  "boundaryExclusive": "The budget must be strictly below the limit.",
+  "boundaryInclusive": "The budget may equal the limit.",
+  "manualCount": "Requirements pending review: {{count}}",
   "disclaimer": "Indicative result based on available data; it does not confirm eligibility or replace reviewing the opportunity’s terms.",
   "noDate": "No date recorded",
   "exactDeadline": "Exact closing time: {{date}} UTC",
@@ -136,6 +140,7 @@ export const matchingEn = {
     "versioned-snapshots": "Saved project, profile and opportunity versions"
   },
   "fields": {
+    "eligibility_policy": "Reviewed guideline requirements",
     "organization_type": "Organization type",
     "organization_country": "Organization country",
     "legal_entity_type": "Legal entity type",
@@ -164,6 +169,19 @@ export const matchingEn = {
     "project_type": "Project type"
   },
   "reasons": {
+    "ELIGIBILITY_NOT_REVIEWED": "Additional requirements in these guidelines have not yet been structured and reviewed.",
+    "BUDGET_LIMIT_NOT_REQUIRED": "The reviewed guidelines do not impose this budget limit.",
+    "BUDGET_LIMIT_CURRENCY_UNKNOWN": "Currencies differ or a currency is missing. Amounts are not converted automatically.",
+    "BUDGET_LIMIT_MEETS": "The declared budget meets the limit and its equality condition.",
+    "BUDGET_LIMIT_EXCEEDED": "The declared budget fails a mandatory budget limit in the guidelines.",
+    "BUDGET_LIMIT_UNKNOWN": "A comparable budget is missing or the declared interval crosses the permitted limit.",
+    "REQUIRED_SCOPE_NOT_REQUIRED": "The reviewed guidelines do not impose this category or beneficiary restriction.",
+    "REQUIRED_SCOPE_UNKNOWN": "A specific project selection is missing for this mandatory requirement.",
+    "REQUIRED_SCOPE_MEETS": "The project matches at least one of the required options.",
+    "REQUIRED_SCOPE_NO_MATCH": "The declared project selections do not meet the mandatory condition.",
+    "ELIGIBILITY_MANUAL_REVIEW": "Some requirements in the guidelines need additional review. A high score does not establish that they are met.",
+    "ELIGIBILITY_NO_ADDITIONAL_REQUIREMENTS": "No additional outstanding requirements were recorded in the editorial review.",
+
     "MATCH": "The available data matches this condition.",
     "PARTIAL_MATCH": "The available data only partially matches this condition.",
     "NO_MATCH": "The available data indicates an incompatibility with this condition.",
@@ -238,6 +256,12 @@ export const matchingEn = {
     "AMOUNT_MISSING_OPPORTUNITY": "The structured terms do not provide sufficient amount and currency information for comparison."
   },
   "ruleNames": {
+    "project_budget_limit": "Total project budget",
+    "organization_budget_limit": "Annual organization budget",
+    "required_categories": "Required categories",
+    "required_beneficiaries": "Required beneficiaries",
+    "manual_eligibility": "Additional requirements to review",
+
     "geography": "Geography",
     "organization_type": "Organization type",
     "legal_entity": "Legal entity type",

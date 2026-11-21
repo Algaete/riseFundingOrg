@@ -1,3 +1,5 @@
+import { FundingEligibilityEditor } from './funding-eligibility-editor'
+import { eligibilityPolicySchema } from './funding-eligibility-policy'
 import { useFundingEditorialScope } from '@/features/funder-workspace/editorial-scope'
 import { FundingCoverPicker } from './funding-cover-picker'
 import { isFundingCoverKey } from './funding-covers'
@@ -99,6 +101,7 @@ const geographicScope = z.enum(['0', '1', '2'])
 const remoteApplication = z.enum(['0', '1', '2'])
 
 const opportunitySchema = (original?: AdminFundingOpportunityDetail) => z.object({
+  eligibilityPolicy: eligibilityPolicySchema,
   coverKey: z.string().refine((value): boolean => isFundingCoverKey(value), 'editorialValidation.coverInvalid'),
   otherCategoryDescription: z.string().trim().max(otherFundingCategoryMaximum, 'editorialValidation.otherCategoryMax'),
   title: z.string().trim().min(3, 'editorialValidation.titleMin').max(350, 'editorialValidation.max350'),
@@ -289,6 +292,7 @@ function emptyOpportunity(): OpportunityFormValues {
   return {
     otherCategoryDescription: '',
     coverKey: 'auto',
+    eligibilityPolicy: null,
     title: '', summary: '', description: '', sponsorName: '', sponsorUrl: '', applicationUrl: '',
     externalId: '', fundingSourceId: '', issuerCountryId: '', fundingTypeId: '', currency: '', minimumAmount: '',
     maximumAmount: '', amountStatus: '0', openDate: '', closeDate: '', closeAtUtc: '', deadlineTimeZoneId: '',
@@ -306,6 +310,7 @@ function toFormValues(item?: AdminFundingOpportunityDetail): OpportunityFormValu
   return {
     otherCategoryDescription: item.otherCategoryDescription ?? '',
     coverKey: item.coverKey ?? 'auto',
+    eligibilityPolicy: item.eligibilityPolicy ?? null,
     title: item.title,
     summary: item.summary ?? '',
     description: item.description ?? '',
@@ -376,6 +381,7 @@ function toWriteInput(values: OpportunityFormValues, original?: AdminFundingOppo
   return {
     otherCategoryDescription: values.categoryIds.includes(otherFundingCategoryId) ? nullableText(values.otherCategoryDescription) : null,
     coverKey: values.coverKey,
+    eligibilityPolicy: values.eligibilityPolicy,
     title: values.title.trim(),
     summary: nullableText(values.summary),
     description: nullableText(values.description),
@@ -797,6 +803,12 @@ function AdminOpportunityForm({
               } })} className={inputClass}><option value="">{i18n.t('editorial.notReported')}</option><option value="true">{i18n.t('adminFunding.required')}</option><option value="false">{i18n.t('adminFunding.notRequired')}</option></select></Field>
             </div>
             {selectedCofunding === 'true' && <Field error={form.formState.errors.cofundingPercentage?.message} hint={i18n.t('adminFunding.cofundingHelp')} label={i18n.t('adminFunding.cofundingPercentage')}><Input {...form.register('cofundingPercentage')} max="100" min="0.01" step="0.01" type="number" /></Field>}
+            <FundingEligibilityEditor value={form.watch('eligibilityPolicy')} sourceUrl={form.watch('sourceUrl')}
+              onChange={value => form.setValue('eligibilityPolicy', value, { shouldDirty: true, shouldValidate: true })}
+              categories={catalogs.data.fundingCategories.map(item => ({ id: item.id, name: catalogName('fundingCategories', item) }))}
+              beneficiaries={catalogs.data.beneficiaryTypes.map(item => ({ id: item.id, name: catalogName('beneficiaryTypes', item) }))}
+              currencies={catalogs.data.currencies.map(item => ({ code: item.code, name: catalogName('currencies', item) }))}
+              invalid={Boolean(form.formState.errors.eligibilityPolicy)} />
           </CardContent>
         </Card>
 

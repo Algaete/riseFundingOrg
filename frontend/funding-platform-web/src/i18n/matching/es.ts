@@ -5,6 +5,10 @@ export const matchingEs = {
   organizationToCompare: 'Organización del proyecto',
   organizationUnavailable: 'Esta organización no está disponible para tu cuenta. Selecciona una de tus organizaciones.',
   chooseOrganization: 'Elegir organización',
+  "budgetLimit": "Límite: {{limit}} {{currency}}",
+  "boundaryExclusive": "El presupuesto debe ser estrictamente inferior al límite.",
+  "boundaryInclusive": "El presupuesto puede ser igual al límite.",
+  "manualCount": "Requisitos pendientes de revisión: {{count}}",
   "disclaimer": "Resultado orientativo basado en datos disponibles; no confirma elegibilidad ni reemplaza la revisión de las bases del fondo.",
   "noDate": "Sin fecha registrada",
   "exactDeadline": "Cierre exacto: {{date}} UTC",
@@ -134,6 +138,7 @@ export const matchingEs = {
     "versioned-snapshots": "Versiones guardadas del proyecto, perfil y fondo"
   },
   "fields": {
+    "eligibility_policy": "Requisitos revisados de las bases",
     "organization_type": "Tipo de organización",
     "organization_country": "País de la organización",
     "legal_entity_type": "Figura jurídica",
@@ -162,6 +167,19 @@ export const matchingEs = {
     "project_type": "Tipo de proyecto"
   },
   "reasons": {
+    "ELIGIBILITY_NOT_REVIEWED": "Los requisitos adicionales de estas bases todavía no están estructurados y revisados.",
+    "BUDGET_LIMIT_NOT_REQUIRED": "Las bases revisadas no establecen este límite presupuestario.",
+    "BUDGET_LIMIT_CURRENCY_UNKNOWN": "Las monedas no coinciden o falta una moneda. No se convierten importes automáticamente.",
+    "BUDGET_LIMIT_MEETS": "El presupuesto declarado cumple el límite y su condición de igualdad.",
+    "BUDGET_LIMIT_EXCEEDED": "El presupuesto declarado incumple un límite obligatorio de las bases.",
+    "BUDGET_LIMIT_UNKNOWN": "Falta un presupuesto comparable o el tramo declarado cruza el límite permitido.",
+    "REQUIRED_SCOPE_NOT_REQUIRED": "Las bases revisadas no establecen esta restricción temática o de beneficiarios.",
+    "REQUIRED_SCOPE_UNKNOWN": "Falta una selección específica del proyecto para comprobar este requisito obligatorio.",
+    "REQUIRED_SCOPE_MEETS": "El proyecto coincide con al menos una de las opciones obligatorias.",
+    "REQUIRED_SCOPE_NO_MATCH": "Las opciones declaradas del proyecto no cumplen la condición obligatoria.",
+    "ELIGIBILITY_MANUAL_REVIEW": "Hay requisitos de las bases que necesitan una revisión adicional. Un puntaje alto no los da por cumplidos.",
+    "ELIGIBILITY_NO_ADDITIONAL_REQUIREMENTS": "No se registraron requisitos adicionales pendientes en la revisión editorial.",
+
     "MATCH": "Los datos disponibles coinciden con esta condición.",
     "PARTIAL_MATCH": "Los datos disponibles coinciden solo parcialmente con esta condición.",
     "NO_MATCH": "Los datos disponibles muestran una incompatibilidad con esta condición.",
@@ -236,6 +254,12 @@ export const matchingEs = {
     "AMOUNT_MISSING_OPPORTUNITY": "Las bases estructuradas no informan monto y moneda suficientes para comparar."
   },
   "ruleNames": {
+    "project_budget_limit": "Presupuesto total del proyecto",
+    "organization_budget_limit": "Presupuesto anual institucional",
+    "required_categories": "Áreas obligatorias",
+    "required_beneficiaries": "Beneficiarios obligatorios",
+    "manual_eligibility": "Requisitos adicionales por revisar",
+
     "geography": "Geografía",
     "organization_type": "Tipo de organización",
     "legal_entity": "Figura jurídica",

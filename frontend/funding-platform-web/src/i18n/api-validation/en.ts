@@ -1,6 +1,12 @@
 import type { apiValidationEs } from './es'
 
 export const apiValidationEn = {
+  "funding-eligibility-source-invalid": "Provide an HTTPS URL for the reviewed guidelines.",
+  "funding-eligibility-budget-invalid": "The limit requires a positive amount with up to four decimals and a three-letter ISO currency.",
+  "funding-eligibility-categories-invalid": "Select specific categories; Other does not establish a mandatory requirement.",
+  "funding-eligibility-beneficiaries-invalid": "Select specific beneficiaries; Other does not establish a mandatory requirement.",
+  "funding-eligibility-manual-invalid": "Provide up to 12 outstanding requirements, each 1 to 500 characters.",
+
   "organization-verification-status": "Select pending, verified or rejected.",
   "organization-verification-reason": "Enter a reason with {{min}} to {{max}} characters.",
   "organization-verification-revision": "Reload the organization's review before deciding.",

@@ -152,7 +152,8 @@ public sealed class SqlFundingOpportunityEditorialRepository(
                 regions,
                 categories,
                 beneficiaries,
-                projectTypes, row.OtherCategoryDescription, row.CoverKey);
+                projectTypes, row.OtherCategoryDescription, row.CoverKey,
+                row.EligibilityPolicyJson is null ? null : JsonSerializer.Deserialize<FundingEligibilityPolicy>(row.EligibilityPolicyJson, JsonOptions));
 
             return new FundingOpportunityAdminDetails(
                 row.FundingOpportunityPublicId,
@@ -394,6 +395,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
         parameters.Add("Title", data.Title);
         parameters.Add("OtherCategoryDescription", data.OtherCategoryDescription);
         parameters.Add("CoverKey", data.CoverKey);
+        parameters.Add("EligibilityPolicyJson", data.EligibilityPolicy is null ? null : JsonSerializer.Serialize(data.EligibilityPolicy, JsonOptions));
         parameters.Add("Description", data.Description);
         parameters.Add("Summary", data.Summary);
         parameters.Add("SponsorName", data.SponsorName);
@@ -589,6 +591,7 @@ public sealed class SqlFundingOpportunityEditorialRepository(
     {
         public string? OtherCategoryDescription { get; init; }
         public string? CoverKey { get; init; }
+        public string? EligibilityPolicyJson { get; init; }
         public string? Description { get; init; }
         public string? SponsorUrl { get; init; }
         public string? ApplicationUrl { get; init; }

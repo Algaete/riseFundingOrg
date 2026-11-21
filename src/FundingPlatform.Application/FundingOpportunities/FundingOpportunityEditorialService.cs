@@ -299,6 +299,7 @@ public sealed class FundingOpportunityEditorialService(
             Summary = FundingEditorialServiceSupport.NormalizeOptional(input.Summary),
             OtherCategoryDescription = FundingEditorialServiceSupport.NormalizeOptional(input.OtherCategoryDescription),
             CoverKey = FundingEditorialServiceSupport.NormalizeOptional(input.CoverKey),
+            EligibilityPolicy = FundingEligibilityPolicyRules.Normalize(input.EligibilityPolicy),
             Description = FundingEditorialServiceSupport.NormalizeOptional(input.Description),
             SponsorName = input.SponsorName?.Trim() ?? string.Empty,
             SponsorUrl = FundingEditorialServiceSupport.NormalizeOptional(input.SponsorUrl),
@@ -471,6 +472,8 @@ public sealed class FundingOpportunityEditorialService(
         ValidatePositiveIds(data.CategoryIds, "categoryIds", errors);
         FundingCategoryRules.Validate(data.CategoryIds, data.OtherCategoryDescription, errors);
         FundingCoverRules.Validate(data.CoverKey, errors);
+        FundingEligibilityPolicyRules.Validate(data.EligibilityPolicy, errors);
+        if (data.EligibilityPolicy is not null) ValidateUrl(data.EligibilityPolicy.SourceUrl, "eligibilityPolicy.sourceUrl", required: true, errors);
         ValidatePositiveIds(data.BeneficiaryTypeIds, "beneficiaryTypeIds", errors);
         ValidatePositiveIds(data.ProjectTypeIds, "projectTypeIds", errors);
         return errors;

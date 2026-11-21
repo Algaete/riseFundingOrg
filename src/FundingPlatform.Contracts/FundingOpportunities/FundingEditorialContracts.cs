@@ -170,7 +170,8 @@ public sealed record FundingOpportunityWriteRequest(
     IReadOnlyList<int>? BeneficiaryTypeIds,
     IReadOnlyList<int>? ProjectTypeIds,
     string? OtherCategoryDescription = null,
-    string? CoverKey = null);
+    string? CoverKey = null,
+    FundingEligibilityPolicyDto? EligibilityPolicy = null);
 
 public sealed record FundingOpportunityAdminListResponse(
     IReadOnlyList<FundingOpportunityAdminSummaryResponse> Items,
@@ -261,7 +262,8 @@ public sealed record FundingOpportunityAdminDetailResponse(
     DateTimeOffset? PublishedAtUtc,
     string? RejectionReason,
     string? OtherCategoryDescription = null,
-    string? CoverKey = null);
+    string? CoverKey = null,
+    FundingEligibilityPolicyDto? EligibilityPolicy = null);
 
 public sealed record FundingOpportunityFunderResponse(
     Guid FunderId,

@@ -1,3 +1,4 @@
+import type { FundingEligibilityPolicy } from './funding-eligibility-policy'
 import { apiClient } from '@/api/http-client'
 
 export type PublicationStatus = 0 | 1 | 2 | 3 | 4
@@ -104,6 +105,7 @@ export interface AdminFundingOpportunitySummary {
 }
 
 export interface AdminFundingOpportunityDetail {
+  eligibilityPolicy?: FundingEligibilityPolicy
   otherCategoryDescription?: string | null
   coverKey?: string | null
   opportunityId: string
@@ -189,6 +191,7 @@ export interface AdminFundingOpportunityDetail {
 }
 
 export interface FundingOpportunityWriteInput {
+  eligibilityPolicy?: FundingEligibilityPolicy
   otherCategoryDescription?: string | null
   coverKey?: string | null
   title: string
