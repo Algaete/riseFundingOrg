@@ -12,6 +12,10 @@ haya requisitos pendientes. Sin incumplimientos, los requisitos manuales o una p
 sin revisar mantienen el resultado en datos insuficientes. La puntuación es afinidad y
 no certifica admisibilidad. Las versiones y resultados v1/v2 conservan su significado.
 
+SQL065 corrige exclusivamente las tres referencias del piloto original cuyo hash usaba
+UTF-16; no cambia contenido, versiones ni estado editorial. El publicador original
+también usa UTF-8 para futuras instalaciones.
+
 SQL064 agrega una política JSON opcional, validada y vinculada a la versión editorial.
 La API y el editor administrativo permiten mantenerla. El perfil v3 se crea inactivo;
 el publicador del lote lo activa atómicamente con las diez políticas revisadas.
@@ -34,7 +38,7 @@ excluidos y sus motivos quedan en el JSON. Diez fichas no completan la meta de 5
 
 ## Validación y publicación
 
-Se ejecutaron 64 pruebas SQL con rollback, 23 comprobaciones de mapa y 13 de traducción.
+Se ejecutaron 65 pruebas SQL con rollback, 23 comprobaciones de mapa y 13 de traducción.
 SQL064 incluye 26 casos y sus repeticiones: fronteras presupuestarias, monedas diferentes,
 intervalos, categorías, beneficiarios, revisión manual, regiones y preservación del
 historial. El publicador verifica el lote completo, repetición sin duplicados, rechazo de

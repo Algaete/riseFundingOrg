@@ -71,12 +71,14 @@ public sealed class FundingEligibilityPolicyTests
         Assert.Equal(3, errors.Count);
     }
 
-    [Fact]
-    public void Migration_and_transactional_acceptance_parse_as_Azure_SQL()
+    [Theory]
+    [InlineData(64)]
+    [InlineData(65)]
+    public void Migration_and_transactional_acceptance_parse_as_Azure_SQL(int sequence)
     {
         var root = SolutionRootLocator.Find(AppContext.BaseDirectory);
-        var scripts = new[] { SqlScriptCatalog.DiscoverMigrations(root).Single(x => x.Sequence == 64),
-                              SqlScriptCatalog.DiscoverTests(root).Single(x => x.Sequence == 64) };
+        var scripts = new[] { SqlScriptCatalog.DiscoverMigrations(root).Single(x => x.Sequence == sequence),
+                              SqlScriptCatalog.DiscoverTests(root).Single(x => x.Sequence == sequence) };
         foreach (var batch in scripts.SelectMany(x => x.Batches))
         {
             using var reader = new StringReader(batch);

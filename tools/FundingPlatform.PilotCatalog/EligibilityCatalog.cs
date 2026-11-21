@@ -57,7 +57,7 @@ internal static class EligibilityCatalog
                       THROW 57044,N'Pollination strict budget limits were lost.',1;
                     """, transaction: transaction);
                 // Historical SQL acceptance must also work after the catalog activates v3.
-                foreach (var test in SqlScriptCatalog.DiscoverTests(root).Where(x => x.Sequence is 20 or 32 or 64))
+                foreach (var test in SqlScriptCatalog.DiscoverTests(root).Where(x => x.Sequence is 13 or 20 or 32 or 64 or 65))
                     foreach (var batch in test.Batches)
                         await connection.ExecuteAsync(batch, transaction: transaction, commandTimeout: 120);
                 if (await connection.ExecuteScalarAsync<string>("SELECT EngineVersion FROM dbo.FundingPlatform_MatchingProfiles WHERE IsActive=1", transaction: transaction) != "deterministic-sql-v3")
@@ -97,6 +97,17 @@ internal static class EligibilityCatalog
     private static async Task Seed(SqlConnection connection, SqlTransaction transaction, string root)
     {
         await ExpansionCatalog.SeedLocalFixture(connection, transaction, root);
+        // Reproduce the exact deployed legacy encoding, then exercise the forward repair twice.
+        await connection.ExecuteAsync("""
+            UPDATE l SET SourceItemKeyHash=HASHBYTES('SHA2_256',l.ExternalId),CanonicalUrlHash=HASHBYTES('SHA2_256',l.SourceUrl)
+            FROM dbo.FundingPlatform_FundingOpportunitySourceLinks l JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=l.FundingOpportunityId
+            WHERE o.PublicId IN('c1112026-0000-4000-8000-000000000001','c1112026-0000-4000-8000-000000000002','c1112026-0000-4000-8000-000000000003');
+            """, transaction: transaction);
+        var repair = await File.ReadAllTextAsync(Path.Combine(root, "database/Migrations/065_pilot_source_identity_alignment.sql"));
+        await connection.ExecuteAsync(repair, transaction: transaction);
+        await connection.ExecuteAsync(repair, transaction: transaction);
+        await connection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine(root, "database/Tests/065_pilot_source_identity_alignment_smoke.sql")), transaction: transaction);
+
         await connection.QuerySingleAsync(await File.ReadAllTextAsync(Path.Combine(root, "database/Curation/chile-catalog-expansion.sql")),
             new { CatalogJson = await File.ReadAllTextAsync(Path.Combine(root, "database/Curation/chile-catalog-expansion-2026-11.json")) }, transaction);
     }

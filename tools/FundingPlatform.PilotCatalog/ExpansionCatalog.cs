@@ -141,7 +141,7 @@ internal static class ExpansionCatalog
             INSERT dbo.FundingPlatform_FundingOpportunityCategories VALUES(@Id,2,SYSUTCDATETIME());
             DECLARE @SourceId int=(SELECT MIN(Id) FROM dbo.FundingPlatform_FundingSources WHERE Name=N'Embajada del Japón en Chile');
             INSERT dbo.FundingPlatform_FundingOpportunitySourceLinks(FundingOpportunityId,FundingSourceId,ExternalId,SourceItemKeyHash,SourceUrl,CanonicalUrlHash,FirstSeenAtUtc,LastSeenAtUtc,IsPrimary,IsActive)
-            VALUES(@Id,@SourceId,N'nifa-local-fixture',HASHBYTES('SHA2_256',N'nifa-local-fixture'),N'https://www.nifa.usda.gov/grants',NULL,SYSUTCDATETIME(),SYSUTCDATETIME(),1,1);
+            VALUES(@Id,@SourceId,N'nifa-local-fixture',HASHBYTES('SHA2_256',CONVERT(VARCHAR(MAX),N'nifa-local-fixture' COLLATE Latin1_General_100_BIN2_UTF8)),N'https://www.nifa.usda.gov/grants',NULL,SYSUTCDATETIME(),SYSUTCDATETIME(),1,1);
             INSERT dbo.FundingPlatform_FundingFieldEvidence(FundingOpportunityId,FieldPath,ValueJson,ExtractionMethod,IsSelected,IsManualLock,CreatedAtUtc)
             SELECT @Id,p,N'{"status":"unknown"}',1,1,1,SYSUTCDATETIME() FROM(VALUES(N'/title'),(N'/description'),(N'/eligibilityDescription'),(N'/closeDate'))v(p);
             INSERT dbo.FundingPlatform_FundingOpportunityVersions(FundingOpportunityId,ContentVersion,SnapshotJson,ContentHash,CreatedAtUtc)
