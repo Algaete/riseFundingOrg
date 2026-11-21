@@ -115,7 +115,7 @@ internal static class ExpansionCatalog
         }
     }
 
-    private static async Task SeedLocalFixture(SqlConnection connection, SqlTransaction transaction, string root)
+    internal static async Task SeedLocalFixture(SqlConnection connection, SqlTransaction transaction, string root)
     {
         await connection.ExecuteAsync(await File.ReadAllTextAsync(Path.Combine(root, "database/Curation/chile-pilot.sql")),
             new { CatalogJson = await File.ReadAllTextAsync(Path.Combine(root, "database/Curation/chile-pilot-2026-11.json")) }, transaction);

@@ -113,6 +113,14 @@ function reasonParameterText(parameters: Record<string, string | null>) {
   for (const [label, value] of yearParameters) {
     if (/^\d{1,3}$/.test(value ?? '')) messages.push(`${label}: ${value}`)
   }
+  if (/^\d{1,15}(?:\.\d{1,4})?$/.test(parameters.budgetLimit ?? '') && opportunityCurrency) {
+    messages.push(i18n.t('matching.budgetLimit', { limit: parameters.budgetLimit ?? '', currency: opportunityCurrency }))
+    if (parameters.boundary === 'exclusive') messages.push(i18n.t('matching.boundaryExclusive'))
+    if (parameters.boundary === 'inclusive') messages.push(i18n.t('matching.boundaryInclusive'))
+  }
+  if (/^\d{1,2}$/.test(parameters.manualCount ?? '') && Number(parameters.manualCount) > 0) {
+    messages.push(i18n.t('matching.manualCount', { count: Number(parameters.manualCount) }))
+  }
   return messages
 }
 

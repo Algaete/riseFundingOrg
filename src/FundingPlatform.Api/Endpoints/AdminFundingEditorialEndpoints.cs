@@ -548,7 +548,8 @@ public static class AdminFundingEditorialEndpoints
             request.RegionIds ?? [],
             request.CategoryIds ?? [],
             request.BeneficiaryTypeIds ?? [],
-            request.ProjectTypeIds ?? [], request.OtherCategoryDescription, request.CoverKey);
+            request.ProjectTypeIds ?? [], request.OtherCategoryDescription, request.CoverKey,
+            MapPolicy(request.EligibilityPolicy));
     }
 
     private static FunderAdminSummaryResponse Map(FunderSummary funder) => new(
@@ -646,7 +647,7 @@ public static class AdminFundingEditorialEndpoints
         opportunity.ReviewedAtUtc,
         opportunity.ReviewedByUserPublicId,
         opportunity.PublishedAtUtc,
-        opportunity.RejectionReason, opportunity.Data.OtherCategoryDescription, opportunity.Data.CoverKey);
+        opportunity.RejectionReason, opportunity.Data.OtherCategoryDescription, opportunity.Data.CoverKey, MapPolicy(opportunity.Data.EligibilityPolicy));
 
     private static bool TryGetUser(
         ClaimsPrincipal principal,
@@ -731,4 +732,16 @@ public static class AdminFundingEditorialEndpoints
 
     private static IResult Forbidden() => ProjectEndpointResults.Problem(
         403, "Acceso denegado", null, "admin-role-required");
+    private static FundingEligibilityPolicy? MapPolicy(FundingEligibilityPolicyDto? policy) => policy is null ? null : new(
+        policy.SourceUrl,
+        policy.ProjectBudgetLimit is { } project ? new(project.Amount, project.Currency, project.Inclusive) : null,
+        policy.OrganizationAnnualBudgetLimit is { } organization ? new(organization.Amount, organization.Currency, organization.Inclusive) : null,
+        policy.RequiredCategoryIds, policy.RequiredBeneficiaryTypeIds, policy.ManualRequirements);
+
+    private static FundingEligibilityPolicyDto? MapPolicy(FundingEligibilityPolicy? policy) => policy is null ? null : new(
+        policy.SourceUrl,
+        policy.ProjectBudgetLimit is { } project ? new(project.Amount, project.Currency, project.Inclusive) : null,
+        policy.OrganizationAnnualBudgetLimit is { } organization ? new(organization.Amount, organization.Currency, organization.Inclusive) : null,
+        policy.RequiredCategoryIds, policy.RequiredBeneficiaryTypeIds, policy.ManualRequirements);
+
 }

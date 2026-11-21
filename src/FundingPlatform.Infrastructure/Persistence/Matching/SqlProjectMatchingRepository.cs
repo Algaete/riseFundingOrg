@@ -20,7 +20,7 @@ public sealed class SqlProjectMatchingRepository(
             "opportunityCurrency",
             "minimumGuaranteedYears",
             "maximumPossibleYears",
-            "requiredYears"
+            "requiredYears", "budgetLimit", "boundary", "manualCount"
         };
 
     private static readonly HashSet<string> AllowedEvidenceSources =
@@ -40,7 +40,7 @@ public sealed class SqlProjectMatchingRepository(
             "categories",
             "beneficiaries",
             "project_type",
-            "amount"
+            "amount", "eligibility_policy"
         };
 
     private static readonly HashSet<string> AllowedEvidenceValueCodes =
@@ -63,7 +63,7 @@ public sealed class SqlProjectMatchingRepository(
             "project-types",
             "opportunity-project-types",
             "project-funding-gap",
-            "opportunity-amount-range"
+            "opportunity-amount-range", "applicant-total-budget", "opportunity-eligibility-policy"
         };
 
     private static readonly IReadOnlyDictionary<string, string> RuleNames =
@@ -77,7 +77,12 @@ public sealed class SqlProjectMatchingRepository(
             ["categories"] = "Área temática",
             ["beneficiaries"] = "Beneficiarios",
             ["project_type"] = "Tipo de proyecto",
-            ["amount"] = "Monto"
+            ["amount"] = "Monto",
+            ["project_budget_limit"] = "Límite del presupuesto total del proyecto",
+            ["organization_budget_limit"] = "Límite del presupuesto anual institucional",
+            ["required_categories"] = "Áreas obligatorias",
+            ["required_beneficiaries"] = "Beneficiarios obligatorios",
+            ["manual_eligibility"] = "Requisitos adicionales por revisar"
         };
 
     private static readonly HashSet<string> AllowedReasonCodes =
@@ -129,7 +134,11 @@ public sealed class SqlProjectMatchingRepository(
             "amount.below_min",
             "amount.currency_mismatch",
             "amount.missing_project",
-            "amount.missing_opportunity"
+            "amount.missing_opportunity",
+            "eligibility.not_reviewed", "budget_limit.not_required", "budget_limit.currency_unknown",
+            "budget_limit.meets", "budget_limit.exceeded", "budget_limit.unknown",
+            "required_scope.not_required", "required_scope.unknown", "required_scope.meets", "required_scope.no_match",
+            "eligibility.manual_review", "eligibility.no_additional_requirements"
         };
 
     public async Task<ProjectMatchingRunPage> ListRunsAsync(
@@ -399,10 +408,13 @@ public sealed class SqlProjectMatchingRepository(
         {
             "projectCurrency" or "opportunityCurrency" =>
                 value.Length == 3 && value.All(character => character is >= 'A' and <= 'Z'),
-            "matchCount" =>
+            "manualCount" or "matchCount" =>
                 value.Length is >= 1 and <= 10 && value.All(char.IsAsciiDigit),
             "minimumGuaranteedYears" or "maximumPossibleYears" or "requiredYears" =>
                 value.Length is >= 1 and <= 3 && value.All(char.IsAsciiDigit),
+            "budgetLimit" => value.Length <= 21 && decimal.TryParse(value, System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.InvariantCulture, out var amount) && amount > 0,
+            "boundary" => value is "inclusive" or "exclusive",
             _ => false
         };
 

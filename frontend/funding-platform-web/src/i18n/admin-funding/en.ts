@@ -2,6 +2,26 @@ import type { adminFundingEs } from './es'
 import type { TranslationShape } from '@/i18n/resource-types'
 
 export const adminFundingEn = {
+  eligibilityPolicy: {
+  "title": "Additional eligibility requirements",
+  "help": "Record mandatory conditions verified in the official guidelines. They are assessed separately from the affinity score.",
+  "reviewed": "I reviewed additional requirements in the official source",
+  "source": "Official requirements source",
+  "projectBudgetLimit": "Maximum total project budget",
+  "organizationAnnualBudgetLimit": "Maximum annual organization budget",
+  "hasLimit": "The guidelines set this limit",
+  "amount": "Budget limit",
+  "currency": "Limit currency",
+  "boundary": "Comparison",
+  "exclusive": "Strictly below the limit",
+  "inclusive": "At or below the limit",
+  "requiredCategoryIds": "Required project categories",
+  "requiredBeneficiaryTypeIds": "Required project beneficiaries",
+  "anyRequired": "If selected, at least one option must match. Leave empty when the guidelines do not impose this condition.",
+  "manual": "Other requirements to review (one per line)",
+  "manualHelp": "For example: no paid staff, work in specific municipalities, or documented experience. These requirements keep eligibility pending review even when the score is high.",
+  "invalid": "Check the official URL, limits and currencies, selections and requirements (up to 12, maximum 500 characters each)."
+},
   "coverTitle": "Funding cover",
   "coverAuto": "Default",
   "coverHelp": "Choose a library illustration for cards and the detail page. It is saved with the opportunity and follows its editorial review; it does not change categories or eligibility.",

@@ -1,4 +1,10 @@
 export const apiValidationEs = {
+  "funding-eligibility-source-invalid": "Indica un enlace HTTPS a las bases revisadas.",
+  "funding-eligibility-budget-invalid": "El límite requiere un monto positivo con hasta cuatro decimales y una moneda ISO de tres letras.",
+  "funding-eligibility-categories-invalid": "Selecciona áreas específicas; «Otro» no confirma un requisito obligatorio.",
+  "funding-eligibility-beneficiaries-invalid": "Selecciona beneficiarios específicos; «Otro» no confirma un requisito obligatorio.",
+  "funding-eligibility-manual-invalid": "Admite hasta 12 requisitos pendientes de revisión, de 1 a 500 caracteres cada uno.",
+
   "organization-verification-status": "Selecciona pendiente, verificada o rechazada.",
   "organization-verification-reason": "Indica un motivo de {{min}} a {{max}} caracteres.",
   "organization-verification-revision": "Recarga la revisión de la organización antes de decidir.",

@@ -11,6 +11,37 @@ public sealed class FundingEditorialServiceTests
     private static readonly byte[] CurrentRowVersion = Convert.FromHexString("0102030405060708");
     private static readonly byte[] NextRowVersion = Convert.FromHexString("A1A2A3A4A5A6A7A8");
 
+    [Fact]
+    public async Task Eligibility_policy_is_normalized_and_included_in_the_versioned_snapshot()
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with
+        { EligibilityPolicy = new("https://foundation.example/criteria", new(10000, " usd ", false),
+            RequiredCategoryIds: [2, 1, 2], ManualRequirements: [" Volunteer led "]) };
+        var result = await service.CreateAsync(AdminId, input, "eligibility-snapshot-0001", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.Success, result.Outcome);
+        Assert.Equal("USD", repository.LastData!.EligibilityPolicy!.ProjectBudgetLimit!.Currency);
+        using var snapshot = System.Text.Json.JsonDocument.Parse(repository.LastSnapshotJson!);
+        var policy = snapshot.RootElement.GetProperty("eligibilityPolicy");
+        Assert.False(policy.GetProperty("projectBudgetLimit").GetProperty("inclusive").GetBoolean());
+        Assert.Equal("Volunteer led", policy.GetProperty("manualRequirements")[0].GetString());
+        Assert.Equal(2, policy.GetProperty("requiredCategoryIds").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Invalid_eligibility_cap_is_rejected_before_repository_write()
+    {
+        var repository = new FakeOpportunityEditorialRepository();
+        var service = new FundingOpportunityEditorialService(repository, Clock);
+        var input = CreateOpportunityData([new(FunderId, FunderOpportunityRole.Primary)]) with
+        { EligibilityPolicy = new("https://foundation.example/criteria", new(-1, "USD", false)) };
+        var result = await service.CreateAsync(AdminId, input, "eligibility-invalid-0001", CancellationToken.None);
+        Assert.Equal(FundingEditorialOutcome.ValidationFailed, result.Outcome);
+        Assert.Contains("eligibilityPolicy.projectBudgetLimit", result.Errors!.Keys);
+        Assert.Equal(0, repository.CreateCalls);
+    }
+
     [Theory]
     [InlineData(FundingPublicationStatus.Draft, true)]
     [InlineData(FundingPublicationStatus.PendingReview, false)]

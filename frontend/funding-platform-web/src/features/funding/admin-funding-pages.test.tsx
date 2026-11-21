@@ -617,7 +617,7 @@ describe('administración editorial de fondos', () => {
   })
 
   it('preserva todos los campos canónicos de alcance global al editar únicamente el título', async () => {
-    const current = opportunity({ publicationStatus: 0, geographicScope: 2, countryIds: [], regionIds: [] })
+    const current = opportunity({ publicationStatus: 0, geographicScope: 2, countryIds: [], regionIds: [], eligibilityPolicy: { sourceUrl: 'https://foundation.example/criteria', projectBudgetLimit: { amount: 10000, currency: 'USD', inclusive: false }, organizationAnnualBudgetLimit: null, requiredCategoryIds: [1], requiredBeneficiaryTypeIds: [], manualRequirements: ['Comprobar voluntariado'] } })
     let updateBody: unknown
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
@@ -648,6 +648,7 @@ describe('administración editorial de fondos', () => {
 
     await waitFor(() => expect(updateBody).toEqual({
       title: 'Fondo de salud comunitaria actualizado',
+      eligibilityPolicy: current.eligibilityPolicy,
       summary: 'Fortalece iniciativas locales.',
       description: 'Descripción completa del fondo.',
       sponsorName: 'Fundación Salud',

@@ -293,7 +293,8 @@ public sealed record FundingOpportunityEditorialData(
     IReadOnlyList<int> BeneficiaryTypeIds,
     IReadOnlyList<int> ProjectTypeIds,
     string? OtherCategoryDescription = null,
-    string? CoverKey = null);
+    string? CoverKey = null,
+    FundingEligibilityPolicy? EligibilityPolicy = null);
 
 public sealed record FundingOpportunityAdminSummary(
     Guid PublicId,
