@@ -68,7 +68,7 @@ export const coreEn = {
     organizationWorkspace: 'Organization workspace',
     footer: 'FundingPlatform · Connecting your cause with opportunities.',
   },
-  status: { loading: 'Loading…', notFound: 'Page not found', checkingSession: 'Checking session…' },
+  status: { loading: 'Loading…', notFound: 'Page not found', checkingSession: 'Checking session…', slowConnection: 'The connection is taking longer than usual. We are still trying to load your data; you do not need to reload the page.' },
   pilotPricing: {
     "title": "A free foundation for every nonprofit",
     "intro": "Register your Chilean nonprofit and publish projects for free, with no card required. During the pilot we are expanding our reviewed funding catalog.",

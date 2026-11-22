@@ -124,7 +124,8 @@ public static class FundingOpportunityEndpoints
             opportunity.SourceUrl,
             opportunity.PublishedAtUtc,
             opportunity.DataQualityScore, opportunity.CoverKey,
-            opportunity.Localization is { } info ? new(info.RequestedLanguage, info.Status, info.Revision) : null);
+            opportunity.Localization is { } info ? new(info.RequestedLanguage, info.Status, info.Revision) : null,
+            opportunity.DeadlineType, opportunity.DeadlinePrecision, opportunity.CloseAtUtc, opportunity.DeadlineTimeZoneId);
     }
 
     private static FundingOpportunityDetailResponse MapDetails(
@@ -161,6 +162,7 @@ public static class FundingOpportunityEndpoints
                     (byte)funder.Role)).ToArray(),
             opportunity.ContentVersion,
             opportunity.Localization is { } info ? new FundingLocalizationResponse(info.RequestedLanguage, info.Status, info.Revision) : null,
-            opportunity.OtherCategoryDescription, opportunity.CoverKey);
+            opportunity.OtherCategoryDescription, opportunity.CoverKey, opportunity.DeadlineType, opportunity.DeadlinePrecision,
+            opportunity.CloseAtUtc, opportunity.DeadlineTimeZoneId, opportunity.Restrictions);
     }
 }

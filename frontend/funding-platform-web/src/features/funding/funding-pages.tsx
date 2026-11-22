@@ -25,6 +25,7 @@ import i18n from '@/i18n'
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import { discoveryErrorMessage } from '@/i18n/discovery-feedback'
 import { Button } from '@/components/ui/button'
+import { SlowLoadingNotice } from '@/components/slow-loading-notice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   fundingOpportunitiesApi,
@@ -50,6 +51,15 @@ function formatDate(value: string | null) {
     year: 'numeric',
     timeZone: 'UTC',
   })
+}
+
+function formatDeadline(item: FundingOpportunityListItem) {
+  if (item.deadlineType === 2) return i18n.t('fundingCatalog.rollingIntake')
+  if (item.deadlinePrecision === 2 && item.closeAtUtc && item.deadlineTimeZoneId) {
+    const formatted = formatDateValue(item.closeAtUtc, { dateStyle: 'medium', timeStyle: 'short', hourCycle: 'h23', timeZone: item.deadlineTimeZoneId })
+    if (formatted !== i18n.t('formats.invalidDate')) return `${formatted} (${item.deadlineTimeZoneId})`
+  }
+  return formatDate(item.closeDate)
 }
 
 function formatDateTime(value: string | null) {
@@ -160,7 +170,7 @@ export function FundingCard({
           <div>
             <dt className="flex items-start gap-3 font-semibold">
               <CalendarDays aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />{t('fundingCatalog.close')}</dt>
-            <dd className="ml-7 text-muted-foreground">{formatDate(opportunity.closeDate)}</dd>
+            <dd className="ml-7 text-muted-foreground">{formatDeadline(opportunity)}</dd>
           </div>
           <div>
             <dt className="flex items-start gap-3 font-semibold">
@@ -326,7 +336,8 @@ export function FundingCatalogPage() {
         <div className="space-y-4" role="status">
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />{t('fundingCatalog.loading')}</p>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label={t('fundingCatalog.loadingGrid')}>
+          <SlowLoadingNotice />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-hidden="true">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div className="h-96 animate-pulse rounded-xl border bg-card" key={item} />
             ))}
@@ -405,12 +416,14 @@ export function FundingOpportunityDetailView({
   backLabel = i18n.t('fundingCatalog.backOpportunities'),
   action,
   additionalDetails,
+  showRestrictions = true,
 }: {
   item: FundingOpportunityDetail
   backTo: string
   backLabel?: string
   action?: ReactNode
   additionalDetails?: ReactNode
+  showRestrictions?: boolean
 }) {
   const { t, i18n: language } = useTranslation()
   return (
@@ -450,6 +463,13 @@ export function FundingOpportunityDetailView({
               <section className="rounded-xl bg-muted p-5">
                 <h2 className="text-xl font-bold">{t('fundingCatalog.eligibility')}</h2>
                 <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{item.eligibilityDescription}</p>
+              </section>
+            )}
+
+            {showRestrictions && item.restrictions && (
+              <section>
+                <h2 className="text-xl font-bold">{t('fundingCatalog.restrictions')}</h2>
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{item.restrictions}</p>
               </section>
             )}
 
@@ -494,7 +514,7 @@ export function FundingOpportunityDetailView({
             <CardContent>
               <dl className="space-y-4 text-sm">
                 <div><dt className="font-semibold">{t('fundingCatalog.opening')}</dt><dd className="mt-1 text-muted-foreground">{formatDate(item.openDate)}</dd></div>
-                <div><dt className="font-semibold">{t('fundingCatalog.close')}</dt><dd className="mt-1 text-muted-foreground">{formatDate(item.closeDate)}</dd></div>
+                <div><dt className="font-semibold">{t('fundingCatalog.close')}</dt><dd className="mt-1 text-muted-foreground">{formatDeadline(item)}</dd></div>
                 <div><dt className="font-semibold">{t('fundingCatalog.amount')}</dt><dd className="mt-1 text-muted-foreground">{formatAmount(item)}</dd></div>
                 <div><dt className="font-semibold">{t('fundingCatalog.cofunding')}</dt><dd className="mt-1 text-muted-foreground">{item.requiresCofunding === null ? i18n.t('fundingCatalog.notReported') : item.requiresCofunding ? i18n.t('fundingCatalog.yes') : i18n.t('fundingCatalog.no')}</dd></div>
               </dl>
@@ -545,6 +565,7 @@ export function FundingOpportunityDetailPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6" role="status">
         <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" />{t('fundingCatalog.loadingDetail')}</p>
+        <SlowLoadingNotice />
         <div className="h-[32rem] animate-pulse rounded-2xl border bg-card" />
       </div>
     )

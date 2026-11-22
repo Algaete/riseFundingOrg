@@ -17,6 +17,7 @@ export interface FundingOpportunityListItem {
   closeAtUtc?: string | null
   deadlineType?: number
   deadlinePrecision?: number
+  deadlineTimeZoneId?: string | null
   sourceName: string
   sourceUrl: string | null
   sourceAttribution?: string | null
@@ -47,6 +48,7 @@ export interface FundingOpportunityDetail extends FundingOpportunityListItem {
   applicationUrl: string | null
   eligibilityDescription: string | null
   requirements: string | null
+  restrictions?: string | null
   objectives: string | null
   requiresCofunding: boolean | null
   externalId: string | null

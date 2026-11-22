@@ -62,5 +62,8 @@ public sealed class UserAssignedManagedIdentitySqlConnectionFactory : ISqlConnec
         connectionString = builder.ConnectionString;
     }
 
-    public SqlConnection CreateConnection() => new(connectionString);
+    public SqlConnection CreateConnection() => new(connectionString)
+    {
+        RetryLogicProvider = SqlConnectionResilience.CreateProvider()
+    };
 }

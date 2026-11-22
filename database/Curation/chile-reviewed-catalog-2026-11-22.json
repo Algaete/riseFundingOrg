@@ -1,0 +1,453 @@
+{
+  "batchId": "chile-reviewed-catalog-2026-11-22",
+  "reviewedAt": "2026-11-22",
+  "funds": [
+    {
+      "id": "c4442026-0000-4000-8000-000000000001",
+      "slug": "rufford-primer-fondo-conservacion",
+      "title": "Rufford — Primer fondo de conservación con entidad administradora",
+      "funder": "The Rufford Foundation",
+      "url": "https://apply.ruffordsmallgrants.org/help/criteria",
+      "application": "https://apply.ruffordsmallgrants.org/",
+      "expectedVersion": 0,
+      "summary": "Hasta GBP 7.000 para un primer proyecto de conservación. Postula una persona en etapa inicial de carrera; una ONG o universidad debe administrar los fondos.",
+      "description": "Recepción durante todo el año. Chile está expresamente incluido entre los países elegibles. Esta ficha corresponde a la primera etapa, no a las subvenciones posteriores de mayor monto.",
+      "eligibility": "Responsable en etapa inicial de su carrera, con prioridad para estudiantes de posgrado o graduados recientes. Proyecto de conservación en Chile; no admite estudiantes de pregrado.",
+      "requirements": "Solicitud y tres referencias en inglés. Acordar previamente la recepción y administración con una ONG o universidad. No se deposita en una cuenta personal.",
+      "restrictions": "El proyecto no debe haber comenzado. Una solicitud cada doce meses. Revisar amenaza de especies, gastos admitidos y condiciones del organismo administrador.",
+      "currency": "GBP",
+      "minAmount": null,
+      "maxAmount": 7000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://apply.ruffordsmallgrants.org/help/criteria",
+        "https://apply.ruffordsmallgrants.org/help/eligibility",
+        "https://apply.ruffordsmallgrants.org/help/faqs"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://apply.ruffordsmallgrants.org/help/criteria",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://apply.ruffordsmallgrants.org/help/eligibility",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://apply.ruffordsmallgrants.org/help/faqs",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "geographicScope",
+          "sourceUrl": "https://apply.ruffordsmallgrants.org/help/eligibility",
+          "note": "Alcance mundial cuando la fuente lo declara; las demás fichas se acotan editorialmente a Chile sin afirmar que sea el único país elegible."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://apply.ruffordsmallgrants.org/help/criteria",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Confirmar que la persona responsable cumple el criterio de inicio de carrera y que es su primera etapa Rufford.",
+          "Acordar una ONG o universidad administradora; el apoyo no es para gastos generales de cualquier ONG.",
+          "Proyecto sin iniciar, conservación verificable y tres referencias en inglés."
+        ]
+      }
+    },
+    {
+      "id": "c4442026-0000-4000-8000-000000000002",
+      "slug": "sst-turismo-sostenible",
+      "title": "SST — Proyectos de turismo sostenible",
+      "funder": "Swiss Foundation for Solidarity in Tourism",
+      "url": "https://www.sstfoundation.org/wp-content/uploads/2026/07/Funding-guidelines-2026-final.pdf",
+      "application": "https://www.sstfoundation.org/funding-application/",
+      "expectedVersion": 0,
+      "summary": "Hasta CHF 25.000 para entidades sin fines de lucro con proyectos vinculados al turismo sostenible. Formulario disponible; fecha de cierre no informada.",
+      "description": "Las bases vigentes desde julio de 2026 permiten proyectos internacionales. El directorio se reúne trimestralmente. Confirma la recepción y la próxima evaluación antes de preparar tu solicitud.",
+      "eligibility": "Entidades sin fines de lucro y asociaciones con personalidad jurídica. El vínculo con turismo, comunidades de destinos e intercambio cultural debe demostrarse.",
+      "requirements": "Formulario en inglés o alemán, registro, estados financieros, organigrama y dos referencias. Presupuesto en moneda local y CHF.",
+      "restrictions": "Generalmente excluye entidades lucrativas o estatales y financiamiento adicional de proyectos en curso. Confirmar la recepción y próxima evaluación con la fuente.",
+      "currency": "CHF",
+      "minAmount": null,
+      "maxAmount": 25000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 0,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        3,
+        5,
+        7
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.sstfoundation.org/wp-content/uploads/2026/07/Funding-guidelines-2026-final.pdf",
+        "https://www.sstfoundation.org/funding-application/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.sstfoundation.org/wp-content/uploads/2026/07/Funding-guidelines-2026-final.pdf",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.sstfoundation.org/funding-application/",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "deadlineType",
+          "sourceUrl": "https://www.sstfoundation.org/funding-application/",
+          "note": "Cierre y recepción continua no confirmados; se conserva plazo desconocido y se excluye del filtro Solo abiertos y del matching vigente."
+        },
+        {
+          "field": "geographicScope",
+          "sourceUrl": "https://www.sstfoundation.org/funding-application/",
+          "note": "Alcance mundial cuando la fuente lo declara; las demás fichas se acotan editorialmente a Chile sin afirmar que sea el único país elegible."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.sstfoundation.org/wp-content/uploads/2026/07/Funding-guidelines-2026-final.pdf",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Demostrar vínculo con turismo sostenible y beneficio para las comunidades del destino.",
+          "Confirmar recepción de solicitudes y revisar la documentación institucional exigida."
+        ]
+      }
+    },
+    {
+      "id": "c4442026-0000-4000-8000-000000000003",
+      "slug": "front-line-defenders-proteccion",
+      "title": "Front Line Defenders — Protección de personas defensoras",
+      "funder": "Front Line Defenders",
+      "url": "https://www.frontlinedefenders.org/en/programme/protection-grants",
+      "application": "https://www.frontlinedefenders.org/secure/grant.php?l=EN",
+      "expectedVersion": 0,
+      "summary": "Hasta EUR 7.500 para proteger a personas defensoras de derechos humanos y sus organizaciones en riesgo. Canal de solicitud disponible; cierre no informado.",
+      "description": "Programa de alcance mundial que atiende riesgos derivados del trabajo pacífico en derechos humanos. No publica una fecha de cierre; confirma la recepción vigente antes de preparar tu solicitud.",
+      "eligibility": "Personas defensoras y organizaciones locales amenazadas por su trabajo. No admite organizaciones internacionales ni financiamiento duplicado para el mismo propósito.",
+      "requirements": "Describir amenazas, medidas de protección y presupuesto; aportar dos referencias y un medio seguro de contacto. Admite español e inglés, entre otros idiomas.",
+      "restrictions": "No cubre proyectos generales de derechos humanos, sueldos, arriendo, vehículos, gastos personales generales ni gastos retroactivos. Normalmente financia solo parte del presupuesto.",
+      "currency": "EUR",
+      "minAmount": null,
+      "maxAmount": 7500,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 0,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.frontlinedefenders.org/en/programme/protection-grants",
+        "https://www.frontlinedefenders.org/en/about-us",
+        "https://www.frontlinedefenders.org/secure/grant.php?l=EN"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.frontlinedefenders.org/en/programme/protection-grants",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.frontlinedefenders.org/en/about-us",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.frontlinedefenders.org/secure/grant.php?l=EN",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "deadlineType",
+          "sourceUrl": "https://www.frontlinedefenders.org/secure/grant.php?l=ES",
+          "note": "Cierre y recepción continua no confirmados; se conserva plazo desconocido y se excluye del filtro Solo abiertos y del matching vigente."
+        },
+        {
+          "field": "geographicScope",
+          "sourceUrl": "https://www.frontlinedefenders.org/en/about-us",
+          "note": "Alcance mundial cuando la fuente lo declara; las demás fichas se acotan editorialmente a Chile sin afirmar que sea el único país elegible."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.frontlinedefenders.org/en/programme/protection-grants",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          6
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Demostrar riesgo relacionado con defensa pacífica de derechos humanos y medidas de protección concretas.",
+          "Comprobar exclusiones, ausencia de financiamiento duplicado y recepción vigente de solicitudes."
+        ]
+      }
+    },
+    {
+      "id": "c4442026-0000-4000-8000-000000000004",
+      "slug": "hawkwatch-rapaces-2026",
+      "title": "HawkWatch — Investigación y conservación de rapaces 2026",
+      "funder": "HawkWatch International",
+      "url": "https://hawkwatch.org/investing-in-others/grrcg/",
+      "application": "https://hawkwatch.org/investing-in-others/grrcg/",
+      "expectedVersion": 0,
+      "summary": "Hasta US$3.500 para investigación o conservación de una rapaz prioritaria. Requiere responsable local y una ONG o universidad registrada que reciba los fondos.",
+      "description": "Postulaciones abiertas hasta el 31 de diciembre de 2026 a las 23:59 MST, equivalente al 1 de enero de 2027 a las 06:59 UTC.",
+      "eligibility": "La persona responsable debe ser ciudadana o residente permanente del país del proyecto y estar asociada a una ONG o universidad local registrada. Chile no está entre los territorios excluidos.",
+      "requirements": "Solicitud en inglés, especie incluida en la lista prioritaria vigente, entidad receptora y resultados completados en un máximo de dieciocho meses.",
+      "restrictions": "Excluye proyectos en Estados Unidos, Canadá y Europa. Revisar la lista oficial de especies: la página usa umbrales RCPI-Edge ligeramente distintos. La preferencia presupuestaria no es un tope obligatorio del proyecto.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 3500,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-12-31",
+      "closeUtc": "2027-01-01T06:59:00",
+      "zone": "America/Denver",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://hawkwatch.org/investing-in-others/grrcg/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hawkwatch.org/investing-in-others/grrcg/",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "geographicScope",
+          "sourceUrl": "https://hawkwatch.org/investing-in-others/grrcg/",
+          "note": "Alcance mundial cuando la fuente lo declara; las demás fichas se acotan editorialmente a Chile sin afirmar que sea el único país elegible."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://hawkwatch.org/investing-in-others/grrcg/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Verificar especie en la lista prioritaria actual y resolver con el financiador los casos en el umbral del índice.",
+          "Responsable local y convenio con ONG o universidad receptora; resultados en dieciocho meses."
+        ]
+      }
+    },
+    {
+      "id": "c4442026-0000-4000-8000-000000000005",
+      "slug": "fpa-forjadores-ambientales-2027",
+      "title": "FPA 2027 — Iniciativas locales de Forjadores Ambientales",
+      "funder": "Ministerio del Medio Ambiente",
+      "url": "https://fondos.mma.gob.cl/ial_forjadores_fpa2027/",
+      "application": "https://www.fondos.gob.cl/ficha/mma/ial_forjadores_fpa2027",
+      "expectedVersion": 0,
+      "summary": "$1.000.000 CLP para iniciativas de educación ambiental. Solo grupos inscritos hasta el 20 de noviembre de 2026; postulación hasta el 15 de diciembre a las 14:00.",
+      "description": "Convocatoria nacional para grupos o clubes de Forjadores Ambientales. Una ONG puede representar a un grupo inscrito que carezca de personalidad jurídica.",
+      "eligibility": "Grupo previamente inscrito, con personalidad jurídica privada sin fines de lucro, o entidad representante admitida por las bases. Un grupo con personalidad propia debe postular directamente.",
+      "requirements": "Postulación en línea, ClaveÚnica y antecedentes del grupo y la organización. Revisar bases, manual y respuestas oficiales a consultas.",
+      "restrictions": "La inscripción previa ya cerró. Excluye universidades, centros de investigación, sus fundaciones y entidades relacionadas con la administración pública; revisar incompatibilidades y rendiciones pendientes.",
+      "currency": "CLP",
+      "minAmount": null,
+      "maxAmount": 1000000,
+      "amountStatus": 1,
+      "opened": "2026-10-23",
+      "closed": "2026-12-15",
+      "closeUtc": "2026-12-15T17:00:00",
+      "zone": "America/Santiago",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        1,
+        2
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://fondos.mma.gob.cl/ial_forjadores_fpa2027/",
+        "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2027-Iniciativas-Ambientales-Locales.pdf",
+        "https://fondos.mma.gob.cl/wp-content/uploads/2026/11/RESPUESTAS-A-LAS-CONSULTAS-DE-LAS-BASES-FPA-2027-IAL.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://fondos.mma.gob.cl/ial_forjadores_fpa2027/",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2027-Iniciativas-Ambientales-Locales.pdf",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/11/RESPUESTAS-A-LAS-CONSULTAS-DE-LAS-BASES-FPA-2027-IAL.pdf",
+          "note": "Fuente oficial revisada el 22 de noviembre de 2026; condiciones reflejadas en la ficha. No se infieren datos ausentes."
+        },
+        {
+          "field": "geographicScope",
+          "sourceUrl": "https://fondos.mma.gob.cl/wp-content/uploads/2026/10/Bases-Concurso-FPA-2027-Iniciativas-Ambientales-Locales.pdf",
+          "note": "Alcance mundial cuando la fuente lo declara; las demás fichas se acotan editorialmente a Chile sin afirmar que sea el único país elegible."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://fondos.mma.gob.cl/ial_forjadores_fpa2027/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Verificar inscripción del grupo antes del 20 de noviembre de 2026 a las 23:59; no confundirla con el cierre de postulaciones.",
+          "Comprobar representación, personalidad jurídica y exclusiones institucionales de las bases."
+        ]
+      }
+    }
+  ]
+}

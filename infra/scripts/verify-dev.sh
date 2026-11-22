@@ -391,7 +391,14 @@ if [[ "$stage" == "api" || "$stage" == "frontend" ]]; then
     --query properties.configuration.ingress.fqdn --output tsv)"
   curl_options=(--fail --silent --show-error --connect-timeout 10 --max-time 30 --retry 5 --retry-delay 5 --retry-all-errors --retry-max-time 120)
   curl "${curl_options[@]}" "https://${fqdn}/health" >/dev/null
-  curl "${curl_options[@]}" "https://${fqdn}/api/v1/funding-opportunities/?pageNumber=1&pageSize=1" >/dev/null
+  # Measure one catalog request so a client-side retry cannot hide a failed cold start.
+  # ARM status does not open a SQL connection or wake the paused database.
+  catalog_database_state="$(az sql db show --resource-group "$resource_group" --server "$sql_server_name" \
+    --name "$database_name" --query status --output tsv)"
+  echo "SQL state before first catalog request: ${catalog_database_state}"
+  curl --fail --silent --show-error --connect-timeout 10 --max-time 120 --retry 0 \
+    --output /dev/null --write-out 'First catalog request: HTTP %{http_code}, %{time_total}s\n' \
+    "https://${fqdn}/api/v1/funding-opportunities/?pageNumber=1&pageSize=1"
   echo "API liveness, SQL connectivity and public catalog permission OK: https://${fqdn}"
 fi
 

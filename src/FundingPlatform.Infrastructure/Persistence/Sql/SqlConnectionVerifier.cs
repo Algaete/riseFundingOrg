@@ -33,5 +33,10 @@ public sealed class SqlConnectionVerifier(ISqlConnectionFactory connectionFactor
                 "sql_select_one_failed",
                 exception.Number);
         }
+        catch (Exception exception) when (SqlConnectionResilience.IsTemporarilyUnavailable(exception))
+        {
+            // SqlClient aggregates connection errors when its retry budget is exhausted.
+            return new SqlConnectionCheckResult(false, "sql_select_one_failed");
+        }
     }
 }

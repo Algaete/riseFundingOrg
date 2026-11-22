@@ -26,6 +26,8 @@ export const fundingCatalogEs = {
   "visualSocial": "Impacto social",
   "visualLabel": "Visual temático: {{category}}",
   "indicativeCategory": "Categoría orientativa",
+  "rollingIntake": "Recepción continua",
+  "restrictions": "Restricciones",
   "noDate": "Sin fecha informada",
   "invalidDate": "Fecha no disponible",
   "noVerification": "Sin verificación informada",
