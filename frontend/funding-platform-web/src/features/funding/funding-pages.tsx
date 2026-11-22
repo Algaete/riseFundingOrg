@@ -53,6 +53,15 @@ function formatDate(value: string | null) {
   })
 }
 
+function formatDeadline(item: FundingOpportunityListItem) {
+  if (item.deadlineType === 2) return i18n.t('fundingCatalog.rollingIntake')
+  if (item.deadlinePrecision === 2 && item.closeAtUtc && item.deadlineTimeZoneId) {
+    const formatted = formatDateValue(item.closeAtUtc, { dateStyle: 'medium', timeStyle: 'short', hourCycle: 'h23', timeZone: item.deadlineTimeZoneId })
+    if (formatted !== i18n.t('formats.invalidDate')) return `${formatted} (${item.deadlineTimeZoneId})`
+  }
+  return formatDate(item.closeDate)
+}
+
 function formatDateTime(value: string | null) {
   if (!value) return i18n.t('fundingCatalog.noVerification')
   const date = new Date(value)
@@ -161,7 +170,7 @@ export function FundingCard({
           <div>
             <dt className="flex items-start gap-3 font-semibold">
               <CalendarDays aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />{t('fundingCatalog.close')}</dt>
-            <dd className="ml-7 text-muted-foreground">{formatDate(opportunity.closeDate)}</dd>
+            <dd className="ml-7 text-muted-foreground">{formatDeadline(opportunity)}</dd>
           </div>
           <div>
             <dt className="flex items-start gap-3 font-semibold">
@@ -455,6 +464,13 @@ export function FundingOpportunityDetailView({
               </section>
             )}
 
+            {item.restrictions && (
+              <section>
+                <h2 className="text-xl font-bold">{t('fundingCatalog.restrictions')}</h2>
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{item.restrictions}</p>
+              </section>
+            )}
+
             {item.requirements && (
               <section>
                 <h2 className="text-xl font-bold">{t('fundingCatalog.requirements')}</h2>
@@ -496,7 +512,7 @@ export function FundingOpportunityDetailView({
             <CardContent>
               <dl className="space-y-4 text-sm">
                 <div><dt className="font-semibold">{t('fundingCatalog.opening')}</dt><dd className="mt-1 text-muted-foreground">{formatDate(item.openDate)}</dd></div>
-                <div><dt className="font-semibold">{t('fundingCatalog.close')}</dt><dd className="mt-1 text-muted-foreground">{formatDate(item.closeDate)}</dd></div>
+                <div><dt className="font-semibold">{t('fundingCatalog.close')}</dt><dd className="mt-1 text-muted-foreground">{formatDeadline(item)}</dd></div>
                 <div><dt className="font-semibold">{t('fundingCatalog.amount')}</dt><dd className="mt-1 text-muted-foreground">{formatAmount(item)}</dd></div>
                 <div><dt className="font-semibold">{t('fundingCatalog.cofunding')}</dt><dd className="mt-1 text-muted-foreground">{item.requiresCofunding === null ? i18n.t('fundingCatalog.notReported') : item.requiresCofunding ? i18n.t('fundingCatalog.yes') : i18n.t('fundingCatalog.no')}</dd></div>
               </dl>

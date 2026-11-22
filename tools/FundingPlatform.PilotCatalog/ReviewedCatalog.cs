@@ -43,6 +43,18 @@ internal static class ReviewedCatalog
                 if (result != new BatchResult(5, 0, 0)) throw new InvalidOperationException("Unexpected catalog counts.");
                 var replay = await connection.QuerySingleAsync<BatchResult>(sql, new { CatalogJson = json }, transaction);
                 if (replay != new BatchResult(0, 0, 5)) throw new InvalidOperationException("Replay changed the catalog.");
+                using (var publicRows = await connection.QueryMultipleAsync(
+                    "dbo.FundingPlatform_usp_FundingOpportunity_Public_List", new { PageSize = 100 }, transaction,
+                    commandType: System.Data.CommandType.StoredProcedure))
+                {
+                    _ = await publicRows.ReadSingleAsync<long>();
+                    var rows = (await publicRows.ReadAsync<PublicDeadline>()).ToDictionary(row => row.Slug);
+                    if (rows["rufford-primer-fondo-conservacion"].DeadlineType != 2 ||
+                        rows["sst-turismo-sostenible"].DeadlineType != 0 ||
+                        rows["hawkwatch-rapaces-2026"].CloseAtUtc != new DateTime(2027, 1, 1, 6, 59, 0) ||
+                        rows["fpa-forjadores-ambientales-2027"].DeadlineTimeZoneId != "America/Santiago")
+                        throw new InvalidOperationException("Public SQL lost reviewed deadline fields.");
+                }
                 await connection.ExecuteAsync("""
                     IF (SELECT COUNT(*) FROM dbo.FundingPlatform_ifn_FundingOpportunityPublicReady() p JOIN dbo.FundingPlatform_FundingOpportunities o ON o.Id=p.FundingOpportunityId WHERE o.PublicId IN
                     ('c4442026-0000-4000-8000-000000000001','c4442026-0000-4000-8000-000000000002','c4442026-0000-4000-8000-000000000003','c4442026-0000-4000-8000-000000000004','c4442026-0000-4000-8000-000000000005'))<>5
@@ -80,4 +92,11 @@ internal static class ReviewedCatalog
     }
 
     private sealed record BatchResult(int InsertedCount, int UpdatedCount, int AlreadyAppliedCount);
+    private sealed class PublicDeadline
+    {
+        public string Slug { get; init; } = "";
+        public int DeadlineType { get; init; }
+        public DateTime? CloseAtUtc { get; init; }
+        public string? DeadlineTimeZoneId { get; init; }
+    }
 }

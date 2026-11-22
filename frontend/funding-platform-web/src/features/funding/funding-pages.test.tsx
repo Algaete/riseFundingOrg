@@ -37,6 +37,16 @@ function listItem(overrides: Record<string, unknown> = {}) {
 }
 
 describe('catálogo público de oportunidades', () => {
+  it('distingue recepción continua y muestra el cierre en la zona del financiador', () => {
+    render(<MemoryRouter>
+      <FundingCard opportunity={listItem({ closeDate: null, deadlineType: 2 })} />
+      <FundingCard opportunity={listItem({ publicId: 'exact', deadlineType: 1, deadlinePrecision: 2,
+        closeDate: '2026-12-15', closeAtUtc: '2026-12-15T17:00:00Z', deadlineTimeZoneId: 'America/Santiago' })} />
+    </MemoryRouter>)
+    expect(screen.getByText('Recepción continua')).toBeInTheDocument()
+    expect(screen.getByText(/14:00.*America\/Santiago/)).toBeInTheDocument()
+  })
+
   it('muestra la portada editorial sin inferirla desde palabras del título', () => {
     const { container } = render(<MemoryRouter><FundingCard opportunity={listItem({ title: 'Medioambiente y naturaleza', coverKey: 'research-v1' })} /></MemoryRouter>)
     expect(container.querySelector('img')).toHaveAttribute('src', '/images/funding-covers/research-v1.jpg')
@@ -171,6 +181,7 @@ describe('catálogo público de oportunidades', () => {
         applicationUrl: 'https://foundation.example/apply',
         eligibilityDescription: 'Fundaciones sin fines de lucro.',
         requirements: 'Estatutos vigentes\nPresupuesto detallado',
+        restrictions: 'No financia gastos realizados antes de la adjudicación.',
         objectives: 'Salud comunitaria',
         requiresCofunding: false,
         externalId: 'GH-2026',
@@ -183,6 +194,8 @@ describe('catálogo público de oportunidades', () => {
 
     expect(await screen.findByRole('heading', { name: 'Requisitos de postulación' })).toBeInTheDocument()
     expect(screen.getByText(/Estatutos vigentes/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Restricciones' })).toBeVisible()
+    expect(screen.getByText('No financia gastos realizados antes de la adjudicación.')).toBeVisible()
     expect(screen.getByText('Economía circular <script>test</script>')).toBeVisible()
     expect(document.querySelector('script')).toBeNull()
     expect(screen.getByText('96/100')).toBeInTheDocument()

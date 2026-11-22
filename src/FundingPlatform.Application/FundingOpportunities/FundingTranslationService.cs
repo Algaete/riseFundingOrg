@@ -132,7 +132,7 @@ public sealed class FundingTranslationService(IFundingTranslationRepository repo
         if (translation is null) return item with { Localization = info };
         var text = translation.Text;
         return item with { Title = text.Title!, Summary = text.Summary, Description = text.Description,
-            EligibilityDescription = text.EligibilityDescription, Requirements = text.Requirements,
+            EligibilityDescription = text.EligibilityDescription, Requirements = text.Requirements, Restrictions = text.Restrictions,
             Objectives = text.Objectives, Localization = info };
     }
 

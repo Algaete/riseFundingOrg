@@ -29,6 +29,8 @@ export const fundingCatalogEn = {
   "visualSocial": "Social impact",
   "visualLabel": "Thematic visual: {{category}}",
   "indicativeCategory": "Indicative category",
+  "rollingIntake": "Rolling applications",
+  "restrictions": "Restrictions",
   "noDate": "Date not reported",
   "invalidDate": "Date unavailable",
   "noVerification": "Verification not reported",

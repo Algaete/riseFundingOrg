@@ -62,13 +62,14 @@ public sealed partial class FundingEditorialEndpointTests
     {
         publicOpportunities.Published = new(OpportunityId,"original","Original","Description","Summary","Sponsor",
             null,"https://example.invalid/apply","AUD",100,500,null,null,null,null,null,null,"Source",null,"REF",DateTimeOffset.UtcNow,100,[],3,
-            OtherCategoryDescription: "Área descrita por el editor", CoverKey: "nature-v1");
-        translations.Value = new("es",3,1,true,new("Traducido","Resumen","Descripción"),DateTimeOffset.UtcNow);
+            OtherCategoryDescription: "Área descrita por el editor", CoverKey: "nature-v1", Restrictions: "Original restriction");
+        translations.Value = new("es",3,1,true,new("Traducido","Resumen","Descripción", Restrictions: "Restricción traducida"),DateTimeOffset.UtcNow);
         using var translated = await client.GetAsync("/api/v1/funding-opportunities/original?locale=es");
         Assert.Equal(HttpStatusCode.OK, translated.StatusCode);
         using var body = JsonDocument.Parse(await translated.Content.ReadAsStringAsync());
         Assert.Equal("Traducido", body.RootElement.GetProperty("title").GetString());
         Assert.Equal("AUD", body.RootElement.GetProperty("currency").GetString());
+        Assert.Equal("Restricción traducida", body.RootElement.GetProperty("restrictions").GetString());
         Assert.Equal("nature-v1", body.RootElement.GetProperty("coverKey").GetString());
         Assert.Equal("Área descrita por el editor", body.RootElement.GetProperty("otherCategoryDescription").GetString());
         Assert.Equal("translated", body.RootElement.GetProperty("localization").GetProperty("status").GetString());
@@ -76,6 +77,7 @@ public sealed partial class FundingEditorialEndpointTests
         using var original = await client.GetAsync("/api/v1/funding-opportunities/original");
         using var originalBody = JsonDocument.Parse(await original.Content.ReadAsStringAsync());
         Assert.Equal("Original", originalBody.RootElement.GetProperty("title").GetString());
+        Assert.Equal("Original restriction", originalBody.RootElement.GetProperty("restrictions").GetString());
         Assert.Equal(1, translations.Calls);
         publicOpportunities.Published = null;
         using var missing = await client.GetAsync("/api/v1/funding-opportunities/original?locale=es");

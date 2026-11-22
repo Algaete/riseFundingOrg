@@ -170,7 +170,8 @@ public sealed class SqlFundingOpportunityRepository(
                 primarySource?.ExternalId,
                 ToUtc(row.LastVerifiedAtUtc ?? row.PublishedAtUtc),
                 row.DataQualityScore,
-                funders, row.ContentVersion, OtherCategoryDescription: row.OtherCategoryDescription, CoverKey: row.CoverKey);
+                funders, row.ContentVersion, OtherCategoryDescription: row.OtherCategoryDescription, CoverKey: row.CoverKey, DeadlineType: row.DeadlineType, DeadlinePrecision: row.DeadlinePrecision,
+                CloseAtUtc: row.CloseAtUtc is { } close ? ToUtc(close) : null, DeadlineTimeZoneId: row.DeadlineTimeZoneId, Restrictions: row.Restrictions);
         }
         catch (SqlException exception)
         {
@@ -240,7 +241,8 @@ public sealed class SqlFundingOpportunityRepository(
         row.SourceName,
         row.SourceUrl,
         ToUtc(row.PublishedAtUtc),
-        row.DataQualityScore, row.CoverKey, row.ContentVersion);
+        row.DataQualityScore, row.CoverKey, row.ContentVersion, DeadlineType: row.DeadlineType, DeadlinePrecision: row.DeadlinePrecision,
+        CloseAtUtc: row.CloseAtUtc is { } close ? ToUtc(close) : null, DeadlineTimeZoneId: row.DeadlineTimeZoneId);
 
     private static string CreateExternalSlug(string providerCode, string externalId)
     {
@@ -361,6 +363,10 @@ public sealed class SqlFundingOpportunityRepository(
         public decimal? MaxAmount { get; init; }
         public DateTime? OpenDate { get; init; }
         public DateTime? CloseDate { get; init; }
+        public DateTime? CloseAtUtc { get; init; }
+        public int DeadlineType { get; init; }
+        public int DeadlinePrecision { get; init; }
+        public string? DeadlineTimeZoneId { get; init; }
         public DateTime PublishedAtUtc { get; init; }
         public decimal DataQualityScore { get; init; }
         public string SourceName { get; init; } = string.Empty;
@@ -369,6 +375,7 @@ public sealed class SqlFundingOpportunityRepository(
 
     private sealed class PublicDetailsRow : PublicSummaryRow
     {
+        public string? Restrictions { get; init; }
         public string? OtherCategoryDescription { get; init; }
         public string? Description { get; init; }
         public string? SponsorUrl { get; init; }

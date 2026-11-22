@@ -22,7 +22,8 @@ public sealed record FundingOpportunityListItemResponse(
     DateTimeOffset PublishedAtUtc,
     decimal DataQualityScore,
     string? CoverKey = null,
-    FundingLocalizationResponse? Localization = null);
+    FundingLocalizationResponse? Localization = null,
+    int DeadlineType = 0, int DeadlinePrecision = 0, DateTimeOffset? CloseAtUtc = null, string? DeadlineTimeZoneId = null);
 
 public sealed record FundingOpportunityDetailResponse(
     Guid PublicId,
@@ -51,4 +52,6 @@ public sealed record FundingOpportunityDetailResponse(
     int ContentVersion = 0,
     FundingLocalizationResponse? Localization = null,
     string? OtherCategoryDescription = null,
-    string? CoverKey = null);
+    string? CoverKey = null,
+    int DeadlineType = 0, int DeadlinePrecision = 0, DateTimeOffset? CloseAtUtc = null, string? DeadlineTimeZoneId = null,
+    string? Restrictions = null);

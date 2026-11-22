@@ -20,7 +20,7 @@ El catálogo y el inicio de sesión explican una carga de más de cinco segundos
 
 Las fuentes oficiales y las condiciones manuales están en `database/Curation/chile-reviewed-catalog-2026-11-22.json`. Los plazos desconocidos quedan fuera de “Solo abiertos” y del matching vigente. Las categorías obligatorias impiden presentar conservación como compatible con un proyecto exclusivamente de salud. No se convierte moneda ni se confunde el aporte con el presupuesto total del proyecto.
 
-La migración 066 agrega GBP y CHF sin cambiar decisiones existentes de activación. El lote se limita a cinco identificadores nuevos y reutiliza el financiador MMA existente. Conserva versiones y recomendaciones históricas. Todas las fuentes nuevas son manuales, sin programación de extracción.
+La migración 066 agrega GBP y CHF sin cambiar decisiones existentes de activación. La 067 incorpora al listado público el tipo de plazo, su precisión, el cierre UTC y la zona horaria; las fichas muestran recepción continua, hora exacta y restricciones, incluyendo sus traducciones revisadas. El lote se limita a cinco identificadores nuevos y reutiliza el financiador MMA existente. Conserva versiones y recomendaciones históricas. Todas las fuentes nuevas son manuales, sin programación de extracción.
 
 ## Fuentes descartadas o pendientes
 
@@ -35,11 +35,11 @@ El catálogo pasa de 10 a 15 fichas públicas al aplicar el lote. Eso no equival
 ## Publicación y comprobación
 
 1. CI de la revisión y de main aprobada; desplegar el SHA exacto.
-2. Ejecutar `check-dev-database.sh --release` con la confirmación y SHA exigidos por el script. Verificar migración 066 y repetición sin pendientes.
+2. Ejecutar `check-dev-database.sh --release` con la confirmación y SHA exigidos por el script. Verificar migraciones 066–067 y repetición sin pendientes.
 3. Compilar `FundingPlatform.PilotCatalog` en Release; ejecutar `curate-pilot-dev.sh --preview-resume`.
 4. Aplicar con `RF_CATALOG_REVIEWED_CONFIRMATION=PUBLISH-FIVE-REVIEWED-CHILE-OPPORTUNITIES-20261122` y `--apply-resume`. Ambos modos retiran su regla temporal de una sola IP.
 5. Comprobar las cinco fichas desde la API pública y la interfaz; contrastar montos, plazos y condiciones. Verificar la carga real tras una pausa si se observa una ventana de inactividad suficiente.
 
 Las pruebas locales quedan en `artifacts/resume-20261122/` (no versionado). La verificación local del lote revierte su transacción y comprueba idempotencia, rechazo de replay alterado, moneda, fechas, foco obligatorio y reutilización del financiador.
 
-Validación local: 1.183 pruebas unitarias, 493 de integración, 1.284 del frontend, 66 scripts SQL, 23 contratos de mapa, 13 de traducciones y tres pruebas de navegador para demora/recuperación. Compilación, lint y tipos E2E correctos. La demora visual de doce segundos también se comprobó manualmente en la vista local.
+Validación local de la recuperación: 1.183 pruebas unitarias, 493 de integración y 1.284 del frontend. La extensión del contrato público agrega cuatro casos de integración y uno de frontend, y comprueba restricciones originales/traducidas. Pasan 67 scripts SQL, 23 contratos de mapa y 13 de traducciones; la publicación local verifica también los plazos devueltos por el procedimiento público real. Compilación, lint y tipos E2E correctos. Las pruebas de navegador cubren demora y recuperación, y la demora visual de doce segundos también se comprobó manualmente en la vista local. CI vuelve a ejecutar las suites completas sobre la revisión final.

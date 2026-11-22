@@ -17,7 +17,8 @@ public sealed record FundingOpportunitySummary(
     decimal DataQualityScore,
     string? CoverKey = null,
     int ContentVersion = 0,
-    FundingTranslationLocalization? Localization = null);
+    FundingTranslationLocalization? Localization = null,
+    int DeadlineType = 0, int DeadlinePrecision = 0, DateTimeOffset? CloseAtUtc = null, string? DeadlineTimeZoneId = null);
 
 public sealed record FundingOpportunityDetails(
     Guid PublicId,
@@ -46,7 +47,9 @@ public sealed record FundingOpportunityDetails(
     int ContentVersion = 0,
     FundingTranslationLocalization? Localization = null,
     string? OtherCategoryDescription = null,
-    string? CoverKey = null);
+    string? CoverKey = null,
+    int DeadlineType = 0, int DeadlinePrecision = 0, DateTimeOffset? CloseAtUtc = null, string? DeadlineTimeZoneId = null,
+    string? Restrictions = null);
 
 public sealed record FundingOpportunityPage(
     IReadOnlyList<FundingOpportunitySummary> Items,
