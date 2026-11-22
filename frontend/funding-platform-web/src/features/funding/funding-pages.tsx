@@ -416,12 +416,14 @@ export function FundingOpportunityDetailView({
   backLabel = i18n.t('fundingCatalog.backOpportunities'),
   action,
   additionalDetails,
+  showRestrictions = true,
 }: {
   item: FundingOpportunityDetail
   backTo: string
   backLabel?: string
   action?: ReactNode
   additionalDetails?: ReactNode
+  showRestrictions?: boolean
 }) {
   const { t, i18n: language } = useTranslation()
   return (
@@ -464,7 +466,7 @@ export function FundingOpportunityDetailView({
               </section>
             )}
 
-            {item.restrictions && (
+            {showRestrictions && item.restrictions && (
               <section>
                 <h2 className="text-xl font-bold">{t('fundingCatalog.restrictions')}</h2>
                 <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{item.restrictions}</p>

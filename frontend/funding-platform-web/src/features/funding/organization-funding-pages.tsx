@@ -787,6 +787,7 @@ export function OrganizationFundingDetailPage() {
       additionalDetails={<div><OrganizationSpecificDetails catalogs={catalogs.data} item={opportunity.data} /></div>}
       backTo="/opportunities"
       item={toDisplayDetail(opportunity.data)}
+      showRestrictions={false}
     />
     </>
   )
