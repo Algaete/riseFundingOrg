@@ -68,7 +68,7 @@ export const coreEs = {
     organizationWorkspace: 'Espacio de organización',
     footer: 'FundingPlatform · Conectamos tu causa con oportunidades.',
   },
-  status: { loading: 'Cargando…', notFound: 'Página no encontrada', checkingSession: 'Comprobando sesión…' },
+  status: { loading: 'Cargando…', notFound: 'Página no encontrada', checkingSession: 'Comprobando sesión…', slowConnection: 'La conexión está tardando más de lo habitual. Seguimos intentando cargar los datos; no necesitas recargar la página.' },
   pilotPricing: {
     "title": "Una base gratuita para todas las ONG",
     "intro": "Registra tu organización chilena y publica tus proyectos gratis, sin tarjeta. Durante la marcha blanca estamos ampliando el catálogo de fondos revisados.",

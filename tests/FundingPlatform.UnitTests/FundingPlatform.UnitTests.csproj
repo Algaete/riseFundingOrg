@@ -33,4 +33,5 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup><Compile Include="../Shared/SqlExceptionFixture.cs" Link="Fixtures/SqlExceptionFixture.cs" /></ItemGroup>
 </Project>

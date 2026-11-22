@@ -94,7 +94,7 @@ internal static class EligibilityCatalog
         }
     }
 
-    private static async Task Seed(SqlConnection connection, SqlTransaction transaction, string root)
+    internal static async Task Seed(SqlConnection connection, SqlTransaction transaction, string root)
     {
         await ExpansionCatalog.SeedLocalFixture(connection, transaction, root);
         // Reproduce the exact deployed legacy encoding, then exercise the forward repair twice.

@@ -27,6 +27,7 @@ import {
   useState,
 } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SlowLoadingNotice } from '@/components/slow-loading-notice'
 import { catalogName, catalogLanguage, type CatalogKind } from '@/i18n/catalog-labels'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
@@ -117,8 +118,9 @@ function OrganizationRequired() {
 function PageLoading({ label }: { label: string }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-3 p-8 text-muted-foreground" role="status">
-        <LoaderCircle className="size-5 animate-spin" /> {label}
+      <CardContent className="p-8 text-muted-foreground" role="status">
+        <p className="flex items-center gap-3"><LoaderCircle className="size-5 shrink-0 animate-spin" /> {label}</p>
+        <SlowLoadingNotice />
       </CardContent>
     </Card>
   )

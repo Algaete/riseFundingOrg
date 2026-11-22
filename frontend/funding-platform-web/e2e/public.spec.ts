@@ -154,6 +154,46 @@ registerWorldCountryTests(expectNoSeriousAccessibilityViolations)
 registerEngagementTests(expectNoSeriousAccessibilityViolations)
 registerOrganizationVerificationTests(expectNoSeriousAccessibilityViolations)
 
+for (const width of [1280, 390]) {
+  test(`SQL resume shows a helpful wait and recovers at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    let release!: () => void
+    const ready = new Promise<void>(resolve => { release = resolve })
+    let requests = 0
+    await page.route('**/api/v1/funding-opportunities?*', async route => {
+      requests++
+      await ready
+      await route.fallback()
+    })
+    await page.goto('/funding')
+    await expect(page.getByText(/no necesitas recargar la página/)).toBeVisible({ timeout: 10_000 })
+    await expectNoSeriousAccessibilityViolations(page)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    release()
+    await expect(page.getByText('Oportunidad pública E2E', { exact: true })).toBeVisible()
+    await expect(page.getByText(/no necesitas recargar la página/)).toHaveCount(0)
+    expect(requests).toBe(1)
+  })
+}
+
+test('SQL resume exhaustion offers a single explicit retry', async ({ page }) => {
+  let requests = 0
+  await page.route('**/api/v1/funding-opportunities?*', async route => {
+    requests++
+    if (requests > 1) { await route.fallback(); return }
+    await route.fulfill({ status: 503, contentType: 'application/problem+json',
+      headers: { 'Retry-After': '10', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({ status: 503, type: 'https://fundingplatform.local/problems/data-service-unavailable',
+        title: 'Servicio temporalmente no disponible', detail: 'Espera unos segundos y vuelve a intentarlo.' }) })
+  })
+  await page.goto('/funding')
+  await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible()
+  expect(requests).toBe(1)
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click()
+  await expect(page.getByText('Oportunidad pública E2E', { exact: true })).toBeVisible()
+  expect(requests).toBe(2)
+})
+
 test('publica el inicio y permite navegar al acceso', async ({ page }) => {
   const response = await page.goto('/')
 

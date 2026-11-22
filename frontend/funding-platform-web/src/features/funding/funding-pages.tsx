@@ -25,6 +25,7 @@ import i18n from '@/i18n'
 import { workspaceLocale } from '@/i18n/workspace-messages'
 import { discoveryErrorMessage } from '@/i18n/discovery-feedback'
 import { Button } from '@/components/ui/button'
+import { SlowLoadingNotice } from '@/components/slow-loading-notice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   fundingOpportunitiesApi,
@@ -326,7 +327,8 @@ export function FundingCatalogPage() {
         <div className="space-y-4" role="status">
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />{t('fundingCatalog.loading')}</p>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label={t('fundingCatalog.loadingGrid')}>
+          <SlowLoadingNotice />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-hidden="true">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div className="h-96 animate-pulse rounded-xl border bg-card" key={item} />
             ))}
@@ -545,6 +547,7 @@ export function FundingOpportunityDetailPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6" role="status">
         <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" />{t('fundingCatalog.loadingDetail')}</p>
+        <SlowLoadingNotice />
         <div className="h-[32rem] animate-pulse rounded-2xl border bg-card" />
       </div>
     )

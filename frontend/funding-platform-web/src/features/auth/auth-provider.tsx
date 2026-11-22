@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { initializeAuthSession } from '@/features/auth/auth-session'
 import { useAuth } from '@/features/auth/use-auth'
+import { SlowLoadingNotice } from '@/components/slow-loading-notice'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -29,7 +30,10 @@ export function ProtectedRoute({
   if (auth.status === 'initializing') {
     return (
       <div className="grid min-h-screen place-items-center" role="status">
-        <p className="text-sm text-muted-foreground">{t('status.checkingSession')}</p>
+        <div className="max-w-lg px-6 text-center">
+          <p className="text-sm text-muted-foreground">{t('status.checkingSession')}</p>
+          <SlowLoadingNotice />
+        </div>
       </div>
     )
   }

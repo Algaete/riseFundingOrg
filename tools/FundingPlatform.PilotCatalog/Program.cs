@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
+if (args.Length == 1 && args[0] is "--preview-resume" or "--apply-resume" or "--verify-resume-local")
+    return await ReviewedCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-eligibility" or "--apply-eligibility" or "--verify-eligibility-local")
     return await EligibilityCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-expansion" or "--apply-expansion" or "--verify-expansion-local" or "--inspect-expansion")

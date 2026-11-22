@@ -188,6 +188,7 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     preserveStaticLogger: false,
     writeToProviders: true);
 
+builder.Services.AddExceptionHandler<DatabaseAvailabilityExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -826,7 +827,7 @@ app.UseCors(policy => policy
     .WithOrigins(webOptions.AllowedCorsOrigins)
     .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
     .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID", "Idempotency-Key", "If-Match", "X-Project-If-Match")
-    .WithExposedHeaders("ETag", "X-Correlation-ID", "X-Project-ETag")
+    .WithExposedHeaders("ETag", "X-Correlation-ID", "X-Project-ETag", "Retry-After")
     .AllowCredentials());
 
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
