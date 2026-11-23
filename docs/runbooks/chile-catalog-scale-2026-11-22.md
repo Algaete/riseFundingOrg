@@ -12,7 +12,7 @@ Las decisiones, fuentes y motivos de descarte están en `database/Curation/chile
 | International Trans Fund SEED | 01-12-2026; USD 10.000–25.000 para nuevos beneficiarios, liderazgo trans y presupuesto anual menor a USD 100.000. |
 | Sophie Danforth | 01-01-2027; conservación mundial con entidad receptora, monto máximo no publicado y restricciones expresas a redacción de postulaciones con IA. |
 | ALIPH emergencia | Continua; patrimonio cultural en riesgo vinculado a conflictos, en principio hasta USD 75.000. |
-| Pulitzer Global Reporting | Continua; periodismo con compromiso de publicación, no campañas institucionales. |
+| Pulitzer Global Reporting | Continua; periodismo con compromiso de publicación, no campañas institucionales; formulario limita contenido generado con IA. |
 | NBC conservación | Cortes anuales 1 febrero/1 julio; próximo corte calculado 01-02-2027, hasta USD 3.000, responsable local y conservación neotropical. |
 | Wikimedia Rapid Fund | Próximo corte 01-02-2027; USD 500–5.000, proyecto y experiencia en Wikimedia, límites por ayudas abiertas y monto anual. |
 | EA Animal Welfare | Continua; bienestar animal y costo efectividad. |

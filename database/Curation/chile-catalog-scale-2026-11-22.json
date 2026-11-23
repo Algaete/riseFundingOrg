@@ -493,13 +493,13 @@
       "title": "Pulitzer Center — Reportajes de interés público",
       "funder": "Pulitzer Center",
       "url": "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
-      "application": "https://pulitzercenter.tfaforms.net/",
+      "application": "https://pulitzercenter.tfaforms.net/236721",
       "expectedVersion": 0,
       "summary": "Financia costos de reportajes en profundidad. Admite periodistas y equipos de medios de cualquier país, incluidos medios sin fines de lucro.",
       "description": "Recepción continua, sin restricción temática o de lugar del reportaje. El monto depende del presupuesto; el rango habitual para viajes no constituye un máximo.",
       "eligibility": "Periodista o equipo editorial con una investigación periodística y un medio dispuesto a publicarla. Una campaña de una ONG no equivale a un reportaje elegible.",
       "requirements": "Plan editorial y de distribución, presupuesto y carta de interés o compromiso de publicación. Admite español e inglés, entre otros idiomas.",
-      "restrictions": "Excluye campañas de incidencia o marketing, salarios de planta, compra de equipos, gastos generales, libros y largometrajes. En zonas peligrosas exige respaldo del medio y condiciones de seguridad.",
+      "restrictions": "Excluye campañas de incidencia o marketing, salarios de planta, compra de equipos, gastos generales, libros y largometrajes. En zonas peligrosas exige respaldo del medio y condiciones de seguridad. El formulario rechaza contenido sustancial generado con IA; permite traducción, corrección ligera y apoyo de escritura compatible con la autoría del periodista.",
       "currency": null,
       "minAmount": null,
       "maxAmount": null,
@@ -540,7 +540,8 @@
       "fundingTypeId": 1,
       "sources": [
         "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
-        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions"
+        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
+        "https://pulitzercenter.tfaforms.net/236721"
       ],
       "evidence": [
         {
@@ -552,6 +553,11 @@
           "field": "editorialReview",
           "sourceUrl": "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
           "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://pulitzercenter.tfaforms.net/236721",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
         }
       ],
       "eligibilityPolicy": {
@@ -562,7 +568,8 @@
         "requiredBeneficiaryTypeIds": [],
         "manualRequirements": [
           "Equipo periodístico y compromiso de publicación; no usar para comunicación promocional institucional.",
-          "Presupuesto de reporteo sin gastos indirectos."
+          "Presupuesto de reporteo sin gastos indirectos.",
+          "El contenido sustancial de la propuesta debe ser del periodista; revisar límites de uso de IA en el formulario."
         ]
       }
     },

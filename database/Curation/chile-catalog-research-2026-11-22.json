@@ -64,14 +64,9 @@
     },
     {
       "program": "EA Funds Global Health and Development",
-      "status": "accepted",
-      "url": "https://funds.effectivealtruism.org/funds/animal-welfare",
-      "reason": "Financia proyectos que reducen el sufrimiento animal, con énfasis en animales de granja, especies y regiones desatendidas.",
-      "slug": "ea-funds-bienestar-animal",
-      "sources": [
-        "https://funds.effectivealtruism.org/funds/animal-welfare",
-        "https://funds.effectivealtruism.org/apply-for-funding"
-      ]
+      "status": "excluded-no-applications",
+      "url": "https://funds.effectivealtruism.org/apply-for-funding",
+      "reason": "El programa expresamente no acepta solicitudes."
     },
     {
       "program": "Crowder–Messersmith",
@@ -132,7 +127,8 @@
       "slug": "pulitzer-reportajes-globales",
       "sources": [
         "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
-        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions"
+        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
+        "https://pulitzercenter.tfaforms.net/236721"
       ]
     },
     {
@@ -148,9 +144,14 @@
     },
     {
       "program": "EA Funds Animal Welfare",
-      "status": "pending-details",
+      "status": "accepted",
       "url": "https://funds.effectivealtruism.org/funds/animal-welfare",
-      "reason": "Mundial, organizaciones/personas, recepción permanente en página común. Verificar rango por programa."
+      "reason": "Financia proyectos que reducen el sufrimiento animal, con énfasis en animales de granja, especies y regiones desatendidas.",
+      "slug": "ea-funds-bienestar-animal",
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/animal-welfare",
+        "https://funds.effectivealtruism.org/apply-for-funding"
+      ]
     },
     {
       "program": "EA Funds Infrastructure",
@@ -411,6 +412,7 @@
     "excluded-ended": 3,
     "excluded-geography": 2,
     "excluded-invitation": 2,
+    "excluded-no-applications": 1,
     "excluded-not-a-grant": 2,
     "excluded-paused": 5,
     "excluded-referral": 1,
@@ -418,7 +420,7 @@
     "excluded-upcoming": 2,
     "pending-conflicting-deadline": 1,
     "pending-country": 3,
-    "pending-details": 3,
+    "pending-details": 2,
     "pending-geography": 1,
     "pending-intake": 6
   },
