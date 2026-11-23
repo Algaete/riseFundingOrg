@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
+if (args.Length == 1 && args[0] is "--preview-regions" or "--apply-regions" or "--verify-regions-local")
+    return await RegionalCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-next" or "--apply-next" or "--verify-next-local")
     return await NextCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-scale" or "--apply-scale" or "--verify-scale-local")

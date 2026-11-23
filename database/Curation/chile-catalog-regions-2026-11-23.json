@@ -1,0 +1,56 @@
+{
+  "batchId": "chile-catalog-regions-2026-11-23",
+  "reviewedAt": "2026-11-23",
+  "funds": [
+    {
+      "id": "c6662026-0000-4000-8000-000000000001",
+      "slug": "fae-establecimientos-rbd-2027",
+      "expectedVersion": 1,
+      "sourceUrl": "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "reason": "Cobertura nacional revisada: FAE admite establecimientos chilenos con RBD sin restringir regiones; los requisitos artísticos y educativos siguen vigentes."
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000003",
+      "slug": "mapfre-innovacion-social-decima-edicion",
+      "expectedVersion": 1,
+      "sourceUrl": "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "reason": "Cobertura nacional revisada: La convocatoria admite proyectos de América Latina, incluido Chile, sin restricción subnacional; conserva los requisitos financieros y de equipo."
+    }
+  ]
+}
