@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using FundingPlatform.Infrastructure.Persistence.Migrations;
+if (args.Length == 1 && args[0] is "--preview-scale" or "--apply-scale" or "--verify-scale-local")
+    return await ScaleCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-resume" or "--apply-resume" or "--verify-resume-local")
     return await ReviewedCatalog.RunAsync(args[0]);
 if (args.Length == 1 && args[0] is "--preview-eligibility" or "--apply-eligibility" or "--verify-eligibility-local")
