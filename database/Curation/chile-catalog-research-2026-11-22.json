@@ -1,0 +1,428 @@
+{
+  "reviewedAt": "2026-11-22",
+  "target": "50–60 oportunidades abiertas para proyectos de ONG en Chile; no equivale a una promesa de disponibilidad",
+  "decisions": [
+    {
+      "program": "CIVICUS Crisis Response Fund",
+      "status": "excluded-paused",
+      "url": "https://www.civicus.org/index.php?id=786&option=com_sppagebuilder&view=page",
+      "reason": "Recepción suspendida hasta comienzos de 2027."
+    },
+    {
+      "program": "ProVeg Grants",
+      "status": "excluded-invitation",
+      "url": "https://proveg.org/advocacy/grants/",
+      "reason": "Solo invitación; formulario antiguo no demuestra convocatoria abierta."
+    },
+    {
+      "program": "ProtectDefenders canal central",
+      "status": "excluded-referral",
+      "url": "https://protectdefenders.eu/supporting-organisations/",
+      "reason": "Secretaría ya no evalúa subvenciones por canal centralizado; remite a socios."
+    },
+    {
+      "program": "Draper Richards Kaplan",
+      "status": "excluded-geography",
+      "url": "https://www.drkfoundation.org/apply/faq/",
+      "reason": "Financia operaciones en África, Europa, India y Estados Unidos; Chile fuera del alcance."
+    },
+    {
+      "program": "Roddenberry Catalyst",
+      "status": "excluded-paused",
+      "url": "https://apply.roddenberryfoundation.org/app/main/faqs",
+      "reason": "Ningún programa abierto y sin fecha de reapertura."
+    },
+    {
+      "program": "Awesome Without Borders",
+      "status": "excluded-ended",
+      "url": "https://awesomewithoutborders.org/faq/",
+      "reason": "Aviso final anuncia cierre definitivo después de 571 proyectos; FAQ de recepción continua anterior queda obsoleta."
+    },
+    {
+      "program": "Marchig Animal Welfare Trust",
+      "status": "excluded-paused",
+      "url": "https://marchigtrust.org/",
+      "reason": "Portada suspende solicitudes hasta nuevo aviso; FAQ anterior todavía dice recepción anual."
+    },
+    {
+      "program": "Digital Defenders IRF/IEF",
+      "status": "excluded-paused",
+      "url": "https://grants.digitaldefenders.org/",
+      "reason": "Presupuesto completamente asignado y recepción temporalmente suspendida."
+    },
+    {
+      "program": "NLnet NGI Zero Commons Fund",
+      "status": "excluded-ended",
+      "url": "https://nlnet.nl/commonsfund/",
+      "reason": "Última convocatoria cerró el 1 de junio de 2026; revisar otros programas por separado."
+    },
+    {
+      "program": "Cultural Emergency Response",
+      "status": "excluded-geography",
+      "url": "https://www.culturalemergency.org/programs/first-aid-to-cultural-heritage",
+      "reason": "Elegibilidad basada en lista DAC; Chile no debe presumirse elegible por pertenecer a América Latina."
+    },
+    {
+      "program": "EA Funds Global Health and Development",
+      "status": "excluded-no-applications",
+      "url": "https://funds.effectivealtruism.org/apply-for-funding",
+      "reason": "El programa expresamente no acepta solicitudes."
+    },
+    {
+      "program": "Crowder–Messersmith",
+      "status": "pending-country",
+      "url": "https://natureforward.org/crowder-messersmith-fund/",
+      "reason": "Abierto hasta 1 diciembre 2026, pero limita países en desarrollo; Chile no confirmado."
+    },
+    {
+      "program": "Lifeline",
+      "status": "pending-intake",
+      "url": "https://www.csolifeline.org/",
+      "reason": "Bases localizadas; falta recepción actual y alcance. USD 9.000 es promedio, no máximo."
+    },
+    {
+      "program": "D-Prize",
+      "status": "pending-country",
+      "url": "https://d-prize.org/faqs",
+      "reason": "Prórroga vigente hasta 6 diciembre, pero FAQ exige ejecución en países en desarrollo con pobreza extrema. Chile no confirmado; no se publica por mera elegibilidad mundial de la persona fundadora."
+    },
+    {
+      "program": "Cisco Global Impact Cash Grants",
+      "status": "accepted",
+      "url": "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+      "reason": "Hasta US$75.000 para organizaciones que reciben este apoyo por primera vez. Comienza con una consulta; la solicitud completa requiere invitación.",
+      "slug": "cisco-global-impact-consulta-inicial",
+      "sources": [
+        "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+        "https://www.cisco.com/c/dam/en_us/about/purpose/social-impact/global-impact-cash-grant-program.pdf"
+      ]
+    },
+    {
+      "program": "International Trans Fund",
+      "status": "accepted",
+      "url": "https://www.transfund.org/apply-for-a-grant",
+      "reason": "US$10.000–25.000 por un año para grupos liderados por personas trans. Esta ficha presenta SEED para nuevos beneficiarios.",
+      "slug": "itf-seed-2027",
+      "sources": [
+        "https://www.transfund.org/apply-for-a-grant",
+        "https://www.transfund.org/guidelines-html"
+      ]
+    },
+    {
+      "program": "Sophie Danforth Conservation Biology Fund",
+      "status": "accepted",
+      "url": "https://www.rwpzoo.org/danforth-conservation-grants/",
+      "reason": "Apoyo a conservación de especies amenazadas y hábitats en cualquier país. Requiere una ONG o universidad que reciba los fondos.",
+      "slug": "sophie-danforth-conservacion-2027",
+      "sources": [
+        "https://www.rwpzoo.org/danforth-conservation-grants/",
+        "https://www.rwpzoo.org/wp-content/uploads/2026/09/SDCBF-Guidelines-Eligibility.pdf"
+      ]
+    },
+    {
+      "program": "Pulitzer Center Global Reporting",
+      "status": "accepted",
+      "url": "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+      "reason": "Financia costos de reportajes en profundidad. Admite periodistas y equipos de medios de cualquier país, incluidos medios sin fines de lucro.",
+      "slug": "pulitzer-reportajes-globales",
+      "sources": [
+        "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
+        "https://pulitzercenter.tfaforms.net/236721"
+      ]
+    },
+    {
+      "program": "Free Press Unlimited Reporters Respond",
+      "status": "accepted-unknown-intake",
+      "url": "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+      "reason": "Asistencia puntual para medios y periodistas en riesgo por su trabajo. Canal de solicitud disponible; fecha de cierre no informada.",
+      "slug": "reporters-respond-emergencia",
+      "sources": [
+        "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+        "https://www.freepressunlimited.org/en/reporters-respond-application-form-full-encryption"
+      ]
+    },
+    {
+      "program": "EA Funds Animal Welfare",
+      "status": "accepted",
+      "url": "https://funds.effectivealtruism.org/funds/animal-welfare",
+      "reason": "Financia proyectos que reducen el sufrimiento animal, con énfasis en animales de granja, especies y regiones desatendidas.",
+      "slug": "ea-funds-bienestar-animal",
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/animal-welfare",
+        "https://funds.effectivealtruism.org/apply-for-funding"
+      ]
+    },
+    {
+      "program": "EA Funds Infrastructure",
+      "status": "accepted",
+      "url": "https://funds.effectivealtruism.org/funds/ea-community",
+      "reason": "Apoyo especializado para fortalecer proyectos y comunidades que aplican principios de altruismo eficaz.",
+      "slug": "ea-funds-infraestructura-comunidad",
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/ea-community",
+        "https://funds.effectivealtruism.org/apply-for-funding",
+        "https://www.centreforeffectivealtruism.org/how-to-join-the-program"
+      ]
+    },
+    {
+      "program": "EA Funds Transformative AI",
+      "status": "pending-details",
+      "url": "https://funds.effectivealtruism.org/funds/transformative-ai",
+      "reason": "Sustituye al Long-Term Future Fund; recepción permanente. Rango típico no equivale a tope."
+    },
+    {
+      "program": "ALIPH Emergency relief",
+      "status": "accepted",
+      "url": "https://www.aliph-foundation.org/en/our-grants",
+      "reason": "En principio, hasta US$75.000 para medidas urgentes de protección del patrimonio cultural amenazado o dañado por conflictos.",
+      "slug": "aliph-patrimonio-emergencia",
+      "sources": [
+        "https://www.aliph-foundation.org/en/our-grants",
+        "https://www.aliph-foundation.org/storage/wsm_grants/HnHsXeiJ9qJorfPo1zjkzGKlTHUvMO53LXVygGJq.pdf"
+      ]
+    },
+    {
+      "program": "Media Defence case support",
+      "status": "pending-intake",
+      "url": "https://www.mediadefence.org/apply-for-case-support/",
+      "reason": "Apoyo a medios y periodistas amenazados legalmente; fuente no fija plazo."
+    },
+    {
+      "program": "Rainforest Trust",
+      "status": "pending-geography",
+      "url": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+      "reason": "Ecosistemas tropicales/subtropicales; no asumir que todo Chile califica. Conceptos aceptados todo el año; creación y factibilidad tienen procedimientos distintos."
+    },
+    {
+      "program": "Fondo Orizon 2026",
+      "status": "excluded-closed",
+      "url": "https://fondovivamos.cl/wp-content/uploads/2026/10/Bases-Fondo-Concursable-Orizon-2026_std.pdf",
+      "reason": "Cerró 10 noviembre 2026."
+    },
+    {
+      "program": "Fondos MDSF 2026",
+      "status": "excluded-closed",
+      "url": "https://www.midesof.gob.cl/sociedad-civil/fondos-concursables/",
+      "reason": "Ventana 11–29 mayo 2026."
+    },
+    {
+      "program": "Mott Foundation",
+      "status": "excluded-invitation",
+      "url": "https://www.mott.org/what-we-fund/",
+      "reason": "Desde enero de 2025 no acepta cartas ni propuestas no solicitadas."
+    },
+    {
+      "program": "Fondation Franklinia",
+      "status": "excluded-closed",
+      "url": "https://fondationfranklinia.org/en/soumettre-un-projet/",
+      "reason": "Última convocatoria cerrada; no acepta propuestas no solicitadas."
+    },
+    {
+      "program": "Amphibian Ark",
+      "status": "excluded-upcoming",
+      "url": "https://www.amphibianark.org/our-response/aark-granting-program/",
+      "reason": "Ciclo 2026 cerrado; 2027 todavía sin apertura anunciada."
+    },
+    {
+      "program": "Internet Society Emergency Response",
+      "status": "excluded-paused",
+      "url": "https://www.isocfoundation.org/grant-programme/resilience-emergency-response-grant-programme/",
+      "reason": "Programa cerrado mientras redefine prioridades."
+    },
+    {
+      "program": "Internet Society Resiliency",
+      "status": "excluded-ended",
+      "url": "https://www.isocfoundation.org/about/2025-action-plan/",
+      "reason": "Plan oficial anuncia término del programa en su diseño anterior."
+    },
+    {
+      "program": "Google.org AI for Government Innovation",
+      "status": "excluded-closed",
+      "url": "https://blog.google/company-news/outreach-and-initiatives/google-org/global-impact-challenge-ai-government-2026/",
+      "reason": "Cerró 3 abril 2026; no confundir con publicaciones posteriores."
+    },
+    {
+      "program": "Google.org AI for Science",
+      "status": "excluded-closed",
+      "url": "https://blog.google/company-news/outreach-and-initiatives/google-org/impact-challenge-ai-science-open-call/",
+      "reason": "Cerró 17 abril 2026."
+    },
+    {
+      "program": "JustFilms",
+      "status": "excluded-closed",
+      "url": "https://www.fordfoundation.org/work/our-grants/justfilms/justfilms-application/",
+      "reason": "Solicitudes de producción documental cerradas."
+    },
+    {
+      "program": "Sundance Documentary Fund",
+      "status": "excluded-upcoming",
+      "url": "https://www.sundance.org/documentary-fund/",
+      "reason": "No recibe solicitudes; próxima convocatoria a anunciar a comienzos de 2027."
+    },
+    {
+      "program": "Doc Society Climate Story Fund",
+      "status": "excluded-closed",
+      "url": "https://docsociety.org/more/",
+      "reason": "Línea Climate Story Fund figura cerrada; BFI abierto es para cineastas del Reino Unido."
+    },
+    {
+      "program": "Catapult Film Fund",
+      "status": "excluded-closed",
+      "url": "https://catapultfilmfund.org/how-to-apply/",
+      "reason": "No acepta solicitudes actualmente; Development y Research cerrados."
+    },
+    {
+      "program": "CEA Community Building Grants",
+      "status": "excluded-renewals-only",
+      "url": "https://www.centreforeffectivealtruism.org/how-to-join-the-program",
+      "reason": "Solo renovaciones; el EA Infrastructure Fund es un programa distinto y sí se revisa por separado."
+    },
+    {
+      "program": "National Endowment for Democracy",
+      "status": "pending-country",
+      "url": "https://www.ned.org/apply-for-grant/en/",
+      "reason": "Nuevo corte 27 enero 2027, pero excluye proyectos implementados en democracias consolidadas. No se asume Chile elegible."
+    },
+    {
+      "program": "Pfizer ATM-AVI Quality Improvement",
+      "status": "pending-conflicting-deadline",
+      "url": "https://cdn.pfizer.com/pfizercom/2026-10/2027-I_I-G-ATM-AVI-QI.pdf?VersionId=QeVJzqekmR9QKTgJFrfnbBDK2pRnl8Cl",
+      "reason": "Listado indexado señala 1 diciembre; PDF enlazado y vista directa señalan 17 noviembre 2026. No se publica como abierto sin extensión oficial consistente."
+    },
+    {
+      "program": "Fondation Ensemble especies amenazadas",
+      "status": "pending-intake",
+      "url": "https://www.fondationensemble.org/en/submit-proposal/threatened-animal-species-fund/basic-criteria/",
+      "reason": "Criterios disponibles pero convocatoria actual no confirmada."
+    },
+    {
+      "program": "Vegan Grants",
+      "status": "pending-details",
+      "url": "https://apply.vgrants.org/",
+      "reason": "Portal exige beneficiario actual o invitación tras consulta inicial; falta alcance territorial y recepción del filtro previo. No confundir con VegFund."
+    },
+    {
+      "program": "How Many Elephants World Female Ranger Grants",
+      "status": "pending-intake",
+      "url": "https://howmanyelephants.org/what-we-do/",
+      "reason": "Alcance mundial y criterios publicados; falta confirmar recepción y canal vigente."
+    },
+    {
+      "program": "Amphibian Survival Alliance Emergency Grants",
+      "status": "pending-intake",
+      "url": "https://www.amphibians.org/documents/asa-annual-report-2024-2025.pdf",
+      "reason": "Informe describe rediseño del programa; no demuestra recepción vigente."
+    },
+    {
+      "program": "IUCN NL Land Acquisition Fund",
+      "status": "pending-intake",
+      "url": "https://www.iucn.nl/app/uploads/2023/04/IUCN-NL-Land-Acquisition-Fund_Criteria-2023_final.pdf",
+      "reason": "Bases antiguas disponibles; convocatoria vigente no confirmada."
+    },
+    {
+      "program": "Frankfurt 2027 Interdisciplinas",
+      "status": "excluded-closed",
+      "url": "https://www.fondosdecultura.cl/area/audiovisual/concurso-programa-cultural-frankfurt-2027-interdisciplinas/",
+      "reason": "Cerró 6 noviembre 2026 a las 15:00."
+    },
+    {
+      "program": "GivingTuesday Chile",
+      "status": "excluded-not-a-grant",
+      "url": "https://www.causaxcausa.cl/givingtuesday",
+      "reason": "Participación en jornada de recaudación/capacitación; no se cuenta como subvención."
+    },
+    {
+      "program": "Registro ejecutores Fondo Reconstrucción",
+      "status": "excluded-not-a-grant",
+      "url": "https://donaciones.hacienda.gob.cl/proyectos/registro-poteciales-ejecutores",
+      "reason": "Registro de ejecutores, no convocatoria de subvención; postulación cerró 29 octubre."
+    },
+    {
+      "program": "GEF/FPA — Comunidades por el Desarrollo Sostenible 2026",
+      "status": "accepted",
+      "url": "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+      "slug": "gef-comunidades-chile-2026",
+      "reason": "$15.000.000 CLP para proyectos ambientales en Atacama, Ñuble y Los Ríos. Requiere contrapartida igual o superior al aporte.",
+      "sources": [
+        "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+        "https://educacion.mma.gob.cl/wp-content/uploads/2026/11/Bases-Tecnicas-Concurso-Recional_GEF_CDS.pdf"
+      ]
+    },
+    {
+      "program": "Gilead — Apoyo comunitario en VIH y enfermedades hepáticas",
+      "status": "accepted",
+      "url": "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean",
+      "slug": "gilead-salud-latinoamerica",
+      "reason": "Apoyo a organizaciones sin fines de lucro que mejoran el acceso y la educación en salud. Chile figura entre los países elegibles.",
+      "sources": [
+        "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean"
+      ]
+    },
+    {
+      "program": "NBC — Conservación de aves neotropicales",
+      "status": "accepted",
+      "url": "https://neotropicalbirdingandconservation.org/conservation/",
+      "slug": "nbc-conservacion-aves-neotropicales",
+      "reason": "Hasta US$3.000 para conservación de aves amenazadas o sitios de importancia global en Sudamérica, Centroamérica y el Caribe.",
+      "sources": [
+        "https://neotropicalbirdingandconservation.org/conservation/",
+        "https://neotropicalbirdingandconservation.org/about-us/"
+      ]
+    },
+    {
+      "program": "Wikimedia — Rapid Fund para proyectos de conocimiento libre",
+      "status": "accepted",
+      "url": "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+      "slug": "wikimedia-rapid-fund-2027",
+      "reason": "US$500–5.000 para proyectos de uno a doce meses que mejoren Wikipedia u otros proyectos Wikimedia. Próximo corte: 1 de febrero de 2027.",
+      "sources": [
+        "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+        "https://meta.wikimedia.org/wiki/Grants:Administration/Countries"
+      ]
+    },
+    {
+      "program": "Oak Foundation — Consulta inicial a Special Interest Programme",
+      "status": "accepted",
+      "url": "https://oakfnd.org/programmes/special-interest/",
+      "slug": "oak-special-interest-consulta",
+      "reason": "Canal de consulta inicial para organizaciones sin fines de lucro con proyectos alineados con las prioridades de Special Interest Programme.",
+      "sources": [
+        "https://oakfnd.org/programmes/special-interest/",
+        "https://oakfnd.org/faq-applying-for-funding-what-we-fund/",
+        "https://oakfnd.org/grant-making/",
+        "https://oakfnd.org/submit-enquiry/"
+      ]
+    },
+    {
+      "program": "Pfizer — Investigación independiente sobre ATM-AVI",
+      "status": "accepted",
+      "url": "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf",
+      "slug": "pfizer-investigacion-atm-avi-2026",
+      "reason": "Hasta US$50.000 para investigación clínica sobre uso temprano de aztreonam-avibactam en adultos. Chile está expresamente incluido.",
+      "sources": [
+        "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf"
+      ]
+    }
+  ],
+  "summary": {
+    "accepted": 13,
+    "accepted-unknown-intake": 1,
+    "excluded-closed": 9,
+    "excluded-ended": 3,
+    "excluded-geography": 2,
+    "excluded-invitation": 2,
+    "excluded-no-applications": 1,
+    "excluded-not-a-grant": 2,
+    "excluded-paused": 5,
+    "excluded-referral": 1,
+    "excluded-renewals-only": 1,
+    "excluded-upcoming": 2,
+    "pending-conflicting-deadline": 1,
+    "pending-country": 3,
+    "pending-details": 2,
+    "pending-geography": 1,
+    "pending-intake": 6
+  },
+  "outcome": "14 fichas nuevas revisadas, 13 con recepción confirmada (incluidas consultas iniciales y programas especializados), una con plazo no confirmado. La meta de 50–60 abiertas no se acredita con esta revisión."
+}

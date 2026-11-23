@@ -1,0 +1,1151 @@
+{
+  "batchId": "chile-catalog-scale-2026-11-22",
+  "reviewedAt": "2026-11-22",
+  "funds": [
+    {
+      "id": "c5552026-0000-4000-8000-000000000001",
+      "slug": "gef-comunidades-chile-2026",
+      "title": "GEF/FPA — Comunidades por el Desarrollo Sostenible 2026",
+      "funder": "Ministerio del Medio Ambiente",
+      "url": "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+      "application": "https://fao-grants.smapply.io/prog/sgp_portal/",
+      "expectedVersion": 0,
+      "summary": "$15.000.000 CLP para proyectos ambientales en Atacama, Ñuble y Los Ríos. Requiere contrapartida igual o superior al aporte.",
+      "description": "Convocatoria del 16 de noviembre al 22 de diciembre de 2026. Las bases indican dos horas distintas de cierre: 23:59 en portada y 19:59 en la sección 9, ambas de Chile continental. Confirma con FAO y presenta antes de las 19:59.",
+      "eligibility": "Organización privada sin fines de lucro, con personalidad jurídica vigente, domicilio legal en una región objetivo y al menos un año de antigüedad y experiencia ambiental. No admite sucursales.",
+      "requirements": "Proyecto en la misma región del domicilio. ONG constituidas como corporación o fundación. Documentación institucional, presupuesto y cuenta bancaria o compromiso de apertura.",
+      "restrictions": "Contrapartida financiera y/o valorizada según capacidad y grupo prioritario; revisar tabla 3. Excluye universidades, centros de investigación y entidades vinculadas a la administración pública.",
+      "currency": "CLP",
+      "minAmount": 15000000,
+      "maxAmount": 15000000,
+      "amountStatus": 1,
+      "opened": "2026-11-16",
+      "closed": "2026-12-22",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        4,
+        10,
+        13
+      ],
+      "categories": [
+        1,
+        3
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": 1,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": true,
+      "requiresCofunding": true,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+        "https://educacion.mma.gob.cl/wp-content/uploads/2026/11/Bases-Tecnicas-Concurso-Recional_GEF_CDS.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://educacion.mma.gob.cl/wp-content/uploads/2026/11/Bases-Tecnicas-Concurso-Recional_GEF_CDS.pdf",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "deadlinePrecision",
+          "sourceUrl": "https://educacion.mma.gob.cl/wp-content/uploads/2026/11/Bases-Tecnicas-Concurso-Recional_GEF_CDS.pdf",
+          "note": "Portada: 23:59; sección 9: 19:59, ambas Chile continental. No se elige una hora ni se inventa cierre UTC."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://educacion.mma.gob.cl/proyecto-gef-comunidades-por-el-desarrollo-sostenible/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Domicilio legal y proyecto en la misma región admitida; no basta una sucursal.",
+          "Contrapartida mínima 1:1, composición según tabla 3 y experiencia ambiental verificable.",
+          "Confirmar hora de cierre contradictoria en las bases; la ficha conserva solo la fecha."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000002",
+      "slug": "gilead-salud-latinoamerica",
+      "title": "Gilead — Apoyo comunitario en VIH y enfermedades hepáticas",
+      "funder": "Gilead Sciences",
+      "url": "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean",
+      "application": "https://gilead-grants.steeprockinc.com/",
+      "expectedVersion": 0,
+      "summary": "Apoyo a organizaciones sin fines de lucro que mejoran el acceso y la educación en salud. Chile figura entre los países elegibles.",
+      "description": "Solicitudes todo el año, al menos seis semanas antes del inicio. Evaluación habitualmente de seis a doce semanas. Prioriza VIH y enfermedades hepáticas; monto no publicado.",
+      "eligibility": "Entidad sin fines de lucro con registro vigente y proyecto alineado con las prioridades sanitarias regionales.",
+      "requirements": "Acreditación institucional, fechas, público objetivo, plan de difusión y presupuesto detallado en el portal de subvenciones.",
+      "restrictions": "No financia actividades ya realizadas ni más de un año por solicitud. El apoyo general en salud no asegura encaje: debe justificarse el vínculo con VIH o enfermedades hepáticas.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        4
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.gilead.com/responsibility/giving-at-gilead/corporate-giving/how-to-apply-for-funding/giving-in-latin-america-and-the-caribbean",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          4
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Comprobar alineación sanitaria y registro sin fines de lucro.",
+          "Enviar con al menos seis semanas de anticipación."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000003",
+      "slug": "cisco-global-impact-consulta-inicial",
+      "title": "Cisco — Global Impact Cash Grants, consulta inicial",
+      "funder": "Cisco Foundation",
+      "url": "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+      "application": "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+      "expectedVersion": 0,
+      "summary": "Hasta US$75.000 para organizaciones que reciben este apoyo por primera vez. Comienza con una consulta; la solicitud completa requiere invitación.",
+      "description": "Recepción durante todo el año para ONG de alcance nacional o multinacional con soluciones tecnológicas escalables en educación, crisis, oportunidades económicas o resiliencia climática.",
+      "eligibility": "Organizaciones sin fines de lucro. Entidades fuera de Estados Unidos deben acreditar equivalencia con una entidad benéfica estadounidense. Más del 65% del público debe estar económicamente desatendido.",
+      "requirements": "Completar evaluación de elegibilidad y carta de consulta en el portal oficial. Demostrar uso innovador de tecnología, medición de impacto y sostenibilidad.",
+      "restrictions": "Gastos generales normalmente hasta 25%, con excepciones justificadas. Excluye personas, campañas políticas o religiosas y operación general sin relación directa con el programa.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 75000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        2,
+        3,
+        7,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+        "https://www.cisco.com/c/dam/en_us/about/purpose/social-impact/global-impact-cash-grant-program.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.cisco.com/c/dam/en_us/about/purpose/social-impact/global-impact-cash-grant-program.pdf",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.cisco.com/site/us/en/about/purpose/community-resilience/investments/global-impact-cash-grants.html",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Primera subvención; techo de US$75.000.",
+          "Más del 65% de población desatendida y tecnología con impacto medible.",
+          "Consulta inicial abierta; propuesta completa solo por invitación."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000004",
+      "slug": "itf-seed-2027",
+      "title": "International Trans Fund — SEED para organizaciones trans",
+      "funder": "International Trans Fund",
+      "url": "https://www.transfund.org/apply-for-a-grant",
+      "application": "https://transfund.smartsimple.ca/",
+      "expectedVersion": 0,
+      "summary": "US$10.000–25.000 por un año para grupos liderados por personas trans. Esta ficha presenta SEED para nuevos beneficiarios.",
+      "description": "Convocatoria mundial del 6 de octubre al 1 de diciembre de 2026. Incluye colectivos informales. THRIVE es otra modalidad reservada a beneficiarios anteriores.",
+      "eligibility": "Presupuesto anual inferior a US$100.000. Liderazgo trans y trabajo centrado en derechos y construcción del movimiento; no basta prestar servicios.",
+      "requirements": "Crear perfil organizacional en el portal y enviar una solicitud. Admite español. Al menos 75% del equipo o instancia decisora debe ser trans; si es menor, demostrar liderazgo efectivo sobre presupuesto y estrategia.",
+      "restrictions": "Una solicitud y una modalidad por ciclo; el portal no permite cambiarla después de comenzar. No financia personas individuales.",
+      "currency": "USD",
+      "minAmount": 10000,
+      "maxAmount": 25000,
+      "amountStatus": 1,
+      "opened": "2026-10-06",
+      "closed": "2026-12-01",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.transfund.org/apply-for-a-grant",
+        "https://www.transfund.org/guidelines-html"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.transfund.org/apply-for-a-grant",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.transfund.org/guidelines-html",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.transfund.org/apply-for-a-grant",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": {
+          "amount": 100000,
+          "currency": "USD",
+          "inclusive": false
+        },
+        "requiredCategoryIds": [
+          6
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Liderazgo trans efectivo, enfoque de movimiento y presupuesto anual inferior a US$100.000.",
+          "Verificar condición de nuevo beneficiario y escoger SEED antes de comenzar."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000005",
+      "slug": "sophie-danforth-conservacion-2027",
+      "title": "Sophie Danforth — Conservación de fauna y hábitats 2027",
+      "funder": "Roger Williams Park Zoo",
+      "url": "https://www.rwpzoo.org/danforth-conservation-grants/",
+      "application": "https://www.rwpzoo.org/danforth-conservation-grants/",
+      "expectedVersion": 0,
+      "summary": "Apoyo a conservación de especies amenazadas y hábitats en cualquier país. Requiere una ONG o universidad que reciba los fondos.",
+      "description": "Postulaciones abiertas hasta el 1 de enero de 2027. Se priorizan proyectos con colaboración local. Las bases actuales no publican un monto máximo.",
+      "eligibility": "Responsable afiliado a una organización capaz de recibir la subvención. No hay restricción de nacionalidad; el financiamiento se entrega a la entidad.",
+      "requirements": "Solicitud en inglés, presupuesto, CV de hasta dos páginas, dos referencias firmadas del último año y formulario tributario W-8 para receptores extranjeros.",
+      "restrictions": "No usar IA para redactar, editar o generar la postulación, CV o referencias; tareas mecánicas solo con declaración. Excluye gastos previos, investigación altamente invasiva o letal y recolección de especímenes.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": "2027-01-01",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.rwpzoo.org/danforth-conservation-grants/",
+        "https://www.rwpzoo.org/wp-content/uploads/2026/09/SDCBF-Guidelines-Eligibility.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.rwpzoo.org/danforth-conservation-grants/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.rwpzoo.org/wp-content/uploads/2026/09/SDCBF-Guidelines-Eligibility.pdf",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.rwpzoo.org/danforth-conservation-grants/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Acordar entidad receptora y verificar capacidad para recibir fondos.",
+          "La preparación de esta postulación tiene restricciones expresas al uso de IA."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000006",
+      "slug": "aliph-patrimonio-emergencia",
+      "title": "ALIPH — Protección urgente del patrimonio afectado por conflictos",
+      "funder": "ALIPH Foundation",
+      "url": "https://www.aliph-foundation.org/en/our-grants",
+      "application": "https://aliph.smartsimple.ie/",
+      "expectedVersion": 0,
+      "summary": "En principio, hasta US$75.000 para medidas urgentes de protección del patrimonio cultural amenazado o dañado por conflictos.",
+      "description": "Recepción todo el año. Las bases de emergencia enlazadas por el programa declaran alcance mundial e incluyen ONG y fundaciones.",
+      "eligibility": "Institución con capacidad de actuar de inmediato y demostrar el vínculo entre el conflicto y el riesgo para el patrimonio. La definición incluye disturbios violentos y otras alteraciones súbitas que generan inestabilidad.",
+      "requirements": "Propuesta breve en inglés, presupuesto en USD, evidencia de urgencia, significado del patrimonio para la comunidad y factibilidad técnica.",
+      "restrictions": "No es una convocatoria cultural general. Debe justificarse que esperar otra convocatoria causaría pérdida irreversible. Los planes geográficos específicos de ALIPH tienen reglas distintas.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 75000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.aliph-foundation.org/en/our-grants",
+        "https://www.aliph-foundation.org/storage/wsm_grants/HnHsXeiJ9qJorfPo1zjkzGKlTHUvMO53LXVygGJq.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.aliph-foundation.org/en/our-grants",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.aliph-foundation.org/storage/wsm_grants/HnHsXeiJ9qJorfPo1zjkzGKlTHUvMO53LXVygGJq.pdf",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.aliph-foundation.org/en/our-grants",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          5
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Demostrar daño o amenaza vinculada a conflicto, urgencia y capacidad de respuesta.",
+          "Aplicar por la línea de emergencia; comprobar condiciones vigentes en el portal."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000007",
+      "slug": "pulitzer-reportajes-globales",
+      "title": "Pulitzer Center — Reportajes de interés público",
+      "funder": "Pulitzer Center",
+      "url": "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+      "application": "https://pulitzercenter.tfaforms.net/236721",
+      "expectedVersion": 0,
+      "summary": "Financia costos de reportajes en profundidad. Admite periodistas y equipos de medios de cualquier país, incluidos medios sin fines de lucro.",
+      "description": "Recepción continua, sin restricción temática o de lugar del reportaje. El monto depende del presupuesto; el rango habitual para viajes no constituye un máximo.",
+      "eligibility": "Periodista o equipo editorial con una investigación periodística y un medio dispuesto a publicarla. Una campaña de una ONG no equivale a un reportaje elegible.",
+      "requirements": "Plan editorial y de distribución, presupuesto y carta de interés o compromiso de publicación. Admite español e inglés, entre otros idiomas.",
+      "restrictions": "Excluye campañas de incidencia o marketing, salarios de planta, compra de equipos, gastos generales, libros y largometrajes. En zonas peligrosas exige respaldo del medio y condiciones de seguridad. El formulario rechaza contenido sustancial generado con IA; permite traducción, corrección ligera y apoyo de escritura compatible con la autoría del periodista.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        2,
+        5,
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+        "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
+        "https://pulitzercenter.tfaforms.net/236721"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://pulitzercenter.org/applying-reporting-grant-frequently-asked-questions",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://pulitzercenter.tfaforms.net/236721",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://pulitzercenter.org/grants-fellowships/opportunities-journalists/global-reporting-grants",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Equipo periodístico y compromiso de publicación; no usar para comunicación promocional institucional.",
+          "Presupuesto de reporteo sin gastos indirectos.",
+          "El contenido sustancial de la propuesta debe ser del periodista; revisar límites de uso de IA en el formulario."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000008",
+      "slug": "nbc-conservacion-aves-neotropicales",
+      "title": "NBC — Conservación de aves neotropicales",
+      "funder": "Neotropical Birding and Conservation",
+      "url": "https://neotropicalbirdingandconservation.org/conservation/",
+      "application": "https://neotropicalbirdingandconservation.org/conservation/",
+      "expectedVersion": 0,
+      "summary": "Hasta US$3.000 para conservación de aves amenazadas o sitios de importancia global en Sudamérica, Centroamérica y el Caribe.",
+      "description": "Recibe solicitudes con dos evaluaciones anuales: 1 de febrero y 1 de julio. El próximo corte, según ese calendario, corresponde al 1 de febrero de 2027.",
+      "eligibility": "Proyecto ejecutado por nacionales o residentes de países de la región, con capacidad técnica y colaboración local. Chile está dentro del alcance sudamericano.",
+      "requirements": "Formulario oficial por correo, metodología, presupuesto y respaldo de la importancia de la especie o sitio. Consultas opcionales al menos tres semanas antes del corte.",
+      "restrictions": "No financia investigación sin contribución clara a la conservación. Especies amenazadas solo a nivel nacional normalmente no califican. El aporte debe representar una parte significativa del proyecto.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 3000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2027-02-01",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://neotropicalbirdingandconservation.org/conservation/",
+        "https://neotropicalbirdingandconservation.org/about-us/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://neotropicalbirdingandconservation.org/conservation/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://neotropicalbirdingandconservation.org/about-us/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "closed",
+          "sourceUrl": "https://neotropicalbirdingandconservation.org/conservation/",
+          "note": "La fuente fija 1 de febrero y 1 de julio cada año; próximo corte calculado al 22-11-2026: 01-02-2027. No informa hora."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://neotropicalbirdingandconservation.org/conservation/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Responsable nacional o residente; especie o sitio con importancia global.",
+          "Corte proyectado a partir del calendario anual; confirmar recepción y formulario con NBC."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000009",
+      "slug": "wikimedia-rapid-fund-2027",
+      "title": "Wikimedia — Rapid Fund para proyectos de conocimiento libre",
+      "funder": "Wikimedia Foundation",
+      "url": "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+      "application": "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+      "expectedVersion": 0,
+      "summary": "US$500–5.000 para proyectos de uno a doce meses que mejoren Wikipedia u otros proyectos Wikimedia. Próximo corte: 1 de febrero de 2027.",
+      "description": "Acepta grupos y organizaciones; Chile figura en la lista oficial de países financiados. Los aportes se desembolsan en moneda local.",
+      "eligibility": "Participación y experiencia reciente en Wikimedia, propia o de integrantes del equipo. Las organizaciones deben tener menos de dos subvenciones Rapid abiertas y respetar el máximo anual de US$10.000.",
+      "requirements": "Formulario, presupuesto, consulta a la comunidad y equipo con experiencia de edición y formación. Admite solicitudes en cualquier idioma.",
+      "restrictions": "No admite beneficiarios del General Support Fund, edición pagada, lobbying, mejoras a sitios ajenos a Wikimedia ni proyectos de investigación. Exige conducta comunitaria adecuada y contribuciones abiertas.",
+      "currency": "USD",
+      "minAmount": 500,
+      "maxAmount": 5000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2027-02-01",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        2,
+        5,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+        "https://meta.wikimedia.org/wiki/Grants:Administration/Countries"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://meta.wikimedia.org/wiki/Grants:Administration/Countries",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://meta.wikimedia.org/wiki/Grants:Programs/Wikimedia_Community_Fund/Rapid_Fund",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Proyecto específico de Wikimedia, con experiencia comprobable en la comunidad.",
+          "Verificar subvenciones abiertas, límite anual y exclusiones por otras ayudas."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000010",
+      "slug": "ea-funds-bienestar-animal",
+      "title": "EA Funds — Animal Welfare Fund",
+      "funder": "EA Funds",
+      "url": "https://funds.effectivealtruism.org/funds/animal-welfare",
+      "application": "https://funds.effectivealtruism.org/apply-for-funding",
+      "expectedVersion": 0,
+      "summary": "Financia proyectos que reducen el sufrimiento animal, con énfasis en animales de granja, especies y regiones desatendidas.",
+      "description": "Convocatoria permanente para organizaciones y personas de todo el mundo. La evaluación prioriza impacto y costo efectividad; el monto se determina por proyecto.",
+      "eligibility": "Trabajo alineado con bienestar animal: campañas, investigación, mejoras de prácticas o fortalecimiento de organizaciones especializadas.",
+      "requirements": "Seleccionar Animal Welfare Fund en el formulario común y explicar actividades, presupuesto e impacto esperado.",
+      "restrictions": "No es apoyo ambiental general: hay que demostrar reducción del sufrimiento animal. La aprobación y la viabilidad del pago se evalúan caso a caso.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/animal-welfare",
+        "https://funds.effectivealtruism.org/apply-for-funding"
+      ],
+      "funderUrl": "https://funds.effectivealtruism.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/funds/animal-welfare",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/apply-for-funding",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://funds.effectivealtruism.org/funds/animal-welfare",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Demostrar impacto concreto en bienestar animal y correspondencia con prioridades del fondo."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000011",
+      "slug": "ea-funds-infraestructura-comunidad",
+      "title": "EA Funds — Infraestructura de la comunidad de altruismo eficaz",
+      "funder": "EA Funds",
+      "url": "https://funds.effectivealtruism.org/funds/ea-community",
+      "application": "https://funds.effectivealtruism.org/apply-for-funding",
+      "expectedVersion": 0,
+      "summary": "Apoyo especializado para fortalecer proyectos y comunidades que aplican principios de altruismo eficaz.",
+      "description": "Recepción permanente. El organismo responsable señala que EA Infrastructure Fund apoya a personas que construyen comunidades en todo el mundo. Monto sujeto a evaluación.",
+      "eligibility": "Organizaciones, grupos o personas con un proyecto de investigación de prioridades, captación de talento, difusión, comunidad o recursos para iniciativas de alto impacto.",
+      "requirements": "Elegir EA Infrastructure Fund en el formulario común, describir el vínculo con altruismo eficaz, actividades, presupuesto y resultados esperados.",
+      "restrictions": "No corresponde a infraestructura física o gastos generales de cualquier ONG. El programa CBG es distinto y actualmente no admite nuevas solicitudes.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        2,
+        3,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/ea-community",
+        "https://funds.effectivealtruism.org/apply-for-funding",
+        "https://www.centreforeffectivealtruism.org/how-to-join-the-program"
+      ],
+      "funderUrl": "https://funds.effectivealtruism.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/funds/ea-community",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/apply-for-funding",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.centreforeffectivealtruism.org/how-to-join-the-program",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://funds.effectivealtruism.org/funds/ea-community",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Acreditar relación directa con la comunidad y principios de altruismo eficaz.",
+          "Seleccionar EA Infrastructure Fund; no confundir con CBG ni con apoyo genérico a ONG."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000012",
+      "slug": "oak-special-interest-consulta",
+      "title": "Oak Foundation — Consulta inicial a Special Interest Programme",
+      "funder": "Oak Foundation",
+      "url": "https://oakfnd.org/programmes/special-interest/",
+      "application": "https://oakfnd.org/submit-enquiry/",
+      "expectedVersion": 0,
+      "summary": "Canal de consulta inicial para organizaciones sin fines de lucro con proyectos alineados con las prioridades de Special Interest Programme.",
+      "description": "Programa de alcance mundial que recibe cartas de consulta. La recepción es continua, pero la propuesta completa solo se presenta por invitación y disponibilidad presupuestaria.",
+      "eligibility": "Organizaciones con trabajo compatible en salud, educación, medioambiente, ayuda humanitaria, artes u otras áreas del programa.",
+      "requirements": "Enviar una sola carta a través del formulario oficial y revisar previamente la estrategia. Se aceptan muy pocas consultas; el programa depende de las prioridades de sus consejeros.",
+      "restrictions": "La consulta no equivale a una postulación formal ni a un compromiso de apoyo. Generalmente financia hasta 50% del presupuesto del proyecto o 20% del organizacional; excepciones requieren acuerdo.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://oakfnd.org/programmes/special-interest/",
+        "https://oakfnd.org/faq-applying-for-funding-what-we-fund/",
+        "https://oakfnd.org/grant-making/",
+        "https://oakfnd.org/submit-enquiry/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://oakfnd.org/programmes/special-interest/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://oakfnd.org/faq-applying-for-funding-what-we-fund/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://oakfnd.org/grant-making/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://oakfnd.org/submit-enquiry/",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://oakfnd.org/programmes/special-interest/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Primero enviar una carta de consulta; no hay convocatoria abierta para propuestas completas.",
+          "Revisar afinidad estratégica y otras fuentes de financiamiento."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000013",
+      "slug": "reporters-respond-emergencia",
+      "title": "Reporters Respond — Apoyo urgente a medios y periodistas",
+      "funder": "Free Press Unlimited",
+      "url": "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+      "application": "https://www.freepressunlimited.org/en/reporters-respond-application-form-full-encryption",
+      "expectedVersion": 0,
+      "summary": "Asistencia puntual para medios y periodistas en riesgo por su trabajo. Canal de solicitud disponible; fecha de cierre no informada.",
+      "description": "Programa mundial de apoyo de emergencia, legal, psicosocial y de seguridad. El monto depende de la situación; confirma recepción antes de preparar antecedentes.",
+      "eligibility": "Medio de comunicación o profesional cuya emergencia derive directamente del ejercicio del periodismo, con situación verificable por dos fuentes confiables.",
+      "requirements": "Explicar el incidente y necesidades mediante el formulario oficial, usando un canal de contacto seguro y referencias que permitan comprobar la situación.",
+      "restrictions": "Ayuda temporal para retomar el trabajo; no financia la operación regular de un medio ni campañas de una organización.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 0,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+        "https://www.freepressunlimited.org/en/reporters-respond-application-form-full-encryption"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.freepressunlimited.org/en/reporters-respond-application-form-full-encryption",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.freepressunlimited.org/en/projects/reporters-respond-emergency-and-legal-support",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          6
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Vínculo entre riesgo y trabajo periodístico, dos referencias y necesidad puntual.",
+          "Recepción continua no confirmada expresamente; fuera de Solo abiertos."
+        ]
+      }
+    },
+    {
+      "id": "c5552026-0000-4000-8000-000000000014",
+      "slug": "pfizer-investigacion-atm-avi-2026",
+      "title": "Pfizer — Investigación independiente sobre ATM-AVI",
+      "funder": "Pfizer",
+      "url": "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf",
+      "application": "https://pfizermarcie.my.site.com/pfzrequester",
+      "expectedVersion": 0,
+      "summary": "Hasta US$50.000 para investigación clínica sobre uso temprano de aztreonam-avibactam en adultos. Chile está expresamente incluido.",
+      "description": "Cierre el 25 de noviembre de 2026 a las 23:59 de Nueva York. Duración máxima de dieciocho meses; inicio previsto en junio de 2027.",
+      "eligibility": "Organización e investigador principal radicados en un país elegible. El responsable debe tener la titulación sanitaria o científica exigida y vínculo laboral o contractual con la entidad.",
+      "requirements": "Postular en MARCIE al programa 2027 I&I G RWE on ATM-AVI RES. Protocolo, presupuesto en USD y aprobaciones éticas o regulatorias aplicables.",
+      "restrictions": "No es apoyo general a pacientes. Excluye individuos, grupos médicos independientes y estudios superpuestos financiados por Pfizer o con acceso preaprobación al fármaco. No entrega medicamentos; gastos indirectos hasta 28%.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 50000,
+      "amountStatus": 1,
+      "opened": "2026-09-30",
+      "closed": "2026-11-25",
+      "closeUtc": "2026-11-26T04:59:00",
+      "zone": "America/New_York",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        4
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-22",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf",
+          "note": "Fuente oficial revisada el 22-11-2026; verificar condiciones específicas antes de postular."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://cdn.pfizer.com/pfizercom/2026-10/2027-II-G-RWE-ATM-AVI-RES.pdf?VersionId=zK.drhx1UcjhKBTDU6REzsVBQllOwfLf",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          4
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Responsable con credenciales y vínculo institucional exigidos; capacidad de recibir fondos de Pfizer.",
+          "Investigación clínica específica en adultos; no confundir con apoyo comunitario en salud."
+        ]
+      }
+    }
+  ]
+}
