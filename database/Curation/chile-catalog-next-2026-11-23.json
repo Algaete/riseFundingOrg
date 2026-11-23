@@ -1,0 +1,1293 @@
+{
+  "batchId": "chile-catalog-next-2026-11-23",
+  "reviewedAt": "2026-11-23",
+  "funds": [
+    {
+      "id": "c6662026-0000-4000-8000-000000000001",
+      "slug": "fae-establecimientos-rbd-2027",
+      "title": "FAE 2027 — Educación artística en establecimientos con RBD",
+      "funder": "Ministerio de las Culturas, las Artes y el Patrimonio",
+      "url": "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+      "application": "https://clave.fondosdecultura.cl/",
+      "expectedVersion": 0,
+      "summary": "Hasta $10.000.000 CLP para formación artística en colegios subvencionados con RBD y perfil artístico acreditado.",
+      "description": "Cierra el 3 de diciembre de 2026, a las 15:00 de Santiago. Gestión territorial: hasta $10 millones; investigación y talentos: hasta $6 millones. Ejecución de hasta ocho meses, con inicio entre marzo y julio de 2027.",
+      "eligibility": "Persona jurídica chilena sin fines de lucro que represente al establecimiento. Debe acreditar reconocimiento oficial como escuela artística o la trayectoria específica de cinco años exigida para perfiles con o sin JEC.",
+      "requirements": "Perfil Cultura y antecedentes del establecimiento. Enfoque de género obligatorio. Gestión e investigación requieren contrapartida mínima de 10% del aporte solicitado.",
+      "restrictions": "No basta ofrecer talleres comunitarios. Talentos: estudiantes de 8 a 17 años, entre 3° básico y 3° medio. Una solicitud por modalidad y establecimiento, salvo talentos, con hasta tres.",
+      "currency": "CLP",
+      "minAmount": null,
+      "maxAmount": 10000000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-12-03",
+      "closeUtc": "2026-12-03T18:00:00",
+      "zone": "America/Santiago",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        2,
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+        "https://www.fondosdecultura.cl/wp-content/uploads/2026/09/bases-FAE-2027.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.fondosdecultura.cl/wp-content/uploads/2026/09/bases-FAE-2027.pdf",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          2
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Representar un colegio subvencionado con RBD y acreditar uno de los tres perfiles artísticos de ingreso.",
+          "Contrapartida de 10% en gestión e investigación; requisitos adicionales por modalidad."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000002",
+      "slug": "erase-indifference-2026",
+      "title": "Erase Indifference Challenge 2026",
+      "funder": "Auschwitz Pledge Foundation",
+      "url": "https://www.eraseindifference.org/challenge/",
+      "application": "https://www.eraseindifference.org/challenge/apply",
+      "expectedVersion": 0,
+      "summary": "Premios de €10.000 y €20.000 para iniciativas que movilizan a testigos de discriminación y demuestran resultados.",
+      "description": "Convocatoria mundial del 30 de octubre al 4 de diciembre de 2026, 23:59 CET. Un premio principal de €20.000 y siete de €10.000. Los ganadores pueden destinarlo a sus necesidades.",
+      "eligibility": "ONG u otra entidad legalmente constituida y operativa. Iniciativa implementada; si terminó, no debe haberlo hecho antes de diciembre de 2023.",
+      "requirements": "Postulación en inglés con evidencia de usuarios, ejecución e impacto. Finalistas participan en una reunión en línea.",
+      "restrictions": "Excluye grupos informales, ideas sin ejecutar, afiliación partidista y proselitismo. La atención directa a víctimas por sí sola no cumple: se exige activar a quienes presencian la discriminación.",
+      "currency": "EUR",
+      "minAmount": 10000,
+      "maxAmount": 20000,
+      "amountStatus": 1,
+      "opened": "2026-10-30",
+      "closed": "2026-12-04",
+      "closeUtc": "2026-12-04T22:59:00",
+      "zone": "Europe/Warsaw",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://www.eraseindifference.org/challenge/",
+        "https://cms.eraseindifference.org/assets/0dccd7e0-04c6-4f53-9cd8-adbce301fb65"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.eraseindifference.org/challenge/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://cms.eraseindifference.org/assets/0dccd7e0-04c6-4f53-9cd8-adbce301fb65",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.eraseindifference.org/challenge/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          6
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Resultados verificables de intervención frente a la indiferencia; no es capital semilla para una idea."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000003",
+      "slug": "mapfre-innovacion-social-decima-edicion",
+      "title": "Fundación MAPFRE — Premios a la Innovación Social, 10ª edición",
+      "funder": "Fundación MAPFRE",
+      "url": "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+      "application": "https://premiosinnovacion.fundacionmapfre.org/",
+      "expectedVersion": 0,
+      "summary": "€100.000 al ganador y €10.000 a cada uno de los otros tres finalistas. Admite fundaciones de Chile.",
+      "description": "Cierra el 1 de diciembre de 2026, 23:59 CET. Reconoce soluciones en bienestar, transformaciones demográficas e inclusión. Final y actividades obligatorias en Madrid, con viaje y alojamiento del representante cubiertos.",
+      "eligibility": "Promotor radicado en una región admitida, incluida América Latina. Producto o servicio en operación; salud e industria pueden estar en validación.",
+      "requirements": "Al menos dos jornadas completas equivalentes, una persona a tiempo completo. Ingresos o inversión acumulados superiores a €100.000 en 2024–2026, sin contar préstamos. Video de hasta tres minutos.",
+      "restrictions": "Admite español, inglés o portugués. Una idea inicial sin trayectoria ni recursos previos no cumple. La ausencia del representante en las actividades puede descalificar.",
+      "currency": "EUR",
+      "minAmount": 10000,
+      "maxAmount": 100000,
+      "amountStatus": 1,
+      "opened": "2026-10-15",
+      "closed": "2026-12-01",
+      "closeUtc": "2026-12-01T22:59:00",
+      "zone": "Europe/Madrid",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [],
+      "categories": [
+        2,
+        3,
+        4,
+        7,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+        "https://www.fundacionmapfre.mx/media/premios-ayudas/innovacion-social/bases-premios-innovacion-mx.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.fundacionmapfre.mx/media/premios-ayudas/innovacion-social/bases-premios-innovacion-mx.pdf",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Equipo mínimo de dos jornadas equivalentes y más de €100.000 acumulados de ingresos o inversión, excluyendo préstamos.",
+          "Solución en operación, salvo salud o industria en validación; disponibilidad para la final en Madrid."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000004",
+      "slug": "allianz-movenow-2026",
+      "title": "Allianz MoveNow — Innovación social liderada por jóvenes",
+      "funder": "Social Shifters",
+      "url": "https://www.socialshifters.co/allianz-movenow-social-innovation-challenge/",
+      "application": "https://globalinnovationchallenge.awardsplatform.com/",
+      "expectedVersion": 0,
+      "summary": "US$5.000 o US$10.000 para proyectos de inclusión financiera, equidad en salud o resiliencia climática comunitaria.",
+      "description": "Recepción del 7 de octubre al 18 de diciembre de 2026, 17:00 UTC. Concurso mundial en línea, con mentoría y presentación de finalistas en 2027. Chile no está entre los países excluidos.",
+      "eligibility": "Fundadores de 18 a 30 años con autoridad decisoria y al menos 51% de control joven. Admite ONG e iniciativas informales; entidades registradas deben tener como máximo cinco años.",
+      "requirements": "Una solicitud completa en inglés por participante. Demostrar impacto y liderazgo. Declarar asistencia de IA conforme a las bases.",
+      "restrictions": "La IA puede ayudar con idioma o estructura; no debe generar la mayoría del contenido ni sustituir la experiencia propia. US$90.000 es la bolsa total, no un premio individual.",
+      "currency": "USD",
+      "minAmount": 5000,
+      "maxAmount": 10000,
+      "amountStatus": 1,
+      "opened": "2026-10-07",
+      "closed": "2026-12-18",
+      "closeUtc": "2026-12-18T17:00:00",
+      "zone": "UTC",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        3,
+        4,
+        7,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://www.socialshifters.co/allianz-movenow-social-innovation-challenge/",
+        "https://www.socialshifters.co/wp-content/uploads/2026/10/Guidelines-Allianz-x-Social-Shifters-MoveNow-Social-Innovation-Challenge.pdf"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.socialshifters.co/allianz-movenow-social-innovation-challenge/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.socialshifters.co/wp-content/uploads/2026/10/Guidelines-Allianz-x-Social-Shifters-MoveNow-Social-Innovation-Challenge.pdf",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.socialshifters.co/allianz-movenow-social-innovation-challenge/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Liderazgo efectivo y control mayoritario de jóvenes de 18–30 años; antigüedad máxima de cinco años si la entidad está registrada.",
+          "Demostrar encaje en una de las tres áreas; revisar y declarar uso de IA."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000005",
+      "slug": "coefficient-incubadoras-2026",
+      "title": "Coefficient Giving — Incubadoras de organizaciones de alto impacto",
+      "funder": "Coefficient Giving",
+      "url": "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/",
+      "application": "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/",
+      "expectedVersion": 0,
+      "summary": "Financia incubadoras y aceleradoras que crean o hacen crecer organizaciones con impacto social costo efectivo.",
+      "description": "Primera etapa del 9 de noviembre al 18 de diciembre de 2026, 23:59 del Pacífico. Contempla apoyos de dos a tres años; monto sujeto a evaluación. Admite trabajo fuera de Estados Unidos.",
+      "eligibility": "Incubadoras existentes o equipos que crearán una, con foco en prioridades como salud mundial, bienestar animal o reducción de riesgos catastróficos.",
+      "requirements": "Explicar selección de ideas y fundadores, equipo, presupuesto y organizaciones que se pretende impulsar. Propuesta completa por invitación. Se necesita entidad receptora o patrocinador fiscal antes del desembolso.",
+      "restrictions": "No financia a quien busca iniciar una sola ONG para ejecutar su propio programa. Descarta propuestas que parezcan mayoritariamente generadas por IA.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": "2026-11-09",
+      "closed": "2026-12-18",
+      "closeUtc": "2026-12-19T07:59:00",
+      "zone": "America/Los_Angeles",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        3,
+        4,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/"
+      ],
+      "funderUrl": "https://coefficientgiving.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Debe tratarse de una incubadora o aceleradora; acreditar afinidad con las prioridades del financiador.",
+          "Revisar restricciones locales de recepción y contar con entidad o patrocinador fiscal al recibir fondos."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000006",
+      "slug": "awesome-conservacion-clima-noviembre-2026",
+      "title": "Awesome Foundation — Conservación y clima, noviembre 2026",
+      "funder": "Awesome Foundation — Conservation and Climate",
+      "url": "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+      "application": "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+      "expectedVersion": 0,
+      "summary": "US$1.000 para una idea ambiental innovadora, pequeña y próxima a ejecutarse.",
+      "description": "Próximo cierre publicado: 27 de noviembre de 2026; la fuente no precisa hora. El capítulo está clasificado como mundial y anuncia rondas posteriores durante 2027.",
+      "eligibility": "Personas y equipos pequeños con proyectos de fauna, hábitat, clima, ecoturismo o comunicación ambiental.",
+      "requirements": "Solicitud en inglés, presupuesto concreto y acceso a PayPal, Wise o Venmo para recibir el aporte. Explicar por qué US$1.000 permiten poner en marcha la idea.",
+      "restrictions": "No cubre sueldos, operación, viajes, marketing, gastos personales, proyectos ya establecidos ni política o religión. Ganadores anteriores esperan doce meses.",
+      "currency": "USD",
+      "minAmount": 1000,
+      "maxAmount": 1000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-11-27",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+        "https://www.awesomefoundation.org/chapters"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.awesomefoundation.org/chapters",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Innovación ambiental lista para ejecutarse; presupuesto sin gastos excluidos y medio de cobro admitido."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000007",
+      "slug": "keeling-curve-prize-2027",
+      "title": "Keeling Curve Prize 2027 — Soluciones climáticas",
+      "funder": "Climate Curve",
+      "url": "https://www.climatecurve.org/kcp",
+      "application": "https://kcp-conduit.org/apply/kcp/",
+      "expectedVersion": 0,
+      "summary": "US$50.000 por ganador para soluciones activas que reducen, evitan o capturan emisiones y pueden escalar.",
+      "description": "Abierto desde el 1 de noviembre de 2026 hasta el 15 de enero de 2027, 23:59 UTC−12. Solo se consideran las primeras 500 solicitudes que cumplan los requisitos; el cupo puede agotarse antes.",
+      "eligibility": "Proyectos de cualquier país donde el organismo pueda transferir fondos, incluidos equipos de ONG. Deben estar activos y mostrar resultados.",
+      "requirements": "Postular en inglés y cuantificar el impacto climático y su potencial de escala. Diez ganadores; una categoría premiada por proyecto.",
+      "restrictions": "Excluye ideas no implementadas y trabajo únicamente pasado. Prohíbe IA para generar o editar sustancialmente la candidatura; permite apoyo limitado de traducción y revisión. Confirmar cupo antes de preparar la postulación.",
+      "currency": "USD",
+      "minAmount": 50000,
+      "maxAmount": 50000,
+      "amountStatus": 1,
+      "opened": "2026-11-01",
+      "closed": "2027-01-15",
+      "closeUtc": "2027-01-16T11:59:00",
+      "zone": "Etc/GMT+12",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://www.climatecurve.org/kcp",
+        "https://kcp-conduit.org/apply/kcp/",
+        "https://www.climatecurve.org/faq"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.climatecurve.org/kcp",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://kcp-conduit.org/apply/kcp/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.climatecurve.org/faq",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.climatecurve.org/kcp",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Solución activa con reducción medible de emisiones y potencial de escala; confirmar cupo entre las primeras 500 elegibles.",
+          "No generar ni editar sustancialmente la candidatura mediante IA."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000008",
+      "slug": "food-planet-prize-nominaciones",
+      "title": "Food Planet Prize — Nominaciones para sistemas alimentarios sostenibles",
+      "funder": "Curt Bergfors Foundation",
+      "url": "https://foodplanetprize.org/foundation/prize/nominate/",
+      "application": "https://foodplanetprize.org/foundation/prize/nominate/",
+      "expectedVersion": 0,
+      "summary": "Nominación abierta todo el año para iniciativas que reducen el impacto ambiental del sistema alimentario.",
+      "description": "Admite autonominaciones y organizaciones sin fines de lucro de cualquier país. La evaluación dura más de doce meses y una nominación puede mantenerse varios años. El monto de la próxima edición no está confirmado.",
+      "eligibility": "Iniciativa alimentaria con evidencia y potencial de transformación ambiental; puede estar en etapas de crecimiento.",
+      "requirements": "Enviar una descripción inicial por el formulario oficial. Las seleccionadas pasan por revisión científica, institucional y financiera.",
+      "restrictions": "La nominación no garantiza evaluación en el año inmediato ni un premio. No es un fondo general de alimentación asistencial: exige una contribución ambiental al sistema alimentario.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        7,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://foodplanetprize.org/foundation/prize/nominate/",
+        "https://foodplanetprize.org/foundation/prize/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://foodplanetprize.org/foundation/prize/nominate/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://foodplanetprize.org/foundation/prize/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "amountStatus",
+          "sourceUrl": "https://foodplanetprize.org/foundation/prize/",
+          "note": "La página identifica los importes como premios 2026; no se extrapolan a nominaciones para una edición futura."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://foodplanetprize.org/foundation/prize/nominate/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Demostrar mejora ambiental del sistema alimentario y potencial de escala."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000009",
+      "slug": "box-impact-fund-2026",
+      "title": "Box Impact Fund 2026 — Transformación digital de ONG",
+      "funder": "Box / Tides Foundation",
+      "url": "https://www.box.org/impact-fund",
+      "application": "https://www.box.org/impact-fund",
+      "expectedVersion": 0,
+      "summary": "US$25.000 para transformación digital en protección de la infancia, respuesta a crisis o medioambiente.",
+      "description": "Seis subvenciones. Abierto del 5 al 30 de noviembre de 2026, 17:00 del Pacífico. Tides Foundation realiza la evaluación de recepción y concede los fondos.",
+      "eligibility": "ONG con estatus legal benéfico reconocido en su país o patrocinio fiscal admitido. No requiere ser cliente de Box.",
+      "requirements": "Solicitud en inglés que explique alineación temática, impacto, participación de usuarios y escalabilidad.",
+      "restrictions": "Para entidades fuera de EE.UU., el gasto en software, hardware y otros bienes de capital no debe superar US$5.000. No permite comprar productos, licencias ni servicios de Box. No es financiamiento general para atención clínica.",
+      "currency": "USD",
+      "minAmount": 25000,
+      "maxAmount": 25000,
+      "amountStatus": 1,
+      "opened": "2026-11-05",
+      "closed": "2026-11-30",
+      "closeUtc": "2026-12-01T01:00:00",
+      "zone": "America/Los_Angeles",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        3,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.box.org/impact-fund",
+        "https://www.box.org/impact-fund/termsandconditions",
+        "https://blog.box.com/box-impact-fund-returns-its-sixth-year-150k-nonprofit-innovation"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.box.org/impact-fund",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.box.org/impact-fund/termsandconditions",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://blog.box.com/box-impact-fund-returns-its-sixth-year-150k-nonprofit-innovation",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.box.org/impact-fund",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Proyecto digital en una de las tres áreas y condición benéfica verificable.",
+          "Gastos de capital de organizaciones internacionales: máximo US$5.000; no comprar servicios de Box."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000010",
+      "slug": "iffs-seguridad-pesca",
+      "title": "International Fund for Fishing Safety — Seguridad en la pesca",
+      "funder": "The Seafarers’ Charity",
+      "url": "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/apply-for-grant-funding",
+      "application": "https://seafarerscharity.benefactorcloud.co.uk/",
+      "expectedVersion": 0,
+      "summary": "Apoyo mundial a organizaciones que mejoran la seguridad y salud de quienes trabajan en pesca comercial.",
+      "description": "Solicitudes recibidas de manera continua. Antes de enviar, es obligatorio conversar con la coordinación y obtener su conformidad. Monto según el proyecto.",
+      "eligibility": "Organizaciones con intervenciones prácticas de prevención, formación, gestión de riesgos o auditoría de seguridad pesquera.",
+      "requirements": "Contactar a la coordinación indicada en la web y preparar propuesta, presupuesto y evidencia de resultados. Las alianzas locales son valoradas.",
+      "restrictions": "No sustituye obligaciones de empleadores, armadores ni gobiernos. No es financiamiento ambiental general o para pesca recreativa.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        4,
+        7
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/apply-for-grant-funding",
+        "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/home",
+        "https://seafarerscharity.benefactorcloud.co.uk/"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/apply-for-grant-funding",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/home",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://seafarerscharity.benefactorcloud.co.uk/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/apply-for-grant-funding",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Beneficio directo a trabajadores de pesca comercial y revisión previa con la coordinación antes de enviar."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000011",
+      "slug": "awesome-on-the-water",
+      "title": "Awesome Foundation — On the Water",
+      "funder": "Awesome Foundation — On the Water",
+      "url": "https://www.awesomefoundation.org/en/chapters/onthewater",
+      "application": "https://www.awesomefoundation.org/en/chapters/onthewater",
+      "expectedVersion": 0,
+      "summary": "Microaportes mensuales de US$1.000 para proyectos creativos y culturales que vinculan a las personas con el agua.",
+      "description": "Capítulo de alcance mundial con recepción de ideas y selección mensual. No publica un día de cierre por ronda.",
+      "eligibility": "Personas, colectivos y equipos con una propuesta concreta de creatividad, cultura o inclusión relacionada con el agua.",
+      "requirements": "Explicar qué se realizará, dónde, quiénes se benefician y la relación con el agua. Presentar una solicitud breve y específica.",
+      "restrictions": "El enfoque es cultural y comunitario; una necesidad general de infraestructura hídrica no asegura encaje.",
+      "currency": "USD",
+      "minAmount": 1000,
+      "maxAmount": 1000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.awesomefoundation.org/en/chapters/onthewater",
+        "https://www.awesomefoundation.org/chapters"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.awesomefoundation.org/en/chapters/onthewater",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.awesomefoundation.org/chapters",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.awesomefoundation.org/en/chapters/onthewater",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Relación concreta entre agua, creatividad, cultura o inclusión."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000012",
+      "slug": "lush-charity-pot",
+      "title": "Lush Charity Pot — Activismo comunitario",
+      "funder": "Lush",
+      "url": "https://www.lush.com/uk/en/a/charity-pot-funding-guidelines",
+      "application": "https://form.jotform.com/LushCharityPot/charity-pot-grant-application",
+      "expectedVersion": 0,
+      "summary": "£100–£10.000 para organizaciones de base en derechos humanos, medioambiente y protección animal.",
+      "description": "La recepción reabrió el 1 de noviembre de 2026 y se evalúa continuamente, normalmente en ocho a doce semanas. Acepta iniciativas fuera del Reino Unido, con liderazgo local; puede derivar a un equipo regional.",
+      "eligibility": "Grupos sin fines de lucro, predominantemente voluntarios y con ingresos anuales inferiores a £350.000. No exige registro como entidad benéfica.",
+      "requirements": "Presupuesto en GBP, dos referencias independientes y cuenta de la organización o patrocinador fiscal sin fines de lucro.",
+      "restrictions": "Excluye individuos, entidades religiosas o militares, violencia, vuelos, explotación animal y varias actividades comerciales. No sustituye financiamiento sanitario general. Una ayuda por doce meses; presentar informe antes de volver a postular.",
+      "currency": "GBP",
+      "minAmount": 100,
+      "maxAmount": 10000,
+      "amountStatus": 1,
+      "opened": "2026-11-01",
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1,
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.lush.com/uk/en/a/charity-pot-funding-guidelines",
+        "https://www.lush.com/uk/en/a/you-and-lush-have-donated-100m"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.lush.com/uk/en/a/charity-pot-funding-guidelines",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.lush.com/uk/en/a/you-and-lush-have-donated-100m",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.lush.com/uk/en/a/charity-pot-funding-guidelines",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": {
+          "amount": 350000,
+          "currency": "GBP",
+          "inclusive": false
+        },
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Ingresos inferiores a £350.000, predominio de voluntariado, liderazgo local y coherencia con los criterios éticos del fondo.",
+          "Recepción internacional con posible derivación al equipo local de Lush."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000013",
+      "slug": "save-the-night-fund-2026",
+      "title": "SAVE THE NIGHT Fund 2026 — Cultura nocturna inclusiva",
+      "funder": "Mast-Jägermeister SE",
+      "url": "https://eu.jagermeister.com/pages/terms-conditions-savethenightfund",
+      "application": "https://eu.jagermeister.com/pages/save-the-night-fund",
+      "expectedVersion": 0,
+      "summary": "Financia proyectos que hacen la vida nocturna más segura, inclusiva o sostenible; monto individual según propuesta.",
+      "description": "Recepción del 21 de octubre al 1 de diciembre de 2026, 23:59 CET. Inicio del proyecto entre el 1 de mayo y el 1 de diciembre de 2027. Bolsa total de €156.000, repartida según cada propuesta; no es el monto individual.",
+      "eligibility": "Representante con al menos 21 años al 1 de octubre de 2026. Colectivos y entidades de cualquier país; deben constituir una entidad registrada antes del acuerdo de financiamiento.",
+      "requirements": "Una solicitud por persona o entidad, presupuesto, cronograma, plan de comunicación y seguimiento de resultados. Relación directa con cultura nocturna.",
+      "restrictions": "Excluye ganadores anteriores, fiestas aisladas, mero patrocinio monetario, proyectos partidistas, discriminación y glorificación de drogas. Exige exclusividad frente a marcas competidoras desde marzo de 2027 hasta finalizar el proyecto; revisar el acuerdo. Acepta iniciativas sin alcohol.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": "2026-10-21",
+      "closed": "2026-12-01",
+      "closeUtc": "2026-12-01T22:59:00",
+      "zone": "Europe/Berlin",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        3,
+        5
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://eu.jagermeister.com/pages/terms-conditions-savethenightfund",
+        "https://eu.jagermeister.com/pages/save-the-night-fund"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://eu.jagermeister.com/pages/terms-conditions-savethenightfund",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://eu.jagermeister.com/pages/save-the-night-fund",
+          "note": "Formulario y FAQ oficiales: edad al 01-10, bolsa conjunta, ganadores anteriores y exclusividad. Revisión 23-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://eu.jagermeister.com/pages/terms-conditions-savethenightfund",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Vínculo directo con cultura nocturna; representante de al menos 21 años al 1 de octubre de 2026.",
+          "Entidad legal antes de firmar y exclusividad con marcas competidoras desde marzo de 2027; no ganadores anteriores."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000014",
+      "slug": "terre-de-femmes-arboles-2027",
+      "title": "Terre de Femmes 2027 — Árboles en la ciudad",
+      "funder": "Fondation Yves Rocher",
+      "url": "https://www.yves-rocher-fondation.org/en/how-to-apply-for-the-international-award/",
+      "application": "https://fondation-yves-rocher.wiin.io/en/applications/prix-terre-de-femmes-fondation-yves-rocher-edition2026-duplicate-8147a4?page-section=rules",
+      "expectedVersion": 0,
+      "summary": "€10.000 por proyecto para mujeres que lideran acciones de arbolado y naturaleza urbana a través de una ONG.",
+      "description": "Dos ganadoras mundiales. Cierra el 30 de noviembre de 2026: el portal publica 22:59 UTC, equivalente a 23:59 de Francia. Premiación en Francia durante 2027.",
+      "eligibility": "Mujer mayor de edad o colectivo de mujeres, de cualquier nacionalidad. Proyecto concreto mediante organización sin fines de lucro con al menos un año de existencia.",
+      "requirements": "Explicar acciones e impacto sobre árboles urbanos o periurbanos y acreditar trayectoria institucional. Usar la plataforma Wiin.",
+      "restrictions": "El proyecto debe vincularse directamente con árboles en la ciudad; no cubre cualquier iniciativa ambiental. Revisar participación en la ceremonia y obligaciones de las ganadoras.",
+      "currency": "EUR",
+      "minAmount": 10000,
+      "maxAmount": 10000,
+      "amountStatus": 1,
+      "opened": "2026-10-01",
+      "closed": "2026-11-30",
+      "closeUtc": "2026-11-30T22:59:00",
+      "zone": "Europe/Paris",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": 1,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://www.yves-rocher-fondation.org/en/how-to-apply-for-the-international-award/",
+        "https://fondation-yves-rocher.wiin.io/en/applications/prix-terre-de-femmes-fondation-yves-rocher-edition2026-duplicate-8147a4?page-section=rules"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.yves-rocher-fondation.org/en/how-to-apply-for-the-international-award/",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://fondation-yves-rocher.wiin.io/en/applications/prix-terre-de-femmes-fondation-yves-rocher-edition2026-duplicate-8147a4?page-section=rules",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "closeAtUtc",
+          "sourceUrl": "https://fondation-yves-rocher.wiin.io/en/applications/prix-terre-de-femmes-fondation-yves-rocher-edition2026-duplicate-8147a4?page-section=rules",
+          "note": "Se usa la hora exacta 22:59 UTC indicada en el portal; el texto general dice medianoche de Francia."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.yves-rocher-fondation.org/en/how-to-apply-for-the-international-award/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Mujer o colectivo de mujeres al frente del proyecto y ONG de al menos un año; foco en árboles urbanos."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000015",
+      "slug": "global-schools-prize-2027",
+      "title": "Global Schools Prize 2027 — Instituciones escolares",
+      "funder": "Varkey Foundation",
+      "url": "https://globalteacherprize.org/pages/global-schools-prize",
+      "application": "https://varkeyfoundation.awardsplatform.com/",
+      "expectedVersion": 0,
+      "summary": "US$50.000 por categoría y un premio principal de US$500.000 para escuelas con resultados educativos destacados.",
+      "description": "Postulaciones del 16 de septiembre al 16 de diciembre de 2026. Escuelas de cualquier país; ganadores anunciados en mayo de 2027.",
+      "eligibility": "Establecimiento de escolaridad obligatoria o su órgano administrador, según la legislación local. Admite escuelas públicas, privadas y especializadas.",
+      "requirements": "Postulación institucional con resultados de la categoría elegida. Cuenta bancaria a nombre de la escuela, con dos firmantes autorizados.",
+      "restrictions": "Excluye jardines infantiles, educación superior y programas comunitarios que no sean escuelas. Uso del premio sujeto a fines benéficos y aprobación del financiador; no permite pagos a personas vinculadas ni actividad política.",
+      "currency": "USD",
+      "minAmount": 50000,
+      "maxAmount": 550000,
+      "amountStatus": 1,
+      "opened": "2026-09-16",
+      "closed": "2026-12-16",
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 1,
+      "deadlinePrecision": 1,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        2
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 2,
+      "sources": [
+        "https://globalteacherprize.org/pages/global-schools-prize",
+        "https://globalteacherprize.org/pages/terms-and-conditions",
+        "https://globalteacherprize.org/news/global-schools-prize/2408/2408-Applications-Open-for-the-1-Million-Global-Schools-Prize"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://globalteacherprize.org/pages/global-schools-prize",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://globalteacherprize.org/pages/terms-and-conditions",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://globalteacherprize.org/news/global-schools-prize/2408/2408-Applications-Open-for-the-1-Million-Global-Schools-Prize",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "maxAmount",
+          "sourceUrl": "https://globalteacherprize.org/news/global-schools-prize/2408/2408-Applications-Open-for-the-1-Million-Global-Schools-Prize",
+          "note": "Máximo agregado inferido: US$50.000 de categoría más US$500.000 adicionales para el ganador general; no es un premio de US$1 millón por escuela."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://globalteacherprize.org/pages/global-schools-prize",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          2
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "La ONG debe ser la escuela elegible o su órgano administrador; no basta trabajar con estudiantes.",
+          "Cuenta bancaria de la escuela y uso del aporte aprobado por Varkey."
+        ]
+      }
+    },
+    {
+      "id": "c6662026-0000-4000-8000-000000000016",
+      "slug": "lloyds-register-small-grants-2026",
+      "title": "Lloyd’s Register Foundation — Small Grants 2026",
+      "funder": "Lloyd’s Register Foundation",
+      "url": "https://www.lrfoundation.org.uk/news/small-grants-programme-2026",
+      "application": "https://lloydsregisterfoundation.my.site.com/NGP/s/",
+      "expectedVersion": 0,
+      "summary": "Hasta £10.000 para proyectos que mejoran la seguridad mediante ingeniería, educación, patrimonio o evidencia de riesgos.",
+      "description": "Abierto hasta el 14 de diciembre de 2026, 23:59 GMT. Admite organizaciones registradas de cualquier país. Proyectos proporcionados al aporte y de hasta doce meses.",
+      "eligibility": "ONG, organizaciones comunitarias y otras entidades registradas con beneficio público demostrable, capacidad de administración y antecedentes financieros.",
+      "requirements": "Propuesta, presupuesto justificado y resultados compartibles. Si usa World Risk Poll, debe producir evidencia a partir de sus datos, no citarlo solo como contexto.",
+      "restrictions": "No financia personas, obras de capital, costos retroactivos, activismo, equipamiento general ni operación habitual. Personal e indirectos deben corresponder al proyecto y justificarse; no acepta porcentajes sin cálculo.",
+      "currency": "GBP",
+      "minAmount": null,
+      "maxAmount": 10000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-12-14",
+      "closeUtc": "2026-12-14T23:59:00",
+      "zone": "Europe/London",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": true,
+      "countryIds": [],
+      "regionIds": [],
+      "categories": [
+        2,
+        4,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-23",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.lrfoundation.org.uk/news/small-grants-programme-2026"
+      ],
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.lrfoundation.org.uk/news/small-grants-programme-2026",
+          "note": "Fuente oficial revisada el 23-11-2026."
+        },
+        {
+          "field": "sourceAccess",
+          "sourceUrl": "https://www.lrfoundation.org.uk/news/small-grants-programme-2026",
+          "note": "HTML público oficial recuperado directamente el 23-11-2026; el lector web devolvía 403. FAQ 2 y 3 confirman alcance mundial."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.lrfoundation.org.uk/news/small-grants-programme-2026",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Relación directa con seguridad y prevención de riesgos, resultados públicos y costos atribuibles."
+        ]
+      }
+    }
+  ]
+}
