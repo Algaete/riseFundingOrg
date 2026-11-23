@@ -3,7 +3,7 @@
 # Both modes temporarily allow only the current client IP and remove that rule on exit.
 set -euo pipefail
 mode="${1:---preview}"
-[[ "$mode" == '--preview' || "$mode" == '--apply' || "$mode" == '--preview-expansion' || "$mode" == '--apply-expansion' || "$mode" == '--inspect-expansion' || "$mode" == '--preview-eligibility' || "$mode" == '--apply-eligibility' || "$mode" == '--preview-resume' || "$mode" == '--apply-resume' || "$mode" == '--preview-scale' || "$mode" == '--apply-scale' || "$mode" == '--preview-next' || "$mode" == '--apply-next' ]] || exit 64
+[[ "$mode" == '--preview' || "$mode" == '--apply' || "$mode" == '--preview-expansion' || "$mode" == '--apply-expansion' || "$mode" == '--inspect-expansion' || "$mode" == '--preview-eligibility' || "$mode" == '--apply-eligibility' || "$mode" == '--preview-resume' || "$mode" == '--apply-resume' || "$mode" == '--preview-scale' || "$mode" == '--apply-scale' || "$mode" == '--preview-next' || "$mode" == '--apply-next' || "$mode" == '--preview-regions' || "$mode" == '--apply-regions' ]] || exit 64
 task_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [[ "$mode" == '--apply' ]]; then
   [[ "${RF_PILOT_CATALOG_CONFIRMATION:-}" == 'PUBLISH-THREE-REVIEWED-FUNDS-AND-WITHDRAW-TWO-SAMPLES' ]] || exit 64
@@ -23,6 +23,9 @@ fi
 if [[ "$mode" == '--apply-next' ]]; then
   [[ "${RF_CATALOG_NEXT_CONFIRMATION:-}" == 'PUBLISH-SIXTEEN-REVIEWED-CHILE-OPPORTUNITIES-20261123' ]] || exit 64
 fi
+if [[ "$mode" == '--apply-regions' ]]; then
+  [[ "${RF_CATALOG_REGIONS_CONFIRMATION:-}" == 'CONFIRM-FAE-AND-MAPFRE-ALL-SIXTEEN-CHILE-REGIONS-20261123' ]] || exit 64
+fi
 task_group='rg-rf-dev-ag26rf01'
 task_server='sql-rf-dev-ag26rf01-centralus'
 task_database='risefunding-dev'
@@ -31,7 +34,7 @@ task_database='risefunding-dev'
 task_fqdn="$(az sql server show -g "$task_group" -n "$task_server" --query fullyQualifiedDomainName -o tsv)"
 [[ "$task_fqdn" == 'sql-rf-dev-ag26rf01-centralus.database.windows.net' ]] || { echo 'Unexpected server.' >&2; exit 3; }
 [[ "$(az sql db show -g "$task_group" -s "$task_server" -n "$task_database" --query name -o tsv)" == "$task_database" ]] || exit 3
-if [[ "$mode" == '--apply' || "$mode" == '--apply-expansion' || "$mode" == '--apply-eligibility' || "$mode" == '--apply-resume' || "$mode" == '--apply-scale' || "$mode" == '--apply-next' ]]; then
+if [[ "$mode" == '--apply' || "$mode" == '--apply-expansion' || "$mode" == '--apply-eligibility' || "$mode" == '--apply-resume' || "$mode" == '--apply-scale' || "$mode" == '--apply-next' || "$mode" == '--apply-regions' ]]; then
   task_retention="$(az sql db str-policy show -g "$task_group" -s "$task_server" -n "$task_database" --query retentionDays -o tsv)"
   [[ "$task_retention" =~ ^[0-9]+$ ]] && (( task_retention >= 7 )) || { echo 'At least seven days PITR retention required.' >&2; exit 3; }
   [[ -n "$(az sql db show -g "$task_group" -s "$task_server" -n "$task_database" --query earliestRestoreDate -o tsv)" ]] || { echo 'No existing restore window confirmed.' >&2; exit 3; }
