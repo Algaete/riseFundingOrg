@@ -1,0 +1,298 @@
+{
+  "reviewedAt": "2026-11-23",
+  "target": "50–60 oportunidades abiertas o continuas para proyectos de ONG en Chile; meta todavía pendiente",
+  "result": {
+    "previousPublicCount": 29,
+    "newReviewedCount": 16,
+    "resultingPublicCount": 45,
+    "openOrRollingAsOfReview": 40
+  },
+  "decisions": [
+    {
+      "program": "FAE 2027 — Educación artística en establecimientos con RBD",
+      "status": "publish-reviewed",
+      "url": "https://www.fondosdecultura.cl/fondos/fondart-nacional/ventanilla-abierta/fae-2027-establecimientos-educacionales-rbd/",
+      "slug": "fae-establecimientos-rbd-2027",
+      "reason": "Representar un colegio subvencionado con RBD y acreditar uno de los tres perfiles artísticos de ingreso."
+    },
+    {
+      "program": "Erase Indifference Challenge 2026",
+      "status": "publish-reviewed",
+      "url": "https://www.eraseindifference.org/challenge/",
+      "slug": "erase-indifference-2026",
+      "reason": "Resultados verificables de intervención frente a la indiferencia; no es capital semilla para una idea."
+    },
+    {
+      "program": "Fundación MAPFRE — Premios a la Innovación Social, 10ª edición",
+      "status": "publish-reviewed",
+      "url": "https://www.fundacionmapfre.org/premios-ayudas/premios/premios-fundacion-mapfre-innovacion-social/",
+      "slug": "mapfre-innovacion-social-decima-edicion",
+      "reason": "Equipo mínimo de dos jornadas equivalentes y más de €100.000 acumulados de ingresos o inversión, excluyendo préstamos."
+    },
+    {
+      "program": "Allianz MoveNow — Innovación social liderada por jóvenes",
+      "status": "publish-reviewed",
+      "url": "https://www.socialshifters.co/allianz-movenow-social-innovation-challenge/",
+      "slug": "allianz-movenow-2026",
+      "reason": "Liderazgo efectivo y control mayoritario de jóvenes de 18–30 años; antigüedad máxima de cinco años si la entidad está registrada."
+    },
+    {
+      "program": "Coefficient Giving — Incubadoras de organizaciones de alto impacto",
+      "status": "publish-reviewed",
+      "url": "https://coefficientgiving.org/funds/effective-giving-and-careers/request-for-proposals-incubation/",
+      "slug": "coefficient-incubadoras-2026",
+      "reason": "Debe tratarse de una incubadora o aceleradora; acreditar afinidad con las prioridades del financiador."
+    },
+    {
+      "program": "Awesome Foundation — Conservación y clima, noviembre 2026",
+      "status": "publish-reviewed",
+      "url": "https://www.awesomefoundation.org/en/chapters/conservationandclimate",
+      "slug": "awesome-conservacion-clima-noviembre-2026",
+      "reason": "Innovación ambiental lista para ejecutarse; presupuesto sin gastos excluidos y medio de cobro admitido."
+    },
+    {
+      "program": "Keeling Curve Prize 2027 — Soluciones climáticas",
+      "status": "publish-reviewed",
+      "url": "https://www.climatecurve.org/kcp",
+      "slug": "keeling-curve-prize-2027",
+      "reason": "Solución activa con reducción medible de emisiones y potencial de escala; confirmar cupo entre las primeras 500 elegibles."
+    },
+    {
+      "program": "Food Planet Prize — Nominaciones para sistemas alimentarios sostenibles",
+      "status": "publish-reviewed",
+      "url": "https://foodplanetprize.org/foundation/prize/nominate/",
+      "slug": "food-planet-prize-nominaciones",
+      "reason": "Demostrar mejora ambiental del sistema alimentario y potencial de escala."
+    },
+    {
+      "program": "Box Impact Fund 2026 — Transformación digital de ONG",
+      "status": "publish-reviewed",
+      "url": "https://www.box.org/impact-fund",
+      "slug": "box-impact-fund-2026",
+      "reason": "Proyecto digital en una de las tres áreas y condición benéfica verificable."
+    },
+    {
+      "program": "International Fund for Fishing Safety — Seguridad en la pesca",
+      "status": "publish-reviewed",
+      "url": "https://www.theseafarerscharity.org/international-fund-for-fishing-safety/apply-for-grant-funding",
+      "slug": "iffs-seguridad-pesca",
+      "reason": "Beneficio directo a trabajadores de pesca comercial y revisión previa con la coordinación antes de enviar."
+    },
+    {
+      "program": "Awesome Foundation — On the Water",
+      "status": "publish-reviewed",
+      "url": "https://www.awesomefoundation.org/en/chapters/onthewater",
+      "slug": "awesome-on-the-water",
+      "reason": "Relación concreta entre agua, creatividad, cultura o inclusión."
+    },
+    {
+      "program": "Lush Charity Pot — Activismo comunitario",
+      "status": "publish-reviewed",
+      "url": "https://www.lush.com/uk/en/a/charity-pot-funding-guidelines",
+      "slug": "lush-charity-pot",
+      "reason": "Ingresos inferiores a £350.000, predominio de voluntariado, liderazgo local y coherencia con los criterios éticos del fondo."
+    },
+    {
+      "program": "SAVE THE NIGHT Fund 2026 — Cultura nocturna inclusiva",
+      "status": "publish-reviewed",
+      "url": "https://eu.jagermeister.com/pages/terms-conditions-savethenightfund",
+      "slug": "save-the-night-fund-2026",
+      "reason": "Vínculo directo con cultura nocturna; representante de al menos 21 años al 1 de octubre de 2026."
+    },
+    {
+      "program": "Terre de Femmes 2027 — Árboles en la ciudad",
+      "status": "publish-reviewed",
+      "url": "https://www.yves-rocher-fondation.org/en/how-to-apply-for-the-international-award/",
+      "slug": "terre-de-femmes-arboles-2027",
+      "reason": "Mujer o colectivo de mujeres al frente del proyecto y ONG de al menos un año; foco en árboles urbanos."
+    },
+    {
+      "program": "Global Schools Prize 2027 — Instituciones escolares",
+      "status": "publish-reviewed",
+      "url": "https://globalteacherprize.org/pages/global-schools-prize",
+      "slug": "global-schools-prize-2027",
+      "reason": "La ONG debe ser la escuela elegible o su órgano administrador; no basta trabajar con estudiantes."
+    },
+    {
+      "program": "Lloyd’s Register Foundation — Small Grants 2026",
+      "status": "publish-reviewed",
+      "url": "https://www.lrfoundation.org.uk/news/small-grants-programme-2026",
+      "slug": "lloyds-register-small-grants-2026",
+      "reason": "Relación directa con seguridad y prevención de riesgos, resultados públicos y costos atribuibles."
+    },
+    {
+      "program": "PADI AWARE 2027",
+      "status": "pending-not-open",
+      "url": "https://www.padi.com/gb/en/conservation/grant-funding-criteria",
+      "reason": "Próxima convocatoria 2027; fechas aún no confirmadas."
+    },
+    {
+      "program": "Patagonia Chile",
+      "status": "excluded-closed",
+      "url": "https://cl.patagonia.com/pages/donaciones-ambientales",
+      "reason": "Ventana 1 agosto–15 septiembre de 2026 cerrada."
+    },
+    {
+      "program": "Awesome Libraries",
+      "status": "excluded-inactive",
+      "url": "https://www.awesomefoundation.org/fr/chapters/libraries",
+      "reason": "Capítulo inactivo. No extrapolar recepción de otros capítulos."
+    },
+    {
+      "program": "Pawanka Fund",
+      "status": "excluded-no-open-call",
+      "url": "https://pawankafund.org/about-us/",
+      "reason": "No mantiene convocatoria pública abierta."
+    },
+    {
+      "program": "Global Fund for Women",
+      "status": "excluded-no-unsolicited",
+      "url": "https://www.globalfundforwomen.org/contact-us/",
+      "reason": "No acepta propuestas no solicitadas."
+    },
+    {
+      "program": "FIMI AYNI 2026",
+      "status": "excluded-closed",
+      "url": "https://fimi-iiwf.org/convocatorias/convocatoria-ayni-2026/",
+      "reason": "Cerró el 30 de junio."
+    },
+    {
+      "program": "F.M. Kirby Impact Prize 2027",
+      "status": "excluded-cap-reached",
+      "url": "https://case.fuqua.duke.edu/kirby-impact-prize/",
+      "reason": "Cerrado anticipadamente por alcanzar 250 solicitudes; fecha nominal de diciembre no implica abierto."
+    },
+    {
+      "program": "Premio ACME Chile",
+      "status": "excluded-closed",
+      "url": "https://premioacme.cl/",
+      "reason": "Cierre 13 de noviembre de 2026."
+    },
+    {
+      "program": "Fondeporte 2027",
+      "status": "excluded-closed",
+      "url": "https://ind.cl/noticias/ind-cumple-tus-suenos-deportivos-se-abren-las-postulaciones-a-proyectos-fondeporte-2027/",
+      "reason": "Cierre 6 de noviembre de 2026."
+    },
+    {
+      "program": "Ciencia Pública y PAR Explora",
+      "status": "excluded-closed",
+      "url": "https://prod.minciencia.gob.cl/noticias/se-extiende-el-plazo-de-postulacion-de-concursos-ciencia-publica-y-par-explora/",
+      "reason": "Prórroga hasta 16 de octubre de 2026, ya finalizada."
+    },
+    {
+      "program": "FAE instituciones y organizaciones 2027",
+      "status": "excluded-closed",
+      "url": "https://www.fondosdecultura.cl/fondos/fondo-museos/lineas-de-concurso/fae-instituciones-organizaciones-2027/",
+      "reason": "Modalidad distinta de establecimientos con RBD: cerró el 29 de septiembre."
+    },
+    {
+      "program": "Rapid Response Facility UNESCO",
+      "status": "excluded-geography",
+      "url": "https://rapid-response.org/how-to-apply/",
+      "reason": "Elegibilidad restringida a países receptores ODA; no presumir cobertura de Chile."
+    },
+    {
+      "program": "HCLTech Global Grant 2027",
+      "status": "excluded-geography",
+      "url": "https://globalgrant.hcltech.com/faq",
+      "reason": "Lista oficial de 24 países no incluye Chile."
+    },
+    {
+      "program": "EA Long-Term Future Fund",
+      "status": "excluded-closed",
+      "url": "https://funds.effectivealtruism.org/funds/long-term-future",
+      "reason": "Sitio oficial indica que el fondo está cerrado; no confundir con otros canales de IA."
+    },
+    {
+      "program": "Getty Library Research Grants",
+      "status": "excluded-paused",
+      "url": "https://www.getty.edu/projects/library-research-grants/",
+      "reason": "Convocatoria 2027 suspendida por cierre temporal del centro."
+    },
+    {
+      "program": "Getty Conservation Guest Scholars",
+      "status": "excluded-closed",
+      "url": "https://www.getty.edu/projects/conservation-guest-scholars/",
+      "reason": "Plazo de la edición 2027–2028 ya transcurrido."
+    },
+    {
+      "program": "UNDP/IEEE GenAI for Good 2026",
+      "status": "excluded-project-geography",
+      "url": "https://www.undp.org/eurasia/blog/undp-and-ieee-invite-innovators-develop-ai-solutions-urban-challenges",
+      "reason": "Equipos internacionales, pero desafíos de implementación en Pristina, Rivne y Skopje; no financiamiento de ejecución en Chile."
+    },
+    {
+      "program": "Green Spark / Reconstruction Women’s Fund",
+      "status": "excluded-geography",
+      "url": "https://www.rwfund.org/eng/programs/green-spark/",
+      "reason": "Programa balcánico; no confundir con convocatorias homónimas."
+    },
+    {
+      "program": "Lush Spring Prize 2027",
+      "status": "pending-intake",
+      "url": "https://springprize.org/",
+      "reason": "Sitio muestra edición 2025; no se confirmó nueva recepción. Distinto de Charity Pot."
+    },
+    {
+      "program": "Taiwan Foundation for Democracy, international grants",
+      "status": "pending-primary-evidence",
+      "url": "https://www.tfd.org.tw/en/grants",
+      "reason": "Página oficial entrega shell JavaScript; no se verificaron bases internacionales actuales. Resultados de ayudas domésticas no demuestran elegibilidad chilena."
+    },
+    {
+      "program": "Ocean Culture Life Storytelling Grants 2027",
+      "status": "pending-primary-evidence",
+      "url": "https://www.oceanculturelife.com/",
+      "reason": "Portada anuncia convocatoria, pero página específica entrega shell JavaScript y no se confirmaron montos/plazos primarios."
+    },
+    {
+      "program": "Lifeline",
+      "status": "pending-intake",
+      "url": "https://www.csolifeline.org/",
+      "reason": "Sitio devuelve 401; guía histórica no prueba recepción vigente."
+    },
+    {
+      "program": "JTI Foundation",
+      "status": "pending-intake",
+      "url": "https://jtifoundation.org/",
+      "reason": "Pendiente confirmar canal actual para propuestas no solicitadas y elegibilidad."
+    },
+    {
+      "program": "Coefficient: programas y eventos GCR",
+      "status": "pending-country",
+      "url": "https://coefficientgiving.org/funds/global-catastrophic-risks-opportunities/funding-for-programs-and-events-on-global-catastrophic-risk-effective-altruism-and-other-topics/",
+      "reason": "Canal vigente; falta confirmar alcance aplicable a proyectos en Chile antes de publicar."
+    },
+    {
+      "program": "Coefficient: capacidad ante riesgos de IA",
+      "status": "pending-country",
+      "url": "https://coefficientgiving.org/funds/navigating-transformative-ai/funding-for-work-that-builds-capacity-to-address-risks-from-transformative-ai/",
+      "reason": "Programa especializado; requiere revisar elegibilidad y evitar duplicar rutas al mismo financiamiento."
+    },
+    {
+      "program": "Coefficient Project Tailwind",
+      "status": "pending-eligibility",
+      "url": "https://coefficientgiving.org/tailwind/",
+      "reason": "Pendiente revisar FAQ, alcance y etapa de recepción; no duplicar con capacidad de IA."
+    },
+    {
+      "program": "National Geographic The Human Thread",
+      "status": "pending-ngo-recipient",
+      "url": "https://www.nationalgeographic.org/explore/grants-investments",
+      "reason": "Convocatoria dirigida a personas; falta confirmar receptor institucional para incluir como oportunidad de ONG."
+    },
+    {
+      "program": "Ockenden International Prizes 2027",
+      "status": "pending-intake",
+      "url": "https://www.ockendenprizes.org/",
+      "reason": "Contenido oficial consultado refiere premios/reglas 2026. No inferir apertura 2027 por calendario de años anteriores."
+    },
+    {
+      "program": "Start-Up Chile BIG 13",
+      "status": "pending-ngo-eligibility",
+      "url": "https://www.corfo.gob.cl/sites/cpp/nacional/start-up-chile-abrio-convocatoria-global-para-startups-tecnologicas-con-financiamiento-de-hasta-75-millones/",
+      "reason": "Abierto para startups; elegibilidad de entidades sin fines de lucro no confirmada."
+    }
+  ]
+}
