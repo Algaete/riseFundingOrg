@@ -36,7 +36,7 @@ El publicador tiene una lista cerrada de 14 identificadores nuevos, transacción
 `--verify-scale-local` usa únicamente la base desechable `res` en `127.0.0.1,14363`, prepara las 15 fichas anteriores y revierte al terminar. Comprueba publicación de las 29 fichas por el procedimiento público real, fechas y monedas de cada nueva ficha, regiones y contrapartida GEF, límite presupuestario ITF, conservación de incertidumbres, financiadores compartidos y replay sin cambios. Compara las filas y versiones de las 15 fichas previas antes y después.
 
 1. Compilar `tools/FundingPlatform.PilotCatalog` en Release y ejecutar la validación local.
-2. Aprobar CI de PR y main, publicar el SHA exacto mediante los workflows existentes.
+2. Aprobar CI de PR y main; usar ese checkout exacto para publicar los datos. Este lote no modifica código ni configuración de API/frontend: no requiere reconstruir sus despliegues existentes. Registrar por separado el commit del catálogo y la versión de la aplicación publicada.
 3. Ejecutar `infra/scripts/curate-pilot-dev.sh --preview-scale` para verificar el lote en una transacción revertida.
 4. Aplicar con `RF_CATALOG_SCALE_CONFIRMATION=PUBLISH-FOURTEEN-REVIEWED-CHILE-OPPORTUNITIES-20261122` y `--apply-scale`; repetir para comprobar cero cambios.
 5. Comparar lista y detalle públicos de las 14 fichas, conservar las 15 anteriores y verificar Solo abiertos, filtros territoriales y vistas de escritorio/móvil.
