@@ -1,0 +1,148 @@
+{
+  "reviewedAt": "2026-11-24",
+  "target": "50–60 oportunidades abiertas o continuas para proyectos de ONG en Chile",
+  "expectedResult": {
+    "previousPublicCount": 45,
+    "newFundingLines": 10,
+    "fundersInBatch": 6,
+    "resultingPublicCount": 55,
+    "openOrRollingAsOfReview": 50
+  },
+  "notice": "Conteos previstos; la comprobación posterior a publicación se conserva en artifacts/expand-20261124/public-acceptance.json.",
+  "decisions": [
+    {
+      "program": "Vegan Grants — Activismo y alimentación vegetal",
+      "status": "publish-reviewed",
+      "slug": "vegan-grants-activismo",
+      "url": "https://vgrants.org/grants/",
+      "reason": "Personas y organizaciones de cualquier país, incluido Chile, con iniciativas dirigidas a públicos no veganos o influyentes.",
+      "restrictions": "Excluye negocios con fines de lucro y exige un mensaje vegano claro. No publica un rango de aportes."
+    },
+    {
+      "program": "Thrive Grant — Sistemas alimentarios vegetales",
+      "status": "publish-reviewed",
+      "slug": "thrive-grant-diciembre-2026",
+      "url": "https://www.thrivephilanthropy.org/thrivegrant/",
+      "reason": "Entidades sin fines de lucro fuera de EE. UU.; Chile está admitido. Se orienta a organizaciones medianas o mayores con resultados; prioriza antiguas beneficiarias.",
+      "restrictions": "Excluye ayuda alimentaria, bancos de alimentos, campañas de bienestar de animales de granja, agricultura celular y capítulos de grandes organizaciones internacionales."
+    },
+    {
+      "program": "Thrive Seed Grant — Iniciativas alimentarias nuevas",
+      "status": "publish-reviewed",
+      "slug": "thrive-seed-diciembre-2026",
+      "url": "https://www.thrivephilanthropy.org/seedgrant",
+      "reason": "Organizaciones pequeñas o nuevas y personas fuera de EE. UU., incluido Chile. También se dirige a quienes no han recibido antes apoyo de Thrive.",
+      "restrictions": "Excluye negocios, ayuda alimentaria, bienestar de animales de granja, agricultura celular y capítulos de grandes organizaciones internacionales. Un huerto aislado no basta."
+    },
+    {
+      "program": "Het Actiefonds — Acciones y campañas regulares",
+      "status": "publish-reviewed",
+      "slug": "het-actiefonds-acciones-regulares",
+      "url": "https://hetactiefonds.nl/en/register-your-action/",
+      "reason": "Grupos de base de alcance internacional, incluido Chile, que impulsan cambios sociales mediante acciones concretas.",
+      "restrictions": "No financia atención de salud, ayuda humanitaria, operación habitual ni educación aislada. Rechaza solicitudes escritas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios."
+    },
+    {
+      "program": "Rainforest Trust — Creación y ampliación de áreas protegidas",
+      "status": "publish-reviewed",
+      "slug": "rainforest-trust-areas-protegidas",
+      "url": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+      "reason": "ONG registrada y autorizada a operar en el país del proyecto. Considera propuestas sólidas fuera de trópicos y subtrópicos si cumplen los demás criterios, lo que permite evaluar proyectos chilenos.",
+      "restrictions": "No es financiamiento ambiental general. US$10.000 es el promedio de factibilidad, no un máximo. La línea de creación no fija un tope."
+    },
+    {
+      "program": "Open Technology Fund — Internet Freedom Fund",
+      "status": "publish-reviewed",
+      "slug": "otf-internet-freedom",
+      "url": "https://www.opentech.fund/funds/internet-freedom-fund/",
+      "reason": "Organizaciones con o sin fines de lucro y personas de al menos 18 años de distintos países, incluido Chile, sujetas a las restricciones internacionales del financiador.",
+      "restrictions": "No cubre digitalización ordinaria de una ONG, conectividad básica, formación aislada ni incidencia jurídica general."
+    },
+    {
+      "program": "Open Technology Fund — Respuesta rápida a emergencias digitales",
+      "status": "publish-reviewed",
+      "slug": "otf-respuesta-rapida",
+      "url": "https://www.opentech.fund/funds/rapid-response-fund/",
+      "reason": "Activistas, periodistas, defensores y organizaciones de alto riesgo, incluido Chile, ante una emergencia digital clara y reciente o inminente vinculada a actores represivos.",
+      "restrictions": "No reemplaza dispositivos personales robados o perdidos, ni cubre fortalecimiento general de largo plazo o gastos ajenos a la emergencia digital."
+    },
+    {
+      "program": "EA Funds — Transformative AI Fund",
+      "status": "publish-reviewed",
+      "slug": "ea-funds-ia-transformativa",
+      "url": "https://funds.effectivealtruism.org/funds/transformative-ai",
+      "reason": "Personas, organizaciones nuevas y entidades existentes con proyectos nuevos. El FAQ admite solicitantes de cualquier país y no exige registro benéfico.",
+      "restrictions": "No es un fondo para incorporar chatbots a cualquier ONG. Bioseguridad y riesgos nucleares solo entran si se relacionan con IA."
+    },
+    {
+      "program": "Het Actiefonds — Climate Justice Grants",
+      "status": "publish-reviewed",
+      "slug": "het-actiefonds-justicia-climatica",
+      "url": "https://hetactiefonds.nl/en/climate-justice-grants/",
+      "reason": "Colectivos y comunidades de base de distintos países, incluido Chile, con una estrategia de justicia climática.",
+      "restrictions": "Excluye educación aislada, atención de salud y ayuda humanitaria. No acepta postulaciones redactadas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios."
+    },
+    {
+      "program": "Het Actiefonds — Acciones urgentes",
+      "status": "publish-reviewed",
+      "slug": "het-actiefonds-acciones-urgentes",
+      "url": "https://hetactiefonds.nl/en/urgent-application-2/",
+      "reason": "Grupos de base, incluido Chile, que no podían anticipar la acción ni esperar al comité mensual.",
+      "restrictions": "No cubre actividades ya planificadas que buscan dinero a última hora ni asistencia humanitaria o de salud. Las solicitudes no deben estar escritas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios."
+    },
+    {
+      "program": "Digital Defenders Incident Response Fund",
+      "status": "exclude-paused",
+      "url": "https://www.digitaldefenders.org/incident-response-fund/",
+      "reason": "La página oficial informa pausa por presupuesto agotado; no recibe solicitudes nuevas."
+    },
+    {
+      "program": "CIVICUS Crisis Response Fund",
+      "status": "exclude-paused",
+      "url": "https://www.civicus.org/index.php?id=786&option=com_sppagebuilder&view=page",
+      "reason": "Pausa anunciada hasta comienzos de 2027."
+    },
+    {
+      "program": "Roddenberry Catalyst Fund",
+      "status": "exclude-no-open-call",
+      "url": "https://apply.roddenberryfoundation.org/app/main/faqs",
+      "reason": "FAQ oficial: no hay programas abiertos ni fechas programadas; un formulario antiguo no prueba recepción actual."
+    },
+    {
+      "program": "Draper Richards Kaplan Foundation",
+      "status": "exclude-territory",
+      "url": "https://www.drkfoundation.org/apply/faq/",
+      "reason": "Elegibilidad actual para operaciones en África, Europa, India y EE. UU.; no corresponde inferir Chile."
+    },
+    {
+      "program": "National Endowment for Democracy",
+      "status": "pending-chile-eligibility",
+      "url": "https://www.ned.org/apply-for-grant/en/",
+      "reason": "Excluye implementación en democracias consolidadas; no se ha confirmado Chile como destino elegible."
+    },
+    {
+      "program": "Lifeline",
+      "status": "pending-current-intake",
+      "url": "https://www.csolifeline.org/",
+      "reason": "No se pudo confirmar recepción vigente; folletos históricos no bastan."
+    },
+    {
+      "program": "Emergent Ventures",
+      "status": "pending-explicit-deadline-status",
+      "url": "https://www.mercatus.org/emergent-ventures",
+      "reason": "Formulario actual e internacional, pero falta confirmar expresamente recepción continua o un cierre aplicable."
+    },
+    {
+      "program": "Coefficient Giving programas y eventos",
+      "status": "pending-chile-eligibility",
+      "url": "https://coefficientgiving.org/funds/global-catastrophic-risks-opportunities/funding-for-programs-and-events-on-global-catastrophic-risk-effective-altruism-and-other-topics/",
+      "reason": "Recepción continua; falta evidencia territorial explícita para Chile."
+    },
+    {
+      "program": "Patagonia Chile",
+      "status": "pending-current-local-intake",
+      "url": "https://cl.patagonia.com/pages/grants",
+      "reason": "Chile figura en la cobertura internacional; falta confirmar la ventana regional actual."
+    }
+  ]
+}

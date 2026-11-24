@@ -1,0 +1,1004 @@
+{
+  "batchId": "chile-catalog-more-2026-11-24",
+  "reviewedAt": "2026-11-24",
+  "funds": [
+    {
+      "id": "c7772026-0000-4000-8000-000000000001",
+      "slug": "vegan-grants-activismo",
+      "title": "Vegan Grants — Activismo y alimentación vegetal",
+      "funder": "Vegan Grants",
+      "url": "https://vgrants.org/grants/",
+      "application": "https://vgrants.org/pre-application/",
+      "expectedVersion": 0,
+      "summary": "Apoya campañas sin fines de lucro para impulsar dietas y menús veganos. Monto según evaluación.",
+      "description": "Recibe solicitudes durante todo el año. La primera etapa es una evaluación breve de afinidad; se prefieren planes de un año.",
+      "eligibility": "Personas y organizaciones de cualquier país, incluido Chile, con iniciativas dirigidas a públicos no veganos o influyentes.",
+      "requirements": "Completar la prepostulación en inglés y explicar objetivos, presupuesto e impacto esperado.",
+      "restrictions": "Excluye negocios con fines de lucro y exige un mensaje vegano claro. No publica un rango de aportes.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        1,
+        11
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://vgrants.org/grants/",
+        "https://vgrants.org/faqs/",
+        "https://vgrants.org/pre-application/"
+      ],
+      "funderUrl": "https://vgrants.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://vgrants.org/grants/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://vgrants.org/faqs/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://vgrants.org/pre-application/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://vgrants.org/grants/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "La iniciativa debe promover cambios de dieta o menús veganos y demostrar costo efectividad."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000002",
+      "slug": "thrive-grant-diciembre-2026",
+      "title": "Thrive Grant — Sistemas alimentarios vegetales",
+      "funder": "Thrive Philanthropy",
+      "url": "https://www.thrivephilanthropy.org/thrivegrant/",
+      "application": "https://thrive.smapply.io/",
+      "expectedVersion": 0,
+      "summary": "US$10.000–30.000 para organizaciones con trayectoria que promueven alternativas a la ganadería industrial.",
+      "description": "Próximo corte: 1 de diciembre de 2026, 23:59 GMT, dentro del calendario trimestral vigente. Normalmente concede un aporte anual por organización.",
+      "eligibility": "Entidades sin fines de lucro fuera de EE. UU.; Chile está admitido. Se orienta a organizaciones medianas o mayores con resultados; prioriza antiguas beneficiarias.",
+      "requirements": "Postulación en línea y propuesta coherente con su política de convivencia y reputación comunitaria. Prioriza presupuestos inferiores a US$500.000, sin imponer ese monto como límite.",
+      "restrictions": "Excluye ayuda alimentaria, bancos de alimentos, campañas de bienestar de animales de granja, agricultura celular y capítulos de grandes organizaciones internacionales.",
+      "currency": "USD",
+      "minAmount": 10000,
+      "maxAmount": 30000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-12-01",
+      "closeUtc": "2026-12-01T23:59:00",
+      "zone": "Europe/London",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        1,
+        11
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": true,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.thrivephilanthropy.org/thrivegrant/"
+      ],
+      "funderUrl": "https://www.thrivephilanthropy.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.thrivephilanthropy.org/thrivegrant/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "deadline",
+          "sourceUrl": "https://www.thrivephilanthropy.org/thrivegrant/",
+          "note": "El programa confirma recepción actual y cortes trimestrales: se selecciona el próximo 1 de diciembre, sin inventar una fecha de apertura."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.thrivephilanthropy.org/thrivegrant/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Encaje en transición alimentaria vegetal; no confundir con asistencia alimentaria."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000003",
+      "slug": "thrive-seed-diciembre-2026",
+      "title": "Thrive Seed Grant — Iniciativas alimentarias nuevas",
+      "funder": "Thrive Philanthropy",
+      "url": "https://www.thrivephilanthropy.org/seedgrant",
+      "application": "https://thrive.smapply.io/",
+      "expectedVersion": 0,
+      "summary": "Hasta US$5.000 para iniciativas pequeñas o nuevas que reducen la demanda de producción animal industrial.",
+      "description": "Próximo corte: 1 de diciembre de 2026, 23:59 GMT. Es una línea semilla distinta de Thrive Grant; contempla proyectos puntuales y personas sin registro como ONG.",
+      "eligibility": "Organizaciones pequeñas o nuevas y personas fuera de EE. UU., incluido Chile. También se dirige a quienes no han recibido antes apoyo de Thrive.",
+      "requirements": "Solicitud en línea y presupuesto vinculado a una estrategia alimentaria vegetal. Presupuesto institucional inferior a US$500.000 es una prioridad, no una condición excluyente.",
+      "restrictions": "Excluye negocios, ayuda alimentaria, bienestar de animales de granja, agricultura celular y capítulos de grandes organizaciones internacionales. Un huerto aislado no basta.",
+      "currency": "USD",
+      "minAmount": null,
+      "maxAmount": 5000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": "2026-12-01",
+      "closeUtc": "2026-12-01T23:59:00",
+      "zone": "Europe/London",
+      "deadlineType": 1,
+      "deadlinePrecision": 2,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        1,
+        11
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.thrivephilanthropy.org/seedgrant"
+      ],
+      "funderUrl": "https://www.thrivephilanthropy.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.thrivephilanthropy.org/seedgrant",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.thrivephilanthropy.org/seedgrant",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Proyecto pequeño o nuevo con estrategia para reducir la demanda de producción animal industrial."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000004",
+      "slug": "het-actiefonds-acciones-regulares",
+      "title": "Het Actiefonds — Acciones y campañas regulares",
+      "funder": "Het Actiefonds",
+      "url": "https://hetactiefonds.nl/en/register-your-action/",
+      "application": "https://hetactiefonds.nl/en/register-your-action/",
+      "expectedVersion": 0,
+      "summary": "Hasta €2.500 para acciones directas no violentas de movimientos sociales.",
+      "description": "Recepción sin fecha de cierre. Presentar al menos un mes antes de la acción; el comité no evalúa durante agosto.",
+      "eligibility": "Grupos de base de alcance internacional, incluido Chile, que impulsan cambios sociales mediante acciones concretas.",
+      "requirements": "Explicar la acción, su estrategia, presupuesto y referencias. El presupuesto total del proyecto no puede superar €20.000.",
+      "restrictions": "No financia atención de salud, ayuda humanitaria, operación habitual ni educación aislada. Rechaza solicitudes escritas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios.",
+      "currency": "EUR",
+      "minAmount": null,
+      "maxAmount": 2500,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2,
+        4
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://hetactiefonds.nl/en/register-your-action/",
+        "https://hetactiefonds.nl/en/criteria-applications/",
+        "https://hetactiefonds.nl/en/regular-application/"
+      ],
+      "funderUrl": "https://hetactiefonds.nl/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/register-your-action/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/criteria-applications/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/regular-application/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://hetactiefonds.nl/en/register-your-action/",
+        "projectBudgetLimit": {
+          "amount": 20000,
+          "currency": "EUR",
+          "inclusive": true
+        },
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Acción directa no violenta; la preferencia por entidades con ingresos menores de €100.000 no es un límite obligatorio.",
+          "Redactar la postulación sin IA."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000005",
+      "slug": "rainforest-trust-areas-protegidas",
+      "title": "Rainforest Trust — Creación y ampliación de áreas protegidas",
+      "funder": "Rainforest Trust",
+      "url": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+      "application": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+      "expectedVersion": 0,
+      "summary": "Financia protección duradera de hábitats y estudios de factibilidad previos. Monto sujeto a evaluación.",
+      "description": "Recibe notas conceptuales todo el año; la propuesta completa requiere invitación. Solicitudes de creación por US$250.000 o más tienen cortes el 1 de marzo, julio y octubre.",
+      "eligibility": "ONG registrada y autorizada a operar en el país del proyecto. Considera propuestas sólidas fuera de trópicos y subtrópicos si cumplen los demás criterios, lo que permite evaluar proyectos chilenos.",
+      "requirements": "Crear o ampliar protección legal de un área, justificar su valor para especies amenazadas o clima y acreditar apoyo de autoridades y comunidades, incluido consentimiento previo cuando corresponda.",
+      "restrictions": "No es financiamiento ambiental general. US$10.000 es el promedio de factibilidad, no un máximo. La línea de creación no fija un tope.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        1
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": true,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.rainforesttrust.org/get-involved/apply-for-funding/"
+      ],
+      "funderUrl": "https://www.rainforesttrust.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.rainforesttrust.org/get-involved/apply-for-funding/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          1
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "El área debe cumplir los criterios de biodiversidad y obtener protección nueva o ampliada; la ubicación en Chile por sí sola no garantiza elegibilidad."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000006",
+      "slug": "otf-internet-freedom",
+      "title": "Open Technology Fund — Internet Freedom Fund",
+      "funder": "Open Technology Fund",
+      "url": "https://www.opentech.fund/funds/internet-freedom-fund/",
+      "application": "https://apply.opentech.fund/",
+      "expectedVersion": 0,
+      "summary": "US$10.000–900.000 para tecnología e investigación aplicada frente a censura y vigilancia represiva.",
+      "description": "Recepción continua, con nota conceptual y propuesta completa por invitación. Duración máxima de 24 meses; el pago se realiza por entregables mediante contrato.",
+      "eligibility": "Organizaciones con o sin fines de lucro y personas de al menos 18 años de distintos países, incluido Chile, sujetas a las restricciones internacionales del financiador.",
+      "requirements": "Explicar el problema de libertad de internet, solución, presupuesto, resultados y sostenibilidad. Prioriza proyectos nuevos y áreas poco financiadas.",
+      "restrictions": "No cubre digitalización ordinaria de una ONG, conectividad básica, formación aislada ni incidencia jurídica general.",
+      "currency": "USD",
+      "minAmount": 10000,
+      "maxAmount": 900000,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        6,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.opentech.fund/funds/internet-freedom-fund/",
+        "https://apply.opentech.fund/"
+      ],
+      "funderUrl": "https://www.opentech.fund/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.opentech.fund/funds/internet-freedom-fund/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://apply.opentech.fund/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.opentech.fund/funds/internet-freedom-fund/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Vínculo directo con censura o vigilancia en entornos represivos; revisar las obligaciones del contrato por entregables."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000007",
+      "slug": "otf-respuesta-rapida",
+      "title": "Open Technology Fund — Respuesta rápida a emergencias digitales",
+      "funder": "Open Technology Fund",
+      "url": "https://www.opentech.fund/funds/rapid-response-fund/",
+      "application": "https://apply.opentech.fund/",
+      "expectedVersion": 0,
+      "summary": "Asistencia técnica o financiamiento para responder a amenazas digitales urgentes contra defensores y organizaciones.",
+      "description": "Recibe solicitudes continuamente. Los aportes suelen estar entre US$1 y US$50.000, pero puede considerar cifras mayores; no hay un máximo publicado. Normalmente cubre hasta seis meses.",
+      "eligibility": "Activistas, periodistas, defensores y organizaciones de alto riesgo, incluido Chile, ante una emergencia digital clara y reciente o inminente vinculada a actores represivos.",
+      "requirements": "Describir amenaza, urgencia y respuesta. Para aporte financiero directo, demostrar capacidad de ejecutar el trabajo; desembolsos por entregables contractuales.",
+      "restrictions": "No reemplaza dispositivos personales robados o perdidos, ni cubre fortalecimiento general de largo plazo o gastos ajenos a la emergencia digital.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        6,
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://www.opentech.fund/funds/rapid-response-fund/",
+        "https://apply.opentech.fund/"
+      ],
+      "funderUrl": "https://www.opentech.fund/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://www.opentech.fund/funds/rapid-response-fund/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://apply.opentech.fund/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://www.opentech.fund/funds/rapid-response-fund/",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Acreditar amenaza digital y necesidad de respuesta breve; puede ofrecer servicios técnicos en lugar de dinero."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000008",
+      "slug": "ea-funds-ia-transformativa",
+      "title": "EA Funds — Transformative AI Fund",
+      "funder": "EA Funds",
+      "url": "https://funds.effectivealtruism.org/funds/transformative-ai",
+      "application": "https://av20jp3z.paperform.co/",
+      "expectedVersion": 0,
+      "summary": "Apoya iniciativas tempranas que reducen riesgos de la IA avanzada. El monto se evalúa por proyecto.",
+      "description": "Convocatoria permanentemente abierta. Los aportes suelen ser de US$10.000–150.000 y rara vez superan US$300.000; estas referencias no son límites de elegibilidad.",
+      "eligibility": "Personas, organizaciones nuevas y entidades existentes con proyectos nuevos. El FAQ admite solicitantes de cualquier país y no exige registro benéfico.",
+      "requirements": "Proponer investigación técnica, gobernanza, formación u otro trabajo relacionado directamente con riesgos de IA transformativa.",
+      "restrictions": "No es un fondo para incorporar chatbots a cualquier ONG. Bioseguridad y riesgos nucleares solo entran si se relacionan con IA.",
+      "currency": null,
+      "minAmount": null,
+      "maxAmount": null,
+      "amountStatus": 0,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        8
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        2
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": false,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://funds.effectivealtruism.org/funds/transformative-ai",
+        "https://funds.effectivealtruism.org/faq"
+      ],
+      "funderUrl": "https://funds.effectivealtruism.org/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/funds/transformative-ai",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://funds.effectivealtruism.org/faq",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "geography",
+          "sourceUrl": "https://funds.effectivealtruism.org/faq",
+          "note": "Respuesta oficial del FAQ obtenida del contenido público serializado de la página: admite solicitudes desde cualquier país."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://funds.effectivealtruism.org/funds/transformative-ai",
+        "projectBudgetLimit": null,
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [
+          8
+        ],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Proyecto temprano con contribución concreta a riesgos o implicancias de IA avanzada."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000009",
+      "slug": "het-actiefonds-justicia-climatica",
+      "title": "Het Actiefonds — Climate Justice Grants",
+      "funder": "Het Actiefonds",
+      "url": "https://hetactiefonds.nl/en/climate-justice-grants/",
+      "application": "https://hetactiefonds.nl/en/cjg-apply-for-funding/",
+      "expectedVersion": 0,
+      "summary": "Hasta €2.500 por grupo al año para fortalecer movimientos de justicia climática.",
+      "description": "Línea distinta del apoyo a acciones regulares: admite articulación de redes, estrategias y cuidado colectivo. Solicitudes continuas, al menos un mes antes; agosto sin evaluación.",
+      "eligibility": "Colectivos y comunidades de base de distintos países, incluido Chile, con una estrategia de justicia climática.",
+      "requirements": "Explicar cómo las actividades refuerzan el movimiento y conducen a acciones. Presupuesto total del proyecto no superior a €20.000.",
+      "restrictions": "Excluye educación aislada, atención de salud y ayuda humanitaria. No acepta postulaciones redactadas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios.",
+      "currency": "EUR",
+      "minAmount": null,
+      "maxAmount": 2500,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        1,
+        6,
+        9
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2,
+        4
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://hetactiefonds.nl/en/climate-justice-grants/",
+        "https://hetactiefonds.nl/en/cjg-apply-for-funding/",
+        "https://hetactiefonds.nl/en/criteria-applications/"
+      ],
+      "funderUrl": "https://hetactiefonds.nl/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/climate-justice-grants/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/cjg-apply-for-funding/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/criteria-applications/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://hetactiefonds.nl/en/climate-justice-grants/",
+        "projectBudgetLimit": {
+          "amount": 20000,
+          "currency": "EUR",
+          "inclusive": true
+        },
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Fortalecimiento de un movimiento de justicia climática; no basta una actividad ambiental general.",
+          "Redactar la postulación sin IA."
+        ]
+      }
+    },
+    {
+      "id": "c7772026-0000-4000-8000-000000000010",
+      "slug": "het-actiefonds-acciones-urgentes",
+      "title": "Het Actiefonds — Acciones urgentes",
+      "funder": "Het Actiefonds",
+      "url": "https://hetactiefonds.nl/en/urgent-application-2/",
+      "application": "https://hetactiefonds.nl/en/urgent-application/",
+      "expectedVersion": 0,
+      "summary": "Hasta €250 para acciones no violentas ante un hecho social o político inesperado.",
+      "description": "Vía urgente distinta de la solicitud regular, disponible sin cierre fijo. Busca decidir en 72 horas; no procesa solicitudes durante agosto.",
+      "eligibility": "Grupos de base, incluido Chile, que no podían anticipar la acción ni esperar al comité mensual.",
+      "requirements": "Justificar el hecho imprevisto, acción, presupuesto y referencia independiente. Se aplican los criterios generales, incluido presupuesto total máximo de €20.000.",
+      "restrictions": "No cubre actividades ya planificadas que buscan dinero a última hora ni asistencia humanitaria o de salud. Las solicitudes no deben estar escritas por IA. Excluye partidos políticos, entidades religiosas y proyectos presentados por intermediarios.",
+      "currency": "EUR",
+      "minAmount": null,
+      "maxAmount": 250,
+      "amountStatus": 1,
+      "opened": null,
+      "closed": null,
+      "closeUtc": null,
+      "zone": null,
+      "deadlineType": 2,
+      "deadlinePrecision": 0,
+      "globalScope": false,
+      "countryIds": [
+        152
+      ],
+      "regionIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "categories": [
+        6
+      ],
+      "organizationTypes": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "legalEntityTypes": [],
+      "beneficiaries": [],
+      "projectTypes": [],
+      "languages": [
+        1,
+        2,
+        4
+      ],
+      "minimumOperatingYears": null,
+      "requiresLegalEntity": null,
+      "requiresPriorExperience": null,
+      "requiresCofunding": null,
+      "sourceVerifiedDate": "2026-11-24",
+      "fundingTypeId": 1,
+      "sources": [
+        "https://hetactiefonds.nl/en/urgent-application-2/",
+        "https://hetactiefonds.nl/en/urgent-application/",
+        "https://hetactiefonds.nl/en/criteria-applications/"
+      ],
+      "funderUrl": "https://hetactiefonds.nl/",
+      "evidence": [
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/urgent-application-2/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/urgent-application/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        },
+        {
+          "field": "editorialReview",
+          "sourceUrl": "https://hetactiefonds.nl/en/criteria-applications/",
+          "note": "Fuente oficial revisada el 24-11-2026."
+        }
+      ],
+      "eligibilityPolicy": {
+        "sourceUrl": "https://hetactiefonds.nl/en/urgent-application-2/",
+        "projectBudgetLimit": {
+          "amount": 20000,
+          "currency": "EUR",
+          "inclusive": true
+        },
+        "organizationAnnualBudgetLimit": null,
+        "requiredCategoryIds": [],
+        "requiredBeneficiaryTypeIds": [],
+        "manualRequirements": [
+          "Debe existir un hecho imprevisto que exija acción inmediata.",
+          "Redactar la postulación sin IA."
+        ]
+      }
+    }
+  ]
+}
